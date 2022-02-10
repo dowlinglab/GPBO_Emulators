@@ -60,7 +60,7 @@ def y_plotter(test_mesh, z):
 
     #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
     #Plot sse.T because test_mesh.T was used to calculate sse
-    plt.contourf(xx, yy,sse_map.T)
+    plt.contourf(xx, yy,z.T)
     plt.colorbar()
 
     #Plots the true optimal value and the GP value
