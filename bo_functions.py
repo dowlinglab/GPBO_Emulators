@@ -51,7 +51,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias):
             ei = 0
     return ei
 
-def y_plotter(test_mesh, z):
+def y_plotter(test_mesh, z, p_true, p_GP_opt):
     # Plot Heat Map for SSE
 
     #Defines the x and y coordinates that will be used to generate the heat map, this step isn't
@@ -64,8 +64,8 @@ def y_plotter(test_mesh, z):
     plt.colorbar()
 
     #Plots the true optimal value and the GP value
-    plt.scatter(Theta_True[0],Theta_True[1], color="red", label = "True", s=50)
-    plt.scatter(Theta_Opt_GP[0],Theta_Opt_GP[1], color="orange", label = "GP")
+    plt.scatter(p_true[0],p_true[1], color="red", label = "True", s=50)
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP")
 
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')
@@ -81,7 +81,59 @@ def y_plotter(test_mesh, z):
 
     #Shows plot
     return plt.show()
-  
+
+def stdev_plotter(test_mesh, z, p_true, p_GP_opt):
+
+    xx , yy = test_mesh
+
+    #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
+    #Plot stdev.T because test_mesh.T was used to calculate stdev
+    plt.contourf(xx,yy,z.T)
+    plt.colorbar()
+
+    #Plots the true optimal value and the GP value
+    plt.scatter(p_true[0],p_true[1], color="red", label = "True", s=50)
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP")
+
+    #Plots axes such that they are scaled the same way (eg. circles look like circles)
+    plt.axis('scaled')
+
+    #Plots grid and legend
+    plt.grid()
+    plt.legend(loc = 'best')
+
+    #Creates axis labels and title
+    plt.xlabel('Theta 1',weight='bold')
+    plt.ylabel('Theta 2',weight='bold')
+    plt.title('Heat Map of Standard Deviation', weight='bold',fontsize = 16)
+
+    #Shows plot
+    return plt.show()
+
+def ei_plotter(test_mesh, z, p_true, p_GP_opt):
+    xx , yy = test_mesh
+    
+    #Plots EI
+    plt.contourf(xx, yy,z.T)
+    plt.colorbar()
+
+    #Plots axes such that they are scaled the same way (eg. circles look like circles)
+    plt.axis('scaled')
+    
+    #Plots the true optimal value and the GP value
+    plt.scatter(p_true[0],p_true[1], color="red", label = "True", s=50)
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP")
+    
+    #Plots grid and legend
+    plt.grid()
+
+    #Creates axis labels and title
+    plt.xlabel('Theta 1',weight='bold')
+    plt.ylabel('Theta 2',weight='bold')
+    plt.title('Heat Map of Expected Improvement', weight='bold',fontsize = 16)
+
+    #Shows plot
+    return plt.show()
 
 # def cacl_ei_advanced():
 #     EI = np.zeros(len(test_T)) # 1 x 25
