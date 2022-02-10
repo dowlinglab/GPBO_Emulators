@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.stats import norm
-from matplotlib import pyplot as plt
 
 def calc_best_error(test_p, x, y_model, noise):
     """
@@ -51,93 +50,10 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias):
             ei = 0
     return ei
 
-def y_plotter(test_mesh, z, p_true, p_GP_opt):
-    # Plot Heat Map for SSE
-
-    #Defines the x and y coordinates that will be used to generate the heat map, this step isn't
-    #necessary, but streamlines the process
-    xx , yy = test_mesh
-
-    #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
-    #Plot sse.T because test_mesh.T was used to calculate sse
-    plt.contourf(xx, yy,z.T)
-    plt.colorbar()
-
-    #Plots the true optimal value and the GP value
-    plt.scatter(p_true[0],p_true[1], color="red", label = "True", s=50)
-    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP")
-
-    #Plots axes such that they are scaled the same way (eg. circles look like circles)
-    plt.axis('scaled')
-
-    #Plots grid and legend
-    plt.grid()
-    plt.legend(loc = 'best')
-
-    #Creates axis labels and title
-    plt.xlabel('Theta 1',weight='bold')
-    plt.ylabel('Theta 2',weight='bold')
-    plt.title('Heat Map of SSE', weight='bold',fontsize = 16)
-
-    #Shows plot
-    return plt.show()
-
-def stdev_plotter(test_mesh, z, p_true, p_GP_opt):
-
-    xx , yy = test_mesh
-
-    #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
-    #Plot stdev.T because test_mesh.T was used to calculate stdev
-    plt.contourf(xx,yy,z.T)
-    plt.colorbar()
-
-    #Plots the true optimal value and the GP value
-    plt.scatter(p_true[0],p_true[1], color="red", label = "True", s=50)
-    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP")
-
-    #Plots axes such that they are scaled the same way (eg. circles look like circles)
-    plt.axis('scaled')
-
-    #Plots grid and legend
-    plt.grid()
-    plt.legend(loc = 'best')
-
-    #Creates axis labels and title
-    plt.xlabel('Theta 1',weight='bold')
-    plt.ylabel('Theta 2',weight='bold')
-    plt.title('Heat Map of Standard Deviation', weight='bold',fontsize = 16)
-
-    #Shows plot
-    return plt.show()
-
-def ei_plotter(test_mesh, z, p_true, p_GP_opt):
-    xx , yy = test_mesh
-    
-    #Plots EI
-    plt.contourf(xx, yy,z.T)
-    plt.colorbar()
-
-    #Plots axes such that they are scaled the same way (eg. circles look like circles)
-    plt.axis('scaled')
-    
-    #Plots the true optimal value and the GP value
-    plt.scatter(p_true[0],p_true[1], color="red", label = "True", s=50)
-    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP")
-    
-    #Plots grid and legend
-    plt.grid()
-
-    #Creates axis labels and title
-    plt.xlabel('Theta 1',weight='bold')
-    plt.ylabel('Theta 2',weight='bold')
-    plt.title('Heat Map of Expected Improvement', weight='bold',fontsize = 16)
-
-    #Shows plot
-    return plt.show()
-
 # def cacl_ei_advanced():
 #     EI = np.zeros(len(test_T)) # 1 x 25
-#     #If variance is zero this is important 
+#     #If variance is zero this is important
+
 #     with np.errstate(divide = 'warn'):
 #         #Creates upper and lower bounds and described by Nilay's word doc
 #         bound_upper = ((sse_true[j] - model_mean[j]) +np.sqrt(best_error))/model_variance[j]
