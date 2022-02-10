@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import norm
 
 def calc_best_error(test_p, x, y_model, noise):
     """
@@ -21,7 +22,7 @@ def calc_best_error(test_p, x, y_model, noise):
         best_error = np.argmax(y_model)
     return best_error
 
-def calc_ei_basic(f_best,pred_mean,pred_var,explore_bias):
+def calc_ei_basic(f_best,pred_mean,pred_var,best_error, explore_bias):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
     Parameters
@@ -36,7 +37,15 @@ def calc_ei_basic(f_best,pred_mean,pred_var,explore_bias):
         ei: ndarray, the expected improvement of the GP model
     
     """
-    return 
+    pred_stdev = np.sqrt(pred_var)
+    if pred_stdev > 0:
+        z = (pred_mean - best_error - explore_bias)/pred_stdev
+        ei_term_1 = (pred_mean - best_error - explore_bias)*norm.cdf(z)
+        ei_term_2 = pred_stdev*norm.pdf(z)
+        ei = ei_term_1 +ei_term_2
+    else:
+        ei = 0
+    return ei
 
 # def cacl_ei_advanced():
 #     EI = np.zeros(len(test_T)) # 1 x 25
