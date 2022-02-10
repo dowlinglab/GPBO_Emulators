@@ -1,11 +1,11 @@
-def calc_best_error(test_p, y_true, x, y_model, noise):
+def calc_best_error(test_p, x, y_true, y_model, noise):
     """
     Calculates the best error in the GP model
     
     Parameters
     ----------
         test_p: ndarray: The parameter space for which the best error is being calculated
-        y_true: ndarray: The expected values of y based on the actual model
+        y_true: ndarray: The actual value of the model (based on data or otherwise)
         y_model: ndarray: The y values that the GP model predicts 
         noise: ndarray: The noise associated with the experimental value of the model
     
@@ -14,17 +14,17 @@ def calc_best_error(test_p, y_true, x, y_model, noise):
         best_error: float, the value of the best error encountered  
      """ 
     error = np.zeros(len(test_p)) #1 x 25
-    y_true = np.zeros(len(test_p)) #1 x 25
+    y_real = np.zeros(len(test_p)) #1 x 25
 
     for i in range(len(test_x)):
         test_p_1 = test_p[i,0] #5x1 
         test_p_2 = test_p[i,1] #5x1
         #Calculates actual y value for each parameter space combination
         y_exp = test_p_1*x + test_p_2*x**2 +x**3 + noise #100 x5
-        #Ccalculates the actual sse for each theta combo
-        y_true[i] = sum((y_true - y_exp)**2) # A number
-        #Calculates error of sse and sse_model
-        error[i] = (y_true[i]-y_model[i])**2 #A number
+        #Ccalculates the actual y for each p combo
+        y_real[i] = sum((y_true - y_exp)**2) # A number
+        #Calculates error of model
+        error[i] = (y_real[i]-y_model[i])**2 #A number
         if j == 0:
             #Sets first error to be the best error
             best_error = -error[i]
