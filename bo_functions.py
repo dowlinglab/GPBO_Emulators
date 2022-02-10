@@ -70,7 +70,7 @@ def best_error_advanced(test_p, y_model, y_true, noise):
     y_real = np.zeros(len(test_p)) #1 x 25
     for i in range(len(test_p)):
         test_p_1 = test_p[i,0] #5x1 (Theta 1) 
-            test_p_2 = test_p[i,1] #5x1(Theta 2)
+        test_p_2 = test_p[i,1] #5x1(Theta 2)
         test_p_3 = test_p[i,3] #5x1 (x)
         #Calculates actual y value for each parameter space combination
         y_exp = test_p_1*test_p_3 + test_p_2*test_p_3**2 +test_p_3**3 #+ noise #100 x5 (will need to redefine noise)
