@@ -22,14 +22,14 @@ def calc_best_error(test_p, x, y_model, noise):
         best_error = np.argmax(y_model)
     return best_error
 
-def calc_ei_basic(f_best,pred_mean,pred_var,best_error, explore_bias):
+def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
     Parameters
     ----------
         f_best: float, the best predicted sse encountered
-        pred_mean: ndarray, model mean
-        pred_var, ndarray, model variance
+        pred_mean: tensor, model mean
+        pred_var, tensor, model variance
         explore_bias: float, the numerical bias towards exploration
     
     Returns
@@ -37,14 +37,17 @@ def calc_ei_basic(f_best,pred_mean,pred_var,best_error, explore_bias):
         ei: ndarray, the expected improvement of the GP model
     
     """
-    pred_stdev = np.sqrt(pred_var)
-    if pred_stdev > 0:
-        z = (pred_mean - best_error - explore_bias)/pred_stdev
-        ei_term_1 = (pred_mean - best_error - explore_bias)*norm.cdf(z)
-        ei_term_2 = pred_stdev*norm.pdf(z)
-        ei = ei_term_1 +ei_term_2
-    else:
-        ei = 0
+    pred_mean = pred_mean.numpy() #1x25
+    pred_var = pred_var.numpy()    #1x25
+    pred_stdev = np.sqrt(pred_var) #1x25
+    for i in range(len(pred_mean)):
+        if pred_stdev[i] > 0:
+            z = (pred_mean - f_best - explore_bias)/pred_stdev #1x25
+            ei_term_1 = (pred_mean[i] - f_best - explore_bias)*norm.cdf(z) #1 x 25
+            ei_term_2 = pred_stdev*norm.pdf(z) #1 x 25
+            ei = ei_term_1 +ei_term_2
+        else:
+            ei = 0
     return ei
 
 # def cacl_ei_advanced():
