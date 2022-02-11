@@ -103,7 +103,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias):
     return ei
 
 
-def best_error_advanced(test_p, y_model, y_true, noise):
+def best_error_advanced(test_p, y_model, y_true):
     
     """
     Calculates the best error in the 3 input GP model
@@ -112,7 +112,7 @@ def best_error_advanced(test_p, y_model, y_true, noise):
     ----------
         test_p: ndarray: The parameter space for which the best error is being calculated
         y_model: ndarray: The y values that the GP model predicts 
-        noise: ndarray: The noise associated with the experimental value of the model
+        y_true: ndarray: ndarray, the expected value of the function from data or other source
     
     Returns:
     --------
@@ -136,7 +136,7 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_true):
         f_best: float, the best predicted sse encountered
         pred_mean: tensor, model mean
         pred_var, tensor, model variance
-        explore_bias: float, the numerical bias towards exploration
+        y_true: ndarray, the expected value of the function from data or other source
     
     Returns
     -------
@@ -148,13 +148,13 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_true):
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Nilay's word doc
         bound_upper = ((y_true - pred_mean) +np.sqrt(f_best))/pred_var
-        bound_lower = ((y_true - pred_mean) -np.sqrt(f_best))/pred_var
+        bound_lower = ((y_true - pred_mean) -np.sqrt(f_best))/pred_var #Is this correct in Nilay's code or the word doc
 
-        #Creates EI terms in terms of Nilay's word doc
+        #Creates EI terms in terms of Nilay's code / word doc
         ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
         ei_term1_comp2 = f_best - (y_true - pred_mean)**2
 
-        ei_term2_comp1 = 2*(y_true - pred_mean)*np.sqrt(pred_var)
+        ei_term2_comp1 = 2*(y_true - pred_mean)*pred_var #Is this correct in Nilay's code or the word doc
         ei_term2_comp2 = norm.pdf(bound_upper) - norm.pdf(bound_lower)
 
         ei_term3_comp1 = (1/2)*norm.pdf(bound_upper/np.sqrt(2))
