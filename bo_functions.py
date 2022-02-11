@@ -23,6 +23,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias):
     for i in range(len(pred_var)):
         if pred_stdev[i] > 0:
             z = (pred_mean[i] - f_best - explore_bias)/pred_stdev[i] #number
+            print(z)
             ei_term_1 = (pred_mean[i] - f_best - explore_bias)*norm.cdf(z) #number
             ei_term_2 = pred_stdev[i]*norm.pdf(z) #number
             ei[i] = ei_term_1 +ei_term_2
@@ -73,16 +74,17 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_true):
     #If variance is zero this is important
     pred_mean = pred_mean.numpy()
     pred_var = pred_var.numpy()
+    pred_stdev = np.sqrt(pred_var)
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Nilay's word doc
-        bound_upper = ((y_true - pred_mean) +np.sqrt(f_best))/pred_var
-        bound_lower = ((y_true - pred_mean) -np.sqrt(f_best))/pred_var #Is this correct in Nilay's code or the word doc (STDEV (yes) or VAR?)
+        bound_upper = ((y_true - pred_mean) +np.sqrt(f_best))/pred_stdev
+        bound_lower = ((y_true - pred_mean) -np.sqrt(f_best))/pred_stdev #(STDEV or VAR?)
 
         #Creates EI terms in terms of Nilay's code / word doc
         ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
         ei_term1_comp2 = f_best - (y_true - pred_mean)**2
 
-        ei_term2_comp1 = 2*(y_true - pred_mean)*pred_var #Is this correct in Nilay's code or the word doc (STDEV or VAR?)
+        ei_term2_comp1 = 2*(y_true - pred_mean)*pred_stdev #Is this correct in Nilay's code or the word doc (STDEV or VAR?)
         ei_term2_comp2 = norm.pdf(bound_upper) - norm.pdf(bound_lower)
 
         ei_term3_comp1 = (1/2)*norm.pdf(bound_upper/np.sqrt(2)) #Is this correct in Nilay's code or the word doc (CDF or PDF)
