@@ -207,7 +207,7 @@ def best_error_advanced(test_p, y_model, y_true, noise):
             best_p = test_p[np.argmax(-error)]
         #Makes best_error positive again
         best_error = -best_error
-    return best_error
+    return best_error, best_p
   
 
 
