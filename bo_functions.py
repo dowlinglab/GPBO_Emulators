@@ -1,27 +1,6 @@
 import numpy as np
 from scipy.stats import norm
 
-def best_error_basic(test_p, x, y_model, noise):
-    """
-    Calculates the best error in the 2 input GP model
-    
-    Parameters
-    ----------
-        test_p: ndarray: The parameter space for which the best error is being calculated
-        y_model: ndarray: The y values that the GP model predicts 
-        noise: ndarray: The noise associated with the experimental value of the model
-    
-    Returns:
-    --------
-        best_error: float, the value of the best error encountered  
-     """ 
-    for i in range(len(test_p)):
-        test_p_1 = test_p[i,0] #5x1 
-        test_p_2 = test_p[i,1] #5x1
-        #Calculates actual y value for each parameter space combination
-        best_error = np.argmax(y_model)
-    return best_error
-
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
