@@ -148,16 +148,16 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_true):
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Nilay's word doc
         bound_upper = ((y_true - pred_mean) +np.sqrt(f_best))/pred_var
-        bound_lower = ((y_true - pred_mean) -np.sqrt(f_best))/pred_var #Is this correct in Nilay's code or the word doc
+        bound_lower = ((y_true - pred_mean) -np.sqrt(f_best))/pred_var #Is this correct in Nilay's code or the word doc (STDEV or VAR?)
 
         #Creates EI terms in terms of Nilay's code / word doc
         ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
         ei_term1_comp2 = f_best - (y_true - pred_mean)**2
 
-        ei_term2_comp1 = 2*(y_true - pred_mean)*pred_var #Is this correct in Nilay's code or the word doc
+        ei_term2_comp1 = 2*(y_true - pred_mean)*pred_var #Is this correct in Nilay's code or the word doc (STDEV or VAR?)
         ei_term2_comp2 = norm.pdf(bound_upper) - norm.pdf(bound_lower)
 
-        ei_term3_comp1 = (1/2)*norm.pdf(bound_upper/np.sqrt(2))
+        ei_term3_comp1 = (1/2)*norm.pdf(bound_upper/np.sqrt(2)) #Is this correct in Nilay's code or the word doc (CDF or PDF)
         ei_term3_comp2 = -norm.pdf(bound_upper)*bound_upper
         ei_term3_comp3 = (1/2)*norm.pdf(bound_lower/np.sqrt(2))
         ei_term3_comp4 = -norm.pdf(bound_lower)*bound_lower
@@ -165,8 +165,8 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_true):
         ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp2
         ei_term3_psi_lower = ei_term3_comp3 + ei_term3_comp4
 
-        ei_term1 = ei_term1_comp1 + ei_term1_comp2
-        ei_term2 = ei_term2_comp1 + ei_term2_comp2
+        ei_term1 = ei_term1_comp1*ei_term1_comp2
+        ei_term2 = ei_term2_comp1*ei_term2_comp2
         ei_term3 = -pred_var*(ei_term3_psi_upper-ei_term3_psi_lower)
 
         ei = ei_term1 + ei_term2 + ei_term3
