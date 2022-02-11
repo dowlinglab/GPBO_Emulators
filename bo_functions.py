@@ -205,8 +205,8 @@ def best_error_advanced(test_p, y_model, y_true, noise):
     return best_error, best_p #1x2
 
 
-def calc_ei_advanced(f_best,pred_mean,pred_var):
-        """ 
+def calc_ei_advanced(f_best,pred_mean,pred_var,noise):
+    """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
     ----------
@@ -218,8 +218,7 @@ def calc_ei_advanced(f_best,pred_mean,pred_var):
     Returns
     -------
         ei: ndarray, the expected improvement of the GP model
-       """
-    #ei = np.zeros(len(pred_mean)) # 1 x 6
+    """
     #If variance is zero this is important
     pred_mean = pred_mean.numpy()
     pred_var = pred_var.numpy()
