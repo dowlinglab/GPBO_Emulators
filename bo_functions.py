@@ -188,30 +188,37 @@ def best_error_advanced(test_p, y_model, y_true, noise):
     --------
         best_error: float, the value of the best error encountered 
     """
-    error = np.zeros(len(test_p)) #1 x 25
-    for i in range(len(test_p)):
-        test_p_1 = test_p[i,0] #5x1 (Theta 1) 
-        test_p_2 = test_p[i,1] #5x1(Theta 2)
-        test_p_3 = test_p[i,2] #5x1 (x)
-        #Calculates expected y value for each parameter space combination
-        y_exp = test_p_1*test_p_3 + test_p_2*test_p_3**2 +test_p_3**3 + noise #100 x5 (may need to redefine noise)
-        #Calculates error of model
-        error[i] = (y_true[i]-y_model[i])**2 #A number
-        if i == 0:
-            #Sets first error to be the best error
-            best_error = -error[i]
-            best_p = test_p[np.argmax(-error[i])]
-        else:
-            #Overwrites a new value of best error as error at each theta combo is updated
-            best_error = np.max(-error)
-            best_p = test_p[np.argmax(-error)]
-        #Makes best_error positive again
-        best_error = -best_error
-    return best_error, best_p
-  
+    #Separates parameters for use
+    test_p_1 = test_p[:,0] #Theta1 #1 x 6
+    test_p_2 = test_p[:,1] #Theta 2 #1 x 6
+    test_p_3 = test_p[:,2] #x #1 x 6
+    
+    #Calculates error for each parameter space combination
+    y_exp = (test_p_1*test_p_3 + test_p_2*test_p_3**2 +test_p_3**3 + noise).numpy() #1 x6 (may need to redefine noise)
+    error = (y_exp-y_model)**2 #1x6
+    best_error = np.max(-error) #A number
+    best_p = test_p[np.argmax(-error)] #1x3
+    
+    #Makes best_error positive again
+    best_error = -best_error
+    
+    return best_error, best_p #1x2
 
 
 def calc_ei_advanced(f_best,pred_mean,pred_var, y_true):
+        """ 
+    Calculates the expected improvement of the 3 input parameter GP
+    Parameters
+    ----------
+        f_best: float, the best predicted sse encountered
+        pred_mean: tensor, model mean
+        pred_var, tensor, model variance
+        explore_bias: float, the numerical bias towards exploration
+    
+    Returns
+    -------
+        ei: ndarray, the expected improvement of the GP model
+       """
     #ei = np.zeros(len(pred_mean)) # 1 x 6
     #If variance is zero this is important
     pred_mean = pred_mean.numpy()
