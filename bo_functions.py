@@ -76,7 +76,7 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_true):
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Nilay's word doc
         bound_upper = ((y_true - pred_mean) +np.sqrt(f_best))/pred_var
-        bound_lower = ((y_true - pred_mean) -np.sqrt(f_best))/pred_var #Is this correct in Nilay's code or the word doc (STDEV or VAR?)
+        bound_lower = ((y_true - pred_mean) -np.sqrt(f_best))/pred_var #Is this correct in Nilay's code or the word doc (STDEV (yes) or VAR?)
 
         #Creates EI terms in terms of Nilay's code / word doc
         ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
