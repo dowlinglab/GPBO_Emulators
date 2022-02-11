@@ -107,7 +107,7 @@ def y_plotter_adv(test_mesh, z):
 
     #Plots grid and legend
     plt.grid()
-    plt.legend(loc = 'best')
+#     plt.legend(loc = 'best')
 
     #Creates axis labels and title
     plt.xlabel('Theta 1',weight='bold')
@@ -135,7 +135,7 @@ def stdev_plotter_adv(test_mesh, z):
 
     #Plots grid and legend
     plt.grid()
-    plt.legend(loc = 'best')
+#     plt.legend(loc = 'best')
 
     #Creates axis labels and title
     plt.xlabel('Theta 1',weight='bold')
@@ -161,7 +161,7 @@ def ei_plotter_adv(test_mesh, z):
     
     #Plots grid and legend
     plt.grid()
-    plt.legend(loc = 'best')
+#     plt.legend(loc = 'best')
 
     #Creates axis labels and title
     plt.xlabel('Theta 1',weight='bold')
