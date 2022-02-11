@@ -32,7 +32,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias):
     return ei
 
 
-def best_error_advanced(test_p, y_model, y_true):
+def best_error_advanced(test_p, y_model, y_target):
     
     """
     Calculates the best error in the 3 input GP model
@@ -41,13 +41,13 @@ def best_error_advanced(test_p, y_model, y_true):
     ----------
         test_p: ndarray: The parameter space for which the best error is being calculated
         y_model: ndarray: The y values that the GP model predicts 
-        y_true: ndarray: ndarray, the expected value of the function from data or other source
+        y_target: ndarray: ndarray, the expected value of the function from data or other source
     
     Returns:
     --------
         best_error: float, the value of the best error encountered 
     """
-    error = (y_true-y_model)**2 #1x6
+    error = (y_target-y_model)**2 #1x6
     best_error = np.max(-error) #A number
     best_p = test_p[np.argmax(-error)] #1x3
     
@@ -57,7 +57,7 @@ def best_error_advanced(test_p, y_model, y_true):
     return best_error, best_p #1x2
 
 
-def calc_ei_advanced(f_best,pred_mean,pred_var,y_true):
+def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -65,7 +65,7 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_true):
         f_best: float, the best predicted sse encountered
         pred_mean: tensor, model mean
         pred_var, tensor, model variance
-        y_true: ndarray, the expected value of the function from data or other source
+        y_target: ndarray, the expected value of the function from data or other source
     
     Returns
     -------
@@ -77,19 +77,19 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_true):
     pred_stdev = np.sqrt(pred_var)
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Nilay's word doc
-        bound_upper = ((y_true - pred_mean) +np.sqrt(f_best))/pred_stdev
-        bound_lower = ((y_true - pred_mean) -np.sqrt(f_best))/pred_stdev #(STDEV or VAR?)
+        bound_upper = ((y_target - pred_mean) +np.sqrt(f_best))/pred_stdev
+        bound_lower = ((y_target - pred_mean) -np.sqrt(f_best))/pred_stdev #(STDEV or VAR?)
 
         #Creates EI terms in terms of Nilay's code / word doc
         ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
-        ei_term1_comp2 = f_best - (y_true - pred_mean)**2
+        ei_term1_comp2 = f_best - (y_target - pred_mean)**2
 
-        ei_term2_comp1 = 2*(y_true - pred_mean)*pred_stdev #Is this correct in Nilay's code or the word doc (STDEV or VAR?)
+        ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #(STDEV or VAR?)
         ei_term2_comp2 = norm.pdf(bound_upper) - norm.pdf(bound_lower)
 
-        ei_term3_comp1 = (1/2)*norm.pdf(bound_upper/np.sqrt(2)) #Is this correct in Nilay's code or the word doc (CDF or PDF)
+        ei_term3_comp1 = (1/2)*norm.pdf(bound_upper/np.sqrt(2)) #(CDF or PDF)
         ei_term3_comp2 = -norm.pdf(bound_upper)*bound_upper
-        ei_term3_comp3 = (1/2)*norm.pdf(bound_lower/np.sqrt(2)) #Is this correct in Nilay's code or the word doc (CDF or PDF)
+        ei_term3_comp3 = (1/2)*norm.pdf(bound_lower/np.sqrt(2)) #(CDF or PDF)
         ei_term3_comp4 = -norm.pdf(bound_lower)*bound_lower
 
         ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp2
