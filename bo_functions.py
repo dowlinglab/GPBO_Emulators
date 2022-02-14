@@ -49,12 +49,12 @@ def best_error_advanced(test_p, y_model, y_target):
     """
     error = (y_target-y_model)**2 #1x6
     best_error = np.max(-error) #A number
-    best_p = test_p[np.argmax(-error)] #1x3
+    best_x = np.argmax(-error) #1x3
     
     #Makes best_error positive again
     best_error = -best_error
     
-    return best_error, best_p #1x2
+    return best_error, best_x #1x2
 
 
 def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
@@ -81,11 +81,11 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
         bound_lower = ((y_target - pred_mean) -np.sqrt(f_best))/pred_stdev #(STDEV or VAR?)
 
         #Creates EI terms in terms of Nilay's code / word doc
-        ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
+        ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #Why is this a CDF?
         ei_term1_comp2 = f_best - (y_target - pred_mean)**2
 
         ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #(STDEV or VAR?)
-        ei_term2_comp2 = norm.pdf(bound_upper) - norm.pdf(bound_lower)
+        ei_term2_comp2 = (norm.pdf(bound_upper) - norm.pdf(bound_lower)) #This gives a large negative number when tested
 
         ei_term3_comp1 = (1/2)*norm.pdf(bound_upper/np.sqrt(2)) #(CDF or PDF)
         ei_term3_comp2 = -norm.pdf(bound_upper)*bound_upper
