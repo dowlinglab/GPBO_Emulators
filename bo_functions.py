@@ -62,7 +62,7 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
     ----------
-        f_best: float, the best predicted sse encountered
+        f_best: float, the best predicted error encountered
         pred_mean: tensor, model mean
         pred_var, tensor, model variance
         y_target: ndarray, the expected value of the function from data or other source
