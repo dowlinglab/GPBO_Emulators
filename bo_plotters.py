@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
-import torch
-import gpytorch
+# import torch
+# import gpytorch
 
 def y_plotter2(parameter_space):
 # def y_plotter2(parameter_space, model, likelihood):
