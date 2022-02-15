@@ -91,11 +91,11 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
     #If variance is zero this is important
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Nilay's word doc
-        bound_upper = ((y_target - pred_mean) +np.sqrt(f_best))/pred_stdev
-        bound_lower = ((y_target - pred_mean) -np.sqrt(f_best))/pred_stdev #(STDEV or VAR?)
+        bound_upper = ((y_target - pred_mean) +np.sqrt(f_best))/pred_var
+        bound_lower = ((y_target - pred_mean) -np.sqrt(f_best))/pred_var #(STDEV or VAR?)
 
         #Creates EI terms in terms of Nilay's code / word doc
-        ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #Why is this a CDF?
+        ei_term1_comp1 = norm.pdf(bound_upper) - norm.pdf(bound_lower) #Why is this a CDF and not a PDF?
         ei_term1_comp2 = f_best - (y_target - pred_mean)**2
 
         ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #(STDEV or VAR?)
