@@ -1,6 +1,10 @@
 from matplotlib import pyplot as plt
 import numpy as np
-def y_plotter2(parameter_space, data):
+import torch
+import gpytorch
+
+def y_plotter2(parameter_space):
+# def y_plotter2(parameter_space, model, likelihood):
     """
     Plots the y_values of the GP
     Parameters
