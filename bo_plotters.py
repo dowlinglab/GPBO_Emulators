@@ -1,4 +1,79 @@
 from matplotlib import pyplot as plt
+import numpy as np
+def y_plotter2(parameter_space, data):
+    """
+    Plots the y_values of the GP
+    Parameters
+    ----------
+        parameter_space: nparray, meshgrid of 3 input parameters 
+        data: NOT SURE - y-model at each point defined by the meshgrid
+    
+    Returns
+    -------
+        A 3D Heat map of the values predicted by the GP
+    """
+    X,Y,Z = parameter_space
+    
+    # Create data
+    ##Not sure how to do this
+    data = X+Y+Z #(filler for testing)
+#     with gpytorch.settings.fast_pred_var(), torch.no_grad():
+#         data = likelihood(model(parameter_space)).loc.numpy()
+
+    kw = {
+        'vmin': data.min(),
+        'vmax': data.max(),
+        'levels': np.linspace(data.min(), data.max(), 10),
+    }
+
+    # Create a figure with 3D ax
+    fig = plt.figure(figsize=(5, 4))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot contour surfaces
+    _ = ax.contourf(
+        X[:, :, 0], Y[:, :, 0], data[:, :, 0],
+        zdir='z', offset=0, **kw
+    )
+    _ = ax.contourf(
+        X[0, :, :], data[0, :, :], Z[0, :, :],
+        zdir='y', offset=0, **kw
+    )
+    C = ax.contourf(
+        data[:, -1, :], Y[:, -1, :], Z[:, -1, :],
+        zdir='x', offset=X.max(), **kw
+    )
+    # --
+
+
+    # Set limits of the plot from coord limits
+    xmin, xmax = X.min(), X.max()
+    ymin, ymax = Y.min(), Y.max()
+    zmin, zmax = Z.min(), Z.max()
+    ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
+
+    # Plot edges
+    edges_kw = dict(color='0.4', linewidth=1, zorder=1e3)
+    ax.plot([xmax, xmax], [ymin, ymax], 0, **edges_kw)
+    ax.plot([xmin, xmax], [ymin, ymin], 0, **edges_kw)
+    ax.plot([xmax, xmax], [ymin, ymin], [zmin, zmax], **edges_kw)
+
+    # Set labels and zticks
+    ax.set(
+        xlabel='X [km]',
+        ylabel='Y [km]',
+        zlabel='Z [m]',
+    )
+
+    # Set distance and angle view
+    ax.view_init(40, -30)
+    ax.dist = 11
+
+    # Colorbar
+    fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label='y value')
+
+    # Show Figure
+    plt.show()
 
 def y_plotter(test_mesh, z, p_true, p_GP_opt):
     # Plot Heat Map for SSE
