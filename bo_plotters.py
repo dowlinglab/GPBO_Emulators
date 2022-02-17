@@ -17,12 +17,13 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title):
     '''
     #Defines the x and y coordinates that will be used to generate the heat map, this step isn't
     #necessary, but streamlines the process
-    xx , yy = test_mesh
+    xx , yy = test_mesh #NxN, NxN
     
-    #Assert that test_mesh and z are NxN and that p_true and p_GP_opt are 2x1
+    #Assert that test_mesh and z are NxN, that p_true and p_GP_opt are 2x1, and the title is a string
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
     assert z.shape==xx.shape, "Array z must be NxN"
     assert len(p_true) ==len(p_GP_opt)==2, "p_true and p_GP_opt must be 2x1 for a 2 input GP"
+    assert isinstance(title, str)==True, "Title must be a string"
     
     #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
     #Plot z.T because test_mesh.T was used to calculate z
@@ -48,7 +49,7 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title):
     #Shows plot
     return plt.show()
 
-def y_plotter_basic(test_mesh, z, p_true, p_GP_opt,title):
+def y_plotter_basic(test_mesh, z, p_true, p_GP_opt,title="y"):
     '''
     Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
 
