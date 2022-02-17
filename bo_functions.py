@@ -17,12 +17,12 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias):
     
     """
     #Creates empty list to store ei values
-    ei = np.zeros(len(pred_var)) #1x25
+    ei = np.zeros(len(pred_var)) #1xn
     
     #Converts tensors to np arrays and defines standard deviation
-    pred_mean = pred_mean.numpy() #1x25
-    pred_var = pred_var.numpy()    #1x25
-    pred_stdev = np.sqrt(pred_var) #1x25
+    pred_mean = pred_mean.numpy() #1xn
+    pred_var = pred_var.numpy()    #1xn
+    pred_stdev = np.sqrt(pred_var) #1xn
     
     #Loops over every standard deviation values
     for i in range(len(pred_var)):
