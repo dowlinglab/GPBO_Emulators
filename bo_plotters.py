@@ -18,9 +18,14 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title):
     #Defines the x and y coordinates that will be used to generate the heat map, this step isn't
     #necessary, but streamlines the process
     xx , yy = test_mesh
-
+    
+    #Assert that test_mesh and z are NxN and that p_true and p_GP_opt are 2x1
+    assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
+    assert z.shape==xx.shape, "Array z must be NxN"
+    assert len(p_true) ==len(p_GP_opt)==2, "p_true and p_GP_opt must be 2x1 for a 2 input GP"
+    
     #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
-    #Plot sse.T because test_mesh.T was used to calculate sse
+    #Plot z.T because test_mesh.T was used to calculate z
     plt.contourf(xx, yy,z.T)
     plt.colorbar()
 
@@ -42,3 +47,60 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title):
 
     #Shows plot
     return plt.show()
+
+def y_plotter_basic(test_mesh, z, p_true, p_GP_opt,title):
+    '''
+    Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
+
+    Parameters
+    ----------
+        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
+        p_true: ndarray, A 2x1 containing the true input parameters
+        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+        title: str, A string containing the title of the plot
+     
+    Returns
+    -------
+        plt.show(), A heat map of test_mesh and z (y values)
+    '''
+    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title)
+
+def stdev_plotter_basic(test_mesh, z, p_true, p_GP_opt):
+    '''
+    Helper function for basic_plotter. Calls basic_plotter specifically for plotting standard deviation values.
+
+    Parameters
+    ----------
+        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
+        p_true: ndarray, A 2x1 containing the true input parameters
+        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+     
+    Returns
+    -------
+        plt.show(), A heat map of test_mesh and z (standard deviation values)
+    '''
+    title = "Standard Deviation"
+    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title)
+
+def ei_plotter_basic(test_mesh, z, p_true, p_GP_opt):
+    """
+    Helper function for basic_plotter. Calls basic_plotter specifically for plotting expected improvement values.
+
+    Parameters
+    ----------
+        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
+        p_true: ndarray, A 2x1 containing the true input parameters
+        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+     
+    Returns
+    -------
+        plt.show(), A heat map of test_mesh and z (expected improvement values)
+    """
+    title = "Expected Improvement"
+    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title)
+
+                        
+    
