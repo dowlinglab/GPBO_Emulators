@@ -9,13 +9,16 @@ def best_error_advanced(test_p, y_model, y_target):
     Parameters
     ----------
         test_p: ndarray: The parameter space for which the best error is being calculated
-        y_model: ndarray: The y values that the GP model predicts 
-        y_target: ndarray: ndarray, the expected value of the function from data or other source
+        y_model: tensor: The y values that the GP model predicts 
+        y_target: ndarray, the expected value of the function from data or other source
     
     Returns:
     --------
         best_error: float, the value of the best error encountered 
     """
+    
+    y_model = y_model.numpy()
+    
     #Calculates best error as the maximum of the -error
     error = (y_target-y_model)**2 #1x6
     best_error = np.max(-error) #A number

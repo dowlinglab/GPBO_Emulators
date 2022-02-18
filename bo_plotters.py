@@ -9,21 +9,28 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     Parameters
     ----------
         parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of values
+        z:  tensor, nx1 array of values
         title: str, The title for the graph
     
     Returns
     -------
         A 3D Heat map of the values of z predicted by the GP
     """
-
-    assert len(parameter_space) == 3, "The GP is a 3 input GP. Please include only 3 parameters to plot."
-    assert isinstance(y_model, ndarray) == True, "The data to plot must be a 1xn ndarray."
+    #Converts tensors to ndarrays
+    if isinstance(z,ndarray)!=True:
+        z = z.numpy()
+        
+    #Asserts that the oarameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
+    assert len(parameter_space.T) == 3, "The GP is a 3 input GP. Please include only 3 parameters to plot."
+    assert isinstance(z, ndarray) == True, "The data to plot must be a 1xn ndarray."
     assert isinstance(plot_title,str) == True, "Plot title must be a string."
+    
+    #Breaks Parameter space into separate componenets
     p_1 = parameter_space[:,0].numpy() #Theta1 #1xn
     p_2 = parameter_space[:,1].numpy() #Theta2 #1xn
     p_3 = parameter_space[:,2].numpy() #x #1xn
-
+    
+    #Sets what data will be within the graph as the heat map points
     color = z
 
     # creating figures
