@@ -9,8 +9,8 @@ def calc_GP_parameters_basic(model, likelihood, test_T):
     
     Parameters
     ----------
-        model: bound method,
-        likelihood: bound method,
+        model: bound method, The model off of which the GP is based
+        likelihood: bound method, the likelihood of the model, in this case, must be a Gaussian likelihood
         test_T: tensor, The array containing the testing data for Theta1 and Theta2
     
     Returns
@@ -70,13 +70,13 @@ def create_y_data_basic(Theta_True, train_T, x, noise_std, noise_mean=0):
     y_true =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x
 
     #Creates an array for train_y that will be filled with the for loop
-    train_y = torch.tensor(np.zeros(len(train_T))) #1 x n^2
+    train_y = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
 
     #Iterates over evey combination of theta to find the SSE for each combination
     for i in range(len(train_T)):
-        theta_1 = train_T[i,0] #n^2x1 
-        theta_2 = train_T[i,1] #n^2x1
-        y_exp = theta_1*x + theta_2*x**2 +x**3 + noise #n^2 x n_x
+        theta_1 = train_T[i,0] #n_train^2x1 
+        theta_2 = train_T[i,1] #n_train^2x1
+        y_exp = theta_1*x + theta_2*x**2 +x**3 + noise #n_train^2 x n_x
         train_y[i] = sum((y_true - y_exp)**2) #Scaler
     return train_y
 
@@ -145,15 +145,30 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
         
         """
         #Defines the mean of the GP based off of x
-        mean_x = self.mean_module(x) #1x100
+        mean_x = self.mean_module(x) #1xn_train^2
         #Defines the covariance matrix based off of x
-        covar_x = self.covar_module(x) #100 x 100 covariance matrix
+        covar_x = self.covar_module(x) #n_train^2 x n_train^2 covariance matrix
         #Constructs a multivariate normal random variable, based on mean and covariance. 
             #Can be multivariate, or a batch of multivariate normals
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1x100 tensor
     
-def train_GP_basic(model, likelihood, train_T, train_y):
+def train_GP_basic(model, likelihood, train_T, train_y,verbose = False):
+    """
+    Training the 2 input GP model
+    
+    Parameters
+    ----------
+        model: bound method, The model on which the GP is based
+        likelihood: bound method, The likeliehood of the model. In this case, must be a Gaussian likeliehood
+        test_T: tensor, The array containing the testing data for Theta1 and Theta2
+        verbose: If True, prints the loss and hyperparameters determined at each iteration of training
+        
+    Returns
+    -------
+        None. Used to train the GP
+    """
+    #Asserts that train_T and train_y are tensors of equal length and train_T has only 2 columns
     assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
     assert len(train_T) == len(train_y), "Lengths of training data must be the same"
     assert torch.is_tensor(train_T)==True and torch.is_tensor(train_y)==True, "train_T and train_y must be a tensor"
@@ -184,18 +199,19 @@ def train_GP_basic(model, likelihood, train_T, train_y):
         # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
         optimizer.zero_grad() 
         # Output from model
-        output = model(train_T) # A multivariate norm of a 1 x 100 tensor
+        output = model(train_T) # A multivariate norm of a 1 x n_train^2 tensor
         # Calc loss and backprop gradients
         #Minimizing -logMLL lets us fit hyperparameters
         loss = -mll(output, train_y) #A number (tensor)
         #computes dloss/dx for every parameter x which has requires_grad=True. 
         #These are accumulated into x.grad for every parameter x
         loss.backward()
-    #     print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
-    #         i + 1, training_iter, loss.item(),
-    #         model.covar_module.base_kernel.lengthscale.item(),
-    #          model.likelihood.noise.item()
-    #     ))
+        if verbose == True:
+            print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
+                i + 1, training_iter, loss.item(),
+                model.covar_module.base_kernel.lengthscale.item(),
+                 model.likelihood.noise.item()
+            ))
         #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
         #x += -lr * x.grad
         optimizer.step()
@@ -220,12 +236,12 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     assert torch.is_tensor(pred_mean)==True and torch.is_tensor(pred_var)==True, "GP predicted means and variances must be tensors"
     
     #Creates empty list to store ei values
-    ei = np.zeros(len(pred_var)) #1xn
+    ei = np.zeros(len(pred_var)) #1xn_test
     
     #Converts tensors to np arrays and defines standard deviation
-    pred_mean = pred_mean.numpy() #1xn
-    pred_var = pred_var.numpy()    #1xn
-    pred_stdev = np.sqrt(pred_var) #1xn
+    pred_mean = pred_mean.numpy() #1xn_test
+    pred_var = pred_var.numpy()   #1xn_test
+    pred_stdev = np.sqrt(pred_var) #1xn_test
   
     
     #Loops over every standard deviation values
