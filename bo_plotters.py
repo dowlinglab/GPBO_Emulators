@@ -6,7 +6,7 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title):
     Parameters
     ----------
         test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
-        z: ndarray, An NxN Array containing all points that will be plotted
+        z: ndarray or tensor, An NxN Array containing all points that will be plotted
         p_true: ndarray, A 2x1 containing the true input parameters
         p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
         title: str, A string containing the title of the plot
@@ -20,6 +20,7 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title):
     xx , yy = test_mesh #NxN, NxN
     
     #Assert that test_mesh and z are NxN, that p_true and p_GP_opt are 2x1, and the title is a string
+    assert isinstance(z, np.ndarray)==True or assert torch.is_tensor(z)==True, "Values in the heat map must be np arrays or torch tensors
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
     assert z.shape==xx.shape, "Array z must be NxN"
     assert len(p_true) ==len(p_GP_opt)==2, "p_true and p_GP_opt must be 2x1 for a 2 input GP"
