@@ -1,6 +1,49 @@
 import numpy as np
 from scipy.stats import norm
 import torch
+import csv
+def create_y_data(param_space, noise_std,noise_mean=0):
+    """
+    Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise 
+    param_space: ndarray, The parameter space over which the GP will be run
+    noise_std: float or int, The standard deviation of the nosie
+    noise_mean: float or int, The mean of the noise. Default is zero.
+    """
+    assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
+    assert isinstance(noise_std, (float, int))==True, "noise parameters must be floats or integers"
+    assert isinstance(param_space, np.ndarray) == True, "parameter space must be a numpy array"
+    assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
+    #Creates noise values with a certain stdev and mean from a normal distribution
+    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
+
+    #Creates an array for train_y that will be filled with the for loop
+    y_data = np.zeros(len(param_space)) #1 x 25 (row x col)
+
+    #Iterates over evey combination of theta to find the expected y value for each combination
+    for i in range(len(param_space)):
+        theta_1 = param_space[i,0] #25x1 
+        theta_2 = param_space[i,1] #25x1
+        x = param_space[i,2] #25x1
+        y_exp = theta_1*x + theta_2*x**2 +x**3 + noise #Scaler
+        y_data[i] = y_exp #Scaler
+    #Returns all_y
+    return y_data
+
+def LHS_Design(csv_file):
+    """
+    Creates LHS Design based on a CSV
+    Parameters
+    ----------
+        csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
+    Returns
+    -------
+        param_space: ndarray , the parameter space that will be used with the GP
+    """
+    assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
+    reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
+    lhs_design = list(reader) #Creates list from CSV
+    param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
+    return param_space
 
 def best_error_advanced(y_model, y_target):
     
