@@ -16,12 +16,16 @@ def best_error_advanced(y_model, y_target):
     --------
         best_error: float, the value of the best error encountered 
     """
-    #Asserts that y_model is a tensor, y_target is an ndarray, and that these lists have equal lengths.
-    
+    #Asserts that y_model is a tensor, y_target is an ndarray
     assert torch.is_tensor(y_model)==True, "GP predicted y values must be tensors"
     assert isinstance(y_target, np.ndarray)==True, "y_target must be an ndarray size 1xn"
+    
+    #Changes y_model type from torch tensor to numpy array
     y_model = y_model.numpy()
+    
+    #Asserst that that these y_model and y_target have equal lengths.
     assert len(y_target)==len(y_model), "y_target and y_model must be the same length"
+    
     #Calculates best error as the maximum of the -error
     error = (y_target-y_model)**2 #1x6
     best_error = np.max(-error) #A number
@@ -49,11 +53,18 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
     -------
         ei: ndarray, the expected improvement of the GP model
     """
+    #Asserts that pred_mean and pred_var are tensors, f_pred is a float, and y_target is an dparray
     assert torch.is_tensor(pred_mean)==True and torch.is_tensor(pred_var)==True, "GP predicted means and variances must be tensors"
+    assert isinstance(y_target, np.ndarray)==True, "y_target must be an ndarray size 1xn"
+    assert isinstance(f_best, (float,int))==True, "f_best must be a float or integer"
+    
     
     #Coverts tensor to np arrays
     pred_mean = pred_mean.numpy()
     pred_var = pred_var.numpy()
+    
+    #Checks for equal lengths
+    assert len(y_target)==len(pred_mean)==len(pred_var), "y_target, pred_mean, and pred_var must be the same length"
     
     #Defines standard devaition
     pred_stdev = np.sqrt(pred_var)
