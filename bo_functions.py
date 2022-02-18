@@ -153,6 +153,54 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1x100 tensor
     
+def train_GP_basic(model, likelihood, train_T, train_y):
+    assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
+    assert len(train_T) == len(train_y), "Lengths of training data must be the same"
+    assert torch.is_tensor(train_T)==True and torch.is_tensor(train_y)==True, "train_T and train_y must be a tensor"
+    
+    # Find optimal model hyperparameters
+    training_iter = 300
+
+    #Puts the model in training mode
+    model.train()
+
+    #Puts the likelihood in training mode
+    likelihood.train()
+
+    # Use the adam optimizer
+        #algorithm for first-order gradient-based optimization of stochastic objective functions
+        # The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. 
+        #The hyper-parameters have intuitive interpretations and typically require little tuning.
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)  #Needs GaussianLikelihood parameters, and a learning rate
+        #lr default is 0.001
+
+    # Calculate"Loss" for GPs
+
+    #The marginal log likelihood (the evidence: quantifies joint probability of the data under the prior)
+    #returns an exact MLL for an exact Gaussian process with Gaussian likelihood
+    mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model) #Takes a Gaussian likelihood and a model, a bound Method
+    #iterates a give number of times
+    for i in range(training_iter): #0-299
+        # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
+        optimizer.zero_grad() 
+        # Output from model
+        output = model(train_T) # A multivariate norm of a 1 x 100 tensor
+        # Calc loss and backprop gradients
+        #Minimizing -logMLL lets us fit hyperparameters
+        loss = -mll(output, train_y) #A number (tensor)
+        #computes dloss/dx for every parameter x which has requires_grad=True. 
+        #These are accumulated into x.grad for every parameter x
+        loss.backward()
+    #     print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
+    #         i + 1, training_iter, loss.item(),
+    #         model.covar_module.base_kernel.lengthscale.item(),
+    #          model.likelihood.noise.item()
+    #     ))
+        #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
+        #x += -lr * x.grad
+        optimizer.step()
+    return
+    
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
