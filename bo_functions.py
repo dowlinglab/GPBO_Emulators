@@ -77,10 +77,10 @@ def calc_GP_outputs(model,likelihood,test_p):
     y_model = observed_pred.loc #1 x n_test
     return model_mean, model_variance, model_stdev, y_model
 
-def train_model(model, likelihood, train_p, train_y, verbose=False):
-    #This function calculates hyperparameters differently than what's in the code right now and I can't figure out why
+def train_GP_model(model, likelihood, train_p, train_y, iterations=300, verbose=False):
+    #This function calculates hyperparameters differently than what's in the code right now and I can't figure out why. Is this even an issue to worry about?
     """
-    Trains the GP model and finds hyperparameters
+    Trains the GP model and finds hyperparameters with the Adam optimizer with an lr =0.1
     
     Parameters
     ----------
@@ -88,6 +88,7 @@ def train_model(model, likelihood, train_p, train_y, verbose=False):
         likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
         train_p: tensor, The training parameter space data
         train_y: tensor, The training y data
+        iterations: float or int, number of training iterations to run. Default is 300
         verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
     
     Returns
@@ -95,11 +96,13 @@ def train_model(model, likelihood, train_p, train_y, verbose=False):
         optimizer.step(): Updates the value of parameters using the gradient x.grad
     """
     #How would I even write an assert statement for the likelihood and model?
+    assert isinstance(iterations, (float, int))==True, "Number of training iterations must be a float or integer" 
     assert torch.is_tensor(train_p)==True, "Train parameter space must be a tensor"
     assert torch.is_tensor(train_y)==True, "Train y data must be a tensor"
+    assert len(train_p) == len(train_y), "training data must be the same length as each other"
     
-    # Find optimal model hyperparameters
-    training_iter = 300
+    #Find optimal model hyperparameters
+    training_iter = iterations
 
     #Puts the model in training mode
     model.train()
@@ -131,12 +134,11 @@ def train_model(model, likelihood, train_p, train_y, verbose=False):
         #computes dloss/dx for every parameter x which has requires_grad=True. 
         #These are accumulated into x.grad for every parameter x
         loss.backward()
-        if verbose==True:
-            print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
-                i + 1, training_iter, loss.item(),
-                model.covar_module.base_kernel.lengthscale.item(),
-                 model.likelihood.noise.item()
-            ))
+    #     print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
+    #         i + 1, training_iter, loss.item(),
+    #         model.covar_module.base_kernel.lengthscale.item(),
+    #          model.likelihood.noise.item()
+    #     ))
         #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
         #x += -lr * x.grad
         optimizer.step()
