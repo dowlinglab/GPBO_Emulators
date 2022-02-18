@@ -2,17 +2,57 @@ import numpy as np
 from scipy.stats import norm
 import torch
 import csv
+
+def test_train_split(param_space, y_data, sep_fact=0.8):
+    """
+    Splits y data into training and testing data
+    
+    Parameters
+    ----------
+        param_space: (nx3) ndarray, The parameter space over which the GP will be run
+        y_data: ndarray, The simulated y data
+        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+    Returns:
+        train_p: tensor, The training parameter space data
+        train_y: tensor, The training y data
+        test_p: tensor, The testing parameter space data
+        test_y: tensor, The testing y data
+    
+    """
+    
+    #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
+    assert isinstance(param_space, np.ndarray) == True, "parameter space must be a numpy array"
+    assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
+    assert 0<= sep_fact<=1, "Separation factor must be between 0 and 1"
+    
+    #Creates the index on which to split data
+    train_split = int(np.round(len(y_data))*sep_fact)-1 
+    
+    #Training and testing data are created and converted into tensors
+    train_y =torch.tensor(y_data[:train_split]) #1x(n*sep_fact)
+    test_y = torch.tensor(y_data[train_split:]) #1x(n-n*sep_fact)
+    train_p = torch.tensor(param_space[:train_split,:]) #1x(n*sep_fact)
+    test_p = torch.tensor(param_space[train_split:,:]) #1x(n-n*sep_fact)
+    return train_p, train_y, test_p, test_y
+
 def create_y_data(param_space, noise_std,noise_mean=0):
     """
-    Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise 
-    param_space: ndarray, The parameter space over which the GP will be run
-    noise_std: float or int, The standard deviation of the nosie
-    noise_mean: float or int, The mean of the noise. Default is zero.
+    Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
+    Parameters
+    ----------
+        param_space: (nx3) ndarray, The parameter space over which the GP will be run
+        noise_std: float or int, The standard deviation of the nosie
+        noise_mean: float or int, The mean of the noise. Default is zero.
+    Returns
+    -------
+        y_data: ndarray, The simulated y data
     """
+    #Assert statements check that the types defined in the doctring are satisfied
     assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
     assert isinstance(noise_std, (float, int))==True, "noise parameters must be floats or integers"
     assert isinstance(param_space, np.ndarray) == True, "parameter space must be a numpy array"
     assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
+    
     #Creates noise values with a certain stdev and mean from a normal distribution
     noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
 
