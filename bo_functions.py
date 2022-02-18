@@ -16,7 +16,7 @@ def best_error_advanced(test_p, y_model, y_target):
     --------
         best_error: float, the value of the best error encountered 
     """
-    
+    assert 
     y_model = y_model.numpy()
     
     #Calculates best error as the maximum of the -error
