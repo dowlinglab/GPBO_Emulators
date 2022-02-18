@@ -37,7 +37,26 @@ def calc_y_expected(test_p, noise_stdev, noise_mean=0):
     noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
     
     
-def calc_GP_outputs(likelihood,model,test_p):
+def calc_GP_outputs(model,likelihood,test_p):
+    """
+    Calculates the GP model's approximation of y, and its mean, variance and standard devaition.
+    
+    Parameters
+    ----------
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
+        train_p: tensor, The training parameter space data
+    
+    Returns
+    -------
+        model_mean: tensor, The GP model's mean
+        model_variance: tensor, The GP model's variance
+        model_stdev: tensor, The GP model's standard deviation
+        model_y: tensor, The GP model's approximation of y
+    """
+    #How would I even write an assert statement for the likelihood and model?
+    assert torch.is_tensor(test_p)==True, "Test parameter space must be a tensor"
+    
     with gpytorch.settings.fast_pred_var(), torch.no_grad():
     #torch.no_grad() 
         #Disabling gradient calculation is useful for inference, 
@@ -47,15 +66,15 @@ def calc_GP_outputs(likelihood,model,test_p):
         #Use this for improved performance when computing predictive variances. 
         #Good up to 10,000 data points
     #Predicts data points for model (sse) by sending the model through the likelihood
-        observed_pred = likelihood(model(test_p)) #1 x 6
+        observed_pred = likelihood(model(test_p)) #1 x n_test
 
     #Calculates model mean  
-    model_mean = observed_pred.mean #1x6
+    model_mean = observed_pred.mean #1 x n_test
     #Calculates the variance of each data point
-    model_variance = observed_pred.variance #1x6
+    model_variance = observed_pred.variance #1 x n_test
     #Calculates the standard deviation of each data point
     model_stdev = np.sqrt(observed_pred.variance)
-    y_model = observed_pred.loc #1 x 6
+    y_model = observed_pred.loc #1 x n_test
     return model_mean, model_variance, model_stdev, y_model
 
 def train_model(model, likelihood, train_p, train_y, verbose=False):
@@ -70,6 +89,7 @@ def train_model(model, likelihood, train_p, train_y, verbose=False):
         train_p: tensor, The training parameter space data
         train_y: tensor, The training y data
         verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
+    
     Returns
     -------
         optimizer.step(): Updates the value of parameters using the gradient x.grad
@@ -104,7 +124,7 @@ def train_model(model, likelihood, train_p, train_y, verbose=False):
         # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
         optimizer.zero_grad() 
         # Output from model
-        output = model(train_p) # A multivariate norm of a 1 x 19^2 tensor
+        output = model(train_p) # A multivariate norm of a 1 x n_train^2 tensor
         # Calc loss and backprop gradients
         #Minimizing -logMLL lets us fit hyperparameters
         loss = -mll(output, train_y) #A number (tensor)
@@ -249,13 +269,13 @@ def create_y_data(param_space, noise_std,noise_mean=0):
     noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
 
     #Creates an array for train_y that will be filled with the for loop
-    y_data = np.zeros(len(param_space)) #1 x 25 (row x col)
+    y_data = np.zeros(len(param_space)) #1 x n (row x col)
 
     #Iterates over evey combination of theta to find the expected y value for each combination
     for i in range(len(param_space)):
-        theta_1 = param_space[i,0] #25x1 
-        theta_2 = param_space[i,1] #25x1
-        x = param_space[i,2] #25x1
+        theta_1 = param_space[i,0] #nx1 
+        theta_2 = param_space[i,1] #nx1
+        x = param_space[i,2] #nx1
         y_exp = theta_1*x + theta_2*x**2 +x**3 + noise #Scaler
         y_data[i] = y_exp #Scaler
     #Returns all_y
