@@ -1,14 +1,14 @@
 import numpy as np
 from scipy.stats import norm
+import torch
 
-def best_error_advanced(test_p, y_model, y_target):
+def best_error_advanced(y_model, y_target):
     
     """
     Calculates the best error in the 3 input GP model
     
     Parameters
     ----------
-        test_p: ndarray: The parameter space for which the best error is being calculated
         y_model: tensor: The y values that the GP model predicts 
         y_target: ndarray, the expected value of the function from data or other source
     
@@ -16,9 +16,12 @@ def best_error_advanced(test_p, y_model, y_target):
     --------
         best_error: float, the value of the best error encountered 
     """
-    assert 
-    y_model = y_model.numpy()
+    #Asserts that y_model is a tensor, y_target is an ndarray, and that these lists have equal lengths.
     
+    assert torch.is_tensor(y_model)==True, "GP predicted y values must be tensors"
+    assert isinstance(y_target, np.ndarray)==True, "y_target must be an ndarray size 1xn"
+    y_model = y_model.numpy()
+    assert len(y_target)==len(y_model), "y_target and y_model must be the same length"
     #Calculates best error as the maximum of the -error
     error = (y_target-y_model)**2 #1x6
     best_error = np.max(-error) #A number
@@ -46,6 +49,8 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
     -------
         ei: ndarray, the expected improvement of the GP model
     """
+    assert torch.is_tensor(pred_mean)==True and torch.is_tensor(pred_var)==True, "GP predicted means and variances must be tensors"
+    
     #Coverts tensor to np arrays
     pred_mean = pred_mean.numpy()
     pred_var = pred_var.numpy()
