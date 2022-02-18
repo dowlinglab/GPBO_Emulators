@@ -3,23 +3,24 @@ import numpy as np
 # import torch
 # import gpytorch
 
-def plotter_adv(test_p, z, title):
+def plotter_adv(parameter_space, z, title="Model Output"):
     """
     Plots the y_values of the GP
     Parameters
     ----------
-        parameter_space: nparray, meshgrid of 3 input parameters 
-        data: NOT SURE - y-model at each point defined by the meshgrid
+        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        z:  ndarray, nx1 array of values
+        title: str, The title for the graph
     
     Returns
     -------
-        A 3D Heat map of the values predicted by the GP
+        A 3D Heat map of the values of z predicted by the GP
     """
-    test_p_1 = test_p[:,0].numpy() #Theta1 #1 x 6
-    test_p_2 = test_p[:,1].numpy() #Theta 2 #1 x 6
-    test_p_3 = test_p[:,2].numpy() #x #1 x 6
+    p_1 = parameter_space[:,0].numpy() #Theta1 #1xn
+    p_2 = parameter_space[:,1].numpy() #Theta2 #1xn
+    p_3 = parameter_space[:,2].numpy() #x #1xn
 
-    color = y_model
+    color = z
 
     # creating figures
     fig = plt.figure(figsize=(10, 10))
@@ -30,21 +31,18 @@ def plotter_adv(test_p, z, title):
     color_map.set_array(color)
 
     # creating the heatmap
-    img = ax.scatter(test_p_1, test_p_2, test_p_3, marker='s',
+    img = ax.scatter(p_1, p_2, p_3, marker='s',
                      s=200, color='green')
     plt.colorbar(color_map)
 
     # adding title and labels
-    ax.set_title("3D Heatmap")
-    ax.set_xlabel('X-axis')
-    ax.set_ylabel('Y-axis')
-    ax.set_zlabel('Z-axis')
+    ax.set_title("3D Heatmap of"+title)
+    ax.set_xlabel('$\\theta_1$')
+    ax.set_ylabel('$\\theta_2$')
+    ax.set_zlabel('x coordinate')
   
-# displaying plot
-plt.show()
-
-    #Shows plot
-    return print("")
+    # displaying plot
+    return plt.show()
 
 # def stdev_plotter_adv(test_mesh, z):
 
