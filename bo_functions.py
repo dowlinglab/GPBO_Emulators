@@ -2,6 +2,198 @@ import numpy as np
 from scipy.stats import norm
 import torch
 import csv
+import gpytorch
+
+def calc_y_expected(test_p, noise_stdev, noise_mean=0):
+    """
+    Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
+    Parameters
+    ----------
+        test_p: (n_trainx3) ndarray, The parameter space over which the GP will be tested
+        noise_std: float or int, The standard deviation of the nosie
+        noise_mean: float or int, The mean of the noise. Default is zero.
+    Returns
+    -------
+        y_data: ndarray, The simulated y data
+    """
+    #Assert statements check that the types defined in the doctring are satisfied
+    assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
+    assert isinstance(noise_stdev, (float, int))==True, "noise parameters must be floats or integers"
+    assert torch.is_tensor(test_p)==True, "Test parameter space must be a tensor"
+    assert len(test_p.T) ==3, "Only 3 input Test parameter space can be taken, test_p must be an n_trainx3 array"
+    
+    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_stdev) #Scaler
+    
+    #Separates parameters for use
+    p_1 = test_p[:,0].numpy() #Theta1 #1 x n_test
+    p_2 = test_p[:,1].numpy() #Theta2 #1 x n_test
+    p_3 = test_p[:,2].numpy() #x #1 x n_test
+
+    #Calculates expected y for each parameter space parameter
+    y_expected = p_1*p_3 + p_2*p_3**2 + p_3**3 + noise #1 x n_test
+    return y_expected
+    
+    #Creates noise values with a certain stdev and mean from a normal distribution
+    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
+    
+    
+def calc_GP_outputs(likelihood,model,test_p):
+    with gpytorch.settings.fast_pred_var(), torch.no_grad():
+    #torch.no_grad() 
+        #Disabling gradient calculation is useful for inference, 
+        #when you are sure that you will not call Tensor.backward(). It will reduce memory consumption
+        #Note: Can't use np operations on tensors where requires_grad = True
+    #gpytorch.settings.fast_pred_var() 
+        #Use this for improved performance when computing predictive variances. 
+        #Good up to 10,000 data points
+    #Predicts data points for model (sse) by sending the model through the likelihood
+        observed_pred = likelihood(model(test_p)) #1 x 6
+
+    #Calculates model mean  
+    model_mean = observed_pred.mean #1x6
+    #Calculates the variance of each data point
+    model_variance = observed_pred.variance #1x6
+    #Calculates the standard deviation of each data point
+    model_stdev = np.sqrt(observed_pred.variance)
+    y_model = observed_pred.loc #1 x 6
+    return model_mean, model_variance, model_stdev, y_model
+
+def train_model(model, likelihood, train_p, train_y, verbose=False):
+    #This function calculates hyperparameters differently than what's in the code right now and I can't figure out why
+    """
+    Trains the GP model and finds hyperparameters
+    
+    Parameters
+    ----------
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
+        train_p: tensor, The training parameter space data
+        train_y: tensor, The training y data
+        verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
+    Returns
+    -------
+        optimizer.step(): Updates the value of parameters using the gradient x.grad
+    """
+    #How would I even write an assert statement for the likelihood and model?
+    assert torch.is_tensor(train_p)==True, "Train parameter space must be a tensor"
+    assert torch.is_tensor(train_y)==True, "Train y data must be a tensor"
+    
+    # Find optimal model hyperparameters
+    training_iter = 300
+
+    #Puts the model in training mode
+    model.train()
+
+    #Puts the likelihood in training mode
+    likelihood.train()
+
+    # Use the adam optimizer
+        #algorithm for first-order gradient-based optimization of stochastic objective functions
+        # The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. 
+        #The hyper-parameters have intuitive interpretations and typically require little tuning.
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)  #Needs GaussianLikelihood parameters, and a learning rate
+        #lr default is 0.001
+
+    # Calculate"Loss" for GPs
+
+    #The marginal log likelihood (the evidence: quantifies joint probability of the data under the prior)
+    #returns an exact MLL for an exact Gaussian process with Gaussian likelihood
+    mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model) #Takes a Gaussian likelihood and a model, a bound Method
+    #iterates a give number of times
+    for i in range(training_iter): #0-299
+        # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
+        optimizer.zero_grad() 
+        # Output from model
+        output = model(train_p) # A multivariate norm of a 1 x 19^2 tensor
+        # Calc loss and backprop gradients
+        #Minimizing -logMLL lets us fit hyperparameters
+        loss = -mll(output, train_y) #A number (tensor)
+        #computes dloss/dx for every parameter x which has requires_grad=True. 
+        #These are accumulated into x.grad for every parameter x
+        loss.backward()
+        if verbose==True:
+            print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
+                i + 1, training_iter, loss.item(),
+                model.covar_module.base_kernel.lengthscale.item(),
+                 model.likelihood.noise.item()
+            ))
+        #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
+        #x += -lr * x.grad
+        optimizer.step()
+    return
+    
+class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
+    """
+    The base class for any Gaussian process latent function to be used in conjunction
+    with exact inference.
+
+    Parameters
+    ----------
+    torch.Tensor train_inputs: (size n x d) The training features :math:`\mathbf X`.
+    
+    torch.Tensor train_targets: (size n) The training targets :math:`\mathbf y`.
+    
+    ~gpytorch.likelihoods.GaussianLikelihood likelihood: The Gaussian likelihood that defines
+        the observational distribution. Since we're using exact inference, the likelihood must be Gaussian.
+    
+    Methods
+    -------
+    The :meth:`__init__` function takes training data and a likelihood and computes the objects of mean and covariance 
+    for the forward method
+
+    The :meth:`forward` function should describe how to compute the prior latent distribution
+    on a given input. Typically, this will involve a mean and kernel function.
+    The result must be a :obj:`~gpytorch.distributions.MultivariateNormal`.
+    
+    Returns
+    -------
+    Calling this model will return the posterior of the latent Gaussian process when conditioned
+    on the training data. The output will be a :obj:`~gpytorch.distributions.MultivariateNormal`.
+    """
+
+    def __init__(self, train_p, train_y, likelihood):
+        """
+        Initializes the model
+        
+        Parameters
+        ----------
+        self : A class,The model itself. In this case, gpytorch.models.ExactGP
+        train_T : tensor, The inputs of the training data
+        train_y : tensor, the output of the training data
+        likelihood : bound method, the lieklihood of the model. In this case, it must be Gaussian
+        
+        """
+        #Initializes the GP model with train_p, train_y, and the likelihood
+        ##Calls the __init__ method of parent class
+        super(ExactGPModel, self).__init__(train_p, train_y, likelihood)
+        #Defines a constant prior mean on the GP. Used in the forward method
+        self.mean_module = gpytorch.means.ConstantMean()
+        #Defines prior covariance matrix of GP to a scaled RFB Kernel. Used in the forward method
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()) 
+
+    def forward(self, x):
+        """
+        A forward method that takes in some (n×d) data, x, and returns a MultivariateNormal with the prior mean and 
+        covariance evaluated at x. In other words, we return the vector μ(x) and the n×n matrix Kxx representing the 
+        prior mean and covariance matrix of the GP.
+        
+        Parameters
+        ----------
+        self : A class,The model itself. In this case, gpytorch.models.ExactGP
+        x : tensor, first input when class is called
+        
+        Returns:
+        Vector μ(x)
+        
+        """
+        #Defines the mean of the GP based off of x
+        mean_x = self.mean_module(x) #1xn_train
+        #Defines the covariance matrix based off of x
+        covar_x = self.covar_module(x) #n_train x n_train covariance matrix
+        #Constructs a multivariate normal random variable, based on mean and covariance. 
+            #Can be multivariate, or a batch of multivariate normals
+            #Returns multivariate normal distibution gives the mean and covariance of the GP        
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1xn_train^2 tensor
 
 def test_train_split(param_space, y_data, sep_fact=0.8):
     """
