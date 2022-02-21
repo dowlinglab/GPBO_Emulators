@@ -20,7 +20,7 @@ def calc_y_expected(test_p, noise_stdev, noise_mean=0):
     assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
     assert isinstance(noise_stdev, (float, int))==True, "noise parameters must be floats or integers"
     assert torch.is_tensor(test_p)==True, "Test parameter space must be a tensor"
-    assert len(test_p.T) ==3, "Only 3 input Test parameter space can be taken, test_p must be an n_trainx3 array"
+    assert len(test_p.T) ==3, "Only 3 input Test parameter space can be taken, test_p must be an n_test x 3 array"
     
     noise = np.random.normal(size=1,loc = noise_mean, scale = noise_stdev) #Scaler
     
@@ -44,7 +44,7 @@ def calc_GP_outputs(model,likelihood,test_p):
     Parameters
     ----------
         model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
         train_p: tensor, The training parameter space data
     
     Returns
@@ -96,7 +96,7 @@ def train_GP_model(model, likelihood, train_p, train_y, iterations=300, verbose=
         optimizer.step(): Updates the value of parameters using the gradient x.grad
     """
     #How would I even write an assert statement for the likelihood and model?
-    assert isinstance(iterations, (float, int))==True, "Number of training iterations must be a float or integer" 
+    assert isinstance(iterations, int)==True, "Number of training iterations must be an integer" 
     assert torch.is_tensor(train_p)==True, "Train parameter space must be a tensor"
     assert torch.is_tensor(train_y)==True, "Train y data must be a tensor"
     assert len(train_p) == len(train_y), "training data must be the same length as each other"
@@ -237,7 +237,10 @@ def test_train_split(param_space, y_data, sep_fact=0.8):
     #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
     assert isinstance(param_space, np.ndarray) == True, "parameter space must be a numpy array"
     assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
-    assert 0<= sep_fact<=1, "Separation factor must be between 0 and 1"
+    assert 0 < sep_fact< 1, "Separation factor must be between 0 and 1"
+    
+    #Asserts length od param_space and y_data are equal
+    assert len(param_space) == len(y_data), "The length of param_space and y_data must be the same"
     
     #Creates the index on which to split data
     train_split = int(np.round(len(y_data))*sep_fact)-1 
@@ -293,7 +296,9 @@ def LHS_Design(csv_file):
     -------
         param_space: ndarray , the parameter space that will be used with the GP
     """
+    #Asserts that the csv filename is a string
     assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
+    
     reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
     lhs_design = list(reader) #Creates list from CSV
     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
@@ -350,7 +355,7 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
     -------
         ei: ndarray, the expected improvement of the GP model
     """
-    #Asserts that pred_mean and pred_var are tensors, f_pred is a float, and y_target is an dparray
+    #Asserts that pred_mean and pred_var are tensors, f_pred is a float, and y_target is an ndarray
     assert torch.is_tensor(pred_mean)==True and torch.is_tensor(pred_var)==True, "GP predicted means and variances must be tensors"
     assert isinstance(y_target, np.ndarray)==True, "y_target must be an ndarray size 1xn"
     assert isinstance(f_best, (float,int))==True, "f_best must be a float or integer"
