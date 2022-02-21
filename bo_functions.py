@@ -4,12 +4,12 @@ import torch
 import csv
 import gpytorch
 
-def calc_y_expected(test_p, noise_stdev, noise_mean=0):
+def calc_y_expected(test_param, noise_stdev, noise_mean=0):
     """
     Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
     Parameters
     ----------
-        test_p: (n_trainx3) ndarray, The parameter space over which the GP will be tested
+        test_param: (n_trainx3) ndarray, The parameter space over which the GP will be tested
         noise_std: float or int, The standard deviation of the nosie
         noise_mean: float or int, The mean of the noise. Default is zero.
     Returns
@@ -19,15 +19,15 @@ def calc_y_expected(test_p, noise_stdev, noise_mean=0):
     #Assert statements check that the types defined in the doctring are satisfied
     assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
     assert isinstance(noise_stdev, (float, int))==True, "noise parameters must be floats or integers"
-    assert torch.is_tensor(test_p)==True, "Test parameter space must be a tensor"
-    assert len(test_p.T) ==3, "Only 3 input Test parameter space can be taken, test_p must be an n_test x 3 array"
+    assert torch.is_tensor(test_param)==True, "Test parameter space must be a tensor"
+    assert len(test_param.T) ==3, "Only 3 input Test parameter space can be taken, test_param must be an n_test x 3 array"
     
     noise = np.random.normal(size=1,loc = noise_mean, scale = noise_stdev) #Scaler
     
     #Separates parameters for use
-    p_1 = test_p[:,0].numpy() #Theta1 #1 x n_test
-    p_2 = test_p[:,1].numpy() #Theta2 #1 x n_test
-    p_3 = test_p[:,2].numpy() #x #1 x n_test
+    p_1 = test_param[:,0].numpy() #Theta1 #1 x n_test
+    p_2 = test_param[:,1].numpy() #Theta2 #1 x n_test
+    p_3 = test_param[:,2].numpy() #x #1 x n_test
 
     #Calculates expected y for each parameter space parameter
     y_expected = p_1*p_3 + p_2*p_3**2 + p_3**3 + noise #1 x n_test
@@ -35,49 +35,8 @@ def calc_y_expected(test_p, noise_stdev, noise_mean=0):
     
     #Creates noise values with a certain stdev and mean from a normal distribution
     noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
-    
-    
-def calc_GP_outputs(model,likelihood,test_p):
-    """
-    Calculates the GP model's approximation of y, and its mean, variance and standard devaition.
-    
-    Parameters
-    ----------
-        model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        train_p: tensor, The training parameter space data
-    
-    Returns
-    -------
-        model_mean: tensor, The GP model's mean
-        model_variance: tensor, The GP model's variance
-        model_stdev: tensor, The GP model's standard deviation
-        model_y: tensor, The GP model's approximation of y
-    """
-    #How would I even write an assert statement for the likelihood and model?
-    assert torch.is_tensor(test_p)==True, "Test parameter space must be a tensor"
-    
-    with gpytorch.settings.fast_pred_var(), torch.no_grad():
-    #torch.no_grad() 
-        #Disabling gradient calculation is useful for inference, 
-        #when you are sure that you will not call Tensor.backward(). It will reduce memory consumption
-        #Note: Can't use np operations on tensors where requires_grad = True
-    #gpytorch.settings.fast_pred_var() 
-        #Use this for improved performance when computing predictive variances. 
-        #Good up to 10,000 data points
-    #Predicts data points for model (sse) by sending the model through the likelihood
-        observed_pred = likelihood(model(test_p)) #1 x n_test
 
-    #Calculates model mean  
-    model_mean = observed_pred.mean #1 x n_test
-    #Calculates the variance of each data point
-    model_variance = observed_pred.variance #1 x n_test
-    #Calculates the standard deviation of each data point
-    model_stdev = np.sqrt(observed_pred.variance)
-    y_model = observed_pred.loc #1 x n_test
-    return model_mean, model_variance, model_stdev, y_model
-
-def train_GP_model(model, likelihood, train_p, train_y, iterations=300, verbose=False):
+def train_GP_model(model, likelihood, train_param, train_data, iterations=300, verbose=False):
     #This function calculates hyperparameters differently than what's in the code right now and I can't figure out why. Is this even an issue to worry about?
     """
     Trains the GP model and finds hyperparameters with the Adam optimizer with an lr =0.1
@@ -86,8 +45,8 @@ def train_GP_model(model, likelihood, train_p, train_y, iterations=300, verbose=
     ----------
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
-        train_p: tensor, The training parameter space data
-        train_y: tensor, The training y data
+        train_param: tensor, The training parameter space data
+        train_data: tensor, The training y data
         iterations: float or int, number of training iterations to run. Default is 300
         verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
     
@@ -95,11 +54,13 @@ def train_GP_model(model, likelihood, train_p, train_y, iterations=300, verbose=
     -------
         optimizer.step(): Updates the value of parameters using the gradient x.grad
     """
-    #How would I even write an assert statement for the likelihood and model?
+    #Assert statements check that inputs are the correct types and lengths
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert isinstance(iterations, int)==True, "Number of training iterations must be an integer" 
-    assert torch.is_tensor(train_p)==True, "Train parameter space must be a tensor"
-    assert torch.is_tensor(train_y)==True, "Train y data must be a tensor"
-    assert len(train_p) == len(train_y), "training data must be the same length as each other"
+    assert torch.is_tensor(train_param)==True, "Train parameter space must be a tensor"
+    assert torch.is_tensor(train_data)==True, "Train y data must be a tensor"
+    assert len(train_param) == len(train_data), "training data must be the same length as each other"
     
     #Find optimal model hyperparameters
     training_iter = iterations
@@ -127,10 +88,10 @@ def train_GP_model(model, likelihood, train_p, train_y, iterations=300, verbose=
         # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
         optimizer.zero_grad() 
         # Output from model
-        output = model(train_p) # A multivariate norm of a 1 x n_train^2 tensor
+        output = model(train_param) # A multivariate norm of a 1 x n_train^2 tensor
         # Calc loss and backprop gradients
         #Minimizing -logMLL lets us fit hyperparameters
-        loss = -mll(output, train_y) #A number (tensor)
+        loss = -mll(output, train_data) #A number (tensor)
         #computes dloss/dx for every parameter x which has requires_grad=True. 
         #These are accumulated into x.grad for every parameter x
         loss.backward()
@@ -173,21 +134,21 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     on the training data. The output will be a :obj:`~gpytorch.distributions.MultivariateNormal`.
     """
 
-    def __init__(self, train_p, train_y, likelihood):
+    def __init__(self, train_param, train_data, likelihood):
         """
         Initializes the model
         
         Parameters
         ----------
         self : A class,The model itself. In this case, gpytorch.models.ExactGP
-        train_T : tensor, The inputs of the training data
-        train_y : tensor, the output of the training data
+        train_param : tensor, The inputs of the training data
+        train_data : tensor, the output of the training data
         likelihood : bound method, the lieklihood of the model. In this case, it must be Gaussian
         
         """
-        #Initializes the GP model with train_p, train_y, and the likelihood
+        #Initializes the GP model with train_param, train_data, and the likelihood
         ##Calls the __init__ method of parent class
-        super(ExactGPModel, self).__init__(train_p, train_y, likelihood)
+        super(ExactGPModel, self).__init__(train_param, train_data, likelihood)
         #Defines a constant prior mean on the GP. Used in the forward method
         self.mean_module = gpytorch.means.ConstantMean()
         #Defines prior covariance matrix of GP to a scaled RFB Kernel. Used in the forward method
@@ -217,6 +178,50 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1xn_train^2 tensor
 
+def calc_GP_outputs(model,likelihood,test_param):
+    """
+    Calculates the GP model's approximation of y, and its mean, variance and standard devaition.
+    
+    Parameters
+    ----------
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        train_param: tensor, The training parameter space data
+    
+    Returns
+    -------
+        model_mean: tensor, The GP model's mean
+        model_variance: tensor, The GP model's variance
+        model_stdev: tensor, The GP model's standard deviation
+        model_prediction: tensor, The GP model's approximation of y
+    """
+    #Assert statements check that inputs are correct types and lengths
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    #https://www.geeksforgeeks.org/type-isinstance-python/
+
+    assert torch.is_tensor(test_param)==True, "Test parameter space must be a tensor"
+    
+    with gpytorch.settings.fast_pred_var(), torch.no_grad():
+    #torch.no_grad() 
+        #Disabling gradient calculation is useful for inference, 
+        #when you are sure that you will not call Tensor.backward(). It will reduce memory consumption
+        #Note: Can't use np operations on tensors where requires_grad = True
+    #gpytorch.settings.fast_pred_var() 
+        #Use this for improved performance when computing predictive variances. 
+        #Good up to 10,000 data points
+    #Predicts data points for model (sse) by sending the model through the likelihood
+        observed_pred = likelihood(model(test_param)) #1 x n_test
+
+    #Calculates model mean  
+    model_mean = observed_pred.mean #1 x n_test
+    #Calculates the variance of each data point
+    model_variance = observed_pred.variance #1 x n_test
+    #Calculates the standard deviation of each data point
+    model_stdev = np.sqrt(observed_pred.variance)
+    model_prediction = observed_pred.loc #1 x n_test
+    return model_mean, model_variance, model_stdev, model_prediction
+
 def test_train_split(param_space, y_data, sep_fact=0.8):
     """
     Splits y data into training and testing data
@@ -227,10 +232,10 @@ def test_train_split(param_space, y_data, sep_fact=0.8):
         y_data: ndarray, The simulated y data
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
     Returns:
-        train_p: tensor, The training parameter space data
-        train_y: tensor, The training y data
-        test_p: tensor, The testing parameter space data
-        test_y: tensor, The testing y data
+        train_param: tensor, The training parameter space data
+        train_data: tensor, The training y data
+        test_param: tensor, The testing parameter space data
+        test_data: tensor, The testing y data
     
     """
     
@@ -246,11 +251,11 @@ def test_train_split(param_space, y_data, sep_fact=0.8):
     train_split = int(np.round(len(y_data))*sep_fact)-1 
     
     #Training and testing data are created and converted into tensors
-    train_y =torch.tensor(y_data[:train_split]) #1x(n*sep_fact)
-    test_y = torch.tensor(y_data[train_split:]) #1x(n-n*sep_fact)
-    train_p = torch.tensor(param_space[:train_split,:]) #1x(n*sep_fact)
-    test_p = torch.tensor(param_space[train_split:,:]) #1x(n-n*sep_fact)
-    return train_p, train_y, test_p, test_y
+    train_data =torch.tensor(y_data[:train_split]) #1x(n*sep_fact)
+    test_data = torch.tensor(y_data[train_split:]) #1x(n-n*sep_fact)
+    train_param = torch.tensor(param_space[:train_split,:]) #1x(n*sep_fact)
+    test_param = torch.tensor(param_space[train_split:,:]) #1x(n-n*sep_fact)
+    return train_param, train_data, test_param, test_data
 
 def create_y_data(param_space, noise_std,noise_mean=0):
     """
@@ -273,7 +278,7 @@ def create_y_data(param_space, noise_std,noise_mean=0):
     #Creates noise values with a certain stdev and mean from a normal distribution
     noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
 
-    #Creates an array for train_y that will be filled with the for loop
+    #Creates an array for train_data that will be filled with the for loop
     y_data = np.zeros(len(param_space)) #1 x n (row x col)
 
     #Iterates over evey combination of theta to find the expected y value for each combination
@@ -304,32 +309,32 @@ def LHS_Design(csv_file):
     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
     return param_space
 
-def best_error_advanced(y_model, y_target):
+def best_error_advanced(model_prediction, y_target):
     
     """
     Calculates the best error in the 3 input GP model
     
     Parameters
     ----------
-        y_model: tensor: The y values that the GP model predicts 
+        model_prediction: tensor: The y values that the GP model predicts 
         y_target: ndarray, the expected value of the function from data or other source
     
     Returns:
     --------
         best_error: float, the value of the best error encountered 
     """
-    #Asserts that y_model is a tensor, y_target is an ndarray
-    assert torch.is_tensor(y_model)==True, "GP predicted y values must be tensors"
+    #Asserts that model_prediction is a tensor, y_target is an ndarray
+    assert torch.is_tensor(model_prediction)==True, "GP predicted y values must be tensors"
     assert isinstance(y_target, np.ndarray)==True, "y_target must be an ndarray size 1xn"
     
-    #Changes y_model type from torch tensor to numpy array
-    y_model = y_model.numpy() #1xn
+    #Changes model_prediction type from torch tensor to numpy array
+    model_prediction = model_prediction.numpy() #1xn
     
-    #Asserst that that these y_model and y_target have equal lengths.
-    assert len(y_target)==len(y_model), "y_target and y_model must be the same length"
+    #Asserst that that these model_prediction and y_target have equal lengths.
+    assert len(y_target)==len(model_prediction), "y_target and model_prediction must be the same length"
     
     #Calculates best error as the maximum of the -error
-    error = (y_target-y_model)**2 #1xn
+    error = (y_target-model_prediction)**2 #1xn
     best_error = np.max(-error) #A number
     
     #Finds the best x index
