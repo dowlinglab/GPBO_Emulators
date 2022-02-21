@@ -21,7 +21,7 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
         z = z.numpy()
         
     #Asserts that the parameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
-    assert len(parameter_space.T) == 3, "The GP is a 3 input GP. Please include only 3 parameters to plot."
+    assert len(parameter_space.T) == 3, "The GP is a 3 input GP. Please include only 3 input parameters to plot."
     assert isinstance(z, ndarray) == True, "The data to plot must be a 1xn ndarray."
     assert isinstance(plot_title,str) == True, "Plot title must be a string."
     
@@ -61,7 +61,7 @@ def y_plotter_adv(parameter_space, z,plot_title):
     Parameters
     ----------
         parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of values
+        z:  ndarray, nx1 array of values the GP predicted function values
         title: str, The title for the graph
     
     Returns
@@ -76,7 +76,7 @@ def stdev_plotter_adv(parameter_space, z):
     Parameters
     ----------
         parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of values
+        z:  ndarray, nx1 array of the GP predicted standard deviation values
     
     Returns
     -------
@@ -91,7 +91,7 @@ def ei_plotter_adv(parameter_space, z):
     Parameters
     ----------
         parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of values
+        z:  ndarray, nx1 array of the GP expected improvement values
     
     Returns
     -------
