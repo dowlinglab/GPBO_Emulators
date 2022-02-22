@@ -406,6 +406,11 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         bound_lower = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
         print("Upper bound is", bound_upper)
         print("Lower bound is", bound_lower)
+        print("pdf upper is", norm.pdf(bound_upper))
+        print("cdf upper is", norm.cdf(bound_upper))
+        print("pdf lower is", norm.pdf(bound_lower))
+        print("cdf lower is", norm.cdf(bound_lower))
+        
 
         #Creates EI terms in terms of Alex Dowling's Derivation
         ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #Why is this a CDF and not a PDF? #1xn
