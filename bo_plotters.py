@@ -8,8 +8,8 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     Plots the values of the GP given by the user
     Parameters
     ----------
-        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  tensor, nx1 array of values
+        parameter_space: tensor or ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        z:  tensor or ndarray, nx1 array of values
         title: str, The title for the graph
     
     Returns
@@ -19,15 +19,17 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     #Converts tensors to ndarrays
     if isinstance(z,ndarray)!=True:
         z = z.numpy()
+    if torch.is_tensor(parameter_space)==True:
+        parameter_space= parameter_space.numpy()
         
     #Asserts that the parameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
     assert len(parameter_space.T) == 3, "The GP is a 3 input GP. Please include only 3 input parameters to plot."
     assert isinstance(plot_title,str) == True, "Plot title must be a string."
     
     #Breaks Parameter space into separate componenets
-    p_1 = parameter_space[:,0].numpy() #Theta1 #1xn
-    p_2 = parameter_space[:,1].numpy() #Theta2 #1xn
-    p_3 = parameter_space[:,2].numpy() #x #1xn
+    p_1 = parameter_space[:,0] #Theta1 #1xn
+    p_2 = parameter_space[:,1] #Theta2 #1xn
+    p_3 = parameter_space[:,2] #x #1xn
     
     #Sets what data will be within the graph as the heat map points
     color = z
@@ -97,4 +99,19 @@ def ei_plotter_adv(parameter_space, z):
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
     title = "Expected Improvement"
+    return plotter_adv(parameter_space, z,title)
+
+def improvement_test(parameter_space, z)
+    """
+    Plots the improvement of the GP
+    Parameters
+    ----------
+        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        z:  ndarray, nx1 array of the GP improvement values
+    
+    Returns
+    -------
+        A 3D Heat map of the values of improvement predicted by the GP
+    """
+    title = "(e* - (f-mu-sig*eps)^2) Improvement"
     return plotter_adv(parameter_space, z,title)
