@@ -9,7 +9,7 @@ def calc_y_expected(test_param, noise_stdev, noise_mean=0):
     Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
     Parameters
     ----------
-        test_param: (n_trainx3) ndarray, The parameter space over which the GP will be tested
+        test_param: (n_trainx3) ndarray or tensor, The parameter space over which the GP will be tested
         noise_std: float or int, The standard deviation of the nosie
         noise_mean: float or int, The mean of the noise. Default is zero.
     Returns
@@ -19,15 +19,18 @@ def calc_y_expected(test_param, noise_stdev, noise_mean=0):
     #Assert statements check that the types defined in the doctring are satisfied
     assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
     assert isinstance(noise_stdev, (float, int))==True, "noise parameters must be floats or integers"
-    assert torch.is_tensor(test_param)==True, "Test parameter space must be a tensor"
     assert len(test_param.T) ==3, "Only 3 input Test parameter space can be taken, test_param must be an n_test x 3 array"
     
+    #Converts training parameters to numpy arrays if they are tensors
+    if torch.is_tensor(test_param)==True:
+        test_param = test_param.numpy() #1xn
+
     noise = np.random.normal(size=1,loc = noise_mean, scale = noise_stdev) #Scaler
     
     #Separates parameters for use
-    p_1 = test_param[:,0].numpy() #Theta1 #1 x n_test
-    p_2 = test_param[:,1].numpy() #Theta2 #1 x n_test
-    p_3 = test_param[:,2].numpy() #x #1 x n_test
+    p_1 = test_param[:,0] #Theta1 #1 x n_test
+    p_2 = test_param[:,1] #Theta2 #1 x n_test
+    p_3 = test_param[:,2] #x #1 x n_test
 
     #Calculates expected y for each parameter space parameter
     y_expected = p_1*p_3 + p_2*p_3**2 + p_3**3 + noise #1 x n_test
@@ -58,10 +61,14 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=300, v
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert isinstance(iterations, int)==True, "Number of training iterations must be an integer" 
-    assert torch.is_tensor(train_param)==True, "Train parameter space must be a tensor"
-    assert torch.is_tensor(train_data)==True, "Train y data must be a tensor"
     assert len(train_param) == len(train_data), "training data must be the same length as each other"
     
+    #Converts training data and parameters to tensors if they are a numpy arrays
+    if isinstance(train_param, np.ndarray)==True:
+        train_param = torch.tensor(train_param) #1xn
+    if isinstance(train_data, np.ndarray)==True:
+        train_data = torch.tensor(train_data) #1xn
+
     #Find optimal model hyperparameters
     training_iter = iterations
 
@@ -186,7 +193,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     ----------
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        train_param: tensor, The training parameter space data
+        train_param: tensor or ndarray, The training parameter space data
     
     Returns
     -------
@@ -200,8 +207,10 @@ def calc_GP_outputs(model,likelihood,test_param):
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     #https://www.geeksforgeeks.org/type-isinstance-python/
 
-    assert torch.is_tensor(test_param)==True, "Test parameter space must be a tensor"
-    
+    #Converts training data and parameters to tensors if they are a numpy arrays
+    if isinstance(test_param, np.ndarray)==True:
+        test_param = torch.tensor(test_param) #1xn
+        
     with gpytorch.settings.fast_pred_var(), torch.no_grad():
     #torch.no_grad() 
         #Disabling gradient calculation is useful for inference, 
@@ -228,8 +237,8 @@ def test_train_split(param_space, y_data, sep_fact=0.8):
     
     Parameters
     ----------
-        param_space: (nx3) ndarray, The parameter space over which the GP will be run
-        y_data: ndarray, The simulated y data
+        param_space: (nx3) ndarray or tensor, The parameter space over which the GP will be run
+        y_data: ndarray or tensor, The simulated y data
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
     Returns:
         train_param: tensor, The training parameter space data
@@ -240,21 +249,26 @@ def test_train_split(param_space, y_data, sep_fact=0.8):
     """
     
     #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
-    assert isinstance(param_space, np.ndarray) == True, "parameter space must be a numpy array"
     assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
     assert 0 < sep_fact< 1, "Separation factor must be between 0 and 1"
     
     #Asserts length od param_space and y_data are equal
     assert len(param_space) == len(y_data), "The length of param_space and y_data must be the same"
     
+    #Converts data and parameters to tensors if they are numpy arrays
+    if isinstance(param_space, np.ndarray)==True:
+        param_space = torch.tensor(param_space) #1xn
+    if isinstance(y_data, np.ndarray)==True:
+        y_data = torch.tensor(y_data) #1xn
+    
     #Creates the index on which to split data
     train_split = int(np.round(len(y_data))*sep_fact)-1 
     
     #Training and testing data are created and converted into tensors
-    train_data =torch.tensor(y_data[:train_split]) #1x(n*sep_fact)
-    test_data = torch.tensor(y_data[train_split:]) #1x(n-n*sep_fact)
-    train_param = torch.tensor(param_space[:train_split,:]) #1x(n*sep_fact)
-    test_param = torch.tensor(param_space[train_split:,:]) #1x(n-n*sep_fact)
+    train_data =y_data[:train_split] #1x(n*sep_fact)
+    test_data = y_data[train_split:] #1x(n-n*sep_fact)
+    train_param = param_space[:train_split,:] #1x(n*sep_fact)
+    test_param = param_space[train_split:,:] #1x(n-n*sep_fact)
     return train_param, train_data, test_param, test_data
 
 def create_y_data(param_space, noise_std,noise_mean=0):
@@ -262,7 +276,7 @@ def create_y_data(param_space, noise_std,noise_mean=0):
     Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
     Parameters
     ----------
-        param_space: (nx3) ndarray, The parameter space over which the GP will be run
+        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
         noise_std: float or int, The standard deviation of the nosie
         noise_mean: float or int, The mean of the noise. Default is zero.
     Returns
@@ -272,9 +286,12 @@ def create_y_data(param_space, noise_std,noise_mean=0):
     #Assert statements check that the types defined in the doctring are satisfied
     assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
     assert isinstance(noise_std, (float, int))==True, "noise parameters must be floats or integers"
-    assert isinstance(param_space, np.ndarray) == True, "parameter space must be a numpy array"
     assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
     
+    #Converts data and parameters to numpy arrays if they are tensors
+    if torch.is_tensor(param_space)==True:
+        param_space = param_space.numpy()
+        
     #Creates noise values with a certain stdev and mean from a normal distribution
     noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
 
@@ -316,20 +333,20 @@ def best_error_advanced(model_prediction, y_target):
     
     Parameters
     ----------
-        model_prediction: tensor: The y values that the GP model predicts 
-        y_target: ndarray, the expected value of the function from data or other source
+        model_prediction: tensor or ndarray: The y values that the GP model predicts 
+        y_target: tensor or ndarray, the expected value of the function from data or other source
     
     Returns:
     --------
         best_error: float, the value of the best error encountered 
-    """
-    #Asserts that model_prediction is a tensor, y_target is an ndarray
-    assert torch.is_tensor(model_prediction)==True, "GP predicted y values must be tensors"
-    assert isinstance(y_target, np.ndarray)==True, "y_target must be an ndarray size 1xn"
+    """    
     
-    #Changes model_prediction type from torch tensor to numpy array
-    model_prediction = model_prediction.numpy() #1xn
-    
+    #Converts data and parameters to numpy arrays if they are tensors
+    if torch.is_tensor(model_prediction)==True:
+        model_prediction = model_prediction.numpy()
+    if torch.is_tensor(y_target)==True:
+        y_target = y_target.numpy()
+        
     #Asserst that that these model_prediction and y_target have equal lengths.
     assert len(y_target)==len(model_prediction), "y_target and model_prediction must be the same length"
     
@@ -352,24 +369,25 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
     Parameters
     ----------
         f_best: float, the best predicted error encountered
-        pred_mean: tensor, model mean
-        pred_var: tensor, model variance
-        y_target: ndarray, the expected value of the function from data or other source
+        pred_mean: tensor or ndarray, model mean
+        pred_var: tensor or ndarray, model variance
+        y_target: tensor or ndarray, the expected value of the function from data or other source
     
     Returns
     -------
         ei: ndarray, the expected improvement of the GP model
     """
-    #Asserts that pred_mean and pred_var are tensors, f_pred is a float, and y_target is an ndarray
-    assert torch.is_tensor(pred_mean)==True and torch.is_tensor(pred_var)==True, "GP predicted means and variances must be tensors"
-    assert isinstance(y_target, np.ndarray)==True, "y_target must be an ndarray size 1xn"
+    #Asserts that f_pred is a float, and y_target is an ndarray
     assert isinstance(f_best, (float,int))==True, "f_best must be a float or integer"
     
-    
     #Coverts tensor to np arrays
-    pred_mean = pred_mean.numpy() #1xn
-    pred_var = pred_var.numpy() #1xn
-    
+    if torch.is_tensor(pred_mean)==True:
+        pred_mean = pred_mean.numpy() #1xn
+    if torch.is_tensor(pred_var)==True:
+        pred_var = pred_var.numpy() #1xn
+    if torch.is_tensor(y_target)==True:
+        y_target = y_target.numpy() #1xn
+        
     #Checks for equal lengths
     assert len(y_target)==len(pred_mean)==len(pred_var), "y_target, pred_mean, and pred_var must be the same length"
     
