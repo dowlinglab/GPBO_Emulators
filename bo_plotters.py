@@ -102,7 +102,7 @@ def ei_plotter_adv(parameter_space, z):
     title = "Expected Improvement"
     return plotter_adv(parameter_space, z,title)
 
-def improvement_test(parameter_space, z):
+def improvement_plot(parameter_space, z):
     """
     Plots the improvement of the GP
     Parameters

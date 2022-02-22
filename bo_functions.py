@@ -428,3 +428,36 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
 
         ei = ei_term1 + ei_term2 + ei_term3 #1xn
     return ei
+
+def improvement(error_best,pred_mean,pred_var,y_target):
+    """ 
+    Calculates the expected improvement of the 3 input parameter GP
+    Parameters
+    ----------
+        error_best: float, the best predicted error encountered
+        pred_mean: tensor or ndarray, model mean
+        pred_var: tensor or ndarray, model variance
+        y_target: tensor or ndarray, the expected value of the function from data or other source
+    
+    Returns
+    -------
+        improvement: ndarray, the improvement of the GP model to be plotted. Used for testing
+    """    
+    #Asserts best_error is a float or integer
+    assert isinstance(error_best, (float,int))==True, "error_best must be a float or integer"
+    
+    #Coverts any tensors given as inputs to ndarrays
+    if torch.is_tensor(pred_mean)==True:
+        pred_mean = pred_mean.numpy() #1xn
+    if torch.is_tensor(pred_var)==True:
+        pred_var = pred_var.numpy() #1xn
+    if torch.is_tensor(y_target)==True:
+        y_target = y_target.numpy() #1xn
+    pred_stdev = np.sqrt(pred_var) #1xn
+    with np.errstate(divide = 'warn'):
+        #Creates upper and lower bounds and described by Alex Dowling's Derivation
+        bound_upper = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
+        bound_lower = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
+    improvement_up = (error_best- (y_target -pred_mean-pred_stdev*bound_upper)**2)*norm.pdf(bound_upper)
+    improvement_low = (error_best- (y_target -pred_mean-pred_stdev*bound_lower)**2)*norm.pdf(bound_lower)
+    return improvement_up,improvement_low
