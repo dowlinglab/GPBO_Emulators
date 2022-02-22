@@ -405,20 +405,22 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
     
     #If variance is zero this is important
     with np.errstate(divide = 'warn'):
-        #Creates upper and lower bounds and described by Nilay's word doc
-        bound_upper = ((y_target - pred_mean) +np.sqrt(error_best))/pred_var #1xn
-        bound_lower = ((y_target - pred_mean) -np.sqrt(error_best))/pred_var #(STDEV or VAR?) #1xn
+        #Creates upper and lower bounds and described by Alex Dowling's Derivation
+        bound_upper = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
+        bound_lower = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
+        print("Upper bound is", bound_upper)
+        print("Lower bound is", bound_lower)
 
-        #Creates EI terms in terms of Nilay's code / word doc
-        ei_term1_comp1 = norm.pdf(bound_upper) - norm.pdf(bound_lower) #Why is this a CDF and not a PDF? #1xn
+        #Creates EI terms in terms of Alex Dowling's Derivation
+        ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #Why is this a CDF and not a PDF? #1xn
         ei_term1_comp2 = error_best - (y_target - pred_mean)**2 #1xn
 
-        ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #(STDEV or VAR?) #1xn
+        ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
         ei_term2_comp2 = (norm.pdf(bound_upper) - norm.pdf(bound_lower)) #This gives a large negative number when tested #1xn
 
-        ei_term3_comp1 = (1/2)*norm.pdf(bound_upper/np.sqrt(2)) #(CDF or PDF) #1xn
+        ei_term3_comp1 = (1/2)*norm.cdf(bound_upper/np.sqrt(2)) #1xn
         ei_term3_comp2 = -norm.pdf(bound_upper)*bound_upper #1xn
-        ei_term3_comp3 = (1/2)*norm.pdf(bound_lower/np.sqrt(2)) #(CDF or PDF) #1xn
+        ei_term3_comp3 = (1/2)*norm.cdf(bound_lower/np.sqrt(2)) #1xn
         ei_term3_comp4 = -norm.pdf(bound_lower)*bound_lower #1xn
 
         ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp2 #1xn
