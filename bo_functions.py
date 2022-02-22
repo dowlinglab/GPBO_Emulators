@@ -48,8 +48,8 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=300, v
     ----------
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
-        train_param: tensor, The training parameter space data
-        train_data: tensor, The training y data
+        train_param: tensor or ndarray, The training parameter space data
+        train_data: tensor or ndarray, The training y data
         iterations: float or int, number of training iterations to run. Default is 300
         verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
     
@@ -148,11 +148,20 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
         Parameters
         ----------
         self : A class,The model itself. In this case, gpytorch.models.ExactGP
-        train_param : tensor, The inputs of the training data
-        train_data : tensor, the output of the training data
+        train_param : tensor or ndarray, The inputs of the training data
+        train_data : tensor or ndarray, the output of the training data
         likelihood : bound method, the lieklihood of the model. In this case, it must be Gaussian
         
         """
+        #Asserts that likeliehood is Gaussian and will work with the exact gp model
+        assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"  
+        
+        #Converts training data and parameters to tensors if they are numpy arrays
+        if isinstance(train_param, np.ndarray)==True:
+            param_space = torch.tensor(train_param) #1xn
+        if isinstance(train_data, np.ndarray)==True:
+            train_data = torch.tensor(train_data) #1xn
+ 
         #Initializes the GP model with train_param, train_data, and the likelihood
         ##Calls the __init__ method of parent class
         super(ExactGPModel, self).__init__(train_param, train_data, likelihood)
@@ -207,7 +216,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     #https://www.geeksforgeeks.org/type-isinstance-python/
 
-    #Converts training data and parameters to tensors if they are a numpy arrays
+    #Converts test parameters to tensors if they are a numpy arrays
     if isinstance(test_param, np.ndarray)==True:
         test_param = torch.tensor(test_param) #1xn
         
@@ -288,7 +297,7 @@ def create_y_data(param_space, noise_std,noise_mean=0):
     assert isinstance(noise_std, (float, int))==True, "noise parameters must be floats or integers"
     assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
     
-    #Converts data and parameters to numpy arrays if they are tensors
+    #Converts parameters to numpy arrays if they are tensors
     if torch.is_tensor(param_space)==True:
         param_space = param_space.numpy()
         
@@ -341,7 +350,7 @@ def best_error_advanced(model_prediction, y_target):
         best_error: float, the value of the best error encountered 
     """    
     
-    #Converts data and parameters to numpy arrays if they are tensors
+    #Converts target values and GP model predictions to numpy arrays if they are tensors
     if torch.is_tensor(model_prediction)==True:
         model_prediction = model_prediction.numpy()
     if torch.is_tensor(y_target)==True:
@@ -380,7 +389,7 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
     #Asserts that f_pred is a float, and y_target is an ndarray
     assert isinstance(f_best, (float,int))==True, "f_best must be a float or integer"
     
-    #Coverts tensor to np arrays
+    #Coverts any tensors given as inputs to ndarrays
     if torch.is_tensor(pred_mean)==True:
         pred_mean = pred_mean.numpy() #1xn
     if torch.is_tensor(pred_var)==True:
