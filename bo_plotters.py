@@ -22,7 +22,6 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
         
     #Asserts that the parameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
     assert len(parameter_space.T) == 3, "The GP is a 3 input GP. Please include only 3 input parameters to plot."
-    assert isinstance(z, ndarray) == True, "The data to plot must be a 1xn ndarray."
     assert isinstance(plot_title,str) == True, "Plot title must be a string."
     
     #Breaks Parameter space into separate componenets
