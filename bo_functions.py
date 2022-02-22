@@ -4,114 +4,6 @@ import torch
 import csv
 import gpytorch
 
-def calc_y_expected(test_param, noise_stdev, noise_mean=0):
-    """
-    Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
-    Parameters
-    ----------
-        test_param: (n_trainx3) ndarray or tensor, The parameter space over which the GP will be tested
-        noise_std: float or int, The standard deviation of the nosie
-        noise_mean: float or int, The mean of the noise. Default is zero.
-    Returns
-    -------
-        y_data: ndarray, The simulated y data
-    """
-    #Assert statements check that the types defined in the doctring are satisfied
-    assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
-    assert isinstance(noise_stdev, (float, int))==True, "noise parameters must be floats or integers"
-    assert len(test_param.T) ==3, "Only 3 input Test parameter space can be taken, test_param must be an n_test x 3 array"
-    
-    #Converts training parameters to numpy arrays if they are tensors
-    if torch.is_tensor(test_param)==True:
-        test_param = test_param.numpy() #1xn
-
-    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_stdev) #Scaler
-    
-    #Separates parameters for use
-    p_1 = test_param[:,0] #Theta1 #1 x n_test
-    p_2 = test_param[:,1] #Theta2 #1 x n_test
-    p_3 = test_param[:,2] #x #1 x n_test
-
-    #Calculates expected y for each parameter space parameter
-    y_expected = p_1*p_3 + p_2*p_3**2 + p_3**3 + noise #1 x n_test
-    return y_expected
-    
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
-
-def train_GP_model(model, likelihood, train_param, train_data, iterations=300, verbose=False):
-    #This function calculates hyperparameters differently than what's in the code right now and I can't figure out why. Is this even an issue to worry about?
-    """
-    Trains the GP model and finds hyperparameters with the Adam optimizer with an lr =0.1
-    
-    Parameters
-    ----------
-        model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
-        train_param: tensor or ndarray, The training parameter space data
-        train_data: tensor or ndarray, The training y data
-        iterations: float or int, number of training iterations to run. Default is 300
-        verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
-    
-    Returns
-    -------
-        optimizer.step(): Updates the value of parameters using the gradient x.grad
-    """
-    #Assert statements check that inputs are the correct types and lengths
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-    assert isinstance(iterations, int)==True, "Number of training iterations must be an integer" 
-    assert len(train_param) == len(train_data), "training data must be the same length as each other"
-    
-    #Converts training data and parameters to tensors if they are a numpy arrays
-    if isinstance(train_param, np.ndarray)==True:
-        train_param = torch.tensor(train_param) #1xn
-    if isinstance(train_data, np.ndarray)==True:
-        train_data = torch.tensor(train_data) #1xn
-
-    #Find optimal model hyperparameters
-    training_iter = iterations
-
-    #Puts the model in training mode
-    model.train()
-
-    #Puts the likelihood in training mode
-    likelihood.train()
-
-    # Use the adam optimizer
-        #algorithm for first-order gradient-based optimization of stochastic objective functions
-        # The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. 
-        #The hyper-parameters have intuitive interpretations and typically require little tuning.
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)  #Needs GaussianLikelihood parameters, and a learning rate
-        #lr default is 0.001
-
-    # Calculate"Loss" for GPs
-
-    #The marginal log likelihood (the evidence: quantifies joint probability of the data under the prior)
-    #returns an exact MLL for an exact Gaussian process with Gaussian likelihood
-    mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model) #Takes a Gaussian likelihood and a model, a bound Method
-    #iterates a give number of times
-    for i in range(training_iter): #0-299
-        # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
-        optimizer.zero_grad() 
-        # Output from model
-        output = model(train_param) # A multivariate norm of a 1 x n_train^2 tensor
-        # Calc loss and backprop gradients
-        #Minimizing -logMLL lets us fit hyperparameters
-        loss = -mll(output, train_data) #A number (tensor)
-        #computes dloss/dx for every parameter x which has requires_grad=True. 
-        #These are accumulated into x.grad for every parameter x
-        loss.backward()
-    #     print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
-    #         i + 1, training_iter, loss.item(),
-    #         model.covar_module.base_kernel.lengthscale.item(),
-    #          model.likelihood.noise.item()
-    #     ))
-        #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
-        #x += -lr * x.grad
-        optimizer.step()
-    return
-    
 class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     """
     The base class for any Gaussian process latent function to be used in conjunction
@@ -194,6 +86,173 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1xn_train^2 tensor
 
+def LHS_Design(csv_file):
+    """
+    Creates LHS Design based on a CSV
+    Parameters
+    ----------
+        csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
+    Returns
+    -------
+        param_space: ndarray , the parameter space that will be used with the GP
+    """
+    #Asserts that the csv filename is a string
+    assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
+    
+    reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
+    lhs_design = list(reader) #Creates list from CSV
+    param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
+    return param_space
+
+def create_y_data(param_space, noise_std,noise_mean=0):
+    """
+    Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
+    Parameters
+    ----------
+        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
+        noise_std: float or int, The standard deviation of the nosie
+        noise_mean: float or int, The mean of the noise. Default is zero.
+    Returns
+    -------
+        y_data: ndarray, The simulated y data
+    """
+    #Assert statements check that the types defined in the doctring are satisfied
+    assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
+    assert isinstance(noise_std, (float, int))==True, "noise parameters must be floats or integers"
+    assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
+    
+    #Converts parameters to numpy arrays if they are tensors
+    if torch.is_tensor(param_space)==True:
+        param_space = param_space.numpy()
+        
+    #Creates noise values with a certain stdev and mean from a normal distribution
+    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
+
+    #Creates an array for train_data that will be filled with the for loop
+    y_data = np.zeros(len(param_space)) #1 x n (row x col)
+
+    #Iterates over evey combination of theta to find the expected y value for each combination
+    for i in range(len(param_space)):
+        theta_1 = param_space[i,0] #nx1 
+        theta_2 = param_space[i,1] #nx1
+        x = param_space[i,2] #nx1
+        y_exp = theta_1*x + theta_2*x**2 +x**3 + noise #Scaler
+        y_data[i] = y_exp #Scaler
+    #Returns all_y
+    return y_data
+
+def test_train_split(param_space, y_data, sep_fact=0.8):
+    """
+    Splits y data into training and testing data
+    
+    Parameters
+    ----------
+        param_space: (nx3) ndarray or tensor, The parameter space over which the GP will be run
+        y_data: ndarray or tensor, The simulated y data
+        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+    Returns:
+        train_param: tensor, The training parameter space data
+        train_data: tensor, The training y data
+        test_param: tensor, The testing parameter space data
+        test_data: tensor, The testing y data
+    
+    """
+    
+    #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
+    assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
+    assert 0 < sep_fact< 1, "Separation factor must be between 0 and 1"
+    
+    #Asserts length od param_space and y_data are equal
+    assert len(param_space) == len(y_data), "The length of param_space and y_data must be the same"
+    
+    #Converts data and parameters to tensors if they are numpy arrays
+    if isinstance(param_space, np.ndarray)==True:
+        param_space = torch.tensor(param_space) #1xn
+    if isinstance(y_data, np.ndarray)==True:
+        y_data = torch.tensor(y_data) #1xn
+    
+    #Creates the index on which to split data
+    train_split = int(np.round(len(y_data))*sep_fact)-1 
+    
+    #Training and testing data are created and converted into tensors
+    train_data =y_data[:train_split] #1x(n*sep_fact)
+    test_data = y_data[train_split:] #1x(n-n*sep_fact)
+    train_param = param_space[:train_split,:] #1x(n*sep_fact)
+    test_param = param_space[train_split:,:] #1x(n-n*sep_fact)
+    return train_param, train_data, test_param, test_data
+
+def train_GP_model(model, likelihood, train_param, train_data, iterations=300, verbose=False):
+    """
+    Trains the GP model and finds hyperparameters with the Adam optimizer with an lr =0.1
+    
+    Parameters
+    ----------
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
+        train_param: tensor or ndarray, The training parameter space data
+        train_data: tensor or ndarray, The training y data
+        iterations: float or int, number of training iterations to run. Default is 300
+        verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
+    
+    Returns
+    -------
+        optimizer.step(): Updates the value of parameters using the gradient x.grad
+    """
+    #Assert statements check that inputs are the correct types and lengths
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    assert isinstance(iterations, int)==True, "Number of training iterations must be an integer" 
+    assert len(train_param) == len(train_data), "training data must be the same length as each other"
+    
+    #Converts training data and parameters to tensors if they are a numpy arrays
+    if isinstance(train_param, np.ndarray)==True:
+        train_param = torch.tensor(train_param) #1xn
+    if isinstance(train_data, np.ndarray)==True:
+        train_data = torch.tensor(train_data) #1xn
+
+    #Find optimal model hyperparameters
+    training_iter = iterations
+
+    #Puts the model in training mode
+    model.train()
+
+    #Puts the likelihood in training mode
+    likelihood.train()
+
+    # Use the adam optimizer
+        #algorithm for first-order gradient-based optimization of stochastic objective functions
+        # The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. 
+        #The hyper-parameters have intuitive interpretations and typically require little tuning.
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)  #Needs GaussianLikelihood parameters, and a learning rate
+        #lr default is 0.001
+
+    # Calculate"Loss" for GPs
+
+    #The marginal log likelihood (the evidence: quantifies joint probability of the data under the prior)
+    #returns an exact MLL for an exact Gaussian process with Gaussian likelihood
+    mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model) #Takes a Gaussian likelihood and a model, a bound Method
+    #iterates a give number of times
+    for i in range(training_iter): #0-299
+        # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
+        optimizer.zero_grad() 
+        # Output from model
+        output = model(train_param) # A multivariate norm of a 1 x n_train^2 tensor
+        # Calc loss and backprop gradients
+        #Minimizing -logMLL lets us fit hyperparameters
+        loss = -mll(output, train_data) #A number (tensor)
+        #computes dloss/dx for every parameter x which has requires_grad=True. 
+        #These are accumulated into x.grad for every parameter x
+        loss.backward()
+    #     print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
+    #         i + 1, training_iter, loss.item(),
+    #         model.covar_module.base_kernel.lengthscale.item(),
+    #          model.likelihood.noise.item()
+    #     ))
+        #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
+        #x += -lr * x.grad
+        optimizer.step()
+    return
+
 def calc_GP_outputs(model,likelihood,test_param):
     """
     Calculates the GP model's approximation of y, and its mean, variance and standard devaition.
@@ -238,54 +297,14 @@ def calc_GP_outputs(model,likelihood,test_param):
     #Calculates the standard deviation of each data point
     model_stdev = np.sqrt(observed_pred.variance)
     model_prediction = observed_pred.loc #1 x n_test
-    return model_mean, model_variance, model_stdev, model_prediction
+    return model_mean, model_variance, model_stdev, model_prediction    
 
-def test_train_split(param_space, y_data, sep_fact=0.8):
-    """
-    Splits y data into training and testing data
-    
-    Parameters
-    ----------
-        param_space: (nx3) ndarray or tensor, The parameter space over which the GP will be run
-        y_data: ndarray or tensor, The simulated y data
-        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-    Returns:
-        train_param: tensor, The training parameter space data
-        train_data: tensor, The training y data
-        test_param: tensor, The testing parameter space data
-        test_data: tensor, The testing y data
-    
-    """
-    
-    #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
-    assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
-    assert 0 < sep_fact< 1, "Separation factor must be between 0 and 1"
-    
-    #Asserts length od param_space and y_data are equal
-    assert len(param_space) == len(y_data), "The length of param_space and y_data must be the same"
-    
-    #Converts data and parameters to tensors if they are numpy arrays
-    if isinstance(param_space, np.ndarray)==True:
-        param_space = torch.tensor(param_space) #1xn
-    if isinstance(y_data, np.ndarray)==True:
-        y_data = torch.tensor(y_data) #1xn
-    
-    #Creates the index on which to split data
-    train_split = int(np.round(len(y_data))*sep_fact)-1 
-    
-    #Training and testing data are created and converted into tensors
-    train_data =y_data[:train_split] #1x(n*sep_fact)
-    test_data = y_data[train_split:] #1x(n-n*sep_fact)
-    train_param = param_space[:train_split,:] #1x(n*sep_fact)
-    test_param = param_space[train_split:,:] #1x(n-n*sep_fact)
-    return train_param, train_data, test_param, test_data
-
-def create_y_data(param_space, noise_std,noise_mean=0):
+def calc_y_expected(test_param, noise_stdev, noise_mean=0):
     """
     Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
     Parameters
     ----------
-        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
+        test_param: (n_trainx3) ndarray or tensor, The parameter space over which the GP will be tested
         noise_std: float or int, The standard deviation of the nosie
         noise_mean: float or int, The mean of the noise. Default is zero.
     Returns
@@ -294,46 +313,23 @@ def create_y_data(param_space, noise_std,noise_mean=0):
     """
     #Assert statements check that the types defined in the doctring are satisfied
     assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
-    assert isinstance(noise_std, (float, int))==True, "noise parameters must be floats or integers"
-    assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
+    assert isinstance(noise_stdev, (float, int))==True, "noise parameters must be floats or integers"
+    assert len(test_param.T) ==3, "Only 3 input Test parameter space can be taken, test_param must be an n_test x 3 array"
     
-    #Converts parameters to numpy arrays if they are tensors
-    if torch.is_tensor(param_space)==True:
-        param_space = param_space.numpy()
-        
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
+    #Converts training parameters to numpy arrays if they are tensors
+    if torch.is_tensor(test_param)==True:
+        test_param = test_param.numpy() #1xn
 
-    #Creates an array for train_data that will be filled with the for loop
-    y_data = np.zeros(len(param_space)) #1 x n (row x col)
-
-    #Iterates over evey combination of theta to find the expected y value for each combination
-    for i in range(len(param_space)):
-        theta_1 = param_space[i,0] #nx1 
-        theta_2 = param_space[i,1] #nx1
-        x = param_space[i,2] #nx1
-        y_exp = theta_1*x + theta_2*x**2 +x**3 + noise #Scaler
-        y_data[i] = y_exp #Scaler
-    #Returns all_y
-    return y_data
-
-def LHS_Design(csv_file):
-    """
-    Creates LHS Design based on a CSV
-    Parameters
-    ----------
-        csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
-    Returns
-    -------
-        param_space: ndarray , the parameter space that will be used with the GP
-    """
-    #Asserts that the csv filename is a string
-    assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
+    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_stdev) #Scaler
     
-    reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
-    lhs_design = list(reader) #Creates list from CSV
-    param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
-    return param_space
+    #Separates parameters for use
+    p_1 = test_param[:,0] #Theta1 #1 x n_test
+    p_2 = test_param[:,1] #Theta2 #1 x n_test
+    p_3 = test_param[:,2] #x #1 x n_test
+
+    #Calculates expected y for each parameter space parameter
+    y_expected = p_1*p_3 + p_2*p_3**2 + p_3**3 + noise #1 x n_test
+    return y_expected
 
 def best_error_advanced(model_prediction, y_target):
     
