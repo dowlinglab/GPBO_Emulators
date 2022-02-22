@@ -372,12 +372,12 @@ def best_error_advanced(model_prediction, y_target):
     return best_error, best_x #1x2
 
 
-def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
+def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
     ----------
-        f_best: float, the best predicted error encountered
+        error_best: float, the best predicted error encountered
         pred_mean: tensor or ndarray, model mean
         pred_var: tensor or ndarray, model variance
         y_target: tensor or ndarray, the expected value of the function from data or other source
@@ -387,7 +387,7 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
         ei: ndarray, the expected improvement of the GP model
     """
     #Asserts that f_pred is a float, and y_target is an ndarray
-    assert isinstance(f_best, (float,int))==True, "f_best must be a float or integer"
+    assert isinstance(error_best, (float,int))==True, "error_best must be a float or integer"
     
     #Coverts any tensors given as inputs to ndarrays
     if torch.is_tensor(pred_mean)==True:
@@ -406,12 +406,12 @@ def calc_ei_advanced(f_best,pred_mean,pred_var,y_target):
     #If variance is zero this is important
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Nilay's word doc
-        bound_upper = ((y_target - pred_mean) +np.sqrt(f_best))/pred_var #1xn
-        bound_lower = ((y_target - pred_mean) -np.sqrt(f_best))/pred_var #(STDEV or VAR?) #1xn
+        bound_upper = ((y_target - pred_mean) +np.sqrt(error_best))/pred_var #1xn
+        bound_lower = ((y_target - pred_mean) -np.sqrt(error_best))/pred_var #(STDEV or VAR?) #1xn
 
         #Creates EI terms in terms of Nilay's code / word doc
         ei_term1_comp1 = norm.pdf(bound_upper) - norm.pdf(bound_lower) #Why is this a CDF and not a PDF? #1xn
-        ei_term1_comp2 = f_best - (y_target - pred_mean)**2 #1xn
+        ei_term1_comp2 = error_best - (y_target - pred_mean)**2 #1xn
 
         ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #(STDEV or VAR?) #1xn
         ei_term2_comp2 = (norm.pdf(bound_upper) - norm.pdf(bound_lower)) #This gives a large negative number when tested #1xn
