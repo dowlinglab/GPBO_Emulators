@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+import torch
 from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
 
@@ -101,7 +102,7 @@ def ei_plotter_adv(parameter_space, z):
     title = "Expected Improvement"
     return plotter_adv(parameter_space, z,title)
 
-def improvement_test(parameter_space, z)
+def improvement_test(parameter_space, z):
     """
     Plots the improvement of the GP
     Parameters
