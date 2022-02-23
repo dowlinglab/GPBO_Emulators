@@ -402,10 +402,11 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
     #If variance is zero this is important
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Alex Dowling's Derivation
-        bound_upper = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
-        bound_lower = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
-        print("Upper bound is", bound_upper)
-        print("Lower bound is", bound_lower)
+        #Note Flipped upper and lower boundaries
+        bound_lower = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
+        bound_upper = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
+        print("Lower bound is", bound_upper)
+        print("Upper bound is", bound_lower)
         print("pdf upper is", norm.pdf(bound_upper))
         print("cdf upper is", norm.cdf(bound_upper))
         print("pdf lower is", norm.pdf(bound_lower))
