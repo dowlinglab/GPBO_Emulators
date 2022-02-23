@@ -114,5 +114,5 @@ def improvement_plot(parameter_space, z):
     -------
         A 3D Heat map of the values of improvement predicted by the GP
     """
-    title = "(e* - (f-mu-sig*eps)^2) Improvement"
+    title = "(e* - (f-mu-sig*eps)^2*pdf(eps)) Improvement"
     return plotter_adv(parameter_space, z,title)
