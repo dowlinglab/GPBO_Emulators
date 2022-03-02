@@ -433,7 +433,15 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         ei_term3 = -pred_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
 
         ei = ei_term1 + ei_term2 + ei_term3 #1xn
-    return ei
+        ei_final = np.zeros(len(ei))
+            
+        for i in range(len(ei_final)):
+            if ei[i] >0:
+                ei_final[i] = ei[i]
+            else:
+                ei_final[i] = 0
+          
+    return ei_final
 
 def improvement(error_best,pred_mean,pred_var,y_target, eps): #Needs work
     """ 
