@@ -443,9 +443,9 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
           
     return ei_final
 
-def improvement(error_best,pred_mean,pred_var,y_target, eps): #Needs work
+def improvement(error_best,pred_mean,pred_var,y_target, eps=None): #Needs work
     """ 
-    Calculates the expected improvement of the 3 input parameter GP
+    Calculates the improvement integrand of the 3 input parameter GP
     Parameters
     ----------
         error_best: float, the best predicted error encountered
@@ -456,7 +456,7 @@ def improvement(error_best,pred_mean,pred_var,y_target, eps): #Needs work
     
     Returns
     -------
-        improvement: ndarray, the improvement of the GP model to be plotted. Used for testing
+        improvement: ndarray, the improvement integrand of the GP model to be plotted. Used for testing
     """    
     #Asserts best_error is a float or integer
     assert isinstance(error_best, (float,int))==True, "error_best must be a float or integer"
@@ -469,6 +469,14 @@ def improvement(error_best,pred_mean,pred_var,y_target, eps): #Needs work
     if torch.is_tensor(y_target)==True:
         y_target = y_target.numpy() #1xn
     pred_stdev = np.sqrt(pred_var) #1xn
-    improvement = (error_best- (y_target -pred_mean-pred_stdev*eps)**2)*norm.pdf(eps)
+    
+    if eps == None:
+        eps_low = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
+        eps_up = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
+        improvement_low = (error_best- (y_target -pred_mean-pred_stdev*eps_low)**2)*norm.pdf(eps_low)
+        improvement_up = (error_best- (y_target -pred_mean-pred_stdev*eps_up)**2)*norm.pdf(eps_up)
+        improvement = improvement_low,improvement_up
+    else:
+        improvement = (error_best- (y_target -pred_mean-pred_stdev*eps)**2)*norm.pdf(eps)
  
     return improvement
