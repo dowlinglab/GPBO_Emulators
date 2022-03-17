@@ -403,10 +403,13 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Alex Dowling's Derivation
         #Note Flipped upper and lower boundaries
-        bound_lower = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
-        bound_upper = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
-        print("Lower bound is", bound_upper)
-        print("Upper bound is", bound_lower)
+        #Call bound a and bound b
+        bound_a = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
+        bound_b = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
+        bound_lower = np.min([bound_a,bound_b])
+        bound_upper = np.max([bound_a,bound_b])
+        print("Upper bound is", bound_upper)
+        print("Lower bound is", bound_lower)
         print("pdf upper is", norm.pdf(bound_upper))
         print("cdf upper is", norm.cdf(bound_upper))
         print("pdf lower is", norm.pdf(bound_lower))
@@ -414,7 +417,7 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         
 
         #Creates EI terms in terms of Alex Dowling's Derivation
-        ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #Why is this a CDF and not a PDF? #1xn
+        ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
         ei_term1_comp2 = error_best - (y_target - pred_mean)**2 #1xn
 
         ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
@@ -436,10 +439,10 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         ei_final = np.zeros(len(ei))
             
         for i in range(len(ei_final)):
-            if ei[i] >0:
-                ei_final[i] = ei[i]
-            else:
-                ei_final[i] = 0
+#             if ei[i] >0:
+            ei_final[i] = ei[i]
+#             else:
+#                 ei_final[i] = 0
           
     return ei_final
 
