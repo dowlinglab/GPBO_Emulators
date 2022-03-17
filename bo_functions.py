@@ -474,8 +474,10 @@ def improvement(error_best,pred_mean,pred_var,y_target, eps=None): #Needs work
     pred_stdev = np.sqrt(pred_var) #1xn
     
     if eps == None:
-        eps_low = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
-        eps_up = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
+        eps_a = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
+        eps_b = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
+        eps_up = np.max([eps_a,eps_b])
+        eps_low = np.min([eps_a,eps_b])
         improvement_low = (error_best- (y_target -pred_mean-pred_stdev*eps_low)**2)*norm.pdf(eps_low)
         improvement_up = (error_best- (y_target -pred_mean-pred_stdev*eps_up)**2)*norm.pdf(eps_up)
         improvement = improvement_low,improvement_up
