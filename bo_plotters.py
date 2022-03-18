@@ -17,11 +17,13 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     -------
         A 3D Heat map of the values of z predicted by the GP
     """
-    #Converts tensors to ndarrays
-    if isinstance(z,ndarray)!=True:
-        z = z.numpy()
+    #Converts tensors and tuples to ndarrays
     if torch.is_tensor(parameter_space)==True:
         parameter_space= parameter_space.numpy()
+        
+    if isinstance(z,ndarray)!=True:
+        z = np.asarray(z)
+
         
     #Asserts that the parameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
     assert len(parameter_space.T) == 3, "The GP is a 3 input GP. Please include only 3 input parameters to plot."
