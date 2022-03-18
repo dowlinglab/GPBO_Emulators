@@ -406,8 +406,11 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         #Call bound a and bound b
         bound_a = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
         bound_b = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
-        bound_lower = np.min([bound_a,bound_b])
-        bound_upper = np.max([bound_a,bound_b])
+        bound_lower = np.zeros(len(bound_a))
+        bound_upper = np.zeros(len(bound_a))
+        for i in range(len(bound_a)):
+            bound_lower[i] = np.min([bound_a[i],bound_b[i]])
+            bound_upper[i] = np.max([bound_a[i],bound_b[i]])
         print("Upper bound is", bound_upper)
         print("Lower bound is", bound_lower)
         print("pdf upper is", norm.pdf(bound_upper))
@@ -424,17 +427,18 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         ei_term2_comp2 = (norm.pdf(bound_upper) - norm.pdf(bound_lower)) #This gives a large negative number when tested #1xn
 
         ei_term3_comp1 = (1/2)*norm.cdf(bound_upper/np.sqrt(2)) #1xn
+        print(ei_term3_comp1)
         ei_term3_comp2 = -norm.pdf(bound_upper)*bound_upper #1xn
         ei_term3_comp3 = (1/2)*norm.cdf(bound_lower/np.sqrt(2)) #1xn
         ei_term3_comp4 = -norm.pdf(bound_lower)*bound_lower #1xn
 
         ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp2 #1xn
         ei_term3_psi_lower = ei_term3_comp3 + ei_term3_comp4 #1xn
-
+        print(ei_term3_psi_upper)
         ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
+        
         ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
         ei_term3 = -pred_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
-
         ei = ei_term1 + ei_term2 + ei_term3 #1xn
         ei_final = np.zeros(len(ei))
             
@@ -476,10 +480,18 @@ def improvement(error_best,pred_mean,pred_var,y_target, eps=None): #Needs work
     if eps == None:
         eps_a = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
         eps_b = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
-        eps_up = np.max([eps_a,eps_b])
-        eps_low = np.min([eps_a,eps_b])
+        eps_up = np.zeros(len(eps_a))
+        eps_low = np.zeros(len(eps_a))
+        
+        for i in range(len(eps_a)):
+            eps_low[i] = np.min([eps_a[i],eps_b[i]])
+            eps_up[i] = np.max([eps_a[i],eps_b[i]])
+#         print(eps_up,eps_low)
         improvement_low = (error_best- (y_target -pred_mean-pred_stdev*eps_low)**2)*norm.pdf(eps_low)
+#         print(norm.pdf(eps_low),error_best)
+#         print((y_target -pred_mean-pred_stdev*eps_low)**2)
         improvement_up = (error_best- (y_target -pred_mean-pred_stdev*eps_up)**2)*norm.pdf(eps_up)
+#         print(improvement_low, improvement_up)
         improvement = improvement_low,improvement_up
     else:
         improvement = (error_best- (y_target -pred_mean-pred_stdev*eps)**2)*norm.pdf(eps)
