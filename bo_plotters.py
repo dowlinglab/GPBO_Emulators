@@ -137,7 +137,7 @@ def improvement_int_terms_plot(z, term_num, index_num):
     assert 1<= term_num <= 3, "Term number must be an integer 1, 2, or 3"
     assert index_num<=len(z[0]), "Index number must be less than or equal to len(parameter_space)"
     
-    title_options = ["Term 1: (e* - (f-mu)^2*pdf(eps))", "Term 2: 2*(f-mu)*sigma*eps*pdf(eps)", "Term 3:-var*eps^2*pdf(eps)"]
+    title_options = ["Term 1: (e* - (f-mu)^2)*pdf(eps)", "Term 2: 2*(f-mu)*sigma*eps*pdf(eps)", "Term 3:-var*eps^2*pdf(eps)"]
 #     title = "Term 1: (e* - (f-mu)^2*pdf(eps))"
     title = title_options[term_num-1]
     
