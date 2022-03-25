@@ -119,13 +119,12 @@ def improvement_integral_plot(parameter_space, z):
     title = "(e* - (f-mu-sig*eps)^2*pdf(eps)) Improvement"
     return plotter_adv(parameter_space, z,title)
 
-def improvement_int_terms_plot(parameter_space, z, term_num, index_num):
+def improvement_int_terms_plot(z, term_num, index_num):
     """
     Plots a term of the improvement of the GP
     Parameters
     ----------
-        parameter_space: ndarray, the values of epsilon for each iteration (n x len(test_y))
-        z: ndarray, the values of an Improvement term for each iteration (n x len(test_y))
+        z: ndarray, the values of epsilon and all improvement term for each iterations
         term_num: The improvement integral term being printed
         index_num: Number of indexes to print
     
@@ -136,7 +135,7 @@ def improvement_int_terms_plot(parameter_space, z, term_num, index_num):
     assert isinstance(term_num, (int))==True, "Term number must be an integer 1, 2, or 3"
     assert isinstance(index_num, (int))==True, "Index number must be an integer less than len(parameter_space)"
     assert 1<= term_num <= 3, "Term number must be an integer 1, 2, or 3"
-    assert index_num<=len(parameter_space), "Index number must be less than or equal to len(parameter_space)"
+    assert index_num<=len(z[0]), "Index number must be less than or equal to len(parameter_space)"
     
     title_options = ["Term 1: (e* - (f-mu)^2*pdf(eps))", "Term 2: 2*(f-mu)*sigma*eps*pdf(eps)", "Term 3:-var*eps^2*pdf(eps)"]
 #     title = "Term 1: (e* - (f-mu)^2*pdf(eps))"
@@ -148,7 +147,7 @@ def improvement_int_terms_plot(parameter_space, z, term_num, index_num):
         plt.title(title)
         plt.xlabel("Epsilon Value")
         plt.ylabel(str("Improvement Integral Term " +str(term_num)))
-        epsilon = parameter_space[:,i]
+        epsilon = z[0][:,i]
         I_term = z[term_num][:,i]
         plt.plot(epsilon,I_term)
         plt.show()
