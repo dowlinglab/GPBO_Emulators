@@ -450,7 +450,7 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
           
     return ei_final
 
-def improvement(error_best,pred_mean,pred_var,y_target, eps=None): #Needs work
+def improvement_integral(error_best,pred_mean,pred_var,y_target, eps=None): #Needs work
     """ 
     Calculates the improvement integrand of the 3 input parameter GP
     Parameters
