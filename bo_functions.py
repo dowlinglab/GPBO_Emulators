@@ -499,46 +499,58 @@ def improvement_integral(error_best,pred_mean,pred_var,y_target, eps=None): #Nee
     return improvement
 
 
-# def improvement_int_terms(error_best,pred_mean,pred_var,y_target, eps=None): #Needs work
-#     """ 
-#     Calculates the improvement integrand of the 3 input parameter GP
-#     Parameters
-#     ----------
-#         error_best: float, the best predicted error encountered
-#         pred_mean: tensor or ndarray, model mean
-#         pred_var: tensor or ndarray, model variance
-#         y_target: tensor or ndarray, the expected value of the function from data or other source
-#         eps: float or int, The value of a bound
+def improvement_int_terms(error_best,pred_mean,pred_var,y_target, steps=5): #Needs work
+    """ 
+    Calculates the improvement integrand of the 3 input parameter GP
+    Parameters
+    ----------
+        error_best: float, the best predicted error encountered
+        pred_mean: tensor or ndarray, model mean
+        pred_var: tensor or ndarray, model variance
+        y_target: tensor or ndarray, the expected value of the function from data or other source
+        step: int, the number of epsilon values between epsilon 1 and epsilon 2
     
-#     Returns
-#     -------
-#         improvement: ndarray, the improvement integrand of the GP model to be plotted. Used for testing
-#     """    
-#     #Asserts best_error is a float or integer
-#     assert isinstance(error_best, (float,int))==True, "error_best must be a float or integer"
+    Returns
+    -------
+        improvement: ndarray, the improvement integrand of the GP model to be plotted. Used for testing
+    """    
+    #Asserts best_error is a float or integer
+    assert isinstance(error_best, (float,int))==True, "error_best must be a float or integer"
+    assert isinstance(steps, (int))==True, "number of epsilon steps must be an integer"
     
-#     #Coverts any tensors given as inputs to ndarrays
-#     if torch.is_tensor(pred_mean)==True:
-#         pred_mean = pred_mean.numpy() #1xn
-#     if torch.is_tensor(pred_var)==True:
-#         pred_var = pred_var.numpy() #1xn
-#     if torch.is_tensor(y_target)==True:
-#         y_target = y_target.numpy() #1xn
-#     pred_stdev = np.sqrt(pred_var) #1xn
+    #Coverts any tensors given as inputs to ndarrays
+    if torch.is_tensor(pred_mean)==True:
+        pred_mean = pred_mean.numpy() #1xn
+    if torch.is_tensor(pred_var)==True:
+        pred_var = pred_var.numpy() #1xn
+    if torch.is_tensor(y_target)==True:
+        y_target = y_target.numpy() #1xn
+    pred_stdev = np.sqrt(pred_var) #1xn
     
-#     if eps == None:
-#         eps_a = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
-#         eps_b = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
-#         eps_up = np.zeros(len(eps_a))
-#         eps_low = np.zeros(len(eps_a))
-        
-#         for i in range(len(eps_a)):
-#             eps_low[i] = np.min([eps_a[i],eps_b[i]])
-#             eps_up[i] = np.max([eps_a[i],eps_b[i]])
-# #         print(eps_up,eps_low)
-     
-#         epsilon_space = np.linspace(eps_low, eps_up, 100)
-#         print(epsilon_space)
-#         I_term_1 = (error_best - (y_target - pred_mean)**2)*np.pdf(epsilo
+    
+    I_term_1 = np.zeros((steps,len(y_target)))
+    I_term_2 = np.zeros((steps,len(y_target)))
+    I_term_3 = np.zeros((steps,len(y_target)))
+
+    
+    eps_a = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
+    eps_b = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
+    eps_up = np.zeros(len(eps_a))
+    eps_low = np.zeros(len(eps_a))
+
+    for i in range(len(eps_a)):
+        eps_low[i] = np.min([eps_a[i],eps_b[i]])
+        eps_up[i] = np.max([eps_a[i],eps_b[i]])
+#         print(eps_up,eps_low)
+
+    epsilon_space = np.linspace(eps_low, eps_up, steps)
+    for i in range(steps):
+        for j in range(len(y_target)):
+            term_1  = (error_best - (y_target - pred_mean)**2)*norm.pdf(epsilon_space[i,j])
+            term_2 = 2*(y_target - pred_mean)*pred_stdev*epsilon_space[i,j]*norm.pdf(epsilon_space[i,j])
+            term_3 = -(pred_var**2)*(epsilon_space[i,j]**2)*norm.pdf(epsilon_space[i,j])
+            I_term_1[i] = term_1
+            I_term_2[i] = term_2
+            I_term_3[i] = term_3
  
-#     return epsilon_space
+    return epsilon_space, I_term_1, I_term_2,I_term_3
