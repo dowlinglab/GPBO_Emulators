@@ -546,9 +546,8 @@ def improvement_int_terms(error_best,pred_mean,pred_var,y_target, steps=5): #Nee
     epsilon_space = np.linspace(eps_low, eps_up, steps)
     for i in range(steps):
         term_1  = (error_best - (y_target - pred_mean)**2)*norm.pdf(epsilon_space[i,:])
-        print(term_1)
         term_2 = 2*(y_target - pred_mean)*pred_stdev*epsilon_space[i,:]*norm.pdf(epsilon_space[i,:])
-        term_3 = -(pred_var**2)*(epsilon_space[i,:].T**2)*norm.pdf(epsilon_space[i,:])
+        term_3 = -(pred_var)*(epsilon_space[i,:]**2)*norm.pdf(epsilon_space[i,:])
         I_term_1[i] = term_1
         I_term_2[i] = term_2
         I_term_3[i] = term_3
