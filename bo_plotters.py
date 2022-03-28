@@ -11,7 +11,7 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     ----------
         parameter_space: tensor or ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
         z:  tensor or ndarray, nx1 array of values
-        title: str, The title for the graph
+        plot_title: str, The title for the graph
     
     Returns
     -------
@@ -57,6 +57,7 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     ax.set_zlabel('x coordinate')
     
     # displaying plot
+    plt.savefig(plot_title+'.png')
     return plt.show()
 
 def y_plotter_adv(parameter_space, z,plot_title):
@@ -116,7 +117,7 @@ def improvement_integral_plot(parameter_space, z):
     -------
         A 3D Heat map of the values of improvement predicted by the GP
     """
-    title = "(e* - (f-mu-sig*eps)^2*pdf(eps)) Improvement"
+    title = "Improvement Integrand" #(e* - (f-mu-sig*eps)^2*pdf(eps))
     return plotter_adv(parameter_space, z,title)
 
 def improvement_int_terms_plot(z, term_num, index_num):
