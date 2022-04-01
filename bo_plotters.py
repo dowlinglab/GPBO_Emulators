@@ -33,6 +33,7 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     p_1 = parameter_space[:,0] #Theta1 #1xn
     p_2 = parameter_space[:,1] #Theta2 #1xn
     p_3 = parameter_space[:,2] #x #1xn
+    print(p_1)
     
     #Sets what data will be within the graph as the heat map points
     color = z
@@ -44,6 +45,7 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     # setting color bar
     color_map = cm.ScalarMappable(cmap=cm.Greens_r)
     color_map.set_array(color)
+#     print(color_map.set_array(color))
 
     # creating the heatmap
     img = ax.scatter(p_1, p_2, p_3, marker='s',
@@ -58,7 +60,8 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     
     # displaying plot
     plt.savefig(plot_title+'.png')
-    return plt.show()
+    plt.show()
+    return 
 
 def y_plotter_adv(parameter_space, z,plot_title):
     """
