@@ -33,7 +33,6 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     p_1 = parameter_space[:,0] #Theta1 #1xn
     p_2 = parameter_space[:,1] #Theta2 #1xn
     p_3 = parameter_space[:,2] #x #1xn
-    print(p_1)
     
     #Sets what data will be within the graph as the heat map points
     color = z
