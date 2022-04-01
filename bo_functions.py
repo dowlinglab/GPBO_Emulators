@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from scipy.stats import norm
 import torch
 import csv
@@ -402,8 +403,6 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
     #If variance is zero this is important
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Alex Dowling's Derivation
-        #Note Flipped upper and lower boundaries
-        #Call bound a and bound b
         bound_a = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
         bound_b = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
         bound_lower = np.zeros(len(bound_a))
@@ -411,12 +410,12 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         for i in range(len(bound_a)):
             bound_lower[i] = np.min([bound_a[i],bound_b[i]])
             bound_upper[i] = np.max([bound_a[i],bound_b[i]])
-        print("Upper bound is", bound_upper)
-        print("Lower bound is", bound_lower)
-        print("pdf upper is", norm.pdf(bound_upper))
-        print("cdf upper is", norm.cdf(bound_upper))
-        print("pdf lower is", norm.pdf(bound_lower))
-        print("cdf lower is", norm.cdf(bound_lower))
+#         print("Upper bound is", bound_upper)
+#         print("Lower bound is", bound_lower)
+#         print("pdf upper is", norm.pdf(bound_upper))
+#         print("cdf upper is", norm.cdf(bound_upper))
+#         print("pdf lower is", norm.pdf(bound_lower))
+#         print("cdf lower is", norm.cdf(bound_lower))
         
 
         #Creates EI terms in terms of Alex Dowling's Derivation
@@ -424,17 +423,22 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         ei_term1_comp2 = error_best - (y_target - pred_mean)**2 #1xn
 
         ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
-        ei_term2_comp2 = (norm.pdf(bound_upper) - norm.pdf(bound_lower)) #This gives a large negative number when tested #1xn
+        ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
+        ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
+        ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
+        
+        ei_term3_comp1 = bound_upper*ei_eta_upper #1xn
+        ei_term3_comp2 = bound_lower*ei_eta_lower #1xn
+        ei_term3_comp3 = np.zeros(len(bound_upper))
+        ei_term3_comp4 = np.zeros(len(bound_lower))
+        
+        for i in range(len(bound_upper)):
+            ei_term3_comp3[i] = (1/2)*math.erf(bound_upper[i]/np.sqrt(2)) #1xn
+            ei_term3_comp4[i] = (1/2)*math.erf(bound_lower[i]/np.sqrt(2)) #1xn
+            
 
-        ei_term3_comp1 = (1/2)*norm.cdf(bound_upper/np.sqrt(2)) #1xn
-        print(ei_term3_comp1)
-        ei_term3_comp2 = -norm.pdf(bound_upper)*bound_upper #1xn
-        ei_term3_comp3 = (1/2)*norm.cdf(bound_lower/np.sqrt(2)) #1xn
-        ei_term3_comp4 = -norm.pdf(bound_lower)*bound_lower #1xn
-
-        ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp2 #1xn
-        ei_term3_psi_lower = ei_term3_comp3 + ei_term3_comp4 #1xn
-        print(ei_term3_psi_upper)
+        ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
+        ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4 #1xn
         ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
         
         ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
@@ -443,10 +447,7 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         ei_final = np.zeros(len(ei))
             
         for i in range(len(ei_final)):
-#             if ei[i] >0:
             ei_final[i] = ei[i]
-#             else:
-#                 ei_final[i] = 0
           
     return ei_final
 
