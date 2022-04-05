@@ -4,7 +4,7 @@ import torch
 from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
 
-def plotter_adv(parameter_space, z,plot_title="Model Output"):
+def plotter_adv(parameter_space, z,plot_title="Model Output",yval = False):
     """
     Plots the values of the GP given by the user
     Parameters
@@ -43,13 +43,14 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     zs = p_3
 
     the_fourth_dimension = z
-
+    
     colors = cm.viridis(the_fourth_dimension/max(the_fourth_dimension))
 
     colmap = cm.ScalarMappable(cmap=cm.viridis)
     colmap.set_array(the_fourth_dimension)
 
     yg = ax.scatter(xs, ys, zs, c=colmap.to_rgba(the_fourth_dimension)[:,0:3], marker='o',s=200)
+
     cb = fig.colorbar(colmap)
 
     # adding title and labels
@@ -63,7 +64,7 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     plt.show()
     return 
 
-def y_plotter_adv(parameter_space, z,plot_title):
+def y_plotter_adv(parameter_space, z,plot_title,yval):
     """
     Plots the y values of the GP
     Parameters
@@ -71,12 +72,13 @@ def y_plotter_adv(parameter_space, z,plot_title):
         parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
         z:  ndarray, nx1 array of values the GP predicted function values
         title: str, The title for the graph
+        yval: True or False, will determine whether true values will be plotted with y model values
     
     Returns
     -------
         A 3D Heat map of the values of z predicted by the GP
     """
-    return plotter_adv(parameter_space, z,plot_title)
+    return plotter_adv(parameter_space, z,plot_title,yval)
 
 def stdev_plotter_adv(parameter_space, z):
     """
@@ -107,6 +109,29 @@ def ei_plotter_adv(parameter_space, z):
     """
     title = "Expected Improvement"
     return plotter_adv(parameter_space, z,title)
+
+
+def error_plotter_adv(parameter_space, z, z2):
+    """
+    Plots the expected improvement of the GP
+    Parameters
+    ----------
+        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        z:  ndarray, nx1 array of the GP expected improvement values
+    
+    Returns
+    -------
+        A 3D Heat map of the values of expected improvement predicted by the GP
+    """
+    title = "Error^2"
+    
+    if isinstance(z,ndarray)!=True:
+        z = np.asarray(z)
+    if isinstance(z2,ndarray)!=True:
+        z2 = np.asarray(z2)
+        
+    error = np.sqrt((z2 - z)**2)
+    return plotter_adv(parameter_space, error,title)
 
 def improvement_integral_plot(parameter_space, z):
     """
