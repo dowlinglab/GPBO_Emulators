@@ -23,8 +23,7 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
         
     if isinstance(z,ndarray)!=True:
         z = np.asarray(z)
-
-        
+   
     #Asserts that the parameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
     assert len(parameter_space.T) == 3, "The GP is a 3 input GP. Please include only 3 input parameters to plot."
     assert isinstance(plot_title,str) == True, "Plot title must be a string."
@@ -34,7 +33,9 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     p_2 = parameter_space[:,1] #Theta2 #1xn
     p_3 = parameter_space[:,2] #x #1xn
 
-    fig = plt.figure(figsize=(11,11))
+    #https://stackoverflow.com/questions/17756925/how-to-plot-heatmap-colors-in-3d-in-matplotlib
+    
+    fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(111,projection='3d')
 
     xs = p_1
@@ -52,10 +53,10 @@ def plotter_adv(parameter_space, z,plot_title="Model Output"):
     cb = fig.colorbar(colmap)
 
     # adding title and labels
-    ax.set_title("Heat Map of "+plot_title)
-    ax.set_xlabel('$\\theta_1$')
-    ax.set_ylabel('$\\theta_2$')
-    ax.set_zlabel('x coordinate')
+    ax.set_title("Heat Map of "+plot_title, fontsize = 18)
+    ax.set_xlabel('$\\theta_1$', fontsize = 15)
+    ax.set_ylabel('$\\theta_2$', fontsize = 15)
+    ax.set_zlabel('x coordinate', fontsize = 15)
     
     # displaying plot
     plt.savefig(plot_title+'.png')
