@@ -123,7 +123,7 @@ def error_plotter_adv(parameter_space, z, z2):
     -------
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
-    title = "Error^2"
+    title = "Error Magnitude"
     
     if isinstance(z,ndarray)!=True:
         z = np.asarray(z)
