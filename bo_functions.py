@@ -333,7 +333,6 @@ def calc_y_expected(test_param, noise_stdev, noise_mean=0):
     return y_expected
 
 def best_error_advanced(model_prediction, y_target):
-    
     """
     Calculates the best error in the 3 input GP model
     
