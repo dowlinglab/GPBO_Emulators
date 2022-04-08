@@ -296,7 +296,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     #Calculates the variance of each data point
     model_variance = observed_pred.variance #1 x n_test
     #Calculates the standard deviation of each data point
-    model_stdev = np.sqrt(observed_pred.variance)
+    model_stdev = np.sqrt(observed_pred.variance.detach().numpy()) #THIS LINE WAS CHANGED TO HAVE .detach
     model_prediction = observed_pred.loc #1 x n_test
     return model_mean, model_variance, model_stdev, model_prediction    
 
@@ -389,7 +389,7 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
     if torch.is_tensor(pred_mean)==True:
         pred_mean = pred_mean.numpy() #1xn
     if torch.is_tensor(pred_var)==True:
-        pred_var = pred_var.numpy() #1xn
+        pred_var = pred_var.detach().numpy() #1xn
     if torch.is_tensor(y_target)==True:
         y_target = y_target.numpy() #1xn
         
