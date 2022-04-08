@@ -49,7 +49,7 @@ def plotter_adv(parameter_space, z,plot_title="Model Output",yval = False):
     colmap = cm.ScalarMappable(cmap=cm.viridis)
     colmap.set_array(the_fourth_dimension)
 
-    yg = ax.scatter(xs, ys, zs, c=colmap.to_rgba(the_fourth_dimension)[:,0:3], marker='o',s=200)
+    yg = ax.scatter(xs, ys, zs, c=colmap.to_rgba(the_fourth_dimension)[:,0:3], marker='o')
 
     cb = fig.colorbar(colmap)
 
