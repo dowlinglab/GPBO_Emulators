@@ -59,6 +59,19 @@ def plotter_adv_4D(parameter_space, z, point_num, plot_title="Model Output",yval
         data[:, -1, :], Y[:, -1, :], Z[:, -1, :],
         zdir='x', offset=X.max(), **kw
     )
+    #CHange these
+#     _ = ax.contourf(
+#     X[:, :, 0], Y[:, :, 0], data[:, :, 0],
+#     zdir='z', offset=Z.min(), **kw
+#     )
+#     _ = ax.contourf(
+#         X[-1, :, :], data[-1, :, :], Z[-1, :, :],
+#         zdir='y', offset=Y.max(), **kw
+#     )
+#     C = ax.contourf(
+#         data[:, 0, :], Y[:, 0, :], Z[:, 0, :],
+#         zdir='x', offset=X.min(), **kw
+#     )
     # --
 
 
