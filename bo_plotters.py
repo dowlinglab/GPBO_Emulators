@@ -34,7 +34,7 @@ def plotter_adv_4D(parameter_space, z, point_num, plot_title="Model Output",yval
 
     # Create data
     point_num = point_num
-    data = z.reshape(point_num,point_num,point_num)
+    data = z.reshape(point_num,point_num,point_num).T
 
     kw = {
         'vmin': data.min(),
@@ -50,7 +50,7 @@ def plotter_adv_4D(parameter_space, z, point_num, plot_title="Model Output",yval
     _ = ax.contourf(
         X[:, :, -1], Y[:, :, -1], data[:, :, -1],
         zdir='z', offset=Z.max(), **kw
-    )
+    ) 
     _ = ax.contourf(
         X[0, :, :], data[0, :, :], Z[0, :, :],
         zdir='y', offset=Y.min(), **kw
