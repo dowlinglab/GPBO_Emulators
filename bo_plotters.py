@@ -34,7 +34,7 @@ def plotter_adv_4D(parameter_space, z, point_num, plot_title="Model Output",yval
 
     # Create data
     point_num = point_num
-    data = z.reshape(point_num,point_num,point_num).T
+    data = z.reshape(point_num,point_num,point_num)
 
     kw = {
         'vmin': data.min(),
