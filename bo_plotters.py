@@ -93,7 +93,7 @@ def plotter_adv_4D(parameter_space, z, point_num, plot_title="Model Output",yval
         ylabel='$\Theta_2$',
         zlabel='x coord',
     )
-
+    ax.set_title("Heat Map of "+plot_title, fontsize = 18)
     # Set distance and angle view
     ax.view_init(40, -30)
     ax.dist = 11
@@ -102,7 +102,9 @@ def plotter_adv_4D(parameter_space, z, point_num, plot_title="Model Output",yval
     fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label=plot_title)
 
     # Show Figure
+    plt.savefig(plot_title+'_4D'+'.png')
     plt.show()
+    
     return 
 
 def plotter_adv(parameter_space, z,plot_title="Model Output",yval = False):
