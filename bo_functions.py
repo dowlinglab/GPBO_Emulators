@@ -57,7 +57,7 @@ def create_y_data_basic(Theta_True, train_T, x, noise_std, noise_mean=0):
         x: ndarray, The list of xs that will be used to generate y
         
     Returns:
-        train_y: ndarray, The SSE values that the GP will be trained on
+        sum_error_sq: ndarray, The SSE values that the GP will be trained on
     """   
     
     #Asserts that test_T is a tensor with 2 columns
@@ -67,18 +67,18 @@ def create_y_data_basic(Theta_True, train_T, x, noise_std, noise_mean=0):
     #Creates noise values with a certain stdev and mean from a normal distribution
     noise = torch.tensor(np.random.normal(size=len(x),loc = noise_mean, scale = noise_std)) #1x n_x
     # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
-    y_true =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x
+    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
 
-    #Creates an array for train_y that will be filled with the for loop
-    train_y = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
+    #Creates an array for train_sse that will be filled with the for loop
+    sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
 
     #Iterates over evey combination of theta to find the SSE for each combination
     for i in range(len(train_T)):
         theta_1 = train_T[i,0] #n_train^2x1 
         theta_2 = train_T[i,1] #n_train^2x1
-        y_exp = theta_1*x + theta_2*x**2 +x**3 + noise #n_train^2 x n_x
-        train_y[i] = sum((y_true - y_exp)**2) #Scaler
-    return train_y
+        y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
+        sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
+    return sum_error_sq
 
 class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     """
@@ -109,7 +109,7 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     on the training data. The output will be a :obj:`~gpytorch.distributions.MultivariateNormal`.
     """
 
-    def __init__(self, train_T, train_y, likelihood):
+    def __init__(self, train_T, train_sse, likelihood):
         """
         Initializes the model
         
@@ -117,13 +117,13 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
         ----------
         self : A class,The model itself. In this case, gpytorch.models.ExactGP
         train_T : tensor, The inputs of the training data
-        train_y : tensor, the output of the training data
+        train_sse : tensor, the output of the training data
         likelihood : bound method, the lieklihood of the model. In this case, it must be Gaussian
         
         """
-        #Initializes the GP model with train_Y, train_y, and the likelihood
+        #Initializes the GP model with train_sse, train_sse, and the likelihood
         ##Calls the __init__ method of parent class
-        super(ExactGPModel, self).__init__(train_T, train_y, likelihood)
+        super(ExactGPModel, self).__init__(train_T, train_sse, likelihood)
         #Defines a constant prior mean on the GP. Used in the forward method
         self.mean_module = gpytorch.means.ConstantMean()
         #Defines prior covariance matrix of GP to a scaled RFB Kernel. Used in the forward method
@@ -153,7 +153,7 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1x100 tensor
     
-def train_GP_basic(model, likelihood, train_T, train_y,verbose = False):
+def train_GP_basic(model, likelihood, train_T, train_sse,verbose = False):
     """
     Training the 2 input GP model
     
@@ -168,10 +168,10 @@ def train_GP_basic(model, likelihood, train_T, train_y,verbose = False):
     -------
         None. Used to train the GP
     """
-    #Asserts that train_T and train_y are tensors of equal length and train_T has only 2 columns
+    #Asserts that train_T and train_sse are tensors of equal length and train_T has only 2 columns
     assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
-    assert len(train_T) == len(train_y), "Lengths of training data must be the same"
-    assert torch.is_tensor(train_T)==True and torch.is_tensor(train_y)==True, "train_T and train_y must be a tensor"
+    assert len(train_T) == len(train_sse), "Lengths of training data must be the same"
+    assert torch.is_tensor(train_T)==True and torch.is_tensor(train_sse)==True, "train_T and train_sse must be a tensor"
     
     # Find optimal model hyperparameters
     training_iter = 300
@@ -202,7 +202,7 @@ def train_GP_basic(model, likelihood, train_T, train_y,verbose = False):
         output = model(train_T) # A multivariate norm of a 1 x n_train^2 tensor
         # Calc loss and backprop gradients
         #Minimizing -logMLL lets us fit hyperparameters
-        loss = -mll(output, train_y) #A number (tensor)
+        loss = -mll(output, train_sse) #A number (tensor)
         #computes dloss/dx for every parameter x which has requires_grad=True. 
         #These are accumulated into x.grad for every parameter x
         loss.backward()
