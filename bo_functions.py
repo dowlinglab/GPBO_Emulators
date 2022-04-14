@@ -46,15 +46,41 @@ def calc_GP_parameters_basic(model, likelihood, test_T):
     model_sse = observed_pred.loc #1 x n_x^2
     return model_mean, model_variance, model_stdev, model_sse
 
-def create_y_data_basic(Theta_True, train_T, x, noise_std, noise_mean=0):
+def calc_y_exp_basic(Theta_True, x, noise_std, noise_mean=0):
     """
     Creates y_data for the 2 input GP function
     
     Parameters
     ----------
         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
+        x: ndarray, The list of xs that will be used to generate y
+        noise_std: float, int: The standard deviation of the noise
+        noise_mean: float, int: The mean of the noise
+        
+    Returns:
+        y_exp: ndarray, The expected values of y given x data
+    """   
+    
+    #Asserts that test_T is a tensor with 2 columns
+    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
+    assert len(Theta_True) ==2, "This is a 2 input GP, Theta_True can only contain 2 values."
+    
+    #Creates noise values with a certain stdev and mean from a normal distribution
+    noise = torch.tensor(np.random.normal(size=len(x),loc = noise_mean, scale = noise_std)) #1x n_x
+    # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
+    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
+    
+    return y_exp
+
+def create_sse_data_basic(train_T, x, y_exp):
+    """
+    Creates y_data for the 2 input GP function
+    
+    Parameters
+    ----------
         train_T: ndarray, The array containing the training data for Theta1 and Theta2
         x: ndarray, The list of xs that will be used to generate y
+        y_exp: ndarray, The experimental data for y (the true value)
         
     Returns:
         sum_error_sq: ndarray, The SSE values that the GP will be trained on
@@ -62,12 +88,6 @@ def create_y_data_basic(Theta_True, train_T, x, noise_std, noise_mean=0):
     
     #Asserts that test_T is a tensor with 2 columns
     assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
-    assert len(Theta_True) ==2, "This is a 2 input GP, Theta_True can only contain 2 values."
-    
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = torch.tensor(np.random.normal(size=len(x),loc = noise_mean, scale = noise_std)) #1x n_x
-    # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
-    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
 
     #Creates an array for train_sse that will be filled with the for loop
     sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
@@ -242,7 +262,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     pred_mean = pred_mean.numpy() #1xn_test
     pred_var = pred_var.numpy()   #1xn_test
     pred_stdev = np.sqrt(pred_var) #1xn_test
-  
+
     
     #Loops over every standard deviation values
     for i in range(len(pred_var)):
