@@ -300,7 +300,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     model_prediction = observed_pred.loc #1 x n_test
     return model_mean, model_variance, model_stdev, model_prediction    
 
-def calc_y_expected(test_param, noise_stdev, noise_mean=0):
+def calc_y_expected(test_param):
     """
     Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
     Parameters
@@ -320,8 +320,6 @@ def calc_y_expected(test_param, noise_stdev, noise_mean=0):
     #Converts training parameters to numpy arrays if they are tensors
     if torch.is_tensor(test_param)==True:
         test_param = test_param.numpy() #1xn
-
-    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_stdev) #Scaler
     
     #Separates parameters for use
     p_1 = test_param[:,0] #Theta1 #1 x n_test
@@ -329,7 +327,7 @@ def calc_y_expected(test_param, noise_stdev, noise_mean=0):
     p_3 = test_param[:,2] #x #1 x n_test
 
     #Calculates expected y for each parameter space parameter
-    y_expected = p_1*p_3 + p_2*p_3**2 + p_3**3 + noise #1 x n_test
+    y_expected = p_1*p_3 + p_2*p_3**2 + p_3**3#1 x n_test
     return y_expected
 
 def best_error_advanced(model_prediction, y_target):
