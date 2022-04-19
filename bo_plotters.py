@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import torch
 
-def basic_plotter(test_mesh, z, p_true, p_GP_opt,title):
+def basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=False):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -36,6 +36,9 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title):
     #Plots the true optimal value and the GP value
     plt.scatter(p_true[0],p_true[1], color="red", label = "True Optimal Value", s=50, marker = (5,1))
     plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP Optimal Value", marker = ".")
+    
+    if plot_train == True:
+        plt.scatter(train_p[:,0],train_p[:,1], color="blue", label = "Training Data", s=25, marker = ".")
 
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')
@@ -52,7 +55,7 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title):
     #Shows plot
     return plt.show()
 
-def y_plotter_basic(test_mesh, z, p_true, p_GP_opt,title="y"):
+def y_plotter_basic(test_mesh, z, p_true, p_GP_opt,train_p,title="y",plot_train=True):
     '''
     Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
 
@@ -68,9 +71,9 @@ def y_plotter_basic(test_mesh, z, p_true, p_GP_opt,title="y"):
     -------
         plt.show(), A heat map of test_mesh and z (y values)
     '''
-    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title)
+    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train)
 
-def stdev_plotter_basic(test_mesh, z, p_true, p_GP_opt):
+def stdev_plotter_basic(test_mesh, z, p_true, p_GP_opt,train_p,plot_train=False):
     '''
     Helper function for basic_plotter. Calls basic_plotter specifically for plotting standard deviation values.
 
@@ -86,9 +89,9 @@ def stdev_plotter_basic(test_mesh, z, p_true, p_GP_opt):
         plt.show(), A heat map of test_mesh and z (standard deviation values)
     '''
     title = "Standard Deviation"
-    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title)
+    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=False)
 
-def ei_plotter_basic(test_mesh, z, p_true, p_GP_opt):
+def ei_plotter_basic(test_mesh, z, p_true, p_GP_opt,train_p,plot_train=False):
     """
     Helper function for basic_plotter. Calls basic_plotter specifically for plotting expected improvement values.
 
@@ -104,7 +107,7 @@ def ei_plotter_basic(test_mesh, z, p_true, p_GP_opt):
         plt.show(), A heat map of test_mesh and z (expected improvement values)
     """
     title = "Expected Improvement"
-    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title)
+    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=False)
 
                         
     
