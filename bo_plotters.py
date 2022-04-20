@@ -263,7 +263,7 @@ def ei_plotter_adv_4D(parameter_space, z, point_num):
 
 def error_plotter_adv(parameter_space, z, z2):
     """
-    Plots the expected improvement of the GP
+    Plots the error^2 of the GP
     Parameters
     ----------
         parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
@@ -280,7 +280,7 @@ def error_plotter_adv(parameter_space, z, z2):
     if isinstance(z2,ndarray)!=True:
         z2 = np.asarray(z2)
         
-    error = np.sqrt((z2 - z)**2)
+    error = (z2 - z)**2
     return plotter_adv(parameter_space, error,title)
 
 def error_plotter_adv_4D(parameter_space, z, z2, point_num):

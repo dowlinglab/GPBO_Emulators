@@ -105,29 +105,22 @@ def LHS_Design(csv_file):
     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
     return param_space
 
-def create_y_data(param_space, noise_std,noise_mean=0):
+def create_y_data(param_space):
     """
-    Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
+    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
     ----------
         param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
-        noise_std: float or int, The standard deviation of the nosie
-        noise_mean: float or int, The mean of the noise. Default is zero.
     Returns
     -------
-        y_data: ndarray, The simulated y data
+        y_data: ndarray, The simulated y training data
     """
     #Assert statements check that the types defined in the doctring are satisfied
-    assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
-    assert isinstance(noise_std, (float, int))==True, "noise parameters must be floats or integers"
     assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
     
     #Converts parameters to numpy arrays if they are tensors
     if torch.is_tensor(param_space)==True:
         param_space = param_space.numpy()
-        
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #Scaler
 
     #Creates an array for train_data that will be filled with the for loop
     y_data = np.zeros(len(param_space)) #1 x n (row x col)
@@ -136,9 +129,8 @@ def create_y_data(param_space, noise_std,noise_mean=0):
     for i in range(len(param_space)):
         theta_1 = param_space[i,0] #nx1 
         theta_2 = param_space[i,1] #nx1
-        x = param_space[i,2] #nx1
-        y_exp = theta_1*x + theta_2*x**2 +x**3 + noise #Scaler
-        y_data[i] = y_exp #Scaler
+        x = param_space[i,2] #nx1 
+        y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
     #Returns all_y
     return y_data
 
@@ -262,7 +254,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     ----------
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        train_param: tensor or ndarray, The training parameter space data
+        test_param: tensor or ndarray, The testing parameter space data
     
     Returns
     -------
@@ -302,19 +294,15 @@ def calc_GP_outputs(model,likelihood,test_param):
 
 def calc_y_expected(test_param):
     """
-    Creates y_data based on the actual function theta_1*x + theta_2*x**2 +x**3 + noise
+    Creates y_data based on the function theta_1*x + theta_2*x**2 +x**3 + noise
     Parameters
     ----------
         test_param: (n_trainx3) ndarray or tensor, The parameter space over which the GP will be tested
-        noise_std: float or int, The standard deviation of the nosie
-        noise_mean: float or int, The mean of the noise. Default is zero.
     Returns
     -------
         y_data: ndarray, The simulated y data
     """
     #Assert statements check that the types defined in the doctring are satisfied
-    assert isinstance(noise_mean, (float, int))==True, "noise parameters must be floats or integers"
-    assert isinstance(noise_stdev, (float, int))==True, "noise parameters must be floats or integers"
     assert len(test_param.T) ==3, "Only 3 input Test parameter space can be taken, test_param must be an n_test x 3 array"
     
     #Converts training parameters to numpy arrays if they are tensors
