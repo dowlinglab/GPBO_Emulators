@@ -5,6 +5,103 @@ import torch
 import csv
 import gpytorch
 
+def calc_GP_parameters_basic(model, likelihood, test_T):
+    """
+    Calculates the GP mean, variance, standard deviation, and y (sse) predictions
+    
+    Parameters
+    ----------
+        model: bound method, The model off of which the GP is based
+        likelihood: bound method, the likelihood of the model, in this case, must be a Gaussian likelihood
+        test_T: tensor, The array containing the testing data for Theta1 and Theta2
+    
+    Returns
+    -------
+        model_mean: tensor, the mean of the GP model
+        model_variance: tensor, the variance of the GP model
+        model_stdev: tensor, the standard deviation of the GP model
+        model_sse: tensor, the sse of the GP model
+    """
+        #How to assert the type of bound method?
+    #Asserts that test_T is a tensor with 2 columns
+    assert torch.is_tensor(test_T)==True, "test_T must be a tensor"
+    assert len(test_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
+    
+    with gpytorch.settings.fast_pred_var(), torch.no_grad():
+    #torch.no_grad() 
+        #Disabling gradient calculation is useful for inference, 
+        #when you are sure that you will not call Tensor.backward(). It will reduce memory consumption
+        #Note: Can't use np operations on tensors where requires_grad = True
+    #gpytorch.settings.fast_pred_var() 
+        #Use this for improved performance when computing predictive variances. 
+        #Good up to 10,000 data points
+    #Predicts data points for model (sse) by sending the model through the likelihood
+        observed_pred = likelihood(model(test_T)) #1 x n_x^2
+
+    #Calculates model mean  
+    model_mean = observed_pred.mean
+    #Calculates the variance of each data point
+    model_variance = observed_pred.variance
+    #Calculates the standard deviation of each data point
+    model_stdev = np.sqrt(observed_pred.variance)
+    model_sse = observed_pred.loc #1 x n_x^2
+    return model_mean, model_variance, model_stdev, model_sse
+
+def calc_y_exp_basic(Theta_True, x, noise_std, noise_mean=0):
+    """
+    Creates y_data for the 2 input GP function
+    
+    Parameters
+    ----------
+        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
+        x: ndarray, The list of xs that will be used to generate y
+        noise_std: float, int: The standard deviation of the noise
+        noise_mean: float, int: The mean of the noise
+        
+    Returns:
+        y_exp: ndarray, The expected values of y given x data
+    """   
+    
+    #Asserts that test_T is a tensor with 2 columns
+    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
+    assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
+    assert len(Theta_True) ==2, "This is a 2 input GP, Theta_True can only contain 2 values."
+    
+    #Creates noise values with a certain stdev and mean from a normal distribution
+    noise = torch.tensor(np.random.normal(size=len(x),loc = noise_mean, scale = noise_std)) #1x n_x
+    # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
+    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
+    
+    return y_exp
+
+def create_sse_data_basic(train_T, x, y_exp):
+    """
+    Creates y_data for the 2 input GP function
+    
+    Parameters
+    ----------
+        train_T: ndarray, The array containing the training data for Theta1 and Theta2
+        x: ndarray, The list of xs that will be used to generate y
+        y_exp: ndarray, The experimental data for y (the true value)
+        
+    Returns:
+        sum_error_sq: ndarray, The SSE values that the GP will be trained on
+    """   
+    
+    #Asserts that test_T is a tensor with 2 columns
+    assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
+
+    #Creates an array for train_sse that will be filled with the for loop
+    sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
+
+    #Iterates over evey combination of theta to find the SSE for each combination
+    for i in range(len(train_T)):
+        theta_1 = train_T[i,0] #n_train^2x1 
+        theta_2 = train_T[i,1] #n_train^2x1
+        y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
+        sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
+    return sum_error_sq
+
 class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     """
     The base class for any Gaussian process latent function to be used in conjunction
@@ -86,6 +183,71 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
             #Can be multivariate, or a batch of multivariate normals
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1xn_train^2 tensor
+    
+def train_GP_basic(model, likelihood, train_T, train_sse,verbose = False):
+    """
+    Training the 2 input GP model
+    
+    Parameters
+    ----------
+        model: bound method, The model on which the GP is based
+        likelihood: bound method, The likeliehood of the model. In this case, must be a Gaussian likeliehood
+        test_T: tensor, The array containing the testing data for Theta1 and Theta2
+        verbose: If True, prints the loss and hyperparameters determined at each iteration of training
+        
+    Returns
+    -------
+        None. Used to train the GP
+    """
+    #Asserts that train_T and train_sse are tensors of equal length and train_T has only 2 columns
+    assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
+    assert len(train_T) == len(train_sse), "Lengths of training data must be the same"
+    assert torch.is_tensor(train_T)==True and torch.is_tensor(train_sse)==True, "train_T and train_sse must be a tensor"
+    
+    # Find optimal model hyperparameters
+    training_iter = 500
+
+    #Puts the model in training mode
+    model.train()
+
+    #Puts the likelihood in training mode
+    likelihood.train()
+
+    # Use the adam optimizer
+        #algorithm for first-order gradient-based optimization of stochastic objective functions
+        # The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. 
+        #The hyper-parameters have intuitive interpretations and typically require little tuning.
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)  #Needs GaussianLikelihood parameters, and a learning rate
+        #lr default is 0.001
+
+    # Calculate"Loss" for GPs
+
+    #The marginal log likelihood (the evidence: quantifies joint probability of the data under the prior)
+    #returns an exact MLL for an exact Gaussian process with Gaussian likelihood
+    mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model) #Takes a Gaussian likelihood and a model, a bound Method
+    #iterates a give number of times
+    for i in range(training_iter): #0-299
+        # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
+        optimizer.zero_grad() 
+        # Output from model
+        output = model(train_T) # A multivariate norm of a 1 x n_train^2 tensor
+        # Calc loss and backprop gradients
+        #Minimizing -logMLL lets us fit hyperparameters
+        loss = -mll(output, train_sse) #A number (tensor)
+        #computes dloss/dx for every parameter x which has requires_grad=True. 
+        #These are accumulated into x.grad for every parameter x
+        loss.backward()
+        if verbose == True:
+            print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
+                i + 1, training_iter, loss.item(),
+                model.covar_module.base_kernel.lengthscale.item(),
+                 model.likelihood.noise.item()
+            ))
+        #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
+        #x += -lr * x.grad
+        optimizer.step()
+    return
+
 
 def LHS_Design(csv_file):
     """
@@ -150,7 +312,6 @@ def test_train_split(param_space, y_data, sep_fact=0.8):
         test_data: tensor, The testing y data
     
     """
-    
     #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
     assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
     assert 0 < sep_fact< 1, "Separation factor must be between 0 and 1"
@@ -539,3 +700,47 @@ def improvement_int_terms(error_best,pred_mean,pred_var,y_target, steps=5): #Nee
         I_term_3[i] = term_3
  
     return epsilon_space, I_term_1, I_term_2,I_term_3
+    
+def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
+    """ 
+    Calculates the expected improvement of the 2 input parameter GP
+    Parameters
+    ----------
+        f_best: float, the best predicted sse encountered
+        pred_mean: tensor, model mean
+        pred_var, tensor, model variance
+        explore_bias: float, the numerical bias towards exploration, zero is the default
+    
+    Returns
+    -------
+    Calling this model will return the posterior of the latent Gaussian process when conditioned
+    on the training data. The output will be a :obj:`~gpytorch.distributions.MultivariateNormal`.
+    """
+    assert len(pred_mean) == len(pred_var), "GP predicted means and variances must be the same length"
+    assert torch.is_tensor(pred_mean)==True and torch.is_tensor(pred_var)==True, "GP predicted means and variances must be tensors"
+    
+    #Creates empty list to store ei values
+    ei = np.zeros(len(pred_var)) #1xn_test
+    
+    #Converts tensors to np arrays and defines standard deviation
+    pred_mean = pred_mean.numpy() #1xn_test
+    pred_var = pred_var.numpy()   #1xn_test
+    pred_stdev = np.sqrt(pred_var) #1xn_test
+
+    
+    #Loops over every standard deviation values
+    for i in range(len(pred_var)):
+        #Checks that all standard deviations are positive
+        if pred_stdev[i] > 0:
+            #Calculates z-score based on Ke's formula
+            z = (pred_mean[i] - f_best - explore_bias)/pred_stdev[i] #scaler
+            #Calculates ei based on Ke's formula
+            #Explotation term
+            ei_term_1 = (pred_mean[i] - f_best - explore_bias)*norm.cdf(z) #scaler
+            #Exploration Term
+            ei_term_2 = pred_stdev[i]*norm.pdf(z) #scaler
+            ei[i] = ei_term_1 +ei_term_2 #scaler
+        else:
+            #Sets ei to zero if standard deviation is zero
+            ei[i] = 0
+    return ei
