@@ -146,50 +146,6 @@ def test_train_split(param_space, y_data, sep_fact=0.8):
     test_param = param_space[train_split:,:] #1x(n-n*sep_fact)
     return train_param, train_data, test_param, test_data
 
-def calc_GP_parameters_basic(model, likelihood, test_T):
-    """
-    Calculates the GP mean, variance, standard deviation, and y (sse) predictions
-    
-    Parameters
-    ----------
-        model: bound method, The model off of which the GP is based
-        likelihood: bound method, the likelihood of the model, in this case, must be a Gaussian likelihood
-        test_T: tensor, The array containing the testing data for Theta1 and Theta2
-    
-    Returns
-    -------
-        model_mean: tensor, the mean of the GP model
-        model_variance: tensor, the variance of the GP model
-        model_stdev: tensor, the standard deviation of the GP model
-        model_sse: tensor, the sse of the GP model
-    """
-        #How to assert the type of bound method?
-    #Asserts that test_T is a tensor with 2 columns
-    assert torch.is_tensor(test_T)==True, "test_T must be a tensor"
-    assert len(test_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
-    
-    with gpytorch.settings.fast_pred_var(), torch.no_grad():
-    #torch.no_grad() 
-        #Disabling gradient calculation is useful for inference, 
-        #when you are sure that you will not call Tensor.backward(). It will reduce memory consumption
-        #Note: Can't use np operations on tensors where requires_grad = True
-    #gpytorch.settings.fast_pred_var() 
-        #Use this for improved performance when computing predictive variances. 
-        #Good up to 10,000 data points
-    #Predicts data points for model (sse) by sending the model through the likelihood
-        observed_pred = likelihood(model(test_T)) #1 x n_x^2
-
-    #Calculates model mean  
-    model_mean = observed_pred.mean
-    #Calculates the variance of each data point
-    model_variance = observed_pred.variance
-    #Calculates the standard deviation of each data point
-    model_stdev = np.sqrt(observed_pred.variance.detach().numpy())
-    model_sse = observed_pred.loc #1 x n_x^2
-    return model_mean, model_variance, model_stdev, model_sse
-
-
-
 class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     """
     The base class for any Gaussian process latent function to be used in conjunction
