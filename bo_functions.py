@@ -5,6 +5,147 @@ import torch
 import csv
 import gpytorch
 
+def LHS_Design(csv_file):
+    """
+    Creates LHS Design based on a CSV
+    Parameters
+    ----------
+        csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
+    Returns
+    -------
+        param_space: ndarray , the parameter space that will be used with the GP
+    """
+    #Asserts that the csv filename is a string
+    assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
+    
+    reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
+    lhs_design = list(reader) #Creates list from CSV
+    param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
+    return param_space
+
+def calc_y_exp(Theta_True, x, noise_std, noise_mean=0):
+    """
+    Creates y_data for the 2 input GP function
+    
+    Parameters
+    ----------
+        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
+        x: ndarray, The list of xs that will be used to generate y
+        noise_std: float, int: The standard deviation of the noise
+        noise_mean: float, int: The mean of the noise
+        
+    Returns:
+        y_exp: ndarray, The expected values of y given x data
+    """   
+    
+    #Asserts that test_T is a tensor with 2 columns
+    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
+    assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
+    assert len(Theta_True) ==2, "This is a 2 input GP, Theta_True can only contain 2 values."
+    
+    #Creates noise values with a certain stdev and mean from a normal distribution
+    noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
+    # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
+    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
+  
+    return y_exp
+
+def create_sse_data(train_T, x, y_exp):
+    """
+    Creates y_data for the 2 input GP function
+    
+    Parameters
+    ----------
+        train_T: ndarray, The array containing the training data for Theta1 and Theta2
+        x: ndarray, The list of xs that will be used to generate y
+        y_exp: ndarray, The experimental data for y (the true value)
+        
+    Returns:
+        sum_error_sq: ndarray, The SSE values that the GP will be trained on
+    """   
+    
+    #Asserts that test_T is a tensor with 2 columns (May delete this)
+    assert len(train_T.T) ==2 or len(train_T.T)==3, "This is a 2 input GP, train_T can only contain 2 columns of values."
+
+    #Creates an array for train_sse that will be filled with the for loop
+    sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
+
+    #Iterates over evey combination of theta to find the SSE for each combination
+    for i in range(len(train_T)):
+        theta_1 = train_T[i,0] #n_train^2x1 
+        theta_2 = train_T[i,1] #n_train^2x1
+        y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
+        sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
+    return sum_error_sq
+
+def create_y_data(param_space):
+    """
+    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
+    Parameters
+    ----------
+        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
+    Returns
+    -------
+        y_data: ndarray, The simulated y training data
+    """
+    #Assert statements check that the types defined in the doctring are satisfied
+    assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
+    
+    #Converts parameters to numpy arrays if they are tensors
+    if torch.is_tensor(param_space)==True:
+        param_space = param_space.numpy()
+
+    #Creates an array for train_data that will be filled with the for loop
+    y_data = np.zeros(len(param_space)) #1 x n (row x col)
+
+    #Iterates over evey combination of theta to find the expected y value for each combination
+    for i in range(len(param_space)):
+        theta_1 = param_space[i,0] #nx1 
+        theta_2 = param_space[i,1] #nx1
+        x = param_space[i,2] #nx1 
+        y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
+    #Returns all_y
+    return y_data
+
+def test_train_split(param_space, y_data, sep_fact=0.8):
+    """
+    Splits y data into training and testing data
+    
+    Parameters
+    ----------
+        param_space: (nx3) ndarray or tensor, The parameter space over which the GP will be run
+        y_data: ndarray or tensor, The simulated y data
+        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+    Returns:
+        train_param: tensor, The training parameter space data
+        train_data: tensor, The training y data
+        test_param: tensor, The testing parameter space data
+        test_data: tensor, The testing y data
+    
+    """
+    #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
+    assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
+    assert 0 < sep_fact< 1, "Separation factor must be between 0 and 1"
+    
+    #Asserts length od param_space and y_data are equal
+    assert len(param_space) == len(y_data), "The length of param_space and y_data must be the same"
+    
+    #Converts data and parameters to tensors if they are numpy arrays
+    if isinstance(param_space, np.ndarray)==True:
+        param_space = torch.tensor(param_space) #1xn
+    if isinstance(y_data, np.ndarray)==True:
+        y_data = torch.tensor(y_data) #1xn
+    
+    #Creates the index on which to split data
+    train_split = int(np.round(len(y_data))*sep_fact)-1 
+    
+    #Training and testing data are created and converted into tensors
+    train_data =y_data[:train_split] #1x(n*sep_fact)
+    test_data = y_data[train_split:] #1x(n-n*sep_fact)
+    train_param = param_space[:train_split,:] #1x(n*sep_fact)
+    test_param = param_space[train_split:,:] #1x(n-n*sep_fact)
+    return train_param, train_data, test_param, test_data
+
 def calc_GP_parameters_basic(model, likelihood, test_T):
     """
     Calculates the GP mean, variance, standard deviation, and y (sse) predictions
@@ -43,64 +184,11 @@ def calc_GP_parameters_basic(model, likelihood, test_T):
     #Calculates the variance of each data point
     model_variance = observed_pred.variance
     #Calculates the standard deviation of each data point
-    model_stdev = np.sqrt(observed_pred.variance)
+    model_stdev = np.sqrt(observed_pred.variance.detach().numpy())
     model_sse = observed_pred.loc #1 x n_x^2
     return model_mean, model_variance, model_stdev, model_sse
 
-def calc_y_exp_basic(Theta_True, x, noise_std, noise_mean=0):
-    """
-    Creates y_data for the 2 input GP function
-    
-    Parameters
-    ----------
-        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
-        x: ndarray, The list of xs that will be used to generate y
-        noise_std: float, int: The standard deviation of the noise
-        noise_mean: float, int: The mean of the noise
-        
-    Returns:
-        y_exp: ndarray, The expected values of y given x data
-    """   
-    
-    #Asserts that test_T is a tensor with 2 columns
-    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
-    assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
-    assert len(Theta_True) ==2, "This is a 2 input GP, Theta_True can only contain 2 values."
-    
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = torch.tensor(np.random.normal(size=len(x),loc = noise_mean, scale = noise_std)) #1x n_x
-    # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
-    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
-    
-    return y_exp
 
-def create_sse_data_basic(train_T, x, y_exp):
-    """
-    Creates y_data for the 2 input GP function
-    
-    Parameters
-    ----------
-        train_T: ndarray, The array containing the training data for Theta1 and Theta2
-        x: ndarray, The list of xs that will be used to generate y
-        y_exp: ndarray, The experimental data for y (the true value)
-        
-    Returns:
-        sum_error_sq: ndarray, The SSE values that the GP will be trained on
-    """   
-    
-    #Asserts that test_T is a tensor with 2 columns
-    assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
-
-    #Creates an array for train_sse that will be filled with the for loop
-    sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
-
-    #Iterates over evey combination of theta to find the SSE for each combination
-    for i in range(len(train_T)):
-        theta_1 = train_T[i,0] #n_train^2x1 
-        theta_2 = train_T[i,1] #n_train^2x1
-        y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-        sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
-    return sum_error_sq
 
 class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     """
@@ -249,92 +337,6 @@ def train_GP_basic(model, likelihood, train_T, train_sse,verbose = False):
     return
 
 
-def LHS_Design(csv_file):
-    """
-    Creates LHS Design based on a CSV
-    Parameters
-    ----------
-        csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
-    Returns
-    -------
-        param_space: ndarray , the parameter space that will be used with the GP
-    """
-    #Asserts that the csv filename is a string
-    assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
-    
-    reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
-    lhs_design = list(reader) #Creates list from CSV
-    param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
-    return param_space
-
-def create_y_data(param_space):
-    """
-    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
-    Parameters
-    ----------
-        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
-    Returns
-    -------
-        y_data: ndarray, The simulated y training data
-    """
-    #Assert statements check that the types defined in the doctring are satisfied
-    assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
-    
-    #Converts parameters to numpy arrays if they are tensors
-    if torch.is_tensor(param_space)==True:
-        param_space = param_space.numpy()
-
-    #Creates an array for train_data that will be filled with the for loop
-    y_data = np.zeros(len(param_space)) #1 x n (row x col)
-
-    #Iterates over evey combination of theta to find the expected y value for each combination
-    for i in range(len(param_space)):
-        theta_1 = param_space[i,0] #nx1 
-        theta_2 = param_space[i,1] #nx1
-        x = param_space[i,2] #nx1 
-        y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
-    #Returns all_y
-    return y_data
-
-def test_train_split(param_space, y_data, sep_fact=0.8):
-    """
-    Splits y data into training and testing data
-    
-    Parameters
-    ----------
-        param_space: (nx3) ndarray or tensor, The parameter space over which the GP will be run
-        y_data: ndarray or tensor, The simulated y data
-        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-    Returns:
-        train_param: tensor, The training parameter space data
-        train_data: tensor, The training y data
-        test_param: tensor, The testing parameter space data
-        test_data: tensor, The testing y data
-    
-    """
-    #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
-    assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
-    assert 0 < sep_fact< 1, "Separation factor must be between 0 and 1"
-    
-    #Asserts length od param_space and y_data are equal
-    assert len(param_space) == len(y_data), "The length of param_space and y_data must be the same"
-    
-    #Converts data and parameters to tensors if they are numpy arrays
-    if isinstance(param_space, np.ndarray)==True:
-        param_space = torch.tensor(param_space) #1xn
-    if isinstance(y_data, np.ndarray)==True:
-        y_data = torch.tensor(y_data) #1xn
-    
-    #Creates the index on which to split data
-    train_split = int(np.round(len(y_data))*sep_fact)-1 
-    
-    #Training and testing data are created and converted into tensors
-    train_data =y_data[:train_split] #1x(n*sep_fact)
-    test_data = y_data[train_split:] #1x(n-n*sep_fact)
-    train_param = param_space[:train_split,:] #1x(n*sep_fact)
-    test_param = param_space[train_split:,:] #1x(n-n*sep_fact)
-    return train_param, train_data, test_param, test_data
-
 def train_GP_model(model, likelihood, train_param, train_data, iterations=300, verbose=False):
     """
     Trains the GP model and finds hyperparameters with the Adam optimizer with an lr =0.1
@@ -453,7 +455,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     model_prediction = observed_pred.loc #1 x n_test
     return model_mean, model_variance, model_stdev, model_prediction    
 
-def calc_y_expected(test_param):
+def calc_y_expected(test_param): #Will need to delete this eventually. It is wrong
     """
     Creates y_data based on the function theta_1*x + theta_2*x**2 +x**3 + noise
     Parameters
@@ -724,7 +726,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     
     #Converts tensors to np arrays and defines standard deviation
     pred_mean = pred_mean.numpy() #1xn_test
-    pred_var = pred_var.numpy()   #1xn_test
+    pred_var = pred_var.detach().numpy()   #1xn_test
     pred_stdev = np.sqrt(pred_var) #1xn_test
 
     
