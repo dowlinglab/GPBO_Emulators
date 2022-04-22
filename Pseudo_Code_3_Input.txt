@@ -3,21 +3,22 @@
 
 Step 1) Generate Experimental and Training data (Completed)
 
+NOTE: m = 1, n = 5, q = 3, t=t
 --Generate Experimental data and training input data--
-# Set  x values, noise_mean, and noise_stdev
-# Create experimental data using y = x -x^2 +x^3 + noise
-# Generate training data inputs through LHS for Theta1,Theta2,and x
+# Set  x values (m x n), noise_mean (float), and noise_stdev (float)
+# Create experimental data using y = x -x^2 +x^3 + noise (1 x n)
+# Generate training data inputs through LHS for Theta1,Theta2,and x (q x t)
 
 --Generate training data outputs--
 -- 2-Input GP (Side note)
 # Generate input training data by only using Theta values from the LHS generation (the first 2 columns)
-initialize SSE = 0
-loop over Xexp values
-    y_model = Theta1*x + Theta2*x^2 +x^3
-    # Generate training data outputs using SSE += (y_exp - y_model)^2
+initialize SSE = np.zeros(len(theta combinations)) (1 x t)
+loop over combinations of theta
+    y_sim = Theta1*x + Theta2*x^2 +x^3 (1 x n)
+    # Generate training data outputs using SSE[i] = SUM((y_exp - y_model)^2) (float)
 
 -- 3-Input GP
-# Generate training data outputs with y = Theta1*x + Theta2*x^2 +x^3
+# Generate training data outputs with y = Theta1*x + Theta2*x^2 +x^3 (1 x t)
 
 
 Step 2) Pull Experimental and Training Data from the CSV (Completed)
