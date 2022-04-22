@@ -16,9 +16,9 @@ NOTE: m = 1, n = 5, q = 3, t=t
 
 Step 2) Pull Experimental and Training Data from the CSV (Completed)
 
-#Read entire file with Pandas and convert to an array
-#Create arrays for training/testing inputs and outputs based on data in stored files
-#First row is an index, last row is output, all interior rows are inputs
+# Read entire file with Pandas and convert to an array
+# Create arrays for training/testing inputs and outputs based on data in stored files
+# First row is an index, last row is output, all interior rows are inputs
 
 
 Step 3) Train GP (Completed)
@@ -40,7 +40,6 @@ Step 5) Calculate Best Error (This is the problem - Best Error is not being calc
 #Define f_bar
 f_bar = Yexp (1 x n)
 f(x) = f calculated by Nonlinear regression
-## Is this correct or is f(x) the GP mean? If it's the GP mean, how will we get shapes to work out? GP Output is (1 x t), not (1 x n)
 
 best_error = np.zeros(len(Xexp)) (1 x n)
 
@@ -48,7 +47,6 @@ loop over Xexp
     best_error[i] = -(f_bar - f(x))^2 (float)
 
 best_error = max(best_error) (float)-> Maximum of - error is minimum error
-##In the pseudo code you drew on the whiteboard, best error is called as best_error[k] in the EI equation. Should it be a float or (1 x n)?
 
 
 Step 6) Calculate EI
@@ -62,7 +60,10 @@ for i in range(len(p1)):
             EI[i,j] += calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
             
             
-            
+QUESTIONS:
+1) Is f(x) bar correct or is f(x) the GP mean? If it's the GP mean, how will we get shapes to work out? GP Output is never (1 x n)
+2) In the pseudo code you drew on the whiteboard, best error is called as best_error[k] in the EI equation. Should it be a float, (1 x n),    (1 x t) or neither? If none of these, what should it be?
+3) When evaluating the GP, have I used the right syntax or should I be calling from the meshgrid?
             
             
             
