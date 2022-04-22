@@ -10,13 +10,6 @@ NOTE: m = 1, n = 5, q = 3, t=t
 # Generate training data inputs through LHS for Theta1,Theta2,and x (q x t)
 
 --Generate training data outputs--
--- 2-Input GP (Side note)
-# Generate input training data by only using Theta values from the LHS generation (the first 2 columns)
-initialize SSE = np.zeros(len(theta combinations)) (1 x t)
-loop over combinations of theta
-    y_sim = Theta1*x + Theta2*x^2 +x^3 (1 x n)
-    # Generate training data outputs using SSE[i] = SUM((y_exp - y_model)^2) (float)
-
 -- 3-Input GP
 # Generate training data outputs with y = Theta1*x + Theta2*x^2 +x^3 (1 x t)
 
@@ -28,7 +21,7 @@ Step 2) Pull Experimental and Training Data from the CSV (Completed)
 #First row is an index, last row is output, all interior rows are inputs
 
 
-Step 3) Train GP
+Step 3) Train GP (Completed)
 
 # Define likelihood and GP model clas
 # Train GP based on input training data z, and output training data y
@@ -42,5 +35,43 @@ Theta2 = np.linspace(-2,2,# points) (1 x p2)
 theta_mesh = meshgrid (2 P1 x P2 arrays)
 
 
-Step 5) Calculate Best Error and EI
+Step 5) Calculate Best Error (This is the problem - Best Error is not being calculated right, not be saved right, or both)
 
+#Define f_bar
+f_bar = Yexp (1 x n)
+f(x) = f calculated by Nonlinear regression
+## Is this correct or is f(x) the GP mean? If it's the GP mean, how will we get shapes to work out? GP Output is (1 x t), not (1 x n)
+
+best_error = np.zeros(len(Xexp)) (1 x n)
+
+loop over Xexp 
+    best_error[i] = -(f_bar - f(x))^2 (float)
+
+best_error = max(best_error) (float)-> Maximum of - error is minimum error
+##In the pseudo code you drew on the whiteboard, best error is called as best_error[k] in the EI equation. Should it be a float or (1 x n)?
+
+
+Step 6) Calculate EI
+
+EI = np.zeros((len(p1),len(p2))) (p1 x p2)
+for i in range(len(p1)):
+    for j in range(len(p2)):
+        for k in range(len(Xexp):
+            p = np.array(Theta1[i],Theta2[j],Xexp[k]) ##Is this correct syntax or do I need to draw from the meshgrid?
+            GP_mean, GP_var = calc_GP_outputs(model, likelihood, p)
+            EI[i,j] += calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
