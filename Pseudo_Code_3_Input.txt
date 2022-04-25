@@ -45,7 +45,7 @@ theta2_mesh = theta_mesh[1] (p1 x p2)
 
 Step 5) Calculate Best Error (This is the problem - Best Error is not being calculated right, not be saved right, or both)
 
-#Define f_bar
+#Define f_bar and f(x)
 f_bar = Yexp (1 x n)
 f(x) = f calculated by Nonlinear regression
 
