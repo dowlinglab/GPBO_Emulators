@@ -42,41 +42,31 @@ theta_mesh = meshgrid (2 p1 x p2 arrays)
 theta1_mesh = theta_mesh[0] (p1 x p2)
 theta2_mesh = theta_mesh[1] (p1 x p2)
 
-
-Step 5) Calculate Best Error (This is the problem - Best Error is not being calculated right, not be saved right, or both)
-
+Step 5) Calculate Best Error and EI
 #Define f_bar and f(x)
-f_bar = Yexp (1 x n)
-f(x) = f calculated by Nonlinear regression
-
-best_error = np.zeros(n) (1 x n)
-
-loop over Xexp 
-    best_error[i] = -(f_bar - f(x))^2 (float)
-
-best_error = max(best_error) (float)-> Maximum of - error is minimum error
-
-
-Step 6) Calculate EI
+f_bar = GP mean evaluated at x - (1xn)
+f(x) = Yexp (1xn)
 
 EI = np.zeros((len(p1),len(p2))) (p1 x p2)
 for i in range(len(p1)):
     for j in range(len(p2)):
+        best_error = np.zeros(n)
         for k in range(n):
             p = np.array(theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k])
             GP_mean, GP_var = calc_GP_outputs(model, likelihood, p)
+            best_error[i] = -(f_bar - f(x))^2 
+        best_error = max(best_error)
+        for k in range(n):
             EI[i,j] += calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
             
             
 QUESTIONS:
 1) What is f_bar and what is f(x) and what shapes should they be?
+2) When you add in a sample from the meshgrid do you retrain the GP for each set and apply it?
+3) Should there be a sum in the best error loop?
 
 Answered Questions:
 In the pseudo code you drew on the whiteboard, best error is called as best_error[k] in the EI equation. (Best error is 1xn)
-
-Older Questions:
-1) Is f(x) correct or is f(x) the GP mean? If it's the GP mean, how will we get shapes to work out? GP Output is never (1 x n)
-            
             
             
             
