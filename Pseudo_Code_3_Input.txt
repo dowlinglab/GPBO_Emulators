@@ -36,37 +36,57 @@ Step 3) Train GP (Completed)
 
 Step 4) Generate meshgrid for Theta
 
+#Generate arrays for Theta1 and Theta2
 Theta1 = np.linspace(-2,2,# points) (1 x p1)
 Theta2 = np.linspace(-2,2,# points) (1 x p2)
+
+#Create meshgrid for theta
 theta_mesh = meshgrid (2 p1 x p2 arrays)
+
+#Separate meshgrid into theta1 and theta2 arrays
 theta1_mesh = theta_mesh[0] (p1 x p2)
 theta2_mesh = theta_mesh[1] (p1 x p2)
 
 Step 5) Calculate Best Error and EI
-#Define f_bar and f(x)
-f_bar = GP mean evaluated at x - (1xn)
-f(x) = Yexp (1xn)
 
+#Define f_bar and f(x)
+f_bar = Yexp (1xn)
+f(x) approximated by: GP mean evaluated at x - (1xn) (Note: This is an approximation)
+#Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
+
+#Create an array in which to store expected improvement values
 EI = np.zeros((len(p1),len(p2))) (p1 x p2)
+# Loop over theta 1
 for i in range(len(p1)):
+    #Loop over theta2
     for j in range(len(p2)):
-        best_error = np.zeros(n)
+        #Create array to store error values
+        error = np.zeros(n)
+        #Loop over Xexp
         for k in range(n):
+            #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
             p = np.array(theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k])
             GP_mean, GP_var = calc_GP_outputs(model, likelihood, p)
-            best_error[i] = -(f_bar - f(x))^2 
-        best_error = max(best_error)
+            f(x) = GP_mean
+            #Compute error for that point
+            best_error[i] = -(f_bar - f(x))^2
+        #Define best_error as the maximum value in the error array
+        best_error = max(error)
+        
+        #Loop over Xexp
         for k in range(n):
+            #Caclulate EI for each value n given the best error
             EI[i,j] += calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
             
             
 QUESTIONS:
-1) What is f_bar and what is f(x) and are they both (1xn)?
-2) When you add in a sample from the meshgrid do you retrain the GP for each set and apply it?
-3) Should there be a sum in the calculation of best error loop?
+
 
 Answered Questions:
 In the pseudo code you drew on the whiteboard, best error is called as best_error[k] in the EI equation. (Best error is 1xn)
+1) What is f_bar and what is f(x) and are they both (1xn)? (f_bar = Yexp, f(x) approx. GP_mean)
+2) When you add in a sample from the meshgrid do you retrain the GP for each set and apply it? (No)
+3) Should there be a sum in the calculation of best error loop? (No we assume they act independently and summing them together in EI)
             
             
             
