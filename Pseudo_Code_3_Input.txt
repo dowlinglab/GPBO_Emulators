@@ -61,9 +61,9 @@ for i in range(len(p1)):
             
             
 QUESTIONS:
-1) What is f_bar and what is f(x) and what shapes should they be?
+1) What is f_bar and what is f(x) and are they both (1xn)?
 2) When you add in a sample from the meshgrid do you retrain the GP for each set and apply it?
-3) Should there be a sum in the best error loop?
+3) Should there be a sum in the calculation of best error loop?
 
 Answered Questions:
 In the pseudo code you drew on the whiteboard, best error is called as best_error[k] in the EI equation. (Best error is 1xn)
