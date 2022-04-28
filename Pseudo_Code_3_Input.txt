@@ -61,17 +61,17 @@ for i in range(len(p1)):
     #Loop over theta2
     for j in range(len(p2)):
         #Create array to store error values
-        error = np.zeros(n)
+        error = np.zeros(n) (1xn)
         #Loop over Xexp
         for k in range(n):
             #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
-            p = np.array(theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k])
-            GP_mean, GP_var = calc_GP_outputs(model, likelihood, p)
-            f(x) = GP_mean
+            p = np.array(theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]) (1 x q)
+            GP_mean, GP_var = calc_GP_outputs(model, likelihood, p) (float)
+            f(x) = GP_mean (float)
             #Compute error for that point
-            best_error[i] = -(f_bar - f(x))^2
+            best_error[i] = -(f_bar - f(x))^2 (float)
         #Define best_error as the maximum value in the error array
-        best_error = max(error)
+        best_error = max(error) (float)
         
         #Loop over Xexp
         for k in range(n):

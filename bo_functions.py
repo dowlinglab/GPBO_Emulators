@@ -436,7 +436,9 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         y_target = y_target.numpy() #1xn
         
     #Checks for equal lengths
-    assert len(y_target)==len(pred_mean)==len(pred_var), "y_target, pred_mean, and pred_var must be the same length"
+    assert isinstance(y_target, float)==True, "y_target, pred_mean, and pred_var must be the same length"
+    assert isinstance(pred_mean, float)==True, "y_target, pred_mean, and pred_var must be the same length"
+    assert isinstance(pred_var, float)==True, "y_target, pred_mean, and pred_var must be the same length"
     
     #Defines standard devaition
     pred_stdev = np.sqrt(pred_var) #1xn
@@ -446,11 +448,9 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         #Creates upper and lower bounds and described by Alex Dowling's Derivation
         bound_a = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
         bound_b = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
-        bound_lower = np.zeros(len(bound_a))
-        bound_upper = np.zeros(len(bound_a))
-        for i in range(len(bound_a)):
-            bound_lower[i] = np.min([bound_a[i],bound_b[i]])
-            bound_upper[i] = np.max([bound_a[i],bound_b[i]])
+        bound_lower = np.min([bound_a,bound_b])
+        bound_upper = np.max([bound_a,bound_b])
+        
 #         print("Upper bound is", bound_upper)
 #         print("Lower bound is", bound_lower)
 #         print("pdf upper is", norm.pdf(bound_upper))
@@ -470,12 +470,9 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         
         ei_term3_comp1 = bound_upper*ei_eta_upper #1xn
         ei_term3_comp2 = bound_lower*ei_eta_lower #1xn
-        ei_term3_comp3 = np.zeros(len(bound_upper))
-        ei_term3_comp4 = np.zeros(len(bound_lower))
         
-        for i in range(len(bound_upper)):
-            ei_term3_comp3[i] = (1/2)*math.erf(bound_upper[i]/np.sqrt(2)) #1xn
-            ei_term3_comp4[i] = (1/2)*math.erf(bound_lower[i]/np.sqrt(2)) #1xn
+        ei_term3_comp3 = (1/2)*math.erf(bound_upper/np.sqrt(2)) #1xn
+        ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2)) #1xn
             
 
         ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
@@ -485,12 +482,8 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
         ei_term3 = -pred_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
         ei = ei_term1 + ei_term2 + ei_term3 #1xn
-        ei_final = np.zeros(len(ei))
-            
-        for i in range(len(ei_final)):
-            ei_final[i] = ei[i]
           
-    return ei_final
+    return ei
     
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     """ 
