@@ -89,7 +89,7 @@ def stdev_plotter_adv(parameter_space, z, p_true, p_GP_opt, train_p,plot_train=T
     title = "Standard Deviation"
     return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
-def ei_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True):
+def ei_plotter_adv(parameter_space, z, p_true, p_GP_opt, train_p,plot_train=True):
     """
     Plots the expected improvement of the GP
     Parameters
@@ -102,7 +102,7 @@ def ei_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
     title = "Expected Improvement"
-    return plotter_adv(parameter_space, z, title)
+    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
 
 def error_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True):
