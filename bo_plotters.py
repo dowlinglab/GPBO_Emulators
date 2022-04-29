@@ -4,67 +4,60 @@ import torch
 from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
 
-def plotter_adv(parameter_space, z,plot_title="Model Output",yval = False):
-    """
-    Plots the values of the GP given by the user
+def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
+    '''
+    Plots heat maps for 2 input GP
     Parameters
     ----------
-        parameter_space: tensor or ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  tensor or ndarray, nx1 array of values
-        plot_title: str, The title for the graph
-    
+        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        z: ndarray or tensor, An NxN Array containing all points that will be plotted
+        p_true: ndarray, A 2x1 containing the true input parameters
+        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+        title: str, A string containing the title of the plot
+     
     Returns
     -------
-        A 3D Heat map of the values of z predicted by the GP
-    """
-    #Converts tensors and tuples to ndarrays
-    if torch.is_tensor(parameter_space)==True:
-        parameter_space= parameter_space.numpy()
-        
-    if isinstance(z,ndarray)!=True:
-        z = np.asarray(z)
-   
-    #Asserts that the parameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
-    assert len(parameter_space.T) == 3, "The GP is a 3 input GP. Please include only 3 input parameters to plot."
-    assert isinstance(plot_title,str) == True, "Plot title must be a string."
+        plt.show(), A heat map of test_mesh and z
+    '''
+    #Defines the x and y coordinates that will be used to generate the heat map, this step isn't
+    #necessary, but streamlines the process
+    xx , yy = test_mesh #NxN, NxN
     
-    #Breaks Parameter space into separate componenets
-    p_1 = parameter_space[:,0] #Theta1 #1xn
-    p_2 = parameter_space[:,1] #Theta2 #1xn
-    p_3 = parameter_space[:,2] #x #1xn
-
-    #https://stackoverflow.com/questions/17756925/how-to-plot-heatmap-colors-in-3d-in-matplotlib
+    #Assert that test_mesh and z are NxN, that p_true and p_GP_opt are 2x1, and the title is a string
+    assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
+    assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
+    assert z.shape==xx.shape, "Array z must be NxN"
+    assert len(p_true) ==len(p_GP_opt)==2, "p_true and p_GP_opt must be 2x1 for a 2 input GP"
+    assert isinstance(title, str)==True, "Title must be a string"
     
-    fig = plt.figure(figsize=(10,10))
-    ax = fig.add_subplot(111,projection='3d')
+    #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
+    #Plot z.T because test_mesh.T was used to calculate z
+    plt.contourf(xx, yy,z)
+    plt.colorbar()
 
-    xs = p_1
-    ys = p_2
-    zs = p_3
-
-    the_fourth_dimension = z
+    #Plots the true optimal value and the GP value
+    plt.scatter(p_true[0],p_true[1], color="red", label = "True Optimal Value", s=50, marker = (5,1))
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP Optimal Value", marker = ".")
     
-    colors = cm.viridis(the_fourth_dimension/max(the_fourth_dimension))
+    if plot_train == True:
+        plt.scatter(train_p[:,0],train_p[:,1], color="blue", label = "Training Data", s=25, marker = ".")
 
-    colmap = cm.ScalarMappable(cmap=cm.viridis)
-    colmap.set_array(the_fourth_dimension)
+    #Plots axes such that they are scaled the same way (eg. circles look like circles)
+    plt.axis('scaled')
 
-    yg = ax.scatter(xs, ys, zs, c=colmap.to_rgba(the_fourth_dimension)[:,0:3], marker='o')
+    #Plots grid and legend
+    plt.grid()
+    plt.legend(loc = 'best')
 
-    cb = fig.colorbar(colmap)
+    #Creates axis labels and title
+    plt.xlabel('$\\theta_1$',weight='bold')
+    plt.ylabel('$\\theta_2$',weight='bold')
+    plt.title("Heat Map of "+title, weight='bold',fontsize = 16)
 
-    # adding title and labels
-    ax.set_title("Heat Map of "+plot_title, fontsize = 18)
-    ax.set_xlabel('$\\theta_1$', fontsize = 15)
-    ax.set_ylabel('$\\theta_2$', fontsize = 15)
-    ax.set_zlabel('x coordinate', fontsize = 15)
-    
-    # displaying plot
-    plt.savefig(plot_title+'.png')
-    plt.show()
-    return 
+    #Shows plot
+    return plt.show()
 
-def y_plotter_adv(parameter_space, z,plot_title,yval):
+def y_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     """
     Plots the y values of the GP
     Parameters
@@ -78,10 +71,10 @@ def y_plotter_adv(parameter_space, z,plot_title,yval):
     -------
         A 3D Heat map of the values of z predicted by the GP
     """
-    return plotter_adv(parameter_space, z,plot_title,yval)
+    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
 
-def stdev_plotter_adv(parameter_space, z):
+def stdev_plotter_adv(parameter_space, z, p_true, p_GP_opt, train_p,plot_train=True):
     """
     Plots the standard deviation alues of the GP
     Parameters
@@ -94,9 +87,9 @@ def stdev_plotter_adv(parameter_space, z):
         A 3D Heat map of the values of standard deviation predicted by the GP
     """
     title = "Standard Deviation"
-    return plotter_adv(parameter_space, z,title)
+    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
-def ei_plotter_adv(parameter_space, z):
+def ei_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     """
     Plots the expected improvement of the GP
     Parameters
@@ -112,7 +105,7 @@ def ei_plotter_adv(parameter_space, z):
     return plotter_adv(parameter_space, z, title)
 
 
-def error_plotter_adv(parameter_space, z, z2):
+def error_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     """
     Plots the error^2 of the GP
     Parameters
