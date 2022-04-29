@@ -348,67 +348,6 @@ def calc_GP_outputs(model,likelihood,test_param):
     model_prediction = observed_pred.loc #1 x n_test
     return model_mean, model_variance, model_stdev, model_prediction    
 
-def calc_y_expected(test_param): #Will need to delete this eventually. It is wrong
-    """
-    Creates y_data based on the function theta_1*x + theta_2*x**2 +x**3 + noise
-    Parameters
-    ----------
-        test_param: (n_trainx3) ndarray or tensor, The parameter space over which the GP will be tested
-    Returns
-    -------
-        y_data: ndarray, The simulated y data
-    """
-    #Assert statements check that the types defined in the doctring are satisfied
-    assert len(test_param.T) ==3, "Only 3 input Test parameter space can be taken, test_param must be an n_test x 3 array"
-    
-    #Converts training parameters to numpy arrays if they are tensors
-    if torch.is_tensor(test_param)==True:
-        test_param = test_param.numpy() #1xn
-    
-    #Separates parameters for use
-    p_1 = test_param[:,0] #Theta1 #1 x n_test
-    p_2 = test_param[:,1] #Theta2 #1 x n_test
-    p_3 = test_param[:,2] #x #1 x n_test
-
-    #Calculates expected y for each parameter space parameter
-    y_expected = p_1*p_3 + p_2*p_3**2 + p_3**3#1 x n_test
-    return y_expected
-
-def best_error_advanced(model_prediction, y_target):
-    """
-    Calculates the best error in the 3 input GP model
-    
-    Parameters
-    ----------
-        model_prediction: tensor or ndarray: The y values that the GP model predicts 
-        y_target: tensor or ndarray, the expected value of the function from data or other source
-    
-    Returns:
-    --------
-        best_error: float, the value of the best error encountered 
-    """    
-    
-    #Converts target values and GP model predictions to numpy arrays if they are tensors
-    if torch.is_tensor(model_prediction)==True:
-        model_prediction = model_prediction.numpy()
-    if torch.is_tensor(y_target)==True:
-        y_target = y_target.numpy()
-        
-    #Asserst that that these model_prediction and y_target have equal lengths.
-    assert len(y_target)==len(model_prediction), "y_target and model_prediction must be the same length"
-    
-    #Calculates best error as the maximum of the -error
-    error = (y_target-model_prediction)**2 #1xn
-    best_error = np.max(-error) #A number
-    
-    #Finds the best x index
-    best_x = np.argmax(-error) #1xlen(Z.T)
-    
-    #Makes best_error positive again
-    best_error = -best_error
-    
-    return best_error, best_x #1x2
-
 
 def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
     """ 
