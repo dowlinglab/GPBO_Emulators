@@ -458,6 +458,7 @@ def calc_ei_total(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
+    Error = np.zeros((p,p))
     # Loop over theta 1
     for i in range(p):
         #Loop over theta2
@@ -479,7 +480,9 @@ def calc_ei_total(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 error[k] = -(f_bar[k] - model_mean)**2
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
+            #This is the minimum error value
             best_error = -max(error)
+            Error[i,j] = best_error
 
             #Loop over Xexp
             ##Calculate EI
@@ -493,7 +496,7 @@ def calc_ei_total(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 EI[i,j] += calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
 #                 print(EI[i,j])
-    return EI
+    return EI,Error
 
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     """ 
