@@ -471,7 +471,7 @@ def calc_ei_total(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 eval_point = []
                 eval_point.append([theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]])
                 eval_point = np.array(eval_point)
-                print(eval_point)
+#                 print(eval_point)
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
