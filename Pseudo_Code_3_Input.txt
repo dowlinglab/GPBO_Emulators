@@ -71,7 +71,7 @@ for i in range(len(p1)):
             #Compute error for that point
             best_error[i] = -(f_bar - f(x))^2 (float)
         #Define best_error as the maximum value in the error array
-        best_error = max(error) (float)
+        best_error = -max(error) (float)
         
         #Loop over Xexp
         for k in range(n):
