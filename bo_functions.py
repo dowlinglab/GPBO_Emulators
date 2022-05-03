@@ -292,10 +292,10 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         #These are accumulated into x.grad for every parameter x
         loss.backward()
         if verbose == True:
-            print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
+            print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f   output scale: %.3f '% (
                 i + 1, training_iter, loss.item(),
                 model.covar_module.base_kernel.lengthscale.item(),
-                 model.likelihood.noise.item()
+                 model.likelihood.noise.item(), model.covar_module.outputscale.item()
             ))
         #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
         #x += -lr * x.grad
