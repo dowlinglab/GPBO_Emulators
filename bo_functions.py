@@ -244,7 +244,9 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
     
     Returns
     -------
-        optimizer.step(): Updates the value of parameters using the gradient x.grad
+        noise_list: ndarray, List containing value of noise hyperparameter at every iteration
+        lengthscale_list: ndarray, List containing value of lengthscale hyperparameter at every iteration
+        outputscale_list: ndarray, List containing value of outputscale hyperparameter at every iteration
     """
     #Assert statements check that inputs are the correct types and lengths
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
