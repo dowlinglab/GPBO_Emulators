@@ -263,7 +263,7 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     #Creates axis labels and title
     plt.xlabel('$\\theta_1$',weight='bold')
     plt.ylabel('$\\theta_2$',weight='bold')
-    plt.title("Heat Map of "+title, weight='bold',fontsize = 16)
+    plt.title("Heat Map of "+title +"Points = "+str(len(train_p)), weight='bold',fontsize = 16)
 
     #Shows plot
     return plt.show()
