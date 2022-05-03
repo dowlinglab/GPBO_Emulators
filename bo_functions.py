@@ -78,6 +78,33 @@ def create_sse_data(train_T, x, y_exp):
         sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
     return sum_error_sq
 
+def create_sse_point_data(Theta, x, y_exp):
+    """
+    Creates y_data for the 2 input GP function
+    
+    Parameters
+    ----------
+        Theta: ndarray, The array containing the training data for Theta1 and Theta2
+        x: ndarray, The list of xs that will be used to generate y
+        y_exp: ndarray, The experimental data for y (the true value)
+        
+    Returns:
+        sum_error_sq: ndarray, The SSE values that the GP will be trained on
+    """   
+    
+    #Asserts that test_T is a tensor with 2 columns (May delete this)
+    assert len(Theta.T) ==2 or len(Theta.T)==3, "This is a 2 input GP, train_T can only contain 2 columns of values."
+
+    #Creates an array for train_sse that will be filled with the for loop
+    sum_error_sq = 0 #1 x n_train^2
+
+    #Iterates over x to find the SSE for each combination
+    theta_1 = Theta[0] #n_train^2x1 
+    theta_2 = Theta[1] #n_train^2x1
+    y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
+    sum_error_sq = torch.tensor(sum((y_sim - y_exp)**2)) #Scaler
+    return sum_error_sq
+
 def create_y_data(param_space):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
