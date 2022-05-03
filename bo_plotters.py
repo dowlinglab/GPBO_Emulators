@@ -4,6 +4,30 @@ import torch
 from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
 
+def plot_hyperparams(iterations, hyperparam, title):
+    '''
+    Plots Hyperparameters
+    Parameters
+    ----------
+        Iterations: Float, number of training iterations
+        hyperparam: ndarray, array of hyperparameter value at each training iteration 
+        title: string, title of the graph
+     
+    Returns
+    -------
+        plt.show(), A plot of iterations and hyperparameter
+    '''
+    assert isinstance(title, str)==True, "Title must be a string"
+    iters_axis = np.linspace(0,iterations, iterations)
+    assert len(iters_axis) == len(hyperparam), "Hyperparameter array must have length of # of training iterations"
+    
+    plt.figure()
+    plt.plot(iters_axis, hyperparam)
+    plt.grid(True)
+    plt.xlabel('Iterations',weight='bold')
+    plt.ylabel('Hyperparameter Value',weight='bold')
+    plt.title("Plot of "+title, weight='bold',fontsize = 16)
+    return plt.show()
 def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     '''
     Plots heat maps for 2 input GP

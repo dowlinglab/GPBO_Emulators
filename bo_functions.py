@@ -280,6 +280,9 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
     #returns an exact MLL for an exact Gaussian process with Gaussian likelihood
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model) #Takes a Gaussian likelihood and a model, a bound Method
     #iterates a give number of times
+    noise_list = np.zeros(training_iter)
+    lengthscale_list = np.zeros(training_iter)
+    outputscale_list = np.zeros(training_iter)
     for i in range(training_iter): #0-299
         # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
         optimizer.zero_grad() 
@@ -291,6 +294,9 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         #computes dloss/dx for every parameter x which has requires_grad=True. 
         #These are accumulated into x.grad for every parameter x
         loss.backward()
+        noise_list[i] = model.likelihood.noise.item()
+        lengthscale_list[i] =  model.covar_module.base_kernel.lengthscale.item()
+        outputscale_list[i] = model.covar_module.outputscale.item()
         if verbose == True:
             print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f   output scale: %.3f '% (
                 i + 1, training_iter, loss.item(),
@@ -300,7 +306,7 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
         #x += -lr * x.grad
         optimizer.step()
-    return
+    return noise_list,lengthscale_list,outputscale_list
 
 def calc_GP_outputs(model,likelihood,test_param):
     """
