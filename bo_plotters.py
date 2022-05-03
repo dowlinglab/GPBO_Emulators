@@ -26,7 +26,7 @@ def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     #Assert that test_mesh and z are NxN, that p_true and p_GP_opt are 2x1, and the title is a string
     assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
-    assert z.shape==xx.shape, "Array z must be NxN"
+#     assert z.shape==xx.shape, "Array z must be NxN"
     assert len(p_true) ==len(p_GP_opt)==2, "p_true and p_GP_opt must be 2x1 for a 2 input GP"
     assert isinstance(title, str)==True, "Title must be a string"
     
@@ -89,7 +89,22 @@ def stdev_plotter_adv(parameter_space, z, p_true, p_GP_opt, train_p,plot_train=T
     title = "Standard Deviation"
     return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
-def ei_plotter_adv(parameter_space, z, p_true, p_GP_opt, train_p,plot_train=True):
+def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None,plot_train=True):
+    """
+    Plots the expected improvement of the GP
+    Parameters
+    ----------
+        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        z:  ndarray, nx1 array of the GP expected improvement values
+    
+    Returns
+    -------
+        A 3D Heat map of the values of expected improvement predicted by the GP
+    """
+    title = "Expected Improvement: Xexp = " + str(Xexp)
+    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
+
+def ei_plotter_adv(parameter_space, z, p_true, train_p, p_GP_opt = None, plot_train=True):
     """
     Plots the expected improvement of the GP
     Parameters
