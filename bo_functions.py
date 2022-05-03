@@ -532,7 +532,7 @@ def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
-    EI_sing = np.zeros((p,p,n))
+    EI_sing = np.zeros((n,p,p))
 #     print(EI_sing)
     Error = np.zeros((p,p))
     # Loop over theta 1
@@ -573,8 +573,10 @@ def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 ei = calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
 #                 print(ei)
                 EI[i,j] += ei
-                EI_sing[i,j,k] += ei
+                EI_sing[k,i,j] += ei
     return EI_sing,Error
+
+
 
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     """ 
