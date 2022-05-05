@@ -458,11 +458,12 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         ei = ei_term1 + ei_term2 + ei_term3 #1xn
           
     return ei
-def calc_ei_total(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
+def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
     ----------
+        dim: integer, Number of input parameters
         p: integer, the length of Theta vectors
         n: integer, the number of experimental data points
         Xexp: ndarray, experimental x values
@@ -493,7 +494,9 @@ def calc_ei_total(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
-    Error = np.zeros((p,p))
+    Best_Error = np.zeros((p,p))
+    Point_Error = np.zeroes((n,p,p))
+    Eval_points = []
     # Loop over theta 1
     for i in range(p):
         #Loop over theta2
@@ -507,17 +510,19 @@ def calc_ei_total(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 eval_point = []
                 eval_point.append([theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]])
                 eval_point = np.array(eval_point)
+                Eval_points.append(eval_point)
 #                 print(eval_point)
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 #Compute error for that point
                 error[k] = -(f_bar[k] - model_mean)**2
+                Point_Error[k,i,j] = error[k]
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
             #This is the minimum error value
             best_error = -max(error)
-            Error[i,j] = best_error
+            Best_Error[i,j] = best_error
 
             #Loop over Xexp
             ##Calculate EI
@@ -531,7 +536,7 @@ def calc_ei_total(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 EI[i,j] += calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
 #                 print(EI[i,j])
-    return EI,Error
+    return EI,Best_Error,Eval_points, Point_Error
 
 def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
