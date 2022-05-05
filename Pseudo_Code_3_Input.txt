@@ -66,8 +66,9 @@ for i in range(len(p1)):
         #Loop over Xexp
         for k in range(n):
             #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
-            p = np.array(theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]) (1 x q)
-            GP_mean, GP_var = calc_GP_outputs(model, likelihood, p) (float)
+            point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
+            p = np.array([point]) (1 x q)
+            GP_mean, GP_var = calc_GP_outputs(model, likelihood, p[0:1]) (float)
             f(x) = GP_mean (float)
             #Compute error for that point
             error_mag = -(f_bar - f(x))^2 (float)
@@ -80,7 +81,7 @@ for i in range(len(p1)):
         for k in range(n):
             #Caclulate EI for each value n given the best error
             EI[i,j] += calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
-return Error and EI
+return Error, EI
 
 Step 6) Find GP Predicted Values of Theta
 ## Find point with lowest Error
@@ -107,9 +108,8 @@ BO_iter = # of iterations
     
     ## Repeat steps 3-6
 
-    #Initialize arrays to store EI and Error for each point
+    #Initialize arrays to store EI for each point
     EI_point = np.zeros((n,p1,p2)) (will be important for step 7)
-    Points = []
     # Loop over theta 1
     for i in range(len(p1)):
         #Loop over theta2
@@ -119,9 +119,9 @@ BO_iter = # of iterations
             #Loop over Xexp
             for k in range(n):
                 #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
-                p = np.array(theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]) (1 x q)
-                Points = np.append(Points,p)
-                GP_mean, GP_var = calc_GP_outputs(model, likelihood, p) (float)
+                point = [theta1_mesh[i,j],theta2_mesh[i,j]]
+                p = np.array([point]) (1 x q)
+                GP_mean, GP_var = calc_GP_outputs(model, likelihood, p[0:1]) (float)
                 f(x) = GP_mean (float)
                 #Compute error for that point
                 error_mag = -(f_bar - f(x))^2 (float)
@@ -133,7 +133,7 @@ BO_iter = # of iterations
             for k in range(n):
                 #Caclulate EI for each value n given the best error
                 EI_point[k,i,j] = calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
-    return Points,EI_point
+    return EI_point
 
     ##Find point with best EI
     #Calculate argmax of EI
@@ -141,15 +141,15 @@ BO_iter = # of iterations
 
     #Calculate correcsponding theta and x values and set p_Best
     ##DOES THIS STEP LOOK OK? I'M NOT REALLY SURE IF THIS IS RIGHT
-    Theta1_Best = float(theta1_mesh[argmin[1],argmin[2]]) (float)
-    Theta2_Best = float(theta2_mesh[argmin[1],argmin[2]]) (float)
-    x_Best = Xexp[argmin[0]] (float)
+    Theta1_Best = float(theta1_mesh[argmax[1],argmax[2]]) (float)
+    Theta2_Best = float(theta2_mesh[argmax[1],argmax[2]]) (float)
+    x_Best = Xexp[argmax[0]] (float)
     p_Best = np.array([Theta1_Best,Theta2_Best,x_Best],dtype=object)
      
     ##Plot graphs
     
     ##Append best values to training data 
-    Convert training data to numpy arrays
+    #Convert training data to numpy arrays to allow concatenation
     train_p = train_p.numpy()
     train_y = train_y.numpy()
     #NEED TO CALCULATE VALUE OF Y AT Best value. HOW?
