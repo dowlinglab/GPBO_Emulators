@@ -99,7 +99,13 @@ Step 7) Complete BO loops
 
 BO_iter = # of iterations
 #Loop pver BO iterations
-    ## Repeat steps 3-6  in a for loop
+    # If training data are numpy arrays, convert to tensors
+    if torch.is_tensor(train_p) != True:
+        train_p = torch.from_numpy(train_p)
+    if torch.is_tensor(train_y) != True:
+        train_sse = torch.from_numpy(train_y)
+    
+    ## Repeat steps 3-6
 
     #Initialize arrays to store EI and Error for each point
     EI_point = np.zeros((n,p1,p2)) (will be important for step 7)
@@ -139,8 +145,24 @@ BO_iter = # of iterations
     Theta2_Best = float(theta2_mesh[argmin[1],argmin[2]]) (float)
     x_Best = Xexp[argmin[0]] (float)
     p_Best = np.array([Theta1_Best,Theta2_Best,x_Best],dtype=object)
-
-    ##Append best values to training data
+     
+    ##Plot graphs
+    
+    ##Append best values to training data 
+    Convert training data to numpy arrays
+    train_p = train_p.numpy()
+    train_y = train_y.numpy()
+    #NEED TO CALCULATE VALUE OF Y AT Best value. HOW?
+    
+    #Outdated, will need to change
+    append_y = 0
+    for i in range(len(train_p)):
+        if np.array_equiv(train_p[i], Theta_Best) ==True:
+            append_y = train_y[i]
+  
+    #Add Theta_Best to train_p and y_best to train_y
+    train_y = np.concatenate((train_y,[np.argmax(EI)]),axis=0)
+    train_p = np.concatenate((train_p, p_Best), axis=0)
 
 
 QUESTIONS:
