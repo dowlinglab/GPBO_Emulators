@@ -755,20 +755,20 @@ def calc_ei_basic2(f_best,pred_mean,pred_var, explore_bias=0.0):
     if torch.is_tensor(pred_var)==True:
         pred_var = pred_var.detach().numpy() #1xn
     pred_stdev = np.sqrt(pred_var) #1xn_test
-    print("stdev",pred_stdev)
+#     print("stdev",pred_stdev)
     #Checks that all standard deviations are positive
     if pred_stdev > 0:
         #Calculates z-score based on Ke's formula
         z = (pred_mean - f_best - explore_bias)/pred_stdev #scaler
-        print("z",z)
+#         print("z",z)
         #Calculates ei based on Ke's formula
         #Explotation term
         ei_term_1 = (pred_mean - f_best - explore_bias)*norm.cdf(z) #scaler
         #Exploration Term
         ei_term_2 = pred_stdev*norm.pdf(z) #scaler
         ei = ei_term_1 +ei_term_2 #scaler
-        print("term 1",ei_term_1)
-        print("term 2",ei_term_2)
+#         print("term 1",ei_term_1)
+#         print("term 2",ei_term_2)
     else:
         #Sets ei to zero if standard deviation is zero
         ei = 0

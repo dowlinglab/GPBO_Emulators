@@ -56,6 +56,7 @@ def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     
     #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
     #Plot z.T because test_mesh.T was used to calculate z
+    
     plt.contourf(xx, yy,z)
     plt.colorbar()
 #     print(p_GP_opt[0],p_GP_opt[1])
@@ -71,7 +72,7 @@ def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
 
     #Plots grid and legend
     plt.grid()
-    plt.legend(loc = 'best')
+    plt.legend(loc = 'upper left')
 
     #Creates axis labels and title
     plt.xlabel('$\\theta_1$',weight='bold')
@@ -243,6 +244,7 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     
     #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
     #Plot z.T because test_mesh.T was used to calculate z
+    plt.figure(figsize=(9, 9))
     plt.contourf(xx, yy,z.T)
     plt.colorbar()
 
@@ -259,7 +261,7 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
 
     #Plots grid and legend
     plt.grid()
-    plt.legend(loc = 'best')
+    plt.legend(loc = 'upper left')
 
     #Creates axis labels and title
     plt.xlabel('$\\theta_1$',weight='bold')
