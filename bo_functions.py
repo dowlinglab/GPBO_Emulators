@@ -510,7 +510,7 @@ def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 #Compute error for that point
-                error_mag = -(Y_exp[k] - model_mean)**2
+                error_mag = -(Yexp[k] - model_mean)**2
                 error[k] = error_mag
                 Error_tot[i,j] += error_mag
 
@@ -533,7 +533,7 @@ def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
 #                 print(EI[i,j])
     return EI,Error_tot
 
-def calc_ei_and_error_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
+def calc_ei_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -566,8 +566,6 @@ def calc_ei_and_error_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     
     #Create an array in which to store expected improvement values
     EI_Point = np.zeros((n,p,p)) #(p1 x p2)
-    Error_Point = np.zeros((n,p,p))
-    eval_points = []
     # Loop over theta 1
     for i in range(p):
         #Loop over theta2
@@ -580,15 +578,13 @@ def calc_ei_and_error_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
                 point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
                 eval_point = np.array([point])
-                eval_points.append(point)
 #                 print(eval_point)
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 #Compute error for that point
-                error_mag = -(Y_exp[k] - model_mean)**2
+                error_mag = -(Yexp[k] - model_mean)**2
                 error[k] = error_mag
-                Error_Point[k,i,j] = error_mag
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
             #This is the minimum error value
@@ -603,11 +599,11 @@ def calc_ei_and_error_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
-                EI[k,i,j] = calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
+                EI_Point[k,i,j] = calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
                 
 #     print(Eval_points)
 #                 print(EI[i,j])
-    return eval_points,EI_Point,Error_Point
+    return EI_Point
 
 def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
@@ -635,8 +631,7 @@ def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     
     
     #Define f_bar and f(x)
-    #Will compare the rigorous solution and approximation later (multi
-    ensional integral over each experiment using a sparse grid)
+    #Will compare the rigorous solution and approximation later (multiensional integral over each experiment using a sparse grid)
     #Create theta1 and theta2 mesh grids
     theta1_mesh = theta_mesh[0]
     assert len(theta1_mesh)==p, "theta_mesh must be dim, pxp arrays"

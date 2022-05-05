@@ -103,7 +103,6 @@ BO_iter = # of iterations
 
     #Initialize arrays to store EI and Error for each point
     EI_point = np.zeros((n,p1,p2)) (will be important for step 7)
-    Error_Point = np.zeros((n,p1,p2))
     Points = []
     # Loop over theta 1
     for i in range(len(p1)):
@@ -121,7 +120,6 @@ BO_iter = # of iterations
                 #Compute error for that point
                 error_mag = -(f_bar - f(x))^2 (float)
                 error[k] = error_mag
-                Error_Point[k,i,j] = error_mag
             #Define best_error as the maximum value in the error array
             best_error = -max(error) (float)
 
@@ -129,7 +127,7 @@ BO_iter = # of iterations
             for k in range(n):
                 #Caclulate EI for each value n given the best error
                 EI_point[k,i,j] = calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
-    return Points,EI_point, Error_Point
+    return Points,EI_point
 
     ##Find point with best EI
     #Calculate argmax of EI
