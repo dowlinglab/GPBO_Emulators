@@ -55,7 +55,8 @@ f(x) approximated by: GP mean evaluated at x - (1xn) (Note: This is an approxima
 #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
 
 #Create an array in which to store expected improvement values
-EI = np.zeros((len(p1),len(p2))) (p1 x p2)
+EI = np.zeros((p1,p2)) (p1 x p2)
+Error = np.zeros((p1,p2))
 # Loop over theta 1
 for i in range(len(p1)):
     #Loop over theta2
@@ -69,7 +70,9 @@ for i in range(len(p1)):
             GP_mean, GP_var = calc_GP_outputs(model, likelihood, p) (float)
             f(x) = GP_mean (float)
             #Compute error for that point
-            best_error[i] = -(f_bar - f(x))^2 (float)
+            error_mag = -(f_bar - f(x))^2 (float)
+            error[k] = error_mag
+            Error += error_mag
         #Define best_error as the maximum value in the error array
         best_error = -max(error) (float)
         
@@ -77,8 +80,70 @@ for i in range(len(p1)):
         for k in range(n):
             #Caclulate EI for each value n given the best error
             EI[i,j] += calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
-            
-            
+return Error and EI
+
+Step 6) Find GP Predicted Values of Theta
+## Find point with lowest Error
+
+#Caclulate argmin of Error_Point
+argmin = np.array(np.where(Error == np.amin(Error)))
+
+#Calculate correcsponding theta and x values and set p_Opt
+##DOES THIS STEP LOOK OK? I'M NOT REALLY SURE IF THIS IS RIGHT
+Theta1_Opt = float(theta1_mesh[argmin[0],argmin[1]])
+Theta2_Opt = float(theta2_mesh[argmin[0],argmin[1]])
+Theta_GP_Opt = np.array([Theta1_Opt,Theta2_Opt],dtype=object)
+
+
+Step 7) Complete BO loops
+
+BO_iter = # of iterations
+#Loop pver BO iterations
+    ## Repeat steps 3-6  in a for loop
+
+    #Initialize arrays to store EI and Error for each point
+    EI_point = np.zeros((n,p1,p2)) (will be important for step 7)
+    Error_Point = np.zeros((n,p1,p2))
+
+    # Loop over theta 1
+    for i in range(len(p1)):
+        #Loop over theta2
+        for j in range(len(p2)):
+            #Create array to store error values
+            error = np.zeros(n) (1xn)
+            #Loop over Xexp
+            for k in range(n):
+                #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
+                p = np.array(theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]) (1 x q)
+                GP_mean, GP_var = calc_GP_outputs(model, likelihood, p) (float)
+                f(x) = GP_mean (float)
+                #Compute error for that point
+                error_mag = -(f_bar - f(x))^2 (float)
+                error[k] = error_mag
+                Error_Point[k,i,j] = error_mag
+            #Define best_error as the maximum value in the error array
+            best_error = -max(error) (float)
+
+            #Loop over Xexp
+            for k in range(n):
+                #Caclulate EI for each value n given the best error
+                EI_point[k,i,j] = calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
+    return EI_point, Error_Point
+
+    ##Find point with best EI
+    #Calculate argmax of EI
+    argmax = np.array(np.where(EI_Point == np.amax(EI_Point))) (1 x q)
+
+    #Calculate correcsponding theta and x values and set p_Best
+    ##DOES THIS STEP LOOK OK? I'M NOT REALLY SURE IF THIS IS RIGHT
+    Theta1_Best = float(theta1_mesh[argmin[1],argmin[2]]) (float)
+    Theta2_Best = float(theta2_mesh[argmin[1],argmin[2]]) (float)
+    x_Best = Xexp[argmin[0]] (float)
+    p_Best = np.array([Theta1_Best,Theta2_Best,x_Best],dtype=object)
+
+    ##Append best values to training data
+
+
 QUESTIONS:
 
 

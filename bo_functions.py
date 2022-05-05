@@ -495,7 +495,7 @@ def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
     Best_Error = np.zeros((p,p))
-    Point_Error = np.zeros((n,p,p))
+    Error_tot = np.zeros((p,p))
     Eval_points = []
     # Loop over theta 1
     for i in range(p):
@@ -517,7 +517,7 @@ def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 #Compute error for that point
                 error_mag = -(f_bar[k] - model_mean)**2
                 error[k] = error_mag
-                Point_Error[k,i,j] = error_mag
+                Error_tot[i,j] += error_mag
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
             #This is the minimum error value
