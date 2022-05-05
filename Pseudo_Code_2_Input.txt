@@ -56,7 +56,7 @@ Step 5) Calculate Best Error and EI
 #Define f(x+)
 
 
-##WHAT IS f(X+)?
+##WHAT IS f(X+)? Best training data sse sample
 
 
 #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
@@ -71,8 +71,10 @@ for i in range(len(p1)):
     #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
     p = np.array(theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]) (1 x q)
     GP_mean, GP_var = calc_GP_outputs(model, likelihood, p) (float)
-    best_error = max(train_sse)? ##I think this is wrong. How should I actually do this?
-    EI[i,j] = calc_ei_basic(best_error, GP_mean, GP_Var)
+    #Caclulate Best Error
+    #Note: Negative sign is here because max(f(x)) = -min(-f(x))
+    best_error = max(-train_sse)
+    EI[i,j] = calc_ei_basic(best_error, -GP_mean, GP_Var) #GP Mean is negative because max(f(x)) = -min(-f(x))
 
 
 Step 6) Find GP Predicted Values of Theta
@@ -105,7 +107,6 @@ BO_iter = # of iterations
     argmax = np.array(np.where(EI == np.amax(EI))) (1 x q)
 
     #Calculate correcsponding theta and x values and set p_Best
-    ##DOES THIS STEP LOOK OK? I'M NOT REALLY SURE IF THIS IS RIGHT
     Theta1_Best = float(theta1_mesh[argmax[0],argmax[1]]) (float)
     Theta2_Best = float(theta2_mesh[argmax[0],argmax[1]]) (float)
     Theta_Best = np.array([Theta1_Best,Theta2_Best],dtype=object)
@@ -117,6 +118,7 @@ BO_iter = # of iterations
     train_T = train_T.numpy()
     train_sse = train_sse.numpy()
     #NEED TO CALCULATE VALUE OF SSE AT Best value. HOW?
+    #Call the expensive function
     
     #Outdated, will need to change
     sse_Best = 0

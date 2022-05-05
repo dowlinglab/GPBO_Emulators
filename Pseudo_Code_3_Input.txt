@@ -90,7 +90,6 @@ Step 6) Find GP Predicted Values of Theta
 argmin = np.array(np.where(Error == np.amin(Error)))
 
 #Calculate correcsponding theta and x values and set p_Opt
-##DOES THIS STEP LOOK OK? I'M NOT REALLY SURE IF THIS IS RIGHT
 Theta1_Opt = float(theta1_mesh[argmin[0],argmin[1]])
 Theta2_Opt = float(theta2_mesh[argmin[0],argmin[1]])
 Theta_GP_Opt = np.array([Theta1_Opt,Theta2_Opt],dtype=object)
@@ -107,63 +106,34 @@ BO_iter = # of iterations
         train_sse = torch.from_numpy(train_y)
     
     ## Repeat steps 3-6
-
-    #Initialize arrays to store EI for each point
-    EI_point = np.zeros((n,p1,p2)) (will be important for step 7)
-    # Loop over theta 1
-    for i in range(len(p1)):
-        #Loop over theta2
-        for j in range(len(p2)):
-            #Create array to store error values
-            error = np.zeros(n) (1xn)
-            #Loop over Xexp
-            for k in range(n):
-                #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
-                point = [theta1_mesh[i,j],theta2_mesh[i,j]]
-                p = np.array([point]) (1 x q)
-                GP_mean, GP_var = calc_GP_outputs(model, likelihood, p[0:1]) (float)
-                f(x) = GP_mean (float)
-                #Compute error for that point
-                error_mag = -(f_bar - f(x))^2 (float)
-                error[k] = error_mag
-            #Define best_error as the maximum value in the error array
-            best_error = -max(error) (float)
-
-            #Loop over Xexp
-            for k in range(n):
-                #Caclulate EI for each value n given the best error
-                EI_point[k,i,j] = calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
-    return EI_point
-
+    
+    ##Instead, add 5 points, same Theta1 and Theta2, but use all values of Xexp too
+    
     ##Find point with best EI
     #Calculate argmax of EI
     argmax = np.array(np.where(EI_Point == np.amax(EI_Point))) (1 x q)
 
     #Calculate correcsponding theta and x values and set p_Best
-    ##DOES THIS STEP LOOK OK? I'M NOT REALLY SURE IF THIS IS RIGHT
     Theta1_Best = float(theta1_mesh[argmax[1],argmax[2]]) (float)
     Theta2_Best = float(theta2_mesh[argmax[1],argmax[2]]) (float)
-    x_Best = Xexp[argmax[0]] (float)
-    p_Best = np.array([Theta1_Best,Theta2_Best,x_Best],dtype=object)
-     
+    
     ##Plot graphs
     
     ##Append best values to training data 
     #Convert training data to numpy arrays to allow concatenation
     train_p = train_p.numpy()
     train_y = train_y.numpy()
-    #NEED TO CALCULATE VALUE OF Y AT Best value. HOW?
     
-    #Outdated, will need to change
-    append_y = 0
-    for i in range(len(train_p)):
-        if np.array_equiv(train_p[i], Theta_Best) ==True:
-            append_y = train_y[i]
-  
-    #Add Theta_Best to train_p and y_best to train_y
-    train_y = np.concatenate((train_y,[np.argmax(EI)]),axis=0)
-    train_p = np.concatenate((train_p, p_Best), axis=0)
-
+    #Set noise and Theta True values (can do at beginning)
+    noise_std = 0.1**2
+    Theta_True = np.array([1,-1]) 
+    #Loop over Xexp
+    for i in range(n):
+        p_Best = np.array([Theta1_Best,Theta2_Best,Xexp[i]],dtype=object)
+        y_Best = cacl_y_exp(Theta_True, Xexp[i], noise_std, noise_mean=0)
+        #Add Theta_Best to train_p and y_best to train_y
+        train_p = np.concatenate((train_p, p_Best), axis=0)
+        train_y = np.concatenate((train_y, y_Best),axis=0)
 
 QUESTIONS:
 
