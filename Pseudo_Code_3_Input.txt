@@ -104,7 +104,7 @@ BO_iter = # of iterations
     #Initialize arrays to store EI and Error for each point
     EI_point = np.zeros((n,p1,p2)) (will be important for step 7)
     Error_Point = np.zeros((n,p1,p2))
-
+    Points = []
     # Loop over theta 1
     for i in range(len(p1)):
         #Loop over theta2
@@ -115,6 +115,7 @@ BO_iter = # of iterations
             for k in range(n):
                 #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
                 p = np.array(theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]) (1 x q)
+                Points = np.append(Points,p)
                 GP_mean, GP_var = calc_GP_outputs(model, likelihood, p) (float)
                 f(x) = GP_mean (float)
                 #Compute error for that point
@@ -128,7 +129,7 @@ BO_iter = # of iterations
             for k in range(n):
                 #Caclulate EI for each value n given the best error
                 EI_point[k,i,j] = calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
-    return EI_point, Error_Point
+    return Points,EI_point, Error_Point
 
     ##Find point with best EI
     #Calculate argmax of EI

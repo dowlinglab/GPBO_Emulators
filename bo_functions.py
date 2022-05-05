@@ -458,12 +458,12 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
         ei = ei_term1 + ei_term2 + ei_term3 #1xn
           
     return ei
-def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
+
+def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
     ----------
-        dim: integer, Number of input parameters
         p: integer, the length of Theta vectors
         n: integer, the number of experimental data points
         Xexp: ndarray, experimental x values
@@ -483,20 +483,16 @@ def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert len(Xexp)==len(Yexp)==n, "Number of data points, n, must be same length as experimental data"
     
-    
-    #Define f_bar and f(x)
-    f_bar = Yexp #(1xn)
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     #Create theta1 and theta2 mesh grids
     theta1_mesh = theta_mesh[0]
     assert len(theta1_mesh)==p, "theta_mesh must be dim, pxp arrays"
     theta2_mesh = theta_mesh[1]
     assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
+    
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
-    Best_Error = np.zeros((p,p))
     Error_tot = np.zeros((p,p))
-    Eval_points = []
     # Loop over theta 1
     for i in range(p):
         #Loop over theta2
@@ -509,28 +505,25 @@ def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
                 point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
                 eval_point = np.array([point])
-                Eval_points.append(point)
 #                 print(eval_point)
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 #Compute error for that point
-                error_mag = -(f_bar[k] - model_mean)**2
+                error_mag = -(Y_exp[k] - model_mean)**2
                 error[k] = error_mag
                 Error_tot[i,j] += error_mag
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
             #This is the minimum error value
             best_error = -max(error)
-            Best_Error[i,j] = best_error
 
             #Loop over Xexp
             ##Calculate EI
             for k in range(n):
                 #Caclulate EI for each value n given the best error
-                eval_point = []
-                eval_point.append([theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]])
-                eval_point = np.array(eval_point)
+                point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
+                eval_point = np.array([point])
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
@@ -538,7 +531,83 @@ def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 
 #     print(Eval_points)
 #                 print(EI[i,j])
-    return EI,Best_Error,Eval_points, Point_Error
+    return EI,Error_tot
+
+def calc_ei_and_error_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
+    """ 
+    Calculates the expected improvement of the 3 input parameter GP
+    Parameters
+    ----------
+        p: integer, the length of Theta vectors
+        n: integer, the number of experimental data points
+        Xexp: ndarray, experimental x values
+        Yexp: ndarray, experimental y values
+        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+    
+    Returns
+    -------
+        EI: ndarray, the expected improvement of the GP model
+    """
+    #Asserts that inputs are correct
+    assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
+    assert isinstance(n, int)==True, "Number of experimental points, n, must be an integer"
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    assert len(Xexp)==len(Yexp)==n, "Number of data points, n, must be same length as experimental data"
+    
+    #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
+    #Create theta1 and theta2 mesh grids
+    theta1_mesh = theta_mesh[0]
+    assert len(theta1_mesh)==p, "theta_mesh must be dim, pxp arrays"
+    theta2_mesh = theta_mesh[1]
+    assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
+    
+    #Create an array in which to store expected improvement values
+    EI_Point = np.zeros((n,p,p)) #(p1 x p2)
+    Error_Point = np.zeros((n,p,p))
+    eval_points = []
+    # Loop over theta 1
+    for i in range(p):
+        #Loop over theta2
+        for j in range(p):
+            ## Caclulate Best Error
+            #Create array to store error values
+            error = np.zeros(n)
+            #Loop over Xexp
+            for k in range(n):
+                #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
+                point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
+                eval_point = np.array([point])
+                eval_points.append(point)
+#                 print(eval_point)
+                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+                model_mean = GP_Outputs[3].numpy()[0] #1xn
+                model_variance= GP_Outputs[1].numpy()[0] #1xn
+                #Compute error for that point
+                error_mag = -(Y_exp[k] - model_mean)**2
+                error[k] = error_mag
+                Error_Point[k,i,j] = error_mag
+
+            #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
+            #This is the minimum error value
+            best_error = -max(error)
+
+            #Loop over Xexp
+            ##Calculate EI
+            for k in range(n):
+                #Caclulate EI for each value n given the best error
+                point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
+                eval_point = np.array([point])
+                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+                model_mean = GP_Outputs[3].numpy()[0] #1xn
+                model_variance= GP_Outputs[1].numpy()[0] #1xn
+                EI[k,i,j] = calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
+                
+#     print(Eval_points)
+#                 print(EI[i,j])
+    return eval_points,EI_Point,Error_Point
 
 def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
@@ -566,7 +635,8 @@ def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     
     
     #Define f_bar and f(x)
-    #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
+    #Will compare the rigorous solution and approximation later (multi
+    ensional integral over each experiment using a sparse grid)
     #Create theta1 and theta2 mesh grids
     theta1_mesh = theta_mesh[0]
     assert len(theta1_mesh)==p, "theta_mesh must be dim, pxp arrays"
