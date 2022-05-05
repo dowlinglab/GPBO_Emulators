@@ -495,7 +495,7 @@ def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
     Best_Error = np.zeros((p,p))
-    Point_Error = np.zeroes((n,p,p))
+    Point_Error = np.zeros((n,p,p))
     Eval_points = []
     # Loop over theta 1
     for i in range(p):
@@ -507,17 +507,17 @@ def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
             #Loop over Xexp
             for k in range(n):
                 #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
-                eval_point = []
-                eval_point.append([theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]])
-                eval_point = np.array(eval_point)
-                Eval_points.append(eval_point)
+                point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
+                eval_point = np.array([point])
+                Eval_points.append(point)
 #                 print(eval_point)
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 #Compute error for that point
-                error[k] = -(f_bar[k] - model_mean)**2
-                Point_Error[k,i,j] = error[k]
+                error_mag = -(f_bar[k] - model_mean)**2
+                error[k] = error_mag
+                Point_Error[k,i,j] = error_mag
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
             #This is the minimum error value
@@ -535,6 +535,8 @@ def calc_ei_total(dim,p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 EI[i,j] += calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
+                
+#     print(Eval_points)
 #                 print(EI[i,j])
     return EI,Best_Error,Eval_points, Point_Error
 
