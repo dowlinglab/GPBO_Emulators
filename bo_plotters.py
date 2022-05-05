@@ -247,13 +247,13 @@ def basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     plt.colorbar()
 
     #Plots the true optimal value and the GP value
-    plt.scatter(p_true[0],p_true[1], color="red", label = "True Optimal Value", s=50, marker = (5,1))
+    plt.scatter(p_true[0],p_true[1], color="red", label = "True Optimal Value", s=75, marker = (5,1))
     
     
     if plot_train == True:
-        plt.scatter(train_p[:,0],train_p[:,1], color="blue", label = "Training Data", s=25, marker = ".")
+        plt.scatter(train_p[:,0],train_p[:,1], color="blue", label = "Training Data", s=50, marker = ".")
         
-    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP Optimal Value", marker = ".")
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", label = "GP Optimal Value", s=50, marker = ".")
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')
 
