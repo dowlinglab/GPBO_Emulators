@@ -43,6 +43,8 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0):
     assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
     assert len(Theta_True) ==2, "This is a 2 input GP, Theta_True can only contain 2 values."
     
+    #Seed Random Noise (For Bug Testing)
+    np.random.seed(6)
     #Creates noise values with a certain stdev and mean from a normal distribution
     noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
     # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise

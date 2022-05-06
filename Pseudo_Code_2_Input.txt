@@ -82,7 +82,7 @@ Step 6) Find GP Predicted Values of Theta
 ## Find point with lowest Error
 
 #Caclulate argmin of sse: The lowest sse = The optimal point
-argmin = np.array(np.where(sse == np.amin(sse))) (1 x q)
+argmin = np.array(np.where(np.isclose(sse, np.amax(sse),atol=1e-10)==True)) (1 x q)
 
 #Calculate correcsponding theta and x values and set Theta_Opt
 Theta1_Opt = float(theta1_mesh[argmin[0],argmin[1]]) (float)
@@ -104,7 +104,7 @@ BO_iter = # of iterations
 
     ##Find point with best EI
     #Calculate argmax of EI: Highest EI = Best point to sample
-    argmax = np.array(np.where(EI == np.amax(EI))) (1 x q)
+    argmax = np.array(np.where(np.isclose(EI, np.amax(EI),atol=1e-10)==True))
 
     #Calculate correcsponding theta and x values and set p_Best
     Theta1_Best = float(theta1_mesh[argmax[0],argmax[1]]) (float)
