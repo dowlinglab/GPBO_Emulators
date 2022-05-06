@@ -84,7 +84,7 @@ for i in range(len(p1)):
 return Error, EI
 
 Step 6) Find GP Predicted Values of Theta
-## Find point with lowest Error
+## Find point with lowest Error: Lowest error = Optimal value
 
 #Caclulate argmin of Error_Point
 argmin = np.array(np.where(Error == np.amin(Error)))
@@ -100,17 +100,16 @@ Step 7) Complete BO loops
 BO_iter = # of iterations
 #Loop pver BO iterations
     # If training data are numpy arrays, convert to tensors
-    if torch.is_tensor(train_p) != True:
-        train_p = torch.from_numpy(train_p)
+    if torch.is_tensor(train_p) != True: 
+        train_p = torch.from_numpy(train_p) (q x t)
     if torch.is_tensor(train_y) != True:
-        train_sse = torch.from_numpy(train_y)
+        train_sse = torch.from_numpy(train_y) (1 x t)
     
     ## Repeat steps 3-6
     
-    ##Instead, add 5 points, same Theta1 and Theta2, but use all values of Xexp too
     
-    ##Find point with best EI
-    #Calculate argmax of EI
+    ##Find theta value with best EI
+    #Calculate argmax of EI - highest EI = point to sample next
     argmax = np.array(np.where(EI_Point == np.amax(EI_Point))) (1 x q)
 
     #Calculate correcsponding theta and x values and set p_Best
@@ -121,19 +120,22 @@ BO_iter = # of iterations
     
     ##Append best values to training data 
     #Convert training data to numpy arrays to allow concatenation
-    train_p = train_p.numpy()
-    train_y = train_y.numpy()
+    train_p = train_p.numpy() (q x t)
+    train_y = train_y.numpy() (1 x t)
     
     #Set noise and Theta True values (can do at beginning)
-    noise_std = 0.1**2
-    Theta_True = np.array([1,-1]) 
+    noise_std = 0.1**2 (float)
+    Theta_True = np.array([1,-1])
     #Loop over Xexp
     for i in range(n):
-        p_Best = np.array([Theta1_Best,Theta2_Best,Xexp[i]],dtype=object)
-        y_Best = cacl_y_exp(Theta_True, Xexp[i], noise_std, noise_mean=0)
+        ##Calculate y_Best and formal p_Best
+        #Add 5 test points, same Theta1 and Theta2, but use all values of Xexp
+        p_Best = np.array([Theta1_Best,Theta2_Best,Xexp[i]],dtype=object) (q x 1)
+        y_Best = create_y_data(p_Best) (1 x 1)
+        
         #Add Theta_Best to train_p and y_best to train_y
-        train_p = np.concatenate((train_p, p_Best), axis=0)
-        train_y = np.concatenate((train_y, y_Best),axis=0)
+        train_p = np.concatenate((train_p, p_Best), axis=0) (q x t)
+        train_y = np.concatenate((train_y, y_Best),axis=0) (1 x t)
 
 QUESTIONS:
 

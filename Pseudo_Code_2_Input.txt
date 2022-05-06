@@ -74,17 +74,17 @@ for i in range(len(p1)):
     #Caclulate Best Error
     #Note: Negative sign is here because max(f(x)) = -min(-f(x))
     best_error = max(-train_sse)
+    #Calculate expected improvement
     EI[i,j] = calc_ei_basic(best_error, -GP_mean, GP_Var) #GP Mean is negative because max(f(x)) = -min(-f(x))
 
 
 Step 6) Find GP Predicted Values of Theta
 ## Find point with lowest Error
 
-#Caclulate argmin of Error_Point
+#Caclulate argmin of sse: The lowest sse = The optimal point
 argmin = np.array(np.where(sse == np.amin(sse))) (1 x q)
 
 #Calculate correcsponding theta and x values and set Theta_Opt
-##DOES THIS STEP LOOK OK? I'M NOT REALLY SURE IF THIS IS RIGHT
 Theta1_Opt = float(theta1_mesh[argmin[0],argmin[1]]) (float)
 Theta2_Opt = float(theta2_mesh[argmin[0],argmin[1]]) (float)
 Theta_GP_Opt = np.array([Theta1_Opt,Theta2_Opt],dtype=object) (1 x q)
@@ -93,53 +93,49 @@ Theta_GP_Opt = np.array([Theta1_Opt,Theta2_Opt],dtype=object) (1 x q)
 Step 7) Complete BO loops
 
 BO_iter = # of iterations
-#Loop pver BO iterations
+#Loop over BO iterations
     # If training data are numpy arrays, convert to tensors
     if torch.is_tensor(train_T) != True:
-        train_p = torch.from_numpy(train_T)
+        train_p = torch.from_numpy(train_T) (q x t)
     if torch.is_tensor(train_sse) != True:
-        train_sse = torch.from_numpy(train_sse)
+        train_sse = torch.from_numpy(train_sse) (1 x t)
     
     ## Repeat steps 3-6
 
     ##Find point with best EI
-    #Calculate argmax of EI
+    #Calculate argmax of EI: Highest EI = Best point to sample
     argmax = np.array(np.where(EI == np.amax(EI))) (1 x q)
 
     #Calculate correcsponding theta and x values and set p_Best
     Theta1_Best = float(theta1_mesh[argmax[0],argmax[1]]) (float)
     Theta2_Best = float(theta2_mesh[argmax[0],argmax[1]]) (float)
-    Theta_Best = np.array([Theta1_Best,Theta2_Best],dtype=object)
+    Theta_Best = np.array([Theta1_Best,Theta2_Best],dtype=object) (q x 1)
      
     ##Plot graphs
     
     ##Append best values to training data 
     #Convert training data to numpy arrays to allow concatenation to work
-    train_T = train_T.numpy()
-    train_sse = train_sse.numpy()
-    #NEED TO CALCULATE VALUE OF SSE AT Best value. HOW?
-    #Call the expensive function
-    
-    #Outdated, will need to change
-    sse_Best = 0
-    for i in range(len(train_p)):
-        if np.array_equiv(train_T[i], Theta_Best) ==True:
-            sse_Best = train_sse[i]
+    train_T = train_T.numpy() (q x t)
+    train_sse = train_sse.numpy() (1 x t)
+
+    #Call the expensive function and evaluate at Theta_Best
+    sse_Best = create_sse_data(Theta_Best, Xexp, Yexp) (1 x 1)
   
     #Add Theta_Best to train_p and y_best to train_y
-    train_sse = np.concatenate((train_sse, sse_Best),axis=0)
-    train_p = np.concatenate((train_T, Theta_Best), axis=0)
+    train_p = np.concatenate((train_T, Theta_Best), axis=0) (q x t)
+    train_sse = np.concatenate((train_sse, sse_Best),axis=0) (1 x t)
+    
 
             
 QUESTIONS:
-1) What is f(x+)?
+
 
 Answered Questions:
 In the pseudo code you drew on the whiteboard, best error is called as best_error[k] in the EI equation. (Best error is 1xn)
 1) What is f_bar and what is f(x) and are they both (1xn)? (f_bar = Yexp, f(x) approx. GP_mean)
 2) When you add in a sample from the meshgrid do you retrain the GP for each set and apply it? (No)
 3) Should there be a sum in the calculation of best error loop? (No we assume they act independently and summing them together in EI)
-            
+4) What is f(x+) - The Best error which is max(-train_sse)       
             
             
             

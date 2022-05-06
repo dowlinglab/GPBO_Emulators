@@ -65,7 +65,7 @@ def create_sse_data(train_T, x, y_exp):
     """   
     
     #Asserts that test_T is a tensor with 2 columns (May delete this)
-    assert len(train_T.T) ==2 or len(train_T.T)==3, "This is a 2 input GP, train_T can only contain 2 columns of values."
+    assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
 
     #Creates an array for train_sse that will be filled with the for loop
     sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
