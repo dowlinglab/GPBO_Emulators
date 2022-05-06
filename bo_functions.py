@@ -727,13 +727,14 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
         ei = 0
     return ei
 
-def calc_ei_basic_tot(p,theta_mesh, model, likelihood):
+def calc_ei_basic_tot(p,theta_mesh, train_sse, model, likelihood):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
     ----------
         p: integer, the length of Theta vectors
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        train_sse: ndarray (1 x t), Training data for sse
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
     
@@ -744,10 +745,22 @@ def calc_ei_basic_tot(p,theta_mesh, model, likelihood):
         var: ndarray, the variance of the GP model
         stdev: ndarray, the standard deviation of the GP model
     """
+        #Asserts that inputs are correct
+    assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    
     ei = np.zeros((p,p))
     sse = np.zeros((p,p))
     var = np.zeros((p,p))
     stdev = np.zeros((p,p))
+    
+    theta1_mesh = theta_mesh[0]
+    theta2_mesh = theta_mesh[1]
+    
+    assert len(theta1_mesh)==p, "theta_mesh must be dim, pxp arrays"
+    assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
+    
     for i in range(p):
         #Loop over Theta_2
         for j in range(p):
@@ -764,4 +777,4 @@ def calc_ei_basic_tot(p,theta_mesh, model, likelihood):
     #         print(best_error)
             #PDF and CDF both calculated as 0 currently
             ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance)
-return ei, sse, var, stdev
+    return ei, sse, var, stdev
