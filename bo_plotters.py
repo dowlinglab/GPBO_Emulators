@@ -44,6 +44,7 @@ def plot_xy(x, y_exp, y_GP,Theta_True,title):
         plt.show(), A plot of iterations and hyperparameter
     '''
     assert isinstance(title, str)==True, "Title must be a string"
+    assert len(x) == len(y_exp) == len(y_GP), "Xexp, Yexp, and Y_GP must be the same length"
 #     assert len(iters_axis) == len(hyperparam), "Hyperparameter array must have length of # of training iterations"
     x2 = np.linspace(-2,2,100)
     noise_std = 0

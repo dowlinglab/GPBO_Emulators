@@ -68,43 +68,26 @@ def create_sse_data(train_T, x, y_exp):
     
     #Asserts that test_T is a tensor with 2 columns (May delete this)
     assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
+    if len(train_T)!= 2:
+        #Creates an array for train_sse that will be filled with the for loop
+        sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
 
-    #Creates an array for train_sse that will be filled with the for loop
-    sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
+        #Iterates over evey combination of theta to find the SSE for each combination
+        for i in range(len(train_T)):
+            theta_1 = train_T[i,0] #n_train^2x1 
+            theta_2 = train_T[i,1] #n_train^2x1
+            y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
+            sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
+    else:
+         #Creates a value for train_sse that will be filled with the for loop
+        sum_error_sq = 0 #1 x n_train^2
 
-    #Iterates over evey combination of theta to find the SSE for each combination
-    for i in range(len(train_T)):
-        theta_1 = train_T[i,0] #n_train^2x1 
-        theta_2 = train_T[i,1] #n_train^2x1
+        #Iterates over x to find the SSE for each combination
+        theta_1 = train_T[0] #n_train^2x1 
+        theta_2 = train_T[1] #n_train^2x1
         y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-        sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
-    return sum_error_sq
-
-def create_sse_point_data(Theta, x, y_exp):
-    """
-    Creates y_data for the 2 input GP function
+        sum_error_sq = torch.tensor(sum((y_sim - y_exp)**2)) #Scaler 
     
-    Parameters
-    ----------
-        Theta: ndarray, The array containing the training data for Theta1 and Theta2
-        x: ndarray, The list of xs that will be used to generate y
-        y_exp: ndarray, The experimental data for y (the true value)
-        
-    Returns:
-        sum_error_sq: ndarray, The SSE values that the GP will be trained on
-    """   
-    
-    #Asserts that test_T is a tensor with 2 columns (May delete this)
-    assert len(Theta.T) ==2 or len(Theta.T)==3, "This is a 2 input GP, train_T can only contain 2 columns of values."
-
-    #Creates an array for train_sse that will be filled with the for loop
-    sum_error_sq = 0 #1 x n_train^2
-
-    #Iterates over x to find the SSE for each combination
-    theta_1 = Theta[0] #n_train^2x1 
-    theta_2 = Theta[1] #n_train^2x1
-    y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-    sum_error_sq = torch.tensor(sum((y_sim - y_exp)**2)) #Scaler
     return sum_error_sq
 
 def create_y_data(param_space):
@@ -123,72 +106,23 @@ def create_y_data(param_space):
     #Converts parameters to numpy arrays if they are tensors
     if torch.is_tensor(param_space)==True:
         param_space = param_space.numpy()
-
+        
     #Creates an array for train_data that will be filled with the for loop
     y_data = np.zeros(len(param_space)) #1 x n (row x col)
-
-    #Iterates over evey combination of theta to find the expected y value for each combination
-    for i in range(len(param_space)):
-        theta_1 = param_space[i,0] #nx1 
-        theta_2 = param_space[i,1] #nx1
-        x = param_space[i,2] #nx1 
-        y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
-    #Returns all_y
-    return y_data
-
-def create_y_point_data(param_space):
-    """
-    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
-    Parameters
-    ----------
-        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
-    Returns
-    -------
-        y_data: ndarray, The simulated y training data
-    """
-    #Assert statements check that the types defined in the doctring are satisfied
-    assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
     
-    #Converts parameters to numpy arrays if they are tensors
-    if torch.is_tensor(param_space)==True:
-        param_space = param_space.numpy()
-
-    #Creates an array for train_data that will be filled with the for loop
-    y_data = np.zeros(len(param_space)) #1 x n (row x col)
-
-    #Iterates over evey combination of theta to find the expected y value for each combination
-    theta_1 = param_space[0] #nx1 
-    theta_2 = param_space[1] #nx1
-    x = param_space[2] #nx1 
-    y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
-    #Returns all_y
-    return y_data
-
-def create_y_point_data_2(Xexp,Theta):
-    """
-    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
-    Parameters
-    ----------
-        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
-    Returns
-    -------
-        y_data: ndarray, The simulated y training data
-    """
-    #Assert statements check that the types defined in the doctring are satisfied
-#     assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
-    
-    #Converts parameters to numpy arrays if they are tensors
-    if torch.is_tensor(Xexp)==True:
-        Xexp = Xexp.numpy()
-    if torch.is_tensor(Theta)==True:
-        Theta = Theta.numpy()
-
-    #Iterates over evey combination of theta to find the expected y value for each combination
-    theta_1 = Theta[0] #nx1 
-    theta_2 = Theta[1] #nx1
-    x = Xexp
-    y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
-    #Returns all_y
+    if len(param_space)!=3:
+        #Iterates over evey combination of theta to find the expected y value for each combination
+        for i in range(len(param_space)):
+            theta_1 = param_space[i,0] #nx1 
+            theta_2 = param_space[i,1] #nx1
+            x = param_space[i,2] #nx1 
+            y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
+            #Returns all_y
+    else:
+        theta_1 = param_space[0] #nx1 
+        theta_2 = param_space[1] #nx1
+        x = param_space[2] #nx1 
+        y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
     return y_data
 
 def test_train_split(param_space, y_data, sep_fact=0.8):
