@@ -41,7 +41,7 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0):
     #Asserts that test_T is a tensor with 2 columns
     assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
     assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
-    assert len(Theta_True) ==2, "This is a 2 input GP, Theta_True can only contain 2 values."
+    assert len(Theta_True) ==2, "This function only has 2 unknowns, Theta_True can only contain 2 values."
     
     #Seed Random Noise (For Bug Testing)
     np.random.seed(6)
@@ -52,12 +52,13 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0):
   
     return y_exp
 
-def create_sse_data(train_T, x, y_exp):
+def create_sse_data(q,train_T, x, y_exp):
     """
     Creates y_data for the 2 input GP function
     
     Parameters
     ----------
+        q: int, Number of GP inputs
         train_T: ndarray, The array containing the training data for Theta1 and Theta2
         x: ndarray, The list of xs that will be used to generate y
         y_exp: ndarray, The experimental data for y (the true value)
@@ -67,8 +68,11 @@ def create_sse_data(train_T, x, y_exp):
     """   
     
     #Asserts that test_T is a tensor with 2 columns (May delete this)
-    assert len(train_T.T) ==2, "This is a 2 input GP, train_T can only contain 2 columns of values."
-    if len(train_T)!= 2:
+    assert isinstance(q, int), "Number of inputs must be an integer"
+#     print(train_T.T)
+    assert len(train_T.T) ==q, str("This is a "+str(q)+" input GP, train_T can only contain 2 columns of values.")
+    assert len(x) == len(y_exp), "Xexp and Yexp must be the same length"
+    if len(train_T)!= q:
         #Creates an array for train_sse that will be filled with the for loop
         sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
 
@@ -90,18 +94,21 @@ def create_sse_data(train_T, x, y_exp):
     
     return sum_error_sq
 
-def create_y_data(param_space):
+def create_y_data(q, param_space):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
     ----------
+        q: int, Number of GP inputs needed for direct calculation of y
         param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
     Returns
     -------
         y_data: ndarray, The simulated y training data
     """
     #Assert statements check that the types defined in the doctring are satisfied
-    assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
+    assert isinstance(q, int), "Number of inputs must be an integer"
+#     print(param_space.T)
+    assert len(param_space.T) ==q, str("This is a "+str(q)+" input GP, train_T can only contain 2 columns of values.")
     
     #Converts parameters to numpy arrays if they are tensors
     if torch.is_tensor(param_space)==True:
@@ -110,7 +117,7 @@ def create_y_data(param_space):
     #Creates an array for train_data that will be filled with the for loop
     y_data = np.zeros(len(param_space)) #1 x n (row x col)
     
-    if len(param_space)!=3:
+    if len(param_space)!=q:
         #Iterates over evey combination of theta to find the expected y value for each combination
         for i in range(len(param_space)):
             theta_1 = param_space[i,0] #nx1 
