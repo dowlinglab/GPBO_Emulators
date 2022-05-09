@@ -136,7 +136,35 @@ def create_y_data(param_space):
     #Returns all_y
     return y_data
 
-def create_y_point_data(Xexp,Theta):
+def create_y_point_data(param_space):
+    """
+    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
+    Parameters
+    ----------
+        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
+    Returns
+    -------
+        y_data: ndarray, The simulated y training data
+    """
+    #Assert statements check that the types defined in the doctring are satisfied
+    assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
+    
+    #Converts parameters to numpy arrays if they are tensors
+    if torch.is_tensor(param_space)==True:
+        param_space = param_space.numpy()
+
+    #Creates an array for train_data that will be filled with the for loop
+    y_data = np.zeros(len(param_space)) #1 x n (row x col)
+
+    #Iterates over evey combination of theta to find the expected y value for each combination
+    theta_1 = param_space[0] #nx1 
+    theta_2 = param_space[1] #nx1
+    x = param_space[2] #nx1 
+    y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
+    #Returns all_y
+    return y_data
+
+def create_y_point_data_2(Xexp,Theta):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
