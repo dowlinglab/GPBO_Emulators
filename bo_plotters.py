@@ -65,6 +65,7 @@ def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     Plots heat maps for 2 input GP
     Parameters
     ----------
+        n: int, number of training points
         test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
         z: ndarray or tensor, An NxN Array containing all points that will be plotted
         p_true: ndarray, A 2x1 containing the true input parameters
@@ -80,6 +81,7 @@ def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     xx , yy = test_mesh #NxN, NxN
     
     #Assert that test_mesh and z are NxN, that p_true and p_GP_opt are 2x1, and the title is a string
+#     assert isinstance(n, int)==True, "Number of experimental data points must be an integer."
     assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
 #     assert z.shape==xx.shape, "Array z must be NxN"
@@ -109,7 +111,7 @@ def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     #Creates axis labels and title
     plt.xlabel('$\\theta_1$',weight='bold')
     plt.ylabel('$\\theta_2$',weight='bold')
-    plt.title("Heat Map of "+title, weight='bold',fontsize = 16)
+    plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold',fontsize = 16)
 
     #Shows plot
     return plt.show()
