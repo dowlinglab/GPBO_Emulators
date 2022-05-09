@@ -78,7 +78,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     #Defines the x and y coordinates that will be used to generate the heat map, this step isn't
     #necessary, but streamlines the process
     xx , yy = test_mesh #NxN, NxN
-    
+#     print(p_true,p_GP_opt)
     #Assert that test_mesh and z are NxN, that p_true and p_GP_opt are 2x1, and the title is a string
     assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
@@ -111,40 +111,8 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     #Shows plot
     return plt.show()
 
-def y_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True):
-    """
-    Plots the y values of the GP
-    Parameters
-    ----------
-        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of values the GP predicted function values
-        title: str, The title for the graph
-        yval: True or False, will determine whether true values will be plotted with y model values
-    
-    Returns
-    -------
-        A 3D Heat map of the values of z predicted by the GP
-    """
-    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
-
-def stdev_plotter_adv(parameter_space, z, p_true, p_GP_opt, train_p,plot_train=True):
-    """
-    Plots the standard deviation alues of the GP
-    Parameters
-    ----------
-        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of the GP predicted standard deviation values
-    
-    Returns
-    -------
-        A 3D Heat map of the values of standard deviation predicted by the GP
-    """
-    title = "Standard Deviation"
-    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
-
-
-def ei_plotter_adv(parameter_space, z, p_true, train_p, p_GP_opt = None, plot_train=True):
+def ei_plotter(parameter_space, z, p_true, p_GP_opt,train_p,plot_train=True):
     """
     Plots the expected improvement of the GP
     Parameters
@@ -157,7 +125,22 @@ def ei_plotter_adv(parameter_space, z, p_true, train_p, p_GP_opt = None, plot_tr
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
     title = "Expected Improvement"
-    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
+    return value_plotter(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train)
+
+def ei_plotter_basic(parameter_space, z, p_true, train_p, p_GP_opt, plot_train=True):
+    """
+    Plots the expected improvement of the GP
+    Parameters
+    ----------
+        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        z:  ndarray, nx1 array of the GP expected improvement values
+    
+    Returns
+    -------
+        A 3D Heat map of the values of expected improvement predicted by the GP
+    """
+    title = "Expected Improvement"
+    return basic_plotter(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
 def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None,plot_train=True):
     """
@@ -172,7 +155,7 @@ def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
     title = "Expected Improvement: Xexp = " + str(Xexp)
-    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
+    return value_plotter(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
 def error_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     """
@@ -192,7 +175,7 @@ def error_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_tr
         z = np.asarray(z)
         
     error = z
-    return plotter_adv(parameter_space, error, p_true, p_GP_opt,title,train_p,plot_train=True)
+    return value_plotter(parameter_space, error, p_true, p_GP_opt,title,train_p,plot_train=True)
                         
 def basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     '''
@@ -265,25 +248,8 @@ def y_plotter_basic(test_mesh, z, p_true, p_GP_opt,train_p,title="y",plot_train=
     -------
         plt.show(), A heat map of test_mesh and z (y values)
     '''
-    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train)
+    return value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train)
 
-def ei_plotter_basic(test_mesh, z, p_true, p_GP_opt,train_p,plot_train=True):
-    """
-    Helper function for basic_plotter. Calls basic_plotter specifically for plotting expected improvement values.
-
-    Parameters
-    ----------
-        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
-        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
-        p_true: ndarray, A 2x1 containing the true input parameters
-        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
-     
-    Returns
-    -------
-        plt.show(), A heat map of test_mesh and z (expected improvement values)
-    """
-    title = "Expected Improvement"
-    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train)
 
 def stdev_plotter_basic(test_mesh, z, p_true, p_GP_opt,train_p,plot_train=True):
     '''
@@ -301,4 +267,4 @@ def stdev_plotter_basic(test_mesh, z, p_true, p_GP_opt,train_p,plot_train=True):
         plt.show(), A heat map of test_mesh and z (standard deviation values)
     '''
     title = "Standard Deviation"
-    return basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train)
+    return value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train)
