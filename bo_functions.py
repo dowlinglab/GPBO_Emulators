@@ -136,6 +136,33 @@ def create_y_data(param_space):
     #Returns all_y
     return y_data
 
+def create_y_point_data(Xexp,Theta):
+    """
+    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
+    Parameters
+    ----------
+        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
+    Returns
+    -------
+        y_data: ndarray, The simulated y training data
+    """
+    #Assert statements check that the types defined in the doctring are satisfied
+#     assert len(param_space.T) ==3, "Only 3 input parameter space can be taken, param_space must be an nx3 array"
+    
+    #Converts parameters to numpy arrays if they are tensors
+    if torch.is_tensor(Xexp)==True:
+        Xexp = Xexp.numpy()
+    if torch.is_tensor(Theta)==True:
+        Theta = Theta.numpy()
+
+    #Iterates over evey combination of theta to find the expected y value for each combination
+    theta_1 = Theta[0] #nx1 
+    theta_2 = Theta[1] #nx1
+    x = Xexp
+    y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
+    #Returns all_y
+    return y_data
+
 def test_train_split(param_space, y_data, sep_fact=0.8):
     """
     Splits y data into training and testing data
@@ -477,6 +504,7 @@ def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     Returns
     -------
         EI: ndarray, the expected improvement of the GP model
+        Error_tot: ndarray, Errors associated with each value of Theta
     """
     #Asserts that inputs are correct
     assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"

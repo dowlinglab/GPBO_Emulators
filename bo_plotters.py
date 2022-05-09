@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
+from bo_functions import calc_y_exp
 
 def plot_hyperparams(iterations, hyperparam, title):
     '''
@@ -28,6 +29,37 @@ def plot_hyperparams(iterations, hyperparam, title):
     plt.ylabel('Hyperparameter Value',weight='bold')
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
+
+def plot_xy(x, y_exp, y_GP,Theta_True,title):
+    '''
+    Plots Hyperparameters
+    Parameters
+    ----------
+        x_exp: ndarray, array of X_exp values
+        y_exp: ndarray, array of Y_exp values
+        y_GP: ndarray, array of y_GP values given based on GP Theta_Best
+     
+    Returns
+    -------
+        plt.show(), A plot of iterations and hyperparameter
+    '''
+    assert isinstance(title, str)==True, "Title must be a string"
+#     assert len(iters_axis) == len(hyperparam), "Hyperparameter array must have length of # of training iterations"
+    x2 = np.linspace(-2,2,100)
+    noise_std = 0
+    y_true = calc_y_exp(Theta_True, x2, noise_std, noise_mean=0)
+    
+    plt.figure()
+    plt.scatter(x, y_exp, label = "y_true", color = "orange")
+    plt.plot(x, y_GP, label = "y_GP")
+    plt.plot(x2, y_true, color = "orange")
+    plt.grid(True)
+    plt.legend(loc = "best")
+    plt.xlabel('X Value',weight='bold')
+    plt.ylabel('Y Value',weight='bold')
+    plt.title("Plot of "+title, weight='bold',fontsize = 16)
+    return plt.show()
+
 def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     '''
     Plots heat maps for 2 input GP
