@@ -81,13 +81,16 @@ for i in range(len(p1)):
         for k in range(n):
             #Caclulate EI for each value n given the best error
             EI[i,j] += calc_ei(best_error, GP_mean, GP_Var, Y_exp[k])
+            
+Error = -Error #Will allow amin fxn to work properly
+
 return Error, EI
 
 Step 6) Find GP Predicted Values of Theta
 ## Find point with lowest Error: Lowest error = Optimal value
 
 #Caclulate argmin of Error_Point
-argmin = np.array(np.where(np.isclose(Error, np.amax(Error),atol=1e-10)==True))
+argmin = np.array(np.where(np.isclose(Error, np.amin(Error),atol=1e-10)==True))
 
 #Calculate correcsponding theta and x values and set p_Opt
 Theta1_Opt = float(theta1_mesh[argmin[0],argmin[1]])
@@ -110,11 +113,11 @@ BO_iter = # of iterations
     
     ##Find theta value with best EI
     #Calculate argmax of EI - highest EI = point to sample next
-    argmax = np.array(np.where(np.isclose(EI_Point, np.amax(EI_Point),atol=1e-10)==True)) (1 x q)
+    argmax = np.array(np.where(np.isclose(EI, np.amax(EI),atol=1e-10)==True)) (1 x q)
 
     #Calculate correcsponding theta and x values and set p_Best
-    Theta1_Best = float(theta1_mesh[argmax[1],argmax[2]]) (float)
-    Theta2_Best = float(theta2_mesh[argmax[1],argmax[2]]) (float)
+    Theta1_Best = float(theta1_mesh[argmax[0],argmax[1]]) (float)
+    Theta2_Best = float(theta2_mesh[argmax[0],argmax[1]]) (float)
     
     ##Plot graphs
     
