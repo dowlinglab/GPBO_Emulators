@@ -138,7 +138,7 @@ def test_train_split(param_space, y_data, sep_fact=0.8):
     
     Parameters
     ----------
-        param_space: (nx3) ndarray or tensor, The parameter space over which the GP will be run
+        param_space: ndarray or tensor, The parameter space over which the GP will be run
         y_data: ndarray or tensor, The simulated y data
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
     Returns:
@@ -343,7 +343,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     ----------
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        test_param: tensor or ndarray, The testing parameter space data
+        test_param: tensor or ndarray (1x1), The testing parameter space data
     
     Returns
     -------
@@ -527,7 +527,7 @@ def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 EI[i,j] += calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
-    #Makes Error values all positive            
+    #Makes Error values all positive, allows amin to work correctly            
     Error_tot = -Error_tot
 #     print(Eval_points)
 #                 print(EI[i,j])
@@ -699,8 +699,10 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     Calling this model will return the posterior of the latent Gaussian process when conditioned
     on the training data. The output will be a :obj:`~gpytorch.distributions.MultivariateNormal`.
     """
-#     assert len(pred_mean) == len(pred_var), "GP predicted means and variances must be the same length"
-#     assert torch.is_tensor(pred_mean)==True and torch.is_tensor(pred_var)==True, "GP predicted means and variances must be tensors"
+        #Checks for equal lengths
+    assert isinstance(f_best, (np.float64,int))==True or torch.is_tensor(f_best)==True, "f_best must be a float or int"
+    assert isinstance(pred_mean, (np.float64,int))==True, "pred_mean and pred_var must be the same length"
+    assert isinstance(pred_var, (np.float64,int))==True, "pred_mean and pred_var must be the same length"
     
     #Converts tensors to np arrays and defines standard deviation
     if torch.is_tensor(pred_mean)==True:
@@ -748,6 +750,7 @@ def calc_ei_basic_tot(p,theta_mesh, train_sse, model, likelihood):
         #Asserts that inputs are correct
     assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     
     ei = np.zeros((p,p))

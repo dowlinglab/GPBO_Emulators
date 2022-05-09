@@ -86,6 +86,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     assert z.shape==xx.shape, "Array z must be NxN"
     assert len(p_true) ==len(p_GP_opt)==2, "p_true and p_GP_opt must be 2x1 for a 2 input GP"
     assert isinstance(title, str)==True, "Title must be a string"
+    assert len(train_p.T) >= 2, "Train_p must have at least 2 columns"
     
     plt.contourf(xx, yy,z)
     plt.colorbar()
