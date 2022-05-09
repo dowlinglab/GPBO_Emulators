@@ -60,12 +60,11 @@ def plot_xy(x, y_exp, y_GP,Theta_True,title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
+def value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     '''
     Plots heat maps for 2 input GP
     Parameters
     ----------
-        n: int, number of training points
         test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
         z: ndarray or tensor, An NxN Array containing all points that will be plotted
         p_true: ndarray, A 2x1 containing the true input parameters
@@ -81,15 +80,11 @@ def plotter_adv(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     xx , yy = test_mesh #NxN, NxN
     
     #Assert that test_mesh and z are NxN, that p_true and p_GP_opt are 2x1, and the title is a string
-#     assert isinstance(n, int)==True, "Number of experimental data points must be an integer."
     assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
-#     assert z.shape==xx.shape, "Array z must be NxN"
+    assert z.shape==xx.shape, "Array z must be NxN"
     assert len(p_true) ==len(p_GP_opt)==2, "p_true and p_GP_opt must be 2x1 for a 2 input GP"
     assert isinstance(title, str)==True, "Title must be a string"
-    
-    #Plots Theta1 vs Theta 2 with sse on the z axis and plots the color bar
-    #Plot z.T because test_mesh.T was used to calculate z
     
     plt.contourf(xx, yy,z)
     plt.colorbar()
@@ -148,20 +143,6 @@ def stdev_plotter_adv(parameter_space, z, p_true, p_GP_opt, train_p,plot_train=T
     title = "Standard Deviation"
     return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
-def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None,plot_train=True):
-    """
-    Plots the expected improvement of the GP
-    Parameters
-    ----------
-        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of the GP expected improvement values
-    
-    Returns
-    -------
-        A 3D Heat map of the values of expected improvement predicted by the GP
-    """
-    title = "Expected Improvement: Xexp = " + str(Xexp)
-    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
 def ei_plotter_adv(parameter_space, z, p_true, train_p, p_GP_opt = None, plot_train=True):
     """
@@ -178,6 +159,20 @@ def ei_plotter_adv(parameter_space, z, p_true, train_p, p_GP_opt = None, plot_tr
     title = "Expected Improvement"
     return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
+def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None,plot_train=True):
+    """
+    Plots the expected improvement of the GP
+    Parameters
+    ----------
+        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        z:  ndarray, nx1 array of the GP expected improvement values
+    
+    Returns
+    -------
+        A 3D Heat map of the values of expected improvement predicted by the GP
+    """
+    title = "Expected Improvement: Xexp = " + str(Xexp)
+    return plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
 def error_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     """
@@ -195,11 +190,9 @@ def error_plotter_adv(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_tr
     
     if isinstance(z,ndarray)!=True:
         z = np.asarray(z)
-    if isinstance(z2,ndarray)!=True:
-        z2 = np.asarray(z2)
         
-    error = (z2 - z)**2
-    return plotter_adv(parameter_space, error,title)
+    error = z
+    return plotter_adv(parameter_space, error, p_true, p_GP_opt,title,train_p,plot_train=True)
                         
 def basic_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     '''
