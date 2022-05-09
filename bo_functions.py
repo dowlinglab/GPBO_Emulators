@@ -586,7 +586,8 @@ def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 EI[i,j] += calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
-                
+    #Makes Error values all positive            
+    Error_tot = -Error_tot
 #     print(Eval_points)
 #                 print(EI[i,j])
     return EI,Error_tot
