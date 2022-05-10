@@ -457,7 +457,7 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
           
     return ei
 
-def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
+def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -492,6 +492,9 @@ def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
     Error_tot = np.zeros((p,p))
+    y_GP = np.zeros((p,p,n))
+    stdev_GP = np.zeros((p,p,n))
+    error_GP = np.zeros((p,p,n))
     # Loop over theta 1
     for i in range(p):
         #Loop over theta2
@@ -508,9 +511,13 @@ def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
+                y_GP[i,j,k] = model_mean
+                stdev_GP[i,j,k] = np.sqrt(model_variance)
+                
                 #Compute error for that point
                 error_mag = -(Yexp[k] - model_mean)**2
                 error[k] = error_mag
+                error_GP[i,j,k] = error_mag
                 Error_tot[i,j] += error_mag
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
@@ -531,7 +538,7 @@ def calc_ei_and_error(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     Error_tot = -Error_tot
 #     print(Eval_points)
 #                 print(EI[i,j])
-    return EI,Error_tot
+    return EI,Error_tot, y_GP,stdev_GP,error_GP
 
 def calc_ei_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
@@ -729,7 +736,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
         ei = 0
     return ei
 
-def calc_ei_basic_tot(p,theta_mesh, train_sse, model, likelihood):
+def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
