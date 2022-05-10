@@ -358,3 +358,160 @@ def stdev_plotter_4D(parameter_space, z):
     '''
     title = "Standard Deviation"
     return plotter_4D(parameter_space, z,title)
+
+# def plotter_4D_2(parameter_space,z, plot_title="Model Output"):
+#     """
+#     Plots the values of the GP given by the user
+#     Parameters
+#     ----------
+#         parameter_space: tensor or ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+#         z:  tensor or ndarray, nx1 array of values
+#         plot_title: str, The title for the graph
+    
+#     Returns
+#     -------
+#         A 4D Heat map of the values of z predicted by the GP
+#     """
+#     #Converts tensors and tuples to ndarrays
+#     if torch.is_tensor(parameter_space)==True:
+#         parameter_space= parameter_space.numpy()
+        
+# #     if isinstance(z,ndarray)!=True:
+# #         z = np.asarray(z)
+   
+#     #Asserts that the parameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
+#     assert isinstance(plot_title,str) == True, "Plot title must be a string."
+
+#     #https://stackoverflow.com/questions/17756925/how-to-plot-heatmap-colors-in-3d-in-matplotlib
+    
+#     # Define dimensions
+#     X, Y, Z = parameter_space
+
+#     # Create data
+# #     point_num = point_num
+# #     data = z.reshape(point_num,point_num,point_num).T
+#     data = z
+#     kw = {
+#         'vmin': data.min(),
+#         'vmax': data.max(),
+#         'levels': np.linspace(data.min(), data.max()),
+#     }
+
+#     fig = plt.figure(figsize=(5, 4))
+#     ax = fig.add_subplot(111, projection='3d')
+
+#     # Plot contour surfaces
+#     for i in range(int(len(Z))):
+#         ranges = int(len(Z)/2)
+#         _ = ax.contourf(
+#             X[:, :, i], Y[:, :, i], data[:, :, i],
+#             zdir='z', offset=Z[0,0,i], **kw, cmap = "viridis"
+#         ) 
+
+#     _ = ax.contourf(
+#         X[0, :, :], data[0, :, :], Z[0, :, :],
+#         zdir='y', offset=Y[0,0,0], **kw, cmap = "viridis"
+#     )
+#     C = ax.contourf(
+#         data[:, 0, :], Y[:, 0, :], Z[:, 0, :],
+#         zdir='x', offset=X[0,0,0], **kw, cmap = "viridis"
+#     )
+
+#     #     C = ax.contourf(
+#     #         data[:, -1, :], Y[:, -1, :], Z[:, i, :],
+#     #         zdir='x', offset=X[0,-1,0], **kw,cmap = "viridis"
+#     #     )
+
+
+#     # Set limits of the plot from coord limits
+#     xmin, xmax = X.min(), X.max()
+#     ymin, ymax = Y.min(), Y.max()
+#     zmin, zmax = Z.min(), Z.max()
+#     ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
+
+#     # Plot edges
+#     edges_kw = dict(color='0.4', linewidth=1, zorder=1e3)
+#     ax.plot([xmax, xmax], [ymin, ymax], [zmax, zmax], **edges_kw)
+#     ax.plot([xmin, xmax], [ymax, ymax], [zmax, zmax], **edges_kw)
+#     ax.plot([xmax, xmax], [ymin, ymin], [zmin, zmax], **edges_kw)
+#     ax.plot([xmax, xmax], [ymax, ymax], [zmin, zmax], **edges_kw)
+#     ax.plot([xmin, xmax], [ymin, ymin], [zmax, zmax], **edges_kw)
+
+#     # Set labels and zticks
+#     ax.set(
+#         xlabel='$\Theta_1$',
+#         ylabel='$\Theta_2$',
+#         zlabel='x coord',
+#     )
+
+#     # Set distance and angle view
+#     ax.view_init(40, 30)
+#     ax.dist = 11
+
+#     # Colorbar
+#     fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label=":)")
+
+#     # Show Figure
+#     plt.show()
+
+#     # Plot contour surfaces
+#     shrink = len(Z)/2
+#     for i in range(3):
+#         # Create a figure with 3D ax
+#         fig = plt.figure(figsize=(5, 4))
+#         ax = fig.add_subplot(111, projection='3d')
+#         for i in range(int(len(Z)/2)):
+#             up_lim = len(Z) - int(len(Z)/shrink)
+#             low_lim = int(len(Z)/shrink)
+#     #         print(low_lim,up_lim)
+#             _ = ax.contourf(
+#                 X[low_lim:up_lim, low_lim:up_lim, i], 
+#                 Y[low_lim:up_lim, low_lim:up_lim, i], 
+#                 data[low_lim:up_lim, low_lim:up_lim, i],
+#                 zdir='z',offset=Z[-1,-1,i+low_lim],  **kw, cmap = "viridis"
+#             ) 
+
+#         # Set limits of the plot from coord limits
+#         xmin, xmax = test_p1.min(), test_p1.max()
+#         ymin, ymax = test_p2.min(), test_p2.max()
+#         zmin, zmax = test_p3.min(), test_p3.max()
+#         ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
+
+#         # Plot edges
+#         edges_kw = dict(color='0.4', linewidth=1, zorder=1e3)
+
+#         # Set labels and zticks
+#         ax.set(
+#             xlabel='$\Theta_1$',
+#             ylabel='$\Theta_2$',
+#             zlabel='x coord',
+#         )
+
+#         # Set distance and angle view
+#         ax.view_init(40, 30)
+#         ax.dist = 11
+
+#         # Colorbar
+#         fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label=":)")
+
+#         # Show Figure
+#         plt.show()
+#         shrink = shrink/1.75
+#     return
+
+# def y_plotter_4D_2(parameter_space, z,title="y"):
+#     '''
+#     Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
+
+#     Parameters
+#     ----------
+#         parameter_space: ndarray, n NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+#         z: ndarray, An NxN Array containing all points that will be plotted. Y-values
+#         title: str, A string containing the title of the plot
+     
+#     Returns
+#     -------
+#         plt.show(), A heat map of test_mesh and z (y values)
+#     '''
+#     title = "Model Y Values"
+#     return plotter_4D_2(parameter_space, z,title)
