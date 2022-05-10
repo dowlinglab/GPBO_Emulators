@@ -337,7 +337,7 @@ def y_plotter_4D(parameter_space, z,title="y"):
     -------
         plt.show(), A heat map of test_mesh and z (y values)
     '''
-    title = "Model y Value"
+    title = "Model Y Values"
     return plotter_4D(parameter_space, z,title)
 
 
