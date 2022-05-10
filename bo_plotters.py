@@ -200,7 +200,7 @@ def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None
     title = "Expected Improvement: Xexp = " + str(Xexp)
     return value_plotter(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
 
-def plotter_adv_4D(parameter_space,z, plot_title="Model Output",yval = False):
+def plotter_4D(parameter_space,z, plot_title="Model Output"):
     """
     Plots the values of the GP given by the user
     Parameters
@@ -232,8 +232,6 @@ def plotter_adv_4D(parameter_space,z, plot_title="Model Output",yval = False):
 #     point_num = point_num
 #     data = z.reshape(point_num,point_num,point_num).T
     data = z
-    print(data)
-    print(shape(data))
     kw = {
         'vmin': data.min(),
         'vmax': data.max(),
@@ -300,8 +298,63 @@ def plotter_adv_4D(parameter_space,z, plot_title="Model Output",yval = False):
     fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label=plot_title)
 
     # Show Figure
-    plt.savefig(plot_title+'_4D'+'.png')
+#     plt.savefig(plot_title+'_4D'+'.png')
     plt.show()
     
     return 
 
+def error_plotter_4D(parameter_space, z):
+    """
+    Plots the error^2 of the GP
+    Parameters
+    ----------
+        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        z:  ndarray, nx1 array of the GP expected improvement values
+    
+    Returns
+    -------
+        A 3D Heat map of the values of expected improvement predicted by the GP
+    """
+    title = "Error Magnitude"
+    
+    if isinstance(z,ndarray)!=True:
+        z = np.asarray(z)
+        
+    error = z
+    return plotter_4D(parameter_space,z, title)
+
+def y_plotter_4D(parameter_space, z,title="y"):
+    '''
+    Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
+
+    Parameters
+    ----------
+        parameter_space: ndarray, n NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
+        title: str, A string containing the title of the plot
+     
+    Returns
+    -------
+        plt.show(), A heat map of test_mesh and z (y values)
+    '''
+    title = "Model y Value"
+    return plotter_4D(parameter_space, z,title)
+
+
+def stdev_plotter_4D(parameter_space, z):
+    '''
+    Helper function for basic_plotter. Calls basic_plotter specifically for plotting standard deviation values.
+
+    Parameters
+    ----------
+        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
+        p_true: ndarray, A 2x1 containing the true input parameters
+        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+     
+    Returns
+    -------
+        plt.show(), A heat map of test_mesh and z (standard deviation values)
+    '''
+    title = "Standard Deviation"
+    return plotter_4D(parameter_space, z,title)

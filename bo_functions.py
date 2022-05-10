@@ -517,7 +517,7 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 #Compute error for that point
                 error_mag = -(Yexp[k] - model_mean)**2
                 error[k] = error_mag
-                error_GP[i,j,k] = error_mag
+                error_GP[i,j,k] = -error_mag
                 Error_tot[i,j] += error_mag
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
@@ -538,7 +538,7 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     Error_tot = -Error_tot
 #     print(Eval_points)
 #                 print(EI[i,j])
-    return EI,Error_tot, y_GP,stdev_GP,error_GP
+    return EI,Error_tot, y_GP, stdev_GP, error_GP
 
 def calc_ei_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
