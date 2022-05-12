@@ -61,7 +61,7 @@ def plot_xy(x, y_exp, y_GP,Theta_True,title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -70,6 +70,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
         z: ndarray or tensor, An NxN Array containing all points that will be plotted
         p_true: ndarray, A 2x1 containing the true input parameters
         p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+        p_GP_Best: ndarray, A 2x1 containing the input parameters predicted by the GP to have the best EI
         title: str, A string containing the title of the plot
      
     Returns
@@ -84,7 +85,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
     assert z.shape==xx.shape, "Array z must be NxN"
-    assert len(p_true) ==len(p_GP_opt)==2, "p_true and p_GP_opt must be 2x1 for a 2 input GP"
+    assert len(p_true) ==len(p_GP_opt)==len(p_GP_best)==2, "p_true, p_GP_opt, and p_GP_best must be 2x1 for a 2 input GP"
     assert isinstance(title, str)==True, "Title must be a string"
     assert len(train_p.T) >= 2, "Train_p must have at least 2 columns"
     
@@ -92,12 +93,16 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     plt.colorbar()
 #     print(p_GP_opt[0],p_GP_opt[1])
     #Plots the true optimal value and the GP value
-    plt.scatter(p_true[0],p_true[1], color="red", label = "True Optimal Value", s=50, marker = (5,1))
+    plt.scatter(p_true[0],p_true[1], color="red", label = "True Optimal Value", s=100, marker = (5,1))
     
     if plot_train == True:
         plt.scatter(train_p[:,0],train_p[:,1], color="blue", label = "Training Data", s=25, marker = ".")
         
-    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="orange", s=50, label = "GP Optimal Value", marker = ".")
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="red", s=80, label = "GP min(SSE) Value", marker = ".")
+    #Plots axes such that they are scaled the same way (eg. circles look like circles)
+    plt.axis('scaled')
+    
+    plt.scatter(p_GP_best[0],p_GP_best[1], color="pink", s=50, label = "GP Best EI Value", marker = ".")
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')
 
@@ -113,12 +118,12 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train=True):
     #Shows plot
     return plt.show()
 
-def ei_plotter(parameter_space, z, p_true, p_GP_opt,train_p,plot_train=True):
+def ei_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True):
     """
     Plots the expected improvement of the GP
     Parameters
     ----------
-        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        test_mesh: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
         z:  ndarray, nx1 array of the GP expected improvement values
     
     Returns
@@ -126,9 +131,9 @@ def ei_plotter(parameter_space, z, p_true, p_GP_opt,train_p,plot_train=True):
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
     title = "Expected Improvement"
-    return value_plotter(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train)
+    return value_plotter(test_mesh, z, p_true, p_GP_opt,p_GP_best,title,train_p,plot_train)
 
-def y_plotter(test_mesh, z, p_true, p_GP_opt,train_p,title="y",plot_train=True):
+def y_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,title = "y",plot_train=True):
     '''
     Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
 
@@ -144,10 +149,10 @@ def y_plotter(test_mesh, z, p_true, p_GP_opt,train_p,title="y",plot_train=True):
     -------
         plt.show(), A heat map of test_mesh and z (y values)
     '''
-    return value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train)
+    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True)
 
 
-def stdev_plotter(test_mesh, z, p_true, p_GP_opt,train_p,plot_train=True):
+def stdev_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,plot_train=True):
     '''
     Helper function for basic_plotter. Calls basic_plotter specifically for plotting standard deviation values.
 
@@ -163,14 +168,14 @@ def stdev_plotter(test_mesh, z, p_true, p_GP_opt,train_p,plot_train=True):
         plt.show(), A heat map of test_mesh and z (standard deviation values)
     '''
     title = "Standard Deviation"
-    return value_plotter(test_mesh, z, p_true, p_GP_opt,title,train_p,plot_train)
+    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True)
 
-def error_plotter(parameter_space, z, p_true, p_GP_opt,train_p,plot_train=True):
+def error_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True):
     """
     Plots the error^2 of the GP
     Parameters
     ----------
-        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
+        test_mesh: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
         z:  ndarray, nx1 array of the GP expected improvement values
     
     Returns
@@ -183,9 +188,9 @@ def error_plotter(parameter_space, z, p_true, p_GP_opt,train_p,plot_train=True):
         z = np.asarray(z)
         
     error = z
-    return value_plotter(parameter_space, error, p_true, p_GP_opt,title,train_p,plot_train=True)
+    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True)
  
-def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None,plot_train=True):
+def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None,p_GP_best= None,plot_train=True):
     """
     Plots the expected improvement of the GP
     Parameters
@@ -198,7 +203,7 @@ def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
     title = "Expected Improvement: Xexp = " + str(Xexp)
-    return value_plotter(parameter_space, z, p_true, p_GP_opt,title,train_p,plot_train=True)
+    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True)
 
 def plotter_4D(parameter_space,z, plot_title="Model Output"):
     """
