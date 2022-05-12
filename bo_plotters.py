@@ -170,7 +170,7 @@ def stdev_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,plot_train=
     title = "Standard Deviation"
     return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True)
 
-def error_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True):
+def sse_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True):
     """
     Plots the error^2 of the GP
     Parameters
@@ -182,7 +182,7 @@ def error_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
     -------
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
-    title = "Error Magnitude"
+    title = "SSE Magnitude"
     
     if isinstance(z,ndarray)!=True:
         z = np.asarray(z)

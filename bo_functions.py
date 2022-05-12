@@ -491,7 +491,8 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
-    Error_tot = np.zeros((p,p))
+    SSE = np.zeros((p,p))
+    SSE_var_GP = np.zeros((p,p))
     y_GP = np.zeros((p,p,n))
     stdev_GP = np.zeros((p,p,n))
     error_GP = np.zeros((p,p,n))
@@ -501,7 +502,7 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
         for j in range(p):
             ## Caclulate Best Error
             #Create array to store error values
-            error = np.zeros(n)
+            sse = np.zeros(n)
             #Loop over Xexp
             for k in range(n):
                 #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
@@ -515,14 +516,16 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 stdev_GP[i,j,k] = np.sqrt(model_variance)
                 
                 #Compute error for that point
-                error_mag = -(Yexp[k] - model_mean)**2
-                error[k] = error_mag
-                error_GP[i,j,k] = -error_mag
-                Error_tot[i,j] += error_mag
+                error_point = (Yexp[k] - model_mean)
+                SSE_var_GP[i,j] += 2*error_point*model_variance
+                sse_mag = -(error_point)**2
+                sse[k] = sse_mag
+                error_GP[i,j,k] = -error_point
+                SSE[i,j] += sse_mag
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
             #This is the minimum error value
-            best_error = -max(error)
+            best_error = -max(sse)
 
             #Loop over Xexp
             ##Calculate EI
@@ -534,11 +537,12 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 EI[i,j] += calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
+
     #Makes Error values all positive, allows amin to work correctly            
-    Error_tot = -Error_tot
+    SSE = -SSE
 #     print(Eval_points)
 #                 print(EI[i,j])
-    return EI,Error_tot, y_GP, stdev_GP, error_GP
+    return EI,SSE, y_GP, stdev_GP, error_GP, SSE_var_GP
 
 def calc_ei_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
