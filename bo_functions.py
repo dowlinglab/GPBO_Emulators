@@ -495,7 +495,7 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     SSE_var_GP = np.zeros((p,p))
     y_GP = np.zeros((p,p,n))
     stdev_GP = np.zeros((p,p,n))
-    error_GP = np.zeros((p,p,n))
+    error_sq_GP = np.zeros((p,p,n))
     # Loop over theta 1
     for i in range(p):
         #Loop over theta2
@@ -520,7 +520,7 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 SSE_var_GP[i,j] += 2*error_point*model_variance
                 sse_mag = -(error_point)**2
                 sse[k] = sse_mag
-                error_GP[i,j,k] = -error_point
+                error_sq_GP[i,j,k] = (error_point)**2
                 SSE[i,j] += sse_mag
 
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
@@ -542,7 +542,7 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     SSE = -SSE
 #     print(Eval_points)
 #                 print(EI[i,j])
-    return EI,SSE, y_GP, stdev_GP, error_GP, SSE_var_GP
+    return EI,SSE, y_GP, stdev_GP, error_sq_GP, SSE_var_GP
 
 def calc_ei_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
