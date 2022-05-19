@@ -53,6 +53,7 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0):
     return y_exp
 
 def create_sse_data(q,train_T, x, y_exp):
+    #Tested for correctness 5/19/22
     """
     Creates y_data for the 2 input GP function
     
@@ -336,6 +337,7 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
     return noise_list,lengthscale_list,outputscale_list
 
 def calc_GP_outputs(model,likelihood,test_param):
+    #Checked for Correctness 5/19/22
     """
     Calculates the GP model's approximation of y, and its mean, variance and standard devaition.
     
@@ -627,6 +629,7 @@ def calc_ei_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     return EI_Point
 
 def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
+    #Unused function - 5/19/22
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -739,6 +742,8 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
 #         print("z",z)
         #Calculates ei based on Ke's formula
         #Explotation term
+        
+        #Should we be assuming Mean(z) =0 and stdv(z) =1?
         ei_term_1 = (pred_mean - f_best - explore_bias)*norm.cdf(z) #scaler
         #Exploration Term
         ei_term_2 = pred_stdev*norm.pdf(z) #scaler
@@ -750,9 +755,9 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
         ei = 0
     return ei
 
-def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood):
+def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0.0):
     """ 
-    Calculates the expected improvement of the 3 input parameter GP
+    Calculates the expected improvement of the 2 input parameter GP
     Parameters
     ----------
         p: integer, the length of Theta vectors
@@ -797,8 +802,8 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood):
             sse[i,j] = model_sse
             var[i,j] = model_variance
             stdev[i,j] = np.sqrt(model_variance)
-            best_error = max(-train_sse) #How do we actually calculate this?
-    #         print(best_error)
-            #PDF and CDF both calculated as 0 currently
-            ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance)
+            best_error = max(-train_sse) #Are we sure this is right
+            #Negative sign because -max(-train_sse) = min(train_sse)
+#             print(best_error)
+            ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias) #Negative sign because -max(-train_sse) = min(train_sse)
     return ei, sse, var, stdev
