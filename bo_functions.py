@@ -526,7 +526,14 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
             #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
             #This is the minimum error value
             best_error = -max(sse)
-
+            
+            #Calculate EI of a training point
+            TP = np.array([1.85665734819319,0.76582815814491,1.24174844363624])
+            Output_TP = calc_GP_outputs(model, likelihood, np.array([TP]))
+            Output_TP_mean = Output_TP[1].numpy()[0]
+            Output_TP_var = Output_TP[3].numpy()[0]
+            EI_TP = calc_ei_advanced(best_error, Output_TP_mean, Output_TP_var, 5.401062426299215)
+            
             #Loop over Xexp
             ##Calculate EI
             for k in range(n):
@@ -537,12 +544,15 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 EI[i,j] += calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
+                #IS this calculated right?
+                
 
+            
     #Makes Error values all positive, allows amin to work correctly            
     SSE = -SSE
 #     print(Eval_points)
 #                 print(EI[i,j])
-    return EI,SSE, y_GP, stdev_GP, error_sq_GP, SSE_var_GP
+    return EI,SSE, y_GP, stdev_GP, error_sq_GP, SSE_var_GP,EI_TP
 
 def calc_ei_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """ 
