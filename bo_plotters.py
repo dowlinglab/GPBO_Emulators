@@ -89,7 +89,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
     assert isinstance(title, str)==True, "Title must be a string"
     assert len(train_p.T) >= 2, "Train_p must have at least 2 columns"
     
-    plt.figure(figsize=(8,8))
+    plt.figure(figsize=(8,4))
     plt.contourf(xx, yy,z)
     plt.colorbar()
 #     print(p_GP_opt[0],p_GP_opt[1])
@@ -114,7 +114,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
     #Creates axis labels and title
     plt.xlabel('$\\theta_1$',weight='bold')
     plt.ylabel('$\\theta_2$',weight='bold')
-    plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold',fontsize = 16)
+    plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold')
 
     #Shows plot
     return plt.show()

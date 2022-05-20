@@ -817,10 +817,10 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
             model_sse = GP_Outputs[3].numpy()[0] #1xn
     #         print(model_sse)
             model_variance= GP_Outputs[1].numpy()[0] #1xn
-            if verbose == True:
-                print("Point",eval_point)
-                print("Model Mean",model_sse)
-                print("Model Var", model_variance)
+#             if verbose == True:
+#                 print("Point",eval_point)
+#                 print("Model Mean",model_sse)
+#                 print("Model Var", model_variance)
             sse[i,j] = model_sse
             var[i,j] = model_variance
             stdev[i,j] = np.sqrt(model_variance)
