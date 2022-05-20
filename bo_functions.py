@@ -708,7 +708,7 @@ def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     return EI_sing,Error
 
 
-def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
+def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
     Parameters
@@ -717,6 +717,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
         pred_mean: tensor, model mean
         pred_var, tensor, model variance
         explore_bias: float, the numerical bias towards exploration, zero is the default
+        verbose: True/False: Determines whether z and ei terms are printed
     
     Returns
     -------
@@ -724,9 +725,9 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     on the training data. The output will be a :obj:`~gpytorch.distributions.MultivariateNormal`.
     """
         #Checks for equal lengths
-    assert isinstance(f_best, (np.float64,int))==True or torch.is_tensor(f_best)==True, "f_best must be a float or int"
-    assert isinstance(pred_mean, (np.float64,int))==True, "pred_mean and pred_var must be the same length"
-    assert isinstance(pred_var, (np.float64,int))==True, "pred_mean and pred_var must be the same length"
+#     assert isinstance(f_best, (np.float64,int))==True or torch.is_tensor(f_best)==True, "f_best must be a float or int"
+#     assert isinstance(pred_mean, (np.float64,int))==True, "pred_mean and pred_var must be the same length"
+#     assert isinstance(pred_var, (np.float64,int))==True, "pred_mean and pred_var must be the same length"
     
     #Converts tensors to np arrays and defines standard deviation
     if torch.is_tensor(pred_mean)==True:
@@ -739,7 +740,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
     if pred_stdev > 0:
         #Calculates z-score based on Ke's formula
         z = (pred_mean - f_best - explore_bias)/pred_stdev #scaler
-#         print("z",z)
+        
         #Calculates ei based on Ke's formula
         #Explotation term
         
@@ -748,14 +749,22 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0):
         #Exploration Term
         ei_term_2 = pred_stdev*norm.pdf(z) #scaler
         ei = ei_term_1 +ei_term_2 #scaler
-#         print("term 1",ei_term_1)
-#         print("term 2",ei_term_2)
+#         if verbose == True:
+#             print("z",z)
+#             print("Exploitation Term",ei_term_1)
+#             print("CDF", norm.cdf(z))
+#             print("Exploration Term",ei_term_2)
+#             print("PDF", norm.pdf(z))
+#             print("EI",ei,"\n")
     else:
         #Sets ei to zero if standard deviation is zero
         ei = 0
-    return ei
+    if verbose == True:
+        return ei,z, ei_term_1,ei_term_2,norm.cdf(z),norm.pdf(z)
+    else:
+        return ei
 
-def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0.0):
+def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0.0, verbose = False):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
     Parameters
@@ -765,6 +774,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
         train_sse: ndarray (1 x t), Training data for sse
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        verbose: True/False: Determines whether z and ei terms are printed
     
     Returns
     -------
@@ -772,6 +782,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
         sse: ndarray, the sse of the GP model
         var: ndarray, the variance of the GP model
         stdev: ndarray, the standard deviation of the GP model
+        f_best
     """
         #Asserts that inputs are correct
     assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
@@ -783,6 +794,13 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
     sse = np.zeros((p,p))
     var = np.zeros((p,p))
     stdev = np.zeros((p,p))
+    f_best = np.zeros((p,p))
+    if verbose == True:
+        z_term = np.zeros((p,p))
+        ei_term_1 = np.zeros((p,p))
+        ei_term_2 = np.zeros((p,p))
+        CDF = np.zeros((p,p))
+        PDF = np.zeros((p,p))
     
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
@@ -799,11 +817,28 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
             model_sse = GP_Outputs[3].numpy()[0] #1xn
     #         print(model_sse)
             model_variance= GP_Outputs[1].numpy()[0] #1xn
+            if verbose == True:
+                print("Point",eval_point)
+                print("Model Mean",model_sse)
+                print("Model Var", model_variance)
             sse[i,j] = model_sse
             var[i,j] = model_variance
             stdev[i,j] = np.sqrt(model_variance)
             best_error = max(-train_sse) #Are we sure this is right
+            f_best[i,j] = best_error
             #Negative sign because -max(-train_sse) = min(train_sse)
 #             print(best_error)
-            ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias) #Negative sign because -max(-train_sse) = min(train_sse)
-    return ei, sse, var, stdev
+            if verbose == True:
+                ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0] #-max(-train_sse) = min(train_sse)
+                z_term[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[1]
+                ei_term_1[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[2]
+                ei_term_2[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[3]
+                CDF[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[4]
+                PDF[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[5]
+            else:
+                ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+    if verbose == False:
+        return ei, sse, var, stdev, f_best
+    else:
+        return ei, sse, var, stdev, f_best, z_term, ei_term_1, ei_term_2, CDF, PDF
+    
