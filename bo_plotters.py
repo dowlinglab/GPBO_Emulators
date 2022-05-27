@@ -3,7 +3,6 @@ import numpy as np
 import torch
 from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
-from bo_functions import calc_y_exp
 
 def plot_hyperparams(iterations, hyperparam, title):
     '''
@@ -30,30 +29,29 @@ def plot_hyperparams(iterations, hyperparam, title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_xy(x, y_exp, y_GP,Theta_True,title):
+def plot_xy(x_line, x_exp, y_exp, y_GP,y_true,title):
     '''
     Plots Hyperparameters
     Parameters
     ----------
+        x_line: ndarray, array of many values for which to graph y_true
         x_exp: ndarray, array of X_exp values
         y_exp: ndarray, array of Y_exp values
         y_GP: ndarray, array of y_GP values given based on GP Theta_Best
+        y_true: ndarray, array of y_true values at all points in x_line
      
     Returns
     -------
         plt.show(), A plot of iterations and hyperparameter
     '''
     assert isinstance(title, str)==True, "Title must be a string"
-    assert len(x) == len(y_exp) == len(y_GP), "Xexp, Yexp, and Y_GP must be the same length"
+    assert len(x_exp) == len(y_exp) == len(y_GP), "Xexp, Yexp, and Y_GP must be the same length"
 #     assert len(iters_axis) == len(hyperparam), "Hyperparameter array must have length of # of training iterations"
-    x2 = np.linspace(-2,2,100)
-    noise_std = 0
-    y_true = calc_y_exp(Theta_True, x2, noise_std, noise_mean=0)
     
     plt.figure()
-    plt.scatter(x, y_exp, label = "y_true", color = "orange")
-    plt.plot(x, y_GP, label = "y_GP")
-    plt.plot(x2, y_true, color = "orange")
+    plt.scatter(x_exp, y_exp, label = "y_true", color = "orange")
+    plt.plot(x_exp, y_GP, label = "y_GP")
+    plt.plot(x_line, y_true, color = "orange")
     plt.grid(True)
     plt.legend(loc = "best")
     plt.xlabel('X Value',weight='bold')
@@ -117,6 +115,8 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
     plt.xlabel('$\\theta_1$',weight='bold')
     plt.ylabel('$\\theta_2$',weight='bold')
     plt.title("Heat Map of "+title, weight='bold',fontsize=16)
+    plt.xlim((-2, 2))
+    plt.ylim((-2,2))
 #     plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold')
     #Shows plot
 #     plt.savefig("Heat Map of "+title+".png",dpi = 1200)

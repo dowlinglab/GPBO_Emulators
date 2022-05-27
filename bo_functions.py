@@ -4,6 +4,8 @@ from scipy.stats import norm
 import torch
 import csv
 import gpytorch
+import scipy.optimize as optimize
+from bo_plotters import ei_plotter
 
 def LHS_Design(csv_file):
     """
@@ -893,15 +895,13 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
 #         print("sse chosen")
         return sse #We want to minimize sse
 
-def eval_GP(p, theta_mesh,train_p, train_y,iterations =300, explore_bias = 0.1, verbose = False):
-    likelihood = gpytorch.likelihoods.GaussianLikelihood()
-
-    # We will use the simplest form of GP model, exact inference
-    #Defines our model in terms of the class parameters in bo_functions
-    model = ExactGPModel(train_p, train_y, likelihood)
-    train_GP = train_GP_model(model, likelihood, train_p, train_y, iterations, verbose = False)
-    
+def eval_GP(p, theta_mesh,train_p, train_y,iterations, explore_bias, model, likelihood, verbose):    
     ##Set Hyperparameters to 1
+    if isinstance(train_p, np.ndarray)==True:
+        train_p = torch.tensor(train_p) #1xn
+    if isinstance(train_y, np.ndarray)==True:
+        train_y = torch.tensor(train_y) #1xn
+        
     outputscale = torch.tensor([1])
     lengthscale = torch.tensor([1])
     noise = torch.tensor([0.1])
@@ -941,31 +941,31 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     
     return Theta_Opt_GP, Theta_Best
 
-def find_opt_and_best_scipy(theta_mesh, theta0_b,theta0_o, sse, ei):
+def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, likelihood, explore_bias):
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
-    bnds = [[np.amin(theta1_mesh), np.amin(theta2_mesh)], [np.amax(theta1_mesh), np.amax(theta2_mesh)]]
+    bnds = [[np.amin(theta1_mesh), np.amax(theta1_mesh)], [np.amin(theta2_mesh), np.amax(theta2_mesh)]]
 
-    ei_sse_choice ="ei"
-    argmts_best = ((train_sse, model, likelihood, explore_bias, ei_sse_choice1))
+    ei_sse_choice1 ="ei"
+    argmts_best = ((train_y, model, likelihood, explore_bias, ei_sse_choice1))
     Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds, method='Nelder-Mead',args=argmts_best)
     theta_b = Best_Solution.x
     
     ei_sse_choice2 = "sse"
-    argmts_opt = ((train_sse, model, likelihood, explore_bias, ei_sse_choice2))
+    argmts_opt = ((train_y, model, likelihood, explore_bias, ei_sse_choice2))
     Opt_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_o,bounds=bnds, method='Nelder-Mead',args= argmts_opt)
     theta_o = Opt_Solution.x  
     
     return theta_b, theta_o
 
-def bo_iter(BO_iters, train_p, train_y, p, theta_mesh, Theta_True, iterations =300, explore_bias = 0.1, verbose = False ):
+def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh, Theta_True, iterations, explore_bias, model, likelihood, Xexp, Yexp, verbose = False):
     for i in range(BO_iters):
         if torch.is_tensor(train_p) != True:
-            train_T = torch.from_numpy(train_p)
+            train_p = torch.from_numpy(train_p)
         if torch.is_tensor(train_y) != True:
-            train_sse = torch.from_numpy(train_y)
-            
-        eval_components = eval_GP(p,theta_mesh,train_p, train_y,iterations =300, explore_bias = 0.1, verbose = False)
+            train_y = torch.from_numpy(train_y)
+        
+        eval_components = eval_GP(p, theta_mesh,train_p, train_y,iterations, explore_bias, model, likelihood, verbose)
         
         if verbose == False:
             ei,sse,var,stdev,best_error = eval_components
@@ -974,25 +974,25 @@ def bo_iter(BO_iters, train_p, train_y, p, theta_mesh, Theta_True, iterations =3
             ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
         
         Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei)
-        
         theta0_b = Theta_Best
         theta0_o = Theta_Opt_GP
-        theta_b, theta_o = find_opt_and_best_scipy(theta_mesh, theta0_b,theta0_o, sse, ei)
+        theta_b, theta_o = find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei,model, likelihood, explore_bias)
         
-        print("Scipy Theta Best = ",theta_b)
-        print("Argmax Theta Best = ",Theta_Best)
-        print("Scipy Theta Opt = ",theta_o)
-        print("Argmin Theta_Opt_GP = ",Theta_Opt_GP)
+        if verbose == True:
+            print("Scipy Theta Best = ",theta_b)
+            print("Argmax Theta Best = ",Theta_Best)
+            print("Scipy Theta Opt = ",theta_o)
+            print("Argmin Theta_Opt_GP = ",Theta_Opt_GP,"\n")
         
         sse_title = "SSE"
-        ei_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b,train_y,plot_train=True)
+        ei_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b,train_p,plot_train=True)
     #     y_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_T,sse_title,plot_train=True)
     #     ei_plotter(theta_mesh, ei, Theta_True, Theta_Opt_GP, Theta_Best,train_T,plot_train=True)
     #     y_plotter(theta_mesh, sse, Theta_True, Theta_Opt_GP, Theta_Best, train_T,sse_title,plot_train=True)
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
         train_p = train_p.numpy() #(q x t)
-        train_y = train_sse.numpy() #(1 x t)
+        train_y = train_y.numpy() #(1 x t)
 
         #Call the expensive function and evaluate at Theta_Best
         sse_Best = create_sse_data(q,theta_b, Xexp, Yexp) #(1 x 1)
@@ -1002,7 +1002,7 @@ def bo_iter(BO_iters, train_p, train_y, p, theta_mesh, Theta_True, iterations =3
         train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
     #     train_T = np.concatenate((train_T, [Theta_Best]), axis=0) #(q x t)
         train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
-    return None
+    return theta_b, theta_o 
         
 def create_dicts(i,ei_components,verbose =False):
     """
@@ -1057,4 +1057,4 @@ def create_dicts(i,ei_components,verbose =False):
     GP_mean_min_dict[i+1] = GP_mean_min
     GP_var_min_dict[i+1] = GP_var_min
         
-    return None  ##May change this    
+    return None ##May change this    
