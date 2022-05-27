@@ -89,34 +89,37 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
     assert isinstance(title, str)==True, "Title must be a string"
     assert len(train_p.T) >= 2, "Train_p must have at least 2 columns"
     
-    plt.figure(figsize=(8,4))
-    plt.contourf(xx, yy,z)
+#     plt.figure(figsize=(8,4))
+    plt.contourf(xx, yy,z,cmap = "autumn")
     plt.colorbar()
 #     print(p_GP_opt[0],p_GP_opt[1])
+    
+    
     #Plots the true optimal value and the GP value
-    plt.scatter(p_true[0],p_true[1], color="red", label = "True Optimal Value", s=100, marker = (5,1))
+    plt.scatter(p_true[0],p_true[1], color="blue", label = "True Optimal Value", s=100, marker = (5,1))
+        
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="white", s=200, label = "GP min(SSE) Value", marker = ".")
+    #Plots axes such that they are scaled the same way (eg. circles look like circles)
+    plt.axis('scaled')
     
     if plot_train == True:
-        plt.scatter(train_p[:,0],train_p[:,1], color="blue", label = "Training Data", s=25, marker = ".")
-        
-    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="red", s=80, label = "GP min(SSE) Value", marker = ".")
+        plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
+    
+    plt.scatter(p_GP_best[0],p_GP_best[1], color="black", s=10, label = "GP Best EI Value", marker = "D")
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')
     
-    plt.scatter(p_GP_best[0],p_GP_best[1], color="pink", s=50, label = "GP Best EI Value", marker = ".")
-    #Plots axes such that they are scaled the same way (eg. circles look like circles)
-    plt.axis('scaled')
-
     #Plots grid and legend
-    plt.grid()
-    plt.legend(loc = 'upper left')
+#     plt.grid()
+    plt.legend(loc = 'upper right')
 
     #Creates axis labels and title
     plt.xlabel('$\\theta_1$',weight='bold')
     plt.ylabel('$\\theta_2$',weight='bold')
-    plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold')
-
+    plt.title("Heat Map of "+title, weight='bold',fontsize=16)
+#     plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold')
     #Shows plot
+#     plt.savefig("Heat Map of "+title+".png",dpi = 1200)
     return plt.show()
 
 def ei_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True):
@@ -411,7 +414,7 @@ def stdev_plotter_4D(parameter_space, z):
 #         ranges = int(len(Z)/2)
 #         _ = ax.contourf(
 #             X[:, :, i], Y[:, :, i], data[:, :, i],
-#             zdir='z', offset=Z[0,0,i], **kw, cmap = "viridis"
+#             zdir='z', offset=Z[0,0,i], **kw, cmap = ""
 #         ) 
 
 #     _ = ax.contourf(

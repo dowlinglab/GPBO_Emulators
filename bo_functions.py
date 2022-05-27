@@ -841,4 +841,55 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
         return ei, sse, var, stdev, f_best
     else:
         return ei, sse, var, stdev, f_best, z_term, ei_term_1, ei_term_2, CDF, PDF
+
+##FOR USE WITH SCIPY##################################################################
+def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_bias=0.0, ei_sse_choice = "ei"):
+    """ 
+    Calculates the expected improvement of the 2 input parameter GP
+    Parameters
+    ----------
+        theta_guess: ndarray (1xp), The theta value that will be guessed to optimize 
+        p: integer, the length of Theta vectors
+        train_sse: ndarray (1 x t), Training data for sse
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        ei_sse_choice: "ei" or "sse" - Choose which one to optimize
+    
+    Returns
+    -------
+        ei: ndarray, the expected improvement of the GP model
+        sse: ndarray, the sse of the GP model
+        
+    """
+        #Asserts that inputs are correct
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    assert ei_sse_choice == "ei" or ei_sse_choice == "sse", "ei_sse_choice must be string 'ei' or 'sse'"
+    
+    verbose = False
+    
+    theta1_guess = theta_guess[0]
+    theta2_guess = theta_guess[1]
+    
+
+    point = [theta1_guess,theta2_guess]
+    eval_point = np.array([point])
+    GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+    model_sse = GP_Outputs[3].numpy()[0] #1xn #Model SSE not being updated with minimize function 
+#     print(model_sse)
+    model_variance= GP_Outputs[1].numpy()[0] #1xn
+    best_error = max(-train_sse) #Are we sure this is right
+    #Negative sign because -max(-train_sse) = min(train_sse)
+#             print(best_error)
+
+    ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+    sse = model_sse
+    
+    if ei_sse_choice == "ei":
+#         print("EI chosen")
+        return -ei #Because we want to maximize EI and scipy.optimize is a minimizer by default
+    else:
+#         print("sse chosen")
+        return sse #We want to minimize sse
     
