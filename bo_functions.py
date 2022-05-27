@@ -892,4 +892,169 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
     else:
 #         print("sse chosen")
         return sse #We want to minimize sse
+
+def eval_GP(p, theta_mesh,train_p, train_y,iterations =300, explore_bias = 0.1, verbose = False):
+    likelihood = gpytorch.likelihoods.GaussianLikelihood()
+
+    # We will use the simplest form of GP model, exact inference
+    #Defines our model in terms of the class parameters in bo_functions
+    model = ExactGPModel(train_p, train_y, likelihood)
+    train_GP = train_GP_model(model, likelihood, train_p, train_y, iterations, verbose = False)
     
+    ##Set Hyperparameters to 1
+    outputscale = torch.tensor([1])
+    lengthscale = torch.tensor([1])
+    noise = torch.tensor([0.1])
+
+    model.likelihood.noise = noise
+    model.covar_module.base_kernel.lengthscale =lengthscale
+    model.covar_module.outputscale = outputscale
+    
+    model.eval()
+    #Puts likelihood in evaluation mode
+    likelihood.eval()
+
+    #Same point keeps being selected, should I remove that point by force?
+    eval_components = eval_GP_basic_tot(p,theta_mesh, train_y, model, likelihood, explore_bias, verbose)
+    
+    return eval_components
+
+def find_opt_and_best_arg(theta_mesh, sse, ei):
+    
+    theta1_mesh = theta_mesh[0]
+    theta2_mesh = theta_mesh[1]
+    
+    argmin = np.array(np.where(np.isclose(sse, np.amin(sse),atol=np.amin(sse)*1e-6)==True))
+    Theta_1_Opt = float(theta1_mesh[argmin[0],argmin[1]])
+    Theta_2_Opt = float(theta2_mesh[argmin[0],argmin[1]])
+    Theta_Opt_GP = np.array((Theta_1_Opt,Theta_2_Opt))
+    
+    #calculates best theta value
+    argmax = np.array(np.where(np.isclose(ei, np.amax(ei),atol=np.amax(ei)*1e-6)==True))
+#     print(argmax)
+    if len(argmax[0]) != 1:
+        argmax = np.array([[argmax[0,1]],[argmax[1,1]]])
+    
+    Theta_1_Best = float(theta1_mesh[argmax[0],argmax[1]])
+    Theta_2_Best = float(theta2_mesh[argmax[0],argmax[1]])
+    Theta_Best = np.array((Theta_1_Best,Theta_2_Best))  
+    
+    return Theta_Opt_GP, Theta_Best
+
+def find_opt_and_best_scipy(theta_mesh, theta0_b,theta0_o, sse, ei):
+    theta1_mesh = theta_mesh[0]
+    theta2_mesh = theta_mesh[1]
+    bnds = [[np.amin(theta1_mesh), np.amin(theta2_mesh)], [np.amax(theta1_mesh), np.amax(theta2_mesh)]]
+
+    ei_sse_choice ="ei"
+    argmts_best = ((train_sse, model, likelihood, explore_bias, ei_sse_choice1))
+    Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds, method='Nelder-Mead',args=argmts_best)
+    theta_b = Best_Solution.x
+    
+    ei_sse_choice2 = "sse"
+    argmts_opt = ((train_sse, model, likelihood, explore_bias, ei_sse_choice2))
+    Opt_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_o,bounds=bnds, method='Nelder-Mead',args= argmts_opt)
+    theta_o = Opt_Solution.x  
+    
+    return theta_b, theta_o
+
+def bo_iter(BO_iters, train_p, train_y, p, theta_mesh, Theta_True, iterations =300, explore_bias = 0.1, verbose = False ):
+    for i in range(BO_iters):
+        if torch.is_tensor(train_p) != True:
+            train_T = torch.from_numpy(train_p)
+        if torch.is_tensor(train_y) != True:
+            train_sse = torch.from_numpy(train_y)
+            
+        eval_components = eval_GP(p,theta_mesh,train_p, train_y,iterations =300, explore_bias = 0.1, verbose = False)
+        
+        if verbose == False:
+            ei,sse,var,stdev,best_error = eval_components
+        
+        if verbose == True:
+            ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
+        
+        Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei)
+        
+        theta0_b = Theta_Best
+        theta0_o = Theta_Opt_GP
+        theta_b, theta_o = find_opt_and_best_scipy(theta_mesh, theta0_b,theta0_o, sse, ei)
+        
+        print("Scipy Theta Best = ",theta_b)
+        print("Argmax Theta Best = ",Theta_Best)
+        print("Scipy Theta Opt = ",theta_o)
+        print("Argmin Theta_Opt_GP = ",Theta_Opt_GP)
+        
+        sse_title = "SSE"
+        ei_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b,train_y,plot_train=True)
+    #     y_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_T,sse_title,plot_train=True)
+    #     ei_plotter(theta_mesh, ei, Theta_True, Theta_Opt_GP, Theta_Best,train_T,plot_train=True)
+    #     y_plotter(theta_mesh, sse, Theta_True, Theta_Opt_GP, Theta_Best, train_T,sse_title,plot_train=True)
+        ##Append best values to training data 
+        #Convert training data to numpy arrays to allow concatenation to work
+        train_p = train_p.numpy() #(q x t)
+        train_y = train_sse.numpy() #(1 x t)
+
+        #Call the expensive function and evaluate at Theta_Best
+        sse_Best = create_sse_data(q,theta_b, Xexp, Yexp) #(1 x 1)
+    #     sse_Best = create_sse_data(q,Theta_Best, Xexp, Yexp) #(1 x 1)
+
+        #Add Theta_Best to train_p and y_best to train_y
+        train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
+    #     train_T = np.concatenate((train_T, [Theta_Best]), axis=0) #(q x t)
+        train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
+    return None
+        
+def create_dicts(i,ei_components,verbose =False):
+    """
+    Creates dictionaries for noteable parameters
+    """
+    train_T_dict = {}
+    train_sse_dict = {}
+    ei_dict = {}
+    sse_dict ={}
+    var_dict ={}
+    GP_mean_best_dict = {}
+    GP_var_best_dict = {}
+    GP_mean_min_dict ={}
+    GP_var_min_dict = {}
+    Theta_Opt_dict = {}
+    Theta_Best_dict = {}
+    Best_Error_dict = {}
+    if verbose == True:
+        z_dict = {}
+        ei_term_1_dict = {}
+        ei_term_2_dict = {}
+        CDF_dict = {}
+        PDF_dict = {}
+        
+    ei = ei_components[0]
+    sse = ei_components[1]
+    var = ei_components[2]
+    stdev = ei_components[3]
+    best_error = ei_components[4]
+    if verbose == True:
+        z = ei_components[5]
+        ei_term_1 = ei_components[6]
+        ei_term_2 = ei_components[7]
+        CDF = ei_components[8]
+        PDF = ei_components[9]
+        
+    ei_dict[i+1] = ei
+    sse_dict[i+1] = sse
+    var_dict[i+1] = var
+    z_dict[i+1]=z
+    Best_Error_dict[i+1] = best_error
+    ei_term_1_dict[i+1] = ei_term_1
+    ei_term_2_dict[i+1] = ei_term_2
+    CDF_dict[i+1] = CDF
+    PDF_dict[i+1] = PDF
+    train_T_dict[i+1] = train_T
+    train_sse_dict[i+1] = train_sse
+    Theta_Opt_dict[i+1] = Theta_Opt_GP
+    Theta_Best_dict[i+1] = Theta_Best
+    GP_mean_best_dict[i+1] = GP_mean_best
+    GP_var_best_dict[i+1] = GP_var_best
+    GP_mean_min_dict[i+1] = GP_mean_min
+    GP_var_min_dict[i+1] = GP_var_min
+        
+    return None  ##May change this    
