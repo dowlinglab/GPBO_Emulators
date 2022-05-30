@@ -906,6 +906,7 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
         return sse #We want to minimize sse
 
 def eval_GP(p, theta_mesh,train_p, train_y,iterations, explore_bias, model, likelihood, verbose):    
+    
     ##Set Hyperparameters to 1
     if isinstance(train_p, np.ndarray)==True:
         train_p = torch.tensor(train_p) #1xn
@@ -958,12 +959,13 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
 
     ei_sse_choice1 ="ei"
     argmts_best = ((train_y, model, likelihood, explore_bias, ei_sse_choice1))
-    Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds, method='Nelder-Mead',args=argmts_best)
+#     Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds, method='Nelder-Mead',args=argmts_best)
+    Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
     theta_b = Best_Solution.x
     
     ei_sse_choice2 = "sse"
     argmts_opt = ((train_y, model, likelihood, explore_bias, ei_sse_choice2))
-    Opt_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_o,bounds=bnds, method='Nelder-Mead',args= argmts_opt)
+    Opt_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_o,bounds=bnds, method = "L-BFGS-B",args= argmts_opt)
     theta_o = Opt_Solution.x  
     
     return theta_b, theta_o
@@ -989,6 +991,8 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,iterations,explor
         theta_b, theta_o = find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei,model, likelihood, explore_bias)
         
         if verbose == True:
+            print("BO Iteration = ", i+1)
+            print("Exploration Bias = ",explore_bias)
             print("Scipy Theta Best = ",theta_b)
             print("Argmax Theta Best = ",Theta_Best)
             print("Scipy Theta Opt = ",theta_o)
