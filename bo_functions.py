@@ -905,11 +905,21 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
 #         print("sse chosen")
         return sse #We want to minimize sse
 
-def eval_GP(p, theta_mesh,train_p, train_y,iterations, explore_bias, model, likelihood, verbose):    
+def eval_GP(p, theta_mesh, train_y, explore_bias, model, likelihood, verbose):    
+    """
+    Evaluates GP
     
+    Parameters:
+    -----------
+        p: integer, the length of Theta vectors
+        theta_mesh: 
+        train_y
+        explore_bias: float or int, The exploration bias parameter
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        verbose
+    """
     ##Set Hyperparameters to 1
-    if isinstance(train_p, np.ndarray)==True:
-        train_p = torch.tensor(train_p) #1xn
     if isinstance(train_y, np.ndarray)==True:
         train_y = torch.tensor(train_y) #1xn
         
@@ -970,14 +980,20 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     
     return theta_b, theta_o
 
-def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,iterations,explore_bias,model,likelihood, Xexp, Yexp, obj, verbose = False):
+def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,iterations,explore_bias, Xexp, Yexp, obj, verbose = False):
     for i in range(BO_iters):
         if torch.is_tensor(train_p) != True:
             train_p = torch.from_numpy(train_p)
         if torch.is_tensor(train_y) != True:
             train_y = torch.from_numpy(train_y)
-        
-        eval_components = eval_GP(p, theta_mesh,train_p, train_y,iterations, explore_bias, model, likelihood, verbose)
+            
+        #Redefine likelihood and model based on new training data
+        likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        model = ExactGPModel(train_p, train_y, likelihood)
+        #Train GP
+        train_GP = train_GP_model(model, likelihood, train_p, train_y, iterations, verbose=False)
+        #Evaluate GP
+        eval_components = eval_GP(p, theta_mesh,train_y, explore_bias, model, likelihood, verbose)
         
         if verbose == False:
             ei,sse,var,stdev,best_error = eval_components
