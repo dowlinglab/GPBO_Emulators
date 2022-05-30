@@ -865,7 +865,7 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
         train_sse: ndarray (1 x t), Training data for sse
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        ei_sse_choice: "ei" or "sse" - Choose which one to optimize
+        ei_sse_choice: "neg_ei" or "sse" - Choose which one to optimize
     
     Returns
     -------
@@ -877,7 +877,7 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-    assert ei_sse_choice == "ei" or ei_sse_choice == "sse", "ei_sse_choice must be string 'ei' or 'sse'"
+    assert ei_sse_choice == "neg_ei" or ei_sse_choice == "sse", "ei_sse_choice must be string 'ei' or 'sse'"
     
     verbose = False
     
@@ -888,7 +888,7 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
     point = [theta1_guess,theta2_guess]
     eval_point = np.array([point])
     GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-    model_sse = GP_Outputs[3].numpy()[0] #1xn #Model SSE not being updated with minimize function 
+    model_sse = GP_Outputs[3].numpy()[0] #1xn 
 #     print(model_sse)
     model_variance= GP_Outputs[1].numpy()[0] #1xn
     best_error = max(-train_sse) #Are we sure this is right
@@ -898,7 +898,7 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
     ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
     sse = model_sse
     
-    if ei_sse_choice == "ei":
+    if ei_sse_choice == "neg_ei":
 #         print("EI chosen")
         return -ei #Because we want to maximize EI and scipy.optimize is a minimizer by default
     else:
@@ -946,13 +946,17 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     theta2_mesh = theta_mesh[1]
     
     argmin = np.array(np.where(np.isclose(sse, np.amin(sse),atol=np.amin(sse)*1e-6)==True))
+    
+    if len(argmin[0]) != 1:
+        argmin = np.array([[argmin[0,1]],[argmin[1,1]]])
+        
     Theta_1_Opt = float(theta1_mesh[argmin[0],argmin[1]])
     Theta_2_Opt = float(theta2_mesh[argmin[0],argmin[1]])
     Theta_Opt_GP = np.array((Theta_1_Opt,Theta_2_Opt))
     
     #calculates best theta value
     argmax = np.array(np.where(np.isclose(ei, np.amax(ei),atol=np.amax(ei)*1e-6)==True))
-#     print(argmax)
+
     if len(argmax[0]) != 1:
         argmax = np.array([[argmax[0,1]],[argmax[1,1]]])
     
@@ -967,7 +971,7 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     theta2_mesh = theta_mesh[1]
     bnds = [[np.amin(theta1_mesh), np.amax(theta1_mesh)], [np.amin(theta2_mesh), np.amax(theta2_mesh)]]
 
-    ei_sse_choice1 ="ei"
+    ei_sse_choice1 ="neg_ei"
     argmts_best = ((train_y, model, likelihood, explore_bias, ei_sse_choice1))
 #     Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds, method='Nelder-Mead',args=argmts_best)
     Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
@@ -1004,8 +1008,10 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,iterations,explor
         Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei)
         theta0_b = Theta_Best
         theta0_o = Theta_Opt_GP
+#         theta0_b = np.array([0.95,-0.95])
+#         theta0_o = np.array([0.95,-0.95])
         theta_b, theta_o = find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei,model, likelihood, explore_bias)
-        
+       
         if verbose == True:
             print("BO Iteration = ", i+1)
             print("Exploration Bias = ",explore_bias)
@@ -1017,7 +1023,10 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,iterations,explor
         
         sse_title = "SSE"
         ei_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b,train_p,plot_train=True)
-        y_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True)
+        if obj == "LN_obj":
+            y_plotter(theta_mesh, np.exp(sse), Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True)
+        else:
+            y_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True)
         titles = ["ei","sse","var","stdev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]
         if verbose == True:
             for j in range(len(titles)-2):
