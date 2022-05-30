@@ -291,6 +291,7 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert isinstance(iterations, int)==True, "Number of training iterations must be an integer" 
     assert len(train_param) == len(train_data), "training data must be the same length as each other"
+    assert verbose==True or verbose==False, "Verbose must be True/False"
     
     #Converts training data and parameters to tensors if they are a numpy arrays
     if isinstance(train_param, np.ndarray)==True:
@@ -801,6 +802,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    assert verbose==True or verbose==False, "Verbose must be True/False"
     
     ei = np.zeros((p,p))
     sse = np.zeros((p,p))
@@ -855,7 +857,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
         return ei, sse, var, stdev, f_best, z_term, ei_term_1, ei_term_2, CDF, PDF
 
 ##FOR USE WITH SCIPY##################################################################
-def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_bias=0.0, ei_sse_choice = "ei"):
+def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
     Parameters
@@ -878,8 +880,7 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
     assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert ei_sse_choice == "neg_ei" or ei_sse_choice == "sse", "ei_sse_choice must be string 'ei' or 'sse'"
-    
-    verbose = False
+    assert verbose==True or verbose==False, "Verbose must be True/False"
     
     theta1_guess = theta_guess[0]
     theta2_guess = theta_guess[1]
@@ -894,8 +895,11 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
     best_error = max(-train_sse) #Are we sure this is right
     #Negative sign because -max(-train_sse) = min(train_sse)
 #             print(best_error)
-
-    ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+    if verbose == True:
+        ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0]
+    else:
+        ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+    
     sse = model_sse
     
     if ei_sse_choice == "neg_ei":
@@ -1031,7 +1035,35 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     
     return theta_b, theta_o
 
-def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,iterations,explore_bias, Xexp, Yexp, obj, verbose = False):
+def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, verbose = False):
+    """
+    Performs BO iterations
+    
+    Parameters:
+    -----------
+        BO_iters: integer, number of BO iteratiosn
+        train_p: tensor or ndarray, The training parameter space data
+        train_y: tensor or ndarray, The training y data
+        p: integer, the length of Theta vectors
+        q: integer, Number of GP inputs
+        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
+        train_iter: int, number of training iterations to run. Default is 300
+        explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
+        Xexp: ndarray, The list of xs that will be used to generate y
+        Yexp: ndarray, The experimental data for y (the true value)
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
+    
+    """
+    assert all(isinstance(i, int) for i in [BO_iters, p,q,train_iter]), "BO_iters, p,q,and train_iter must be integers"
+    assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
+    assert len(train_p) == len(train_y), "Training data must be the same length"
+    assert len(Theta_True)==2, "Theta True must be 2-dimensional"
+    assert len(Xexp) == len(Yexp), "Experimental data must have the same length"
+    assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
+    assert verbose==True or verbose==False, "Verbose must be True/False"
+    
     for i in range(BO_iters):
         if torch.is_tensor(train_p) != True:
             train_p = torch.from_numpy(train_p)
@@ -1042,7 +1074,7 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,iterations,explor
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
         model = ExactGPModel(train_p, train_y, likelihood)
         #Train GP
-        train_GP = train_GP_model(model, likelihood, train_p, train_y, iterations, verbose=False)
+        train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         #Evaluate GP
         eval_components = eval_GP(p, theta_mesh,train_y, explore_bias, model, likelihood, verbose)
         
