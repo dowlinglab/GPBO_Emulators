@@ -112,7 +112,7 @@ def create_y_data(q, param_space):
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
     ----------
-        q: int, Number of GP inputs needed for direct calculation of y
+        q: int, Number of GP inputs needed for direct calculation of the objective function
         param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
     Returns
     -------
@@ -734,8 +734,13 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
     
     Returns
     -------
-    Calling this model will return the posterior of the latent Gaussian process when conditioned
-    on the training data. The output will be a :obj:`~gpytorch.distributions.MultivariateNormal`.
+        ei: float, The expected improvement of a given point
+        IF verbose == True
+        z: float, The z value of the point
+        ei_term_1: float, The first term of the ei equation
+        ei_term_2: float, The second term of the ei equation
+        norm.cdf(z): float, The CDF of the point
+        norm.pdf(z): float, The PDF of the point
     """
         #Checks for equal lengths
 #     assert isinstance(f_best, (np.float64,int))==True or torch.is_tensor(f_best)==True, "f_best must be a float or int"
@@ -965,7 +970,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     
     Returns:
     --------
-        Theta_Opt_GP: ndarray, The point where the sse is minimized in theta_mesh
+        Theta_Opt_GP: ndarray, The point where the objective function is minimized in theta_mesh
         Theta_Best: ndarray, The point where the ei is maximized in theta_mesh
     """
     theta1_mesh = theta_mesh[0]
@@ -1010,8 +1015,8 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     
     Returns:
     --------
-        Theta_Opt_GP: ndarray, The point where the sse is minimized in theta_mesh
-        Theta_Best: ndarray, The point where the ei is maximized in theta_mesh
+        theta_b: ndarray, The point where the objective function is minimized in theta_mesh
+        theta_o: ndarray, The point where the ei is maximized in theta_mesh
     """
     assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
@@ -1054,6 +1059,11 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explor
         Yexp: ndarray, The experimental data for y (the true value)
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
+        
+    Returns:
+    --------
+        theta_b: The predicted theta where ei is maximized after all BO iteration
+        theta_o: The predicted theta where objective function is minimized after all BO iterations
     
     """
     assert all(isinstance(i, int) for i in [BO_iters, p,q,train_iter]), "BO_iters, p,q,and train_iter must be integers"
