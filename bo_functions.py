@@ -6,6 +6,7 @@ import csv
 import gpytorch
 import scipy.optimize as optimize
 from bo_plotters import ei_plotter
+from bo_plotters import y_plotter
 
 def LHS_Design(csv_file):
     """
@@ -982,11 +983,16 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh, Theta_True, iterations, exp
             print("Scipy Theta Best = ",theta_b)
             print("Argmax Theta Best = ",Theta_Best)
             print("Scipy Theta Opt = ",theta_o)
-            print("Argmin Theta_Opt_GP = ",Theta_Opt_GP,"\n")
+            print("Argmin Theta_Opt_GP = ",Theta_Opt_GP, "\n")
+#             print("Best Error =", best_error, "\n")
         
         sse_title = "SSE"
         ei_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b,train_p,plot_train=True)
-    #     y_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_T,sse_title,plot_train=True)
+        y_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True)
+        titles = ["ei","sse","var","stdev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]
+        if verbose == True:
+            for j in range(len(titles)-2):
+                y_plotter(theta_mesh, eval_components[j+2], Theta_True, theta_o, theta_b, train_p,titles[j+2],plot_train=True)
     #     ei_plotter(theta_mesh, ei, Theta_True, Theta_Opt_GP, Theta_Best,train_T,plot_train=True)
     #     y_plotter(theta_mesh, sse, Theta_True, Theta_Opt_GP, Theta_Best, train_T,sse_title,plot_train=True)
         ##Append best values to training data 
