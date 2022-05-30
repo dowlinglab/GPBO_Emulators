@@ -794,7 +794,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
         sse: ndarray, the sse of the GP model
         var: ndarray, the variance of the GP model
         stdev: ndarray, the standard deviation of the GP model
-        f_best
+        f_best: ndarray, the best value so far
     """
         #Asserts that inputs are correct
     assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
@@ -912,13 +912,22 @@ def eval_GP(p, theta_mesh, train_y, explore_bias, model, likelihood, verbose):
     Parameters:
     -----------
         p: integer, the length of Theta vectors
-        theta_mesh: 
-        train_y
-        explore_bias: float or int, The exploration bias parameter
+        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        train_y: tensor or ndarray, The training y data
+        explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        verbose
+        verbose: True/False: Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved
+    
+    Returns:
+    --------
+        eval_components: ndarray, The componenets evaluate by the GP. ei, sse, var, stdev, f_best, (z_term, ei_term_1, ei_term_2, CDF, PDF)
     """
+    
+    assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    assert verbose==True or verbose==False, "Verbose must be True/False"
     ##Set Hyperparameters to 1
     if isinstance(train_y, np.ndarray)==True:
         train_y = torch.tensor(train_y) #1xn
@@ -941,7 +950,20 @@ def eval_GP(p, theta_mesh, train_y, explore_bias, model, likelihood, verbose):
     return eval_components
 
 def find_opt_and_best_arg(theta_mesh, sse, ei):
+    """
+    Finds the Theta value where min(sse) or min(-ei) is true using argmax and argmin
     
+    Parameters:
+    -----------
+        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        sse: ndarray (d, p x p), meshgrid of sse values for all points in theta_mesh
+        ei: ndarray (d, p x p), meshgrid of ei values for all points in theta_mesh
+    
+    Returns:
+    --------
+        Theta_Opt_GP: ndarray, The point where the sse is minimized in theta_mesh
+        Theta_Best: ndarray, The point where the ei is maximized in theta_mesh
+    """
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
     
@@ -967,6 +989,31 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     return Theta_Opt_GP, Theta_Best
 
 def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, likelihood, explore_bias):
+    """
+    Finds the Theta value where min(sse) or min(-ei) is true using scipy.minimize and the L-BFGS-B method
+    
+    Parameters:
+    -----------
+        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        train_y: tensor or ndarray, The training y data
+        theta0_b: Initial guess of the Theta value where ei is maximized
+        theta0_o: Initial guess of the Theta value where sse is minimized
+        sse: ndarray (d, p x p), meshgrid of sse values for all points in theta_mesh
+        ei: ndarray (d, p x p), meshgrid of ei values for all points in theta_mesh
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
+    
+    Returns:
+    --------
+        Theta_Opt_GP: ndarray, The point where the sse is minimized in theta_mesh
+        Theta_Best: ndarray, The point where the ei is maximized in theta_mesh
+    """
+    assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    assert len(theta0_b) == len(theta0_o), "Initial guesses must be the same length."
+    
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
     bnds = [[np.amin(theta1_mesh), np.amax(theta1_mesh)], [np.amin(theta2_mesh), np.amax(theta2_mesh)]]
