@@ -55,7 +55,7 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0):
   
     return y_exp
 
-def create_sse_data(q,train_T, x, y_exp):
+def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     #Tested for correctness 5/19/22
     """
     Creates y_data for the 2 input GP function
@@ -66,6 +66,7 @@ def create_sse_data(q,train_T, x, y_exp):
         train_T: ndarray, The array containing the training data for Theta1 and Theta2
         x: ndarray, The list of xs that will be used to generate y
         y_exp: ndarray, The experimental data for y (the true value)
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         
     Returns:
         sum_error_sq: ndarray, The SSE values that the GP will be trained on
@@ -76,6 +77,8 @@ def create_sse_data(q,train_T, x, y_exp):
 #     print(train_T.T)
     assert len(train_T.T) ==q, str("This is a "+str(q)+" input GP, train_T can only contain 2 columns of values.")
     assert len(x) == len(y_exp), "Xexp and Yexp must be the same length"
+    assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
+    
     if len(train_T)!= q:
         #Creates an array for train_sse that will be filled with the for loop
         sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
@@ -85,7 +88,10 @@ def create_sse_data(q,train_T, x, y_exp):
             theta_1 = train_T[i,0] #n_train^2x1 
             theta_2 = train_T[i,1] #n_train^2x1
             y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-            sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
+            if obj == "obj":
+                sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
+            else:
+                sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
     else:
          #Creates a value for train_sse that will be filled with the for loop
         sum_error_sq = 0 #1 x n_train^2
@@ -94,7 +100,10 @@ def create_sse_data(q,train_T, x, y_exp):
         theta_1 = train_T[0] #n_train^2x1 
         theta_2 = train_T[1] #n_train^2x1
         y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-        sum_error_sq = torch.tensor(sum((y_sim - y_exp)**2)) #Scaler 
+        if obj == "obj":
+            sum_error_sq = torch.tensor(sum((y_sim - y_exp)**2)) #Scaler 
+        else:
+            sum_error_sq = torch.tensor(np.log(sum((y_sim - y_exp)**2))) #Scaler 
     
     return sum_error_sq
 
@@ -959,7 +968,7 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     
     return theta_b, theta_o
 
-def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh, Theta_True, iterations, explore_bias, model, likelihood, Xexp, Yexp, verbose = False):
+def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,iterations,explore_bias,model,likelihood, Xexp, Yexp, obj, verbose = False):
     for i in range(BO_iters):
         if torch.is_tensor(train_p) != True:
             train_p = torch.from_numpy(train_p)
@@ -1001,7 +1010,7 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh, Theta_True, iterations, exp
         train_y = train_y.numpy() #(1 x t)
 
         #Call the expensive function and evaluate at Theta_Best
-        sse_Best = create_sse_data(q,theta_b, Xexp, Yexp) #(1 x 1)
+        sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
     #     sse_Best = create_sse_data(q,Theta_Best, Xexp, Yexp) #(1 x 1)
 
         #Add Theta_Best to train_p and y_best to train_y
