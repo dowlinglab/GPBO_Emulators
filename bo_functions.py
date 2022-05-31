@@ -834,7 +834,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
             eval_point = np.array([point])
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
             model_sse = GP_Outputs[3].numpy()[0] #1xn
-    #         print(model_sse)
+#             print(model_sse)
             model_variance= GP_Outputs[1].numpy()[0] #1xn
 #             if verbose == True:
 #                 print("Point",eval_point)
@@ -995,7 +995,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     Theta_2_Best = float(theta2_mesh[argmax[0],argmax[1]])
     Theta_Best = np.array((Theta_1_Best,Theta_2_Best))  
     
-    return Theta_Opt_GP, Theta_Best
+    return Theta_Best, Theta_Opt_GP
 
 def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, likelihood, explore_bias):
     """
@@ -1093,6 +1093,8 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explor
         
         if verbose == True:
             ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
+        
+#         print(sse)
         
         Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei)
         theta0_b = Theta_Best
