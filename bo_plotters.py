@@ -92,6 +92,8 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
     plt.colorbar()
 #     print(p_GP_opt[0],p_GP_opt[1])
     
+    if torch.is_tensor(train_p) == True:
+        train_p = train_p.numpy()
     
     #Plots the true optimal value and the GP value
     plt.scatter(p_true[0],p_true[1], color="blue", label = "True Optimal Value", s=100, marker = (5,1))
