@@ -145,7 +145,7 @@ def create_y_data(q, param_space):
         y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
     return y_data
 
-def test_train_split(all_data, sep_fact=0.8):
+def test_train_split(all_data, sep_fact=0.8, shuffle_seed = None):
     """
     Splits y data into training and testing data
     
@@ -165,11 +165,14 @@ def test_train_split(all_data, sep_fact=0.8):
     assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
     
     #Shuffles Random Data
-    np.random.shuffle(all_data) 
     
+    if shuffle_seed is not None:
+        np.random.seed(shuffle_seed)
+    
+    np.random.shuffle(all_data) 
+        
     #Creates the index on which to split data
     train_enteries = int(len(all_data)*sep_fact)
-    
     
     #Training and testing data are created and converted into tensors
     train_y =all_data[:train_enteries, -1] #1x(n*sep_fact)
