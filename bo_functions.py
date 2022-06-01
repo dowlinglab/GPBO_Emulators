@@ -145,14 +145,13 @@ def create_y_data(q, param_space):
         y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
     return y_data
 
-def test_train_split(param_space, y_data, sep_fact=0.8):
+def test_train_split(all_data, sep_fact=0.8):
     """
     Splits y data into training and testing data
     
     Parameters
     ----------
-        param_space: ndarray or tensor, The parameter space over which the GP will be run
-        y_data: ndarray or tensor, The simulated y data
+        all_data: ndarray or tensor, The simulated parameter space and y data
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
     Returns:
         train_param: tensor, The training parameter space data
@@ -163,26 +162,25 @@ def test_train_split(param_space, y_data, sep_fact=0.8):
     """
     #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
     assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
-    assert 0 < sep_fact< 1, "Separation factor must be between 0 and 1"
+    assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
     
-    #Asserts length od param_space and y_data are equal
-    assert len(param_space) == len(y_data), "The length of param_space and y_data must be the same"
-    
-    #Converts data and parameters to tensors if they are numpy arrays
-    if isinstance(param_space, np.ndarray)==True:
-        param_space = torch.tensor(param_space) #1xn
-    if isinstance(y_data, np.ndarray)==True:
-        y_data = torch.tensor(y_data) #1xn
+    #Shuffles Random Data
+    np.random.shuffle(all_data) 
     
     #Creates the index on which to split data
-    train_split = int(np.round(len(y_data))*sep_fact)-1 
+    train_enteries = int(len(all_data)*sep_fact)
+    
     
     #Training and testing data are created and converted into tensors
-    train_data =y_data[:train_split] #1x(n*sep_fact)
-    test_data = y_data[train_split:] #1x(n-n*sep_fact)
-    train_param = param_space[:train_split,:] #1x(n*sep_fact)
-    test_param = param_space[train_split:,:] #1x(n-n*sep_fact)
-    return train_param, train_data, test_param, test_data
+    train_y =all_data[:train_enteries, -1] #1x(n*sep_fact)
+    test_y = all_data[train_enteries:, -1] #1x(n-n*sep_fact)
+    train_param = all_data[:train_enteries,:-1] #1x(n*sep_fact)
+    test_param = all_data[train_enteries:,:-1] #1x(n-n*sep_fact)
+    
+    train_data = np.column_stack((train_param, train_y))
+    test_data = np.column_stack((test_param, test_y))
+    
+    return train_data,test_data
 
 class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     """
