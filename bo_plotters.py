@@ -29,7 +29,7 @@ def plot_hyperparams(iterations, hyperparam, title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_xy(x_line, x_exp, y_exp, y_GP,y_true,title):
+def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     '''
     Plots Hyperparameters
     Parameters
@@ -38,6 +38,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_true,title):
         x_exp: ndarray, array of X_exp values
         y_exp: ndarray, array of Y_exp values
         y_GP: ndarray, array of y_GP values given based on GP Theta_Best
+        y_GP_long: ndarray, array of y_GP values given based on GP Theta_Best using x_line
         y_true: ndarray, array of y_true values at all points in x_line
      
     Returns
@@ -49,8 +50,9 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_true,title):
 #     assert len(iters_axis) == len(hyperparam), "Hyperparameter array must have length of # of training iterations"
     
     plt.figure()
-    plt.scatter(x_exp, y_exp, label = "y_true", color = "orange")
-    plt.plot(x_exp, y_GP, label = "y_GP")
+    plt.scatter(x_exp, y_exp, label = "y $\Theta_{true}$", color = "orange")
+    plt.scatter(x_exp, y_GP)
+    plt.plot(x_line, y_GP_long, label = "y $\Theta_{GP}$")
     plt.plot(x_line, y_true, color = "orange")
     plt.grid(True)
     plt.legend(loc = "best")

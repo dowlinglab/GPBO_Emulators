@@ -107,6 +107,40 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     
     return sum_error_sq
 
+def gen_y_Theta_GP(x_space, Theta, q =3, m=1):
+    """
+    Generates an array of Best Theta Value and X to create y data
+    
+    Parameters
+    ----------
+        x_space: ndarray, array of x value
+        Theta: ndarray, Array of theta values
+        q: Number of parameters necessary to generate y. Default=3
+        m: int, Number of dimensions of x. Default is 1
+             
+    Returns
+    -------
+        create_y_data_space: ndarray, array of parameters [Theta, x] to be used to generate y data
+        
+    """
+    assert isinstance(m, int), "dimesions, m, must be an integer!"
+    assert isinstance(q, int), "GP dimesions to find y, q, must be an integer!"
+    
+    lenX = len(x_space)
+    if m != 1:
+        dim = len(x_space.T) + len(Theta)
+    else:
+        dim = m  + len(Theta)
+    create_y_data_space = np.zeros((lenX,dim))
+    for i in range(lenX):
+        for j in range(len(Theta)):
+            create_y_data_space[i,j] = Theta[1][j]
+        create_y_data_space[i,len(Theta)] = x_space[i]
+    y_GP_Opt_data = create_y_data(q,create_y_data_space)
+    return y_GP_Opt_data
+            
+            
+
 def create_y_data(q, param_space):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
