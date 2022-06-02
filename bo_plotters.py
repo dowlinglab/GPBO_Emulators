@@ -61,7 +61,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True, Bo_iter = None, obj = "obj",ep="0"):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -118,15 +118,19 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
     #Creates axis labels and title
     plt.xlabel('$\\theta_1$',weight='bold')
     plt.ylabel('$\\theta_2$',weight='bold')
-    plt.title("Heat Map of "+title, weight='bold',fontsize=16)
     plt.xlim((-2, 2))
     plt.ylim((-2,2))
 #     plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold')
     #Shows plot
-#     plt.savefig("Heat Map of "+title+".png",dpi = 1200)
+    if Bo_iter is not None:
+        plt.title(title+"_BO_iter_"+str(Bo_iter+1), weight='bold',fontsize=16)
+        plt.savefig("Figures/"+title+"_"+obj+"_iter_"+str(Bo_iter+1)+"_TP_"+str(len(train_p))+"_ep_"+ep+".png",dpi = 600)
+    else:
+        plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
+           
     return plt.show()
 
-def ei_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True):
+def ei_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True, Bo_iter = None, obj = "obj",ep="0"):
     """
     Plots the expected improvement of the GP
     Parameters
@@ -138,10 +142,10 @@ def ei_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True
     -------
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
-    title = "Expected Improvement"
-    return value_plotter(test_mesh, z, p_true, p_GP_opt,p_GP_best,title,train_p,plot_train)
+    title = "EI"
+    return value_plotter(test_mesh, z, p_true, p_GP_opt,p_GP_best,title,train_p,plot_train,Bo_iter, obj, ep)
 
-def y_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,title = "y",plot_train=True):
+def y_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,title = "y",plot_train=True, Bo_iter=None, obj="obj",ep="0"):
     '''
     Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
 
@@ -157,10 +161,10 @@ def y_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,title = "y",plot
     -------
         plt.show(), A heat map of test_mesh and z (y values)
     '''
-    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True)
+    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train,Bo_iter, obj, ep)
 
 
-def stdev_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,plot_train=True):
+def stdev_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,plot_train=True,Bo_iter=None, obj="obj",ep="0"):
     '''
     Helper function for basic_plotter. Calls basic_plotter specifically for plotting standard deviation values.
 
@@ -175,10 +179,10 @@ def stdev_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,plot_train=
     -------
         plt.show(), A heat map of test_mesh and z (standard deviation values)
     '''
-    title = "Standard Deviation"
-    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True)
+    title = "$\sigma$"
+    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train,Bo_iter, obj, ep)
 
-def sse_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True):
+def sse_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True,Bo_iter = None, obj= "obj",ep="0"):
     """
     Plots the error^2 of the GP
     Parameters
@@ -190,13 +194,13 @@ def sse_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=Tru
     -------
         A 3D Heat map of the values of expected improvement predicted by the GP
     """
-    title = "SSE Magnitude"
+    title = "SSE"
     
     if isinstance(z,ndarray)!=True:
         z = np.asarray(z)
         
     error = z
-    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True)
+    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train,Bo_iter, obj, ep)
  
 def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None,p_GP_best= None,plot_train=True):
     """

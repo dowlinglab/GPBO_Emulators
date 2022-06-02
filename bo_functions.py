@@ -1075,7 +1075,7 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     
     return theta_b, theta_o
 
-def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, verbose = False):
+def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, verbose = False,save_fig=False):
     """
     Performs BO iterations
     
@@ -1147,16 +1147,22 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explor
             print("Argmin Theta_Opt_GP = ",Theta_Opt_GP, "\n")
 #             print("Best Error =", best_error, "\n")
         
-        sse_title = "SSE"
-        ei_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b,train_p,plot_train=True)
+        
+        if save_fig == True:
+            fig_iter = i
+        else: 
+            fig_iter = None
+       
+        sse_title = "SSE"    
+        ei_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b,train_p,plot_train=True,Bo_iter = fig_iter, obj = obj)
         if obj == "LN_obj":
-            y_plotter(theta_mesh, np.exp(sse), Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True)
+            y_plotter(theta_mesh,np.exp(sse),Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True,Bo_iter = fig_iter, obj = obj)
         else:
-            y_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True)
-        titles = ["ei","sse","var","stdev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]
+            y_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True, Bo_iter = fig_iter, obj = obj)
+        titles = ["EI","SSE","$\sigma^2$","$\sigma$","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]
         if verbose == True:
             for j in range(len(titles)-2):
-                y_plotter(theta_mesh, eval_components[j+2], Theta_True, theta_o, theta_b, train_p,titles[j+2],plot_train=True)
+                y_plotter(theta_mesh, eval_components[j+2], Theta_True, theta_o, theta_b, train_p,titles[j+2],plot_train=True, Bo_iter = fig_iter, obj = obj)
     #     ei_plotter(theta_mesh, ei, Theta_True, Theta_Opt_GP, Theta_Best,train_T,plot_train=True)
     #     y_plotter(theta_mesh, sse, Theta_True, Theta_Opt_GP, Theta_Best, train_T,sse_title,plot_train=True)
         ##Append best values to training data 
