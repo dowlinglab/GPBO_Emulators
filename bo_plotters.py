@@ -104,8 +104,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')
     
-    if plot_train == True:
-        plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
+    plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
     
     plt.scatter(p_GP_best[0],p_GP_best[1], color="black", s=10, label = "GP Best EI Value", marker = "D")
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
@@ -122,11 +121,11 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
     plt.ylim((-2,2))
 #     plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold')
     #Shows plot
-    if Bo_iter is not None:
+    if Bo_iter != None:
         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
         ep = str(np.round(float(ep),1))
         org_TP = str(len(train_p)-(Bo_iter))
-        plt.savefig("Figures/"+title+"_TP_"+org_TP+"_ep_"+ep+"_iter_"+str(Bo_iter+1)+"_"+obj+".png",dpi = 600)
+        plt.savefig("Figures/"+title+"_"+obj+"_TP_"+org_TP+"_ep_"+ep+"_iter_"+str(Bo_iter+1)+".png",dpi = 600)
     else:
         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
            
