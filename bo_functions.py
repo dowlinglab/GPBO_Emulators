@@ -5,8 +5,9 @@ import torch
 import csv
 import gpytorch
 import scipy.optimize as optimize
-from bo_plotters import ei_plotter
-from bo_plotters import y_plotter
+from bo_plotters import value_plotter
+from bo_plotters import plot_xy
+from bo_plotters import plot_obj_Theta
 
 def LHS_Design(csv_file):
     """
@@ -62,7 +63,7 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     
     Parameters
     ----------
-        q: int, Number of GP inputs
+        q: int, Number of GP inputs needed for direct calculation of the objective function
         train_T: ndarray, The array containing the training data for Theta1 and Theta2
         x: ndarray, The list of xs that will be used to generate y
         y_exp: ndarray, The experimental data for y (the true value)
@@ -75,11 +76,11 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     #Asserts that test_T is a tensor with 2 columns (May delete this)
     assert isinstance(q, int), "Number of inputs must be an integer"
 #     print(train_T.T)
-    assert len(train_T.T) ==q, str("This is a "+str(q)+" input GP, train_T can only contain 2 columns of values.")
+    assert len(train_T.T) ==q, str("This is a "+str(q)+" input GP, train_T can only contain q columns of values.")
     assert len(x) == len(y_exp), "Xexp and Yexp must be the same length"
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     
-    if len(train_T)!= q:
+    if len(train_T)!= q: #For the case where more than 1 point is geing generated
         #Creates an array for train_sse that will be filled with the for loop
         sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
 
@@ -107,7 +108,7 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     
     return sum_error_sq
 
-def gen_y_Theta_GP(x_space, Theta, q =3, m=1):
+def gen_y_Theta_GP(x_space, Theta, q, m=1):
     """
     Generates an array of Best Theta Value and X to create y data
     
@@ -115,47 +116,47 @@ def gen_y_Theta_GP(x_space, Theta, q =3, m=1):
     ----------
         x_space: ndarray, array of x value
         Theta: ndarray, Array of theta values
-        q: Number of parameters necessary to generate y. Default=3
+        q: Number of parameters to be regressed
         m: int, Number of dimensions of x. Default is 1
+        
              
     Returns
     -------
         create_y_data_space: ndarray, array of parameters [Theta, x] to be used to generate y data
         
     """
-    assert isinstance(m, int), "dimesions, m, must be an integer!"
-    assert isinstance(q, int), "GP dimesions to find y, q, must be an integer!"
+    assert isinstance(m, int), "dimesions of x_space, m, must be an integer!"
+    assert isinstance(q, int), "Parameters to regress, q, must be an integer!"
+    assert len(Theta) == q, "Length of Theta must be equal to number of parameters to regress, q!"
     
+    dim = q+m
     lenX = len(x_space)
-    if m != 1:
-        dim = len(x_space.T) + len(Theta)
-    else:
-        dim = m  + len(Theta)
     create_y_data_space = np.zeros((lenX,dim))
     for i in range(lenX):
-        for j in range(len(Theta)):
-            create_y_data_space[i,j] = Theta[1][j]
-        create_y_data_space[i,len(Theta)] = x_space[i]
-    y_GP_Opt_data = create_y_data(q,create_y_data_space)
+        for j in range(q):
+            create_y_data_space[i,j] = Theta[j]
+        create_y_data_space[i,q] = x_space[i]
+    y_GP_Opt_data = create_y_data(dim,create_y_data_space)
+       
     return y_GP_Opt_data
             
             
 
-def create_y_data(q, param_space):
+def create_y_data(y_param, param_space):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
     ----------
-        q: int, Number of GP inputs needed for direct calculation of the objective function
+        y_param: int, Number of parameters needed to calculate y
         param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
     Returns
     -------
         y_data: ndarray, The simulated y training data
     """
     #Assert statements check that the types defined in the doctring are satisfied
-    assert isinstance(q, int), "Number of inputs must be an integer"
+    assert isinstance(y_param , int), "Number of parameters to regress must be an integer"
 #     print(param_space.T)
-    assert len(param_space.T) ==q, str("This is a "+str(q)+" input GP, train_T can only contain 2 columns of values.")
+    assert len(param_space.T) == y_param, str("Calculation of y requires "+str(y_param)+" parameters.")
     
     #Converts parameters to numpy arrays if they are tensors
     if torch.is_tensor(param_space)==True:
@@ -164,7 +165,7 @@ def create_y_data(q, param_space):
     #Creates an array for train_data that will be filled with the for loop
     y_data = np.zeros(len(param_space)) #1 x n (row x col)
     
-    if len(param_space)!=q:
+    if len(param_space)!=y_param: #Used when multiple values of y are being calculated
         #Iterates over evey combination of theta to find the expected y value for each combination
         for i in range(len(param_space)):
             theta_1 = param_space[i,0] #nx1 
@@ -1075,7 +1076,7 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     
     return theta_b, theta_o
 
-def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, verbose = False,save_fig=False):
+def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, verbose = False,save_fig=False,emulator = False):
     """
     Performs BO iterations
     
@@ -1085,7 +1086,8 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explor
         train_p: tensor or ndarray, The training parameter space data
         train_y: tensor or ndarray, The training y data
         p: integer, the length of Theta vectors
-        q: integer, Number of GP inputs
+        q: integer, Number of parameters to be regressed
+        m: Number of dimensions of X
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
         train_iter: int, number of training iterations to run. Default is 300
@@ -1094,6 +1096,7 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explor
         Yexp: ndarray, The experimental data for y (the true value)
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
+        emulator: True/False, Determines if GP will model the function or the function error
         
     Returns:
     --------
@@ -1101,13 +1104,21 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explor
         theta_o: The predicted theta where objective function is minimized after all BO iterations
     
     """
-    assert all(isinstance(i, int) for i in [BO_iters, p,q,train_iter]), "BO_iters, p,q,and train_iter must be integers"
-    assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
+    assert all(isinstance(i, int) for i in [BO_iters, p,q,m,train_iter]), "BO_iters, p, q, m, and train_iter must be integers"
+    if emulator == True:
+        assert len(train_p.T) ==q+m, "train_p must have the same number of dimensions as the value of q+m"
+    else:
+        assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
     assert len(train_p) == len(train_y), "Training data must be the same length"
-    assert len(Theta_True)==2, "Theta True must be 2-dimensional"
+    assert len(Theta_True)==q, "Theta True must be q-dimensional"
     assert len(Xexp) == len(Yexp), "Experimental data must have the same length"
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     assert verbose==True or verbose==False, "Verbose must be True/False"
+    assert emulator==True or emulator==False, "Verbose must be True/False"
+    
+    All_Theta_Best = np.zeros((BO_iters,q)) 
+    All_Theta_Opt = np.zeros((BO_iters,q)) 
+    All_SSE = np.zeros(BO_iters)
     
     for i in range(BO_iters):
         if torch.is_tensor(train_p) != True:
@@ -1137,7 +1148,12 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explor
 #         theta0_b = np.array([0.95,-0.95])
 #         theta0_o = np.array([0.95,-0.95])
         theta_b, theta_o = find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei,model, likelihood, explore_bias)
-       
+        All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
+        
+        y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o, q, m)
+        Error_mag = np.sum((y_GP_Opt-Yexp)**2)
+        All_SSE[i] = Error_mag
+        
         if verbose == True:
             print("BO Iteration = ", i+1)
             print("Exploration Bias = ",explore_bias)
@@ -1153,18 +1169,18 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explor
         else: 
             fig_iter = None
        
+        ei_title = "EI"
         sse_title = "SSE"    
-        ei_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b,train_p,plot_train=True,Bo_iter = fig_iter, obj = obj,ep = explore_bias)
+        value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b,train_p, ei_title, plot_train=True,Bo_iter = fig_iter, obj = obj,ep = explore_bias)
         if obj == "LN_obj":
-            y_plotter(theta_mesh,np.exp(sse),Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True,Bo_iter = fig_iter, obj = obj, ep = explore_bias)
+            value_plotter(theta_mesh,np.exp(sse),Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True,Bo_iter = fig_iter, obj = obj, ep = explore_bias)
         else:
-            y_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True, Bo_iter = fig_iter, obj = obj, ep=explore_bias)
+            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p,sse_title,plot_train=True, Bo_iter = fig_iter, obj = obj, ep=explore_bias)
         titles = ["EI","SSE","$\sigma^2$","$\sigma$","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]
         if verbose == True:
             for j in range(len(titles)-2):
-                y_plotter(theta_mesh, eval_components[j+2], Theta_True, theta_o, theta_b, train_p,titles[j+2],plot_train=True, Bo_iter = fig_iter, obj = obj, ep =explore_bias)
-    #     ei_plotter(theta_mesh, ei, Theta_True, Theta_Opt_GP, Theta_Best,train_T,plot_train=True)
-    #     y_plotter(theta_mesh, sse, Theta_True, Theta_Opt_GP, Theta_Best, train_T,sse_title,plot_train=True)
+                value_plotter(theta_mesh, eval_components[j+2], Theta_True, theta_o, theta_b, train_p,titles[j+2],plot_train=True, Bo_iter = fig_iter, obj = obj, ep =explore_bias)
+
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
         train_p = train_p.numpy() #(q x t)
@@ -1178,7 +1194,17 @@ def bo_iter(BO_iters,train_p,train_y,p,q,theta_mesh,Theta_True,train_iter,explor
         train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
     #     train_T = np.concatenate((train_T, [Theta_Best]), axis=0) #(q x t)
         train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
-    return theta_b, theta_o 
+    
+    #For XY Comparison after all iterations
+    title = "XY Comparison"
+    X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
+    y_true = calc_y_exp(Theta_True, X_line, noise_std = 0.1**2, noise_mean=0)
+    y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o, q, m)                         
+    plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
+    print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
+    
+    plot_obj_Theta(q, All_SSE, All_Theta_Opt)
+    return All_Theta_Best, All_Theta_Opt, All_SSE
         
 def create_dicts(i,ei_components,verbose =False):
     """

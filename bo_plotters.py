@@ -61,7 +61,51 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True, Bo_iter = None, obj = "obj",ep=0):
+def plot_obj_Theta(q, obj_array, Theta_array):
+    """
+    Plots the objective function and Theta values vs BO iteration
+    
+    Parameters
+    ----------
+        q: int, The number of parameters that were regressed
+        obj_array: ndarry, (nx1): The output array containing objective function values
+        Theta_array: ndarray, (nxq): The output array containing objective function values
+    
+    Returns:
+    --------
+        Plots of obj vs BO_iter and Plots of Theta vs BO_iter
+    """
+    assert isinstance(q, int)==True, "q must be an integer!"
+    assert len(obj_array) == len(Theta_array), "obj_array and Theta_array must be the same length"
+    assert len(Theta_array.T) == q, "Number of parameters regressed must be equal to number of columns in Theta_array"
+    
+    bo_iters = len(obj_array)
+    bo_space = np.linspace(1,bo_iters,bo_iters)
+#     print(len(bo_space), len(obj_array))
+#     print(bo_space,obj_array)
+    
+    plt.figure()
+    plt.step(bo_space, obj_array, label = "SSE")
+    plt.xlabel("BO Iterations")
+    plt.ylabel("Objective Function")
+    plt.title("BO Iteration Results - Objective")
+    plt.grid(True)
+    plt.legend(loc = "best")
+    plt.show()
+    
+    for i in range(q):
+        plt.figure()
+        plt.step(bo_space, Theta_array[:,i], label = "Theta" +str(i+1))
+        plt.xlabel("BO Iterations")
+        plt.ylabel("Theta" + str(i+1))
+        plt.title("BO Iteration Results - Objective")
+        plt.grid(True)
+        plt.legend(loc = "best")
+        plt.show()
+    
+    
+
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,plot_train=True, Bo_iter = None, obj = "obj",ep=0):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -131,24 +175,10 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_
            
     return plt.show()
 
-def ei_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True, Bo_iter = None, obj = "obj",ep=0):
-    """
-    Plots the expected improvement of the GP
-    Parameters
-    ----------
-        test_mesh: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of the GP expected improvement values
-    
-    Returns
-    -------
-        A 3D Heat map of the values of expected improvement predicted by the GP
-    """
-    title = "EI"
-    return value_plotter(test_mesh, z, p_true, p_GP_opt,p_GP_best,title,train_p,plot_train,Bo_iter, obj, ep)
 
 def y_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,title = "y",plot_train=True, Bo_iter=None, obj="obj",ep=0):
     '''
-    Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
+    Helper function for basic_plotter. Calls basic_plotter with a title.
 
     Parameters
     ----------
@@ -164,44 +194,6 @@ def y_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,title = "y",plot
     '''
     return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train,Bo_iter, obj, ep)
 
-
-def stdev_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,plot_train=True,Bo_iter=None, obj="obj",ep=0):
-    '''
-    Helper function for basic_plotter. Calls basic_plotter specifically for plotting standard deviation values.
-
-    Parameters
-    ----------
-        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
-        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
-        p_true: ndarray, A 2x1 containing the true input parameters
-        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
-     
-    Returns
-    -------
-        plt.show(), A heat map of test_mesh and z (standard deviation values)
-    '''
-    title = "$\sigma$"
-    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train,Bo_iter, obj, ep)
-
-def sse_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,plot_train=True,Bo_iter = None, obj= "obj",ep=0):
-    """
-    Plots the error^2 of the GP
-    Parameters
-    ----------
-        test_mesh: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of the GP expected improvement values
-    
-    Returns
-    -------
-        A 3D Heat map of the values of expected improvement predicted by the GP
-    """
-    title = "SSE"
-    
-    if isinstance(z,ndarray)!=True:
-        z = np.asarray(z)
-        
-    error = z
-    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train,Bo_iter, obj, ep)
  
 def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None,p_GP_best= None,plot_train=True):
     """
