@@ -61,7 +61,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_obj_Theta(q, obj_array, Theta_array):
+def plot_obj_Theta(q, obj_array, Theta_array, Theta_True, train_p, bo_iters, obj = "obj",ep=0,restarts=0):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -70,42 +70,59 @@ def plot_obj_Theta(q, obj_array, Theta_array):
         q: int, The number of parameters that were regressed
         obj_array: ndarry, (nx1): The output array containing objective function values
         Theta_array: ndarray, (nxq): The output array containing objective function values
+        Theta_True: ndarray, Used for plotting Theta Values
+        train_p: ndarray, Used for figure naming
+        obj: string, name of objective function. Default "obj"
+        ep: int or float, exploration parameter. Used for naming
     
     Returns:
     --------
         Plots of obj vs BO_iter and Plots of Theta vs BO_iter
     """
-    assert isinstance(q, int)==True, "q must be an integer!"
+    if restarts ==0:
+        assert len(Theta_array.T) == q, "Number of parameters regressed must be equal to number of columns in Theta_array"
     assert len(obj_array) == len(Theta_array), "obj_array and Theta_array must be the same length"
-    assert len(Theta_array.T) == q, "Number of parameters regressed must be equal to number of columns in Theta_array"
+    assert isinstance(q, int)==True, "q must be an integer!"
+    assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
-    bo_iters = len(obj_array)
     bo_space = np.linspace(1,bo_iters,bo_iters)
-#     print(len(bo_space), len(obj_array))
-#     print(bo_space,obj_array)
+
+    ep = str(np.round(float(ep),1))
+    org_TP = str(len(train_p)-(bo_iters))
     
     plt.figure()
-    plt.step(bo_space, obj_array, label = "SSE")
+    if restarts !=0:
+        for i in range(restarts):
+            print(obj_array[i])
+            plt.step(bo_space, obj_array[i], label = "Restart: "+str(i))
+    else:
+        plt.step(bo_space, obj_array, label = "SSE")
     plt.xlabel("BO Iterations")
-    plt.ylabel("Objective Function")
-    plt.title("BO Iteration Results - Objective")
+    plt.ylabel("SSE")
+    plt.title("BO Iteration Results: SSE Metric")
     plt.grid(True)
     plt.legend(loc = "best")
+#     plt.savefig("Figures/Convergence_Figs/"+"Conv_"+obj+"_TP_"+org_TP+"_ep_"+ep+"_iters_"+str(bo_iters)+".png",dpi = 600)
     plt.show()
     
-    for i in range(q):
+    for j in range(q):
         plt.figure()
-        plt.step(bo_space, Theta_array[:,i], label = "Theta" +str(i+1))
+        if restarts != 0:
+            for i in range(restarts):
+                plt.step(bo_space, Theta_array[i,:,j], label = "$\Theta_" +str({j+1})+"$"+" Restart: "+str(i))
+        else:   
+            plt.step(bo_space, Theta_array[:,j], label = "$\Theta_" +str({j+1})+"$")
+        plt.step(bo_space, np.repeat(Theta_True[j],bo_iters), label = "$\Theta_{true,"+str(j+1)+"}$")
         plt.xlabel("BO Iterations")
-        plt.ylabel("Theta" + str(i+1))
-        plt.title("BO Iteration Results - Objective")
+        plt.ylabel("$\Theta_" + str({i+1})+"$")
+        plt.title("BO Iteration Results: "+"$\Theta_"+str({i+1})+"$")
         plt.grid(True)
         plt.legend(loc = "best")
+#         plt.savefig("Figures/Convergence_Figs/"+"Theta"+str(i+1)+"_"+obj+"_TP_"+org_TP+"_ep_"+ep+"_iters_"+str(bo_iters)+".png",dpi = 600)
         plt.show()
     
-    
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,plot_train=True, Bo_iter = None, obj = "obj",ep=0):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title, obj = "obj",ep=0,Bo_iter = None):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -116,6 +133,9 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,plot_
         p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
         p_GP_Best: ndarray, A 2x1 containing the input parameters predicted by the GP to have the best EI
         title: str, A string containing the title of the plot
+        obj: str, The name of the objective function. Used for saving figures
+        ep: int or float, the exploration parameter
+        Bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
      
     Returns
     -------
@@ -123,15 +143,18 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,plot_
     '''
     #Defines the x and y coordinates that will be used to generate the heat map, this step isn't
     #necessary, but streamlines the process
+    q=2
     xx , yy = test_mesh #NxN, NxN
 #     print(p_true,p_GP_opt)
     #Assert that test_mesh and z are NxN, that p_true and p_GP_opt are 2x1, and the title is a string
     assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
     assert z.shape==xx.shape, "Array z must be NxN"
-    assert len(p_true) ==len(p_GP_opt)==len(p_GP_best)==2, "p_true, p_GP_opt, and p_GP_best must be 2x1 for a 2 input GP"
+    assert len(p_true) ==len(p_GP_opt)==len(p_GP_best)==q, "p_true, p_GP_opt, and p_GP_best must be qx1 for a q input GP"
     assert isinstance(title, str)==True, "Title must be a string"
-    assert len(train_p.T) >= 2, "Train_p must have at least 2 columns"
+    assert len(train_p.T) >= q, "Train_p must have at least q columns"
+    assert isinstance(Bo_iter,int) == True or Bo_iter == None, "Bo_iter must be an integer or None"
+    assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
 #     plt.figure(figsize=(8,4))
     plt.contourf(xx, yy,z,cmap = "autumn")
