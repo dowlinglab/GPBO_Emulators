@@ -93,15 +93,14 @@ def plot_obj_Theta(q, obj_array, Theta_array, Theta_True, train_p, bo_iters, obj
     plt.figure()
     if restarts !=0:
         for i in range(restarts):
-            print(obj_array[i])
-            plt.step(bo_space, obj_array[i], label = "Restart: "+str(i))
+            plt.step(bo_space, obj_array[i], label = "Restart: "+str(i+1))
     else:
         plt.step(bo_space, obj_array, label = "SSE")
     plt.xlabel("BO Iterations")
     plt.ylabel("SSE")
     plt.title("BO Iteration Results: SSE Metric")
     plt.grid(True)
-    plt.legend(loc = "best")
+    plt.legend(loc = "upper left")
 #     plt.savefig("Figures/Convergence_Figs/"+"Conv_"+obj+"_TP_"+org_TP+"_ep_"+ep+"_iters_"+str(bo_iters)+".png",dpi = 600)
     plt.show()
     
@@ -109,15 +108,15 @@ def plot_obj_Theta(q, obj_array, Theta_array, Theta_True, train_p, bo_iters, obj
         plt.figure()
         if restarts != 0:
             for i in range(restarts):
-                plt.step(bo_space, Theta_array[i,:,j], label = "$\Theta_" +str({j+1})+"$"+" Restart: "+str(i))
+                plt.step(bo_space, Theta_array[i,:,j], label = "$\Theta_" +str({j+1})+"$"+" Restart: "+str(i+1))
         else:   
             plt.step(bo_space, Theta_array[:,j], label = "$\Theta_" +str({j+1})+"$")
         plt.step(bo_space, np.repeat(Theta_True[j],bo_iters), label = "$\Theta_{true,"+str(j+1)+"}$")
         plt.xlabel("BO Iterations")
-        plt.ylabel("$\Theta_" + str({i+1})+"$")
-        plt.title("BO Iteration Results: "+"$\Theta_"+str({i+1})+"$")
+        plt.ylabel("$\Theta_" + str({j+1})+"$")
+        plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
         plt.grid(True)
-        plt.legend(loc = "best")
+        plt.legend(loc = "upper left")
 #         plt.savefig("Figures/Convergence_Figs/"+"Theta"+str(i+1)+"_"+obj+"_TP_"+org_TP+"_ep_"+ep+"_iters_"+str(bo_iters)+".png",dpi = 600)
         plt.show()
     

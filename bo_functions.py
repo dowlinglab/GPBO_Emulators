@@ -1077,7 +1077,7 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     
     return theta_b, theta_o
 
-def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, verbose = False,save_fig=False,emulator = False):
+def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False):
     """
     Performs BO iterations
     
@@ -1208,9 +1208,11 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
     y_true = calc_y_exp(Theta_True, X_line, noise_std = 0.1**2, noise_mean=0)
     y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o, q, m)                         
     plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
-#     print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
+    print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
     
-#     plot_obj_Theta(q, All_SSE, All_Theta_Opt, Theta_True, train_p,obj,BO_iters,explore_bias)
+    if restarts == 0:
+        plot_obj_Theta(q, All_SSE, All_Theta_Best, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
+        
     return All_Theta_Best, All_Theta_Opt, All_SSE
 
 def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False, shuffle_seed = None):
@@ -1258,6 +1260,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
     SSE_matrix = np.zeros((restarts,BO_iters)) 
     
     for i in range(restarts):
+        print("Restart Number: ",i+1)
         train_data, test_data = test_train_split(all_data, shuffle_seed=shuffle_seed)
         train_p = train_data[:,1:(q+1)]
         train_y = train_data[:,-1]
@@ -1271,7 +1274,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
         train_p = train_p[0:t]
         train_y = train_y[0:t]
         
-        BO_results = bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, verbose = False,save_fig=False,emulator = False)
+        BO_results = bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False)
         Theta_matrix[i,:,:] = BO_results[1]
         SSE_matrix[i,:] = BO_results[2]
         
