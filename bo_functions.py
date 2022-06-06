@@ -1306,6 +1306,10 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
     Theta_matrix = np.zeros((restarts,BO_iters,q))
     SSE_matrix = np.zeros((restarts,BO_iters)) 
     
+    #Set theta mesh grids
+    theta1_mesh = theta_mesh[0]
+    theta2_mesh = theta_mesh[1]
+    
     #Loop over # Restarts
     for i in range(restarts):
         print("Restart Number: ",i+1)
@@ -1333,14 +1337,17 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
     #Plot all SSE/theta results for each BO iteration for all restarts
     plot_obj_Theta(q, SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
     
+    #Need to fix below
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
+    print(argmin)
     
-    if len(argmin[0]) != 1: #Need to generalize this
-        argmin = np.array([[argmin[0,1]],[argmin[1,1]],[argmin[1,2]]])
+    if len(argmin) != 2: #Need to generalize this
+        argmin = np.array([[argmin[0,1]],[argmin[1,1]],])
         
     #Find theta value corresponding to argmax(EI)
-    Theta_1_Opt_all = float(theta1_mesh[argmin[0],argmin[1],argmin[2]])
-    return Theta_1_Opt_all
+    Theta_1_Opt_all = float(Theta_matrix[argmin[1],argmin[2]]) 
+    restart_best = float(argmin[0])
+    return restart_best,Theta_1_Opt_all
         
 
 def create_dicts(i,ei_components,verbose =False):
