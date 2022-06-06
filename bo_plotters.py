@@ -52,8 +52,9 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     plt.figure()
     plt.scatter(x_exp, y_exp, label = "y $\Theta_{true}$", color = "orange")
     plt.scatter(x_exp, y_GP)
-    plt.plot(x_line, y_GP_long, label = "y $\Theta_{GP}$")
     plt.plot(x_line, y_true, color = "orange")
+    plt.plot(x_line, y_GP_long, "--", label = "y $\Theta_{GP}$")
+    
     plt.grid(True)
     plt.legend(loc = "best")
     plt.xlabel('X Value',weight='bold')

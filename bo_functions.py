@@ -1298,6 +1298,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
     assert emulator==True or emulator==False, "Verbose must be True/False"
     assert isinstance(restarts, int) == True, "Number of restarts must be an integer"
     
+    dim = m+q
     #Read data from a csv
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
     
@@ -1331,7 +1332,15 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
     
     #Plot all SSE/theta results for each BO iteration for all restarts
     plot_obj_Theta(q, SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
-    return None
+    
+    argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
+    
+    if len(argmin[0]) != 1: #Need to generalize this
+        argmin = np.array([[argmin[0,1]],[argmin[1,1]],[argmin[1,2]]])
+        
+    #Find theta value corresponding to argmax(EI)
+    Theta_1_Opt_all = float(theta1_mesh[argmin[0],argmin[1],argmin[2]])
+    return Theta_1_Opt_all
         
 
 def create_dicts(i,ei_components,verbose =False):
