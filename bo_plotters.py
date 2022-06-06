@@ -85,16 +85,21 @@ def plot_obj_Theta(q, obj_array, Theta_array, Theta_True, train_p, bo_iters, obj
     assert isinstance(q, int)==True, "q must be an integer!"
     assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
+    #Create x axis as # of bo iterations
     bo_space = np.linspace(1,bo_iters,bo_iters)
-
+    
+    #Set a string for exploration parameter and initial number of training points
     ep = str(np.round(float(ep),1))
     org_TP = str(len(train_p)-(bo_iters))
     
     plt.figure()
+    #Plots either 1 or multiple lines depending on whether there are restarts
     if restarts !=0:
         for i in range(restarts):
             plt.step(bo_space, obj_array[i], label = "Restart: "+str(i+1))
     else:
+#         print(bo_space)
+#         print(obj_array)
         plt.step(bo_space, obj_array, label = "SSE")
     plt.xlabel("BO Iterations")
     plt.ylabel("SSE")

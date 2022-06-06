@@ -104,13 +104,28 @@ BO_iter = # of iterations
 
     ##Find point with best EI
     #Calculate argmax of EI: Highest EI = Best point to sample
-    argmax = np.array(np.where(np.isclose(EI, np.amax(EI),atol=1e-10)==True))
+    argmax = np.array(np.where(np.isclose(EI, np.amax(EI),atol=np.amax(EI)*1e-6)==True))
+    argmin = np.array(np.where(np.isclose(SSE, np.amax(SSE),np.amax(SSE)*1e-6)==True))
 
     #Calculate correcsponding theta and x values and set p_Best
     Theta1_Best = float(theta1_mesh[argmax[0],argmax[1]]) (float)
     Theta2_Best = float(theta2_mesh[argmax[0],argmax[1]]) (float)
     Theta_Best = np.array([Theta1_Best,Theta2_Best],dtype=object) (q x 1)
-     
+    
+    #Calculate corresponding theta and x values and set p_Opt
+    Theta1_Opt = float(theta1_mesh[argmin[0],argmin[1]]) (float)
+    Theta2_Opt = float(theta2_mesh[argmin[0],argmin[1]]) (float)
+    Theta_Opt = np.array([Theta1_Best,Theta2_Best],dtype=object) (q x 1)
+    
+    #Use argmax/argmin results as initial guesses for scipy.optimize.minimize
+    theta_b, theta_o = find_opt_best_scipy(theta_mesh, train_y, Theta_Best,Theta_Opt, sse, ei,model, likelihood, explore_bias)
+    
+    #Calculate y based on theta_o
+    y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o, q, m)
+    
+    #Calculate total SSE for BO iteration
+    Error_mag = np.sum((y_GP_Opt-Yexp)**2)  
+    
     ##Plot graphs
     
     ##Append best values to training data 
@@ -125,6 +140,31 @@ BO_iter = # of iterations
     train_p = np.concatenate((train_T, Theta_Best), axis=0) (q x t)
     train_sse = np.concatenate((train_sse, sse_Best),axis=0) (1 x t)
     
+ 
+Step 8)
+#Complete Restart Loops
+#Read CSV
+
+#Initialize matricies to hold all BO data for all iterations
+Theta_matrix = np.zeros((restarts,BO_iters,q))
+SSE_matrix = np.zeros((restarts,BO_iters)) 
+    
+restarts = #
+#Loop over restart #
+    #Separate and shuffle training/testing data
+    train_data, test_data = test_train_split(all_data, shuffle_seed=shuffle_seed)
+    train_p = train_data[:,1:(q+1)]
+    train_y = train_data[:,-1]
+    train_p = train_p[0:t]
+    train_y = train_y[0:t]
+    
+    #Complete step 7
+    
+    #Add results to initialized matricies
+    #Plot all SSE/theta results for each BO iteration for all restarts
+
+#Find restart with lowest optimal SSE for solution
+(Use argmin)
 
             
 QUESTIONS:

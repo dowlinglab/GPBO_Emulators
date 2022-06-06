@@ -130,15 +130,20 @@ def gen_y_Theta_GP(x_space, Theta, q, m=1):
     assert isinstance(q, int), "Parameters to regress, q, must be an integer!"
     assert len(Theta) == q, "Length of Theta must be equal to number of parameters to regress, q!"
     
+    #Define dimensions and initialize parameter matricies
     dim = q+m
     lenX = len(x_space)
     create_y_data_space = np.zeros((lenX,dim))
+    
+    #Loop over # of x values
     for i in range(lenX):
+        #Loop over number of theta values
         for j in range(q):
+            #Fill matrix to include all Theta and x parameters
             create_y_data_space[i,j] = Theta[j]
         create_y_data_space[i,q] = x_space[i]
+    #Generate y data based on parameters
     y_GP_Opt_data = create_y_data(dim,create_y_data_space)
-       
     return y_GP_Opt_data
             
             
@@ -846,6 +851,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     
+    #Initalize matricies to save GP outputs and calculations using GP outputs
     ei = np.zeros((p,p))
     sse = np.zeros((p,p))
     var = np.zeros((p,p))
@@ -858,6 +864,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
         CDF = np.zeros((p,p))
         PDF = np.zeros((p,p))
     
+    #Separate Theta_mesh
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
     
@@ -867,6 +874,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
     for i in range(p):
         #Loop over Theta_2
         for j in range(p):
+            #Choose and evaluate point
             point = [theta1_mesh[i,j],theta2_mesh[i,j]]
             eval_point = np.array([point])
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
@@ -877,13 +885,17 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
 #                 print("Point",eval_point)
 #                 print("Model Mean",model_sse)
 #                 print("Model Var", model_variance)
+            #Save GP outputs
             sse[i,j] = model_sse
             var[i,j] = model_variance
             stdev[i,j] = np.sqrt(model_variance)
-            best_error = max(-train_sse) #Are we sure this is right
+            
+            #Calculate and save best error
+            best_error = max(-train_sse)
             f_best[i,j] = best_error
             #Negative sign because -max(-train_sse) = min(train_sse)
 #             print(best_error)
+            #Print and save certain values based on verboseness
             if verbose == True:
                 ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0] #-max(-train_sse) = min(train_sse)
                 z_term[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[1]
@@ -924,19 +936,24 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
     assert ei_sse_choice == "neg_ei" or ei_sse_choice == "sse", "ei_sse_choice must be string 'ei' or 'sse'"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     
+    #Separates meshgrid
     theta1_guess = theta_guess[0]
     theta2_guess = theta_guess[1]
     
-
+    #Evaluate a point with the GP and save values for GP mean and var
     point = [theta1_guess,theta2_guess]
     eval_point = np.array([point])
     GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
     model_sse = GP_Outputs[3].numpy()[0] #1xn 
 #     print(model_sse)
     model_variance= GP_Outputs[1].numpy()[0] #1xn
-    best_error = max(-train_sse) #Are we sure this is right
+    
+    #Calculate best error
+    best_error = max(-train_sse)
     #Negative sign because -max(-train_sse) = min(train_sse)
 #             print(best_error)
+    
+    #Calculate ei. If statement depends whether ei is the only thing returned by calc_ei_basic function
     if verbose == True:
         ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0]
     else:
@@ -944,6 +961,7 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
     
     sse = model_sse
     
+    #Return either -ei or sse as a minimize objective function
     if ei_sse_choice == "neg_ei":
 #         print("EI chosen")
         return -ei #Because we want to maximize EI and scipy.optimize is a minimizer by default
@@ -977,7 +995,8 @@ def eval_GP(p, theta_mesh, train_y, explore_bias, model, likelihood, verbose):
     ##Set Hyperparameters to 1
     if isinstance(train_y, np.ndarray)==True:
         train_y = torch.tensor(train_y) #1xn
-        
+    
+    #Set hyperparameters
     outputscale = torch.tensor([1])
     lengthscale = torch.tensor([1])
     noise = torch.tensor([0.1])
@@ -1013,21 +1032,28 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
     
+    #Point that the GP thinks is best has the lowest SSE
+    #Find point in sse matrix where sse is lowest (argmin(SSE))
     argmin = np.array(np.where(np.isclose(sse, np.amin(sse),atol=np.amin(sse)*1e-6)==True))
     
+    #ensures that only one point is used if multiple points yield a minimum
     if len(argmin[0]) != 1:
         argmin = np.array([[argmin[0,1]],[argmin[1,1]]])
-        
+    
+    #Find theta value corresponding to argmin(SSE)
     Theta_1_Opt = float(theta1_mesh[argmin[0],argmin[1]])
     Theta_2_Opt = float(theta2_mesh[argmin[0],argmin[1]])
     Theta_Opt_GP = np.array((Theta_1_Opt,Theta_2_Opt))
     
     #calculates best theta value
+    #Find point in ei matrix where ei is highest (argmax(EI))
     argmax = np.array(np.where(np.isclose(ei, np.amax(ei),atol=np.amax(ei)*1e-6)==True))
 
+    #ensures that only one point is used if multiple points yield a maximum
     if len(argmax[0]) != 1:
         argmax = np.array([[argmax[0,1]],[argmax[1,1]]])
-    
+        
+    #Find theta value corresponding to argmax(EI)
     Theta_1_Best = float(theta1_mesh[argmax[0],argmax[1]])
     Theta_2_Best = float(theta2_mesh[argmax[0],argmax[1]])
     Theta_Best = np.array((Theta_1_Best,Theta_2_Best))  
@@ -1060,10 +1086,12 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert len(theta0_b) == len(theta0_o), "Initial guesses must be the same length."
     
+    #Set theta meshes and bounds
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
     bnds = [[np.amin(theta1_mesh), np.amax(theta1_mesh)], [np.amin(theta2_mesh), np.amax(theta2_mesh)]]
-
+    
+    #Use L-BFGS Method with scipy.minimize to find theta_opt and theta_best
     ei_sse_choice1 ="neg_ei"
     argmts_best = ((train_y, model, likelihood, explore_bias, ei_sse_choice1))
 #     Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds, method='Nelder-Mead',args=argmts_best)
@@ -1119,11 +1147,14 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
     assert verbose==True or verbose==False, "Verbose must be True/False"
     assert emulator==True or emulator==False, "Verbose must be True/False"
     
+    #Set arrays to track theta_best, theta_opt, and SSE for every BO iteration
     All_Theta_Best = np.zeros((BO_iters,q)) 
     All_Theta_Opt = np.zeros((BO_iters,q)) 
     All_SSE = np.zeros(BO_iters)
     
+    #Loop over # of BO iterations
     for i in range(BO_iters):
+        #Converts numpy arrays to tensors
         if torch.is_tensor(train_p) != True:
             train_p = torch.from_numpy(train_p)
         if torch.is_tensor(train_y) != True:
@@ -1132,32 +1163,41 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
         #Redefine likelihood and model based on new training data
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
         model = ExactGPModel(train_p, train_y, likelihood)
+        
         #Train GP
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
+        
         #Evaluate GP
         eval_components = eval_GP(p, theta_mesh,train_y, explore_bias, model, likelihood, verbose)
         
-        
+        #Determines whether debugging parameters are saved
         if verbose == False:
             ei,sse,var,stdev,best_error = eval_components
         
         if verbose == True:
             ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
         
-#         print(sse)
-        
+        #Use argmax(EI) and argmin(SSE) to find values for Theta_best and theta_opt
         Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei)
         theta0_b = Theta_Best
         theta0_o = Theta_Opt_GP
 #         theta0_b = np.array([0.95,-0.95])
 #         theta0_o = np.array([0.95,-0.95])
+
+        #Use argmax/argmin method as initial guesses for use with scipy.minimize
         theta_b, theta_o = find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei,model, likelihood, explore_bias)
+        
+        #Save theta_best and theta_opt values for iteration
         All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
         
+        #Calculate values of y given the GP optimal theta values
         y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o, q, m)
+        
+        #Calculate GP SSE and save value
         Error_mag = np.sum((y_GP_Opt-Yexp)**2)
         All_SSE[i] = Error_mag
         
+        #Prints certain values at each iteration
         if verbose == True:
             print("BO Iteration = ", i+1)
             print("Exploration Bias = ",explore_bias)
@@ -1167,13 +1207,16 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
             print("Argmin Theta_Opt_GP = ",Theta_Opt_GP, "\n")
 #             print("Best Error =", best_error, "\n")
         
+        #Determines whether figures are saved
         if save_fig == True:
             fig_iter = i
         else: 
             fig_iter = None
         
+        #Prints figures if more than 1 BO iter is happening
         if verbose == True:  
             titles = ["EI","SSE","$\sigma^2$","$\sigma$","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]  
+            titles_save = ["EI","SSE","Var","StDev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]  
             value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0], obj, explore_bias, Bo_iter = fig_iter)
          
             if obj == "LN_obj":
@@ -1202,7 +1245,7 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
     #     train_T = np.concatenate((train_T, [Theta_Best]), axis=0) #(q x t)
         train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
     
-    #For XY Comparison after all iterations
+    #Plot X vs Y for Yexp and Y_GP
     title = "XY Comparison"
     X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
     y_true = calc_y_exp(Theta_True, X_line, noise_std = 0.1**2, noise_mean=0)
@@ -1210,8 +1253,9 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
     plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
     print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
     
+    #Plots a single line of objective/theta values vs BO iteration if there are no restarts
     if restarts == 0:
-        plot_obj_Theta(q, All_SSE, All_Theta_Best, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
+        plot_obj_Theta(q, All_SSE, All_Theta_Opt, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
         
     return All_Theta_Best, All_Theta_Opt, All_SSE
 
@@ -1254,13 +1298,17 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
     assert emulator==True or emulator==False, "Verbose must be True/False"
     assert isinstance(restarts, int) == True, "Number of restarts must be an integer"
     
+    #Read data from a csv
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
     
+    #Initialize Theta and SSE matricies
     Theta_matrix = np.zeros((restarts,BO_iters,q))
     SSE_matrix = np.zeros((restarts,BO_iters)) 
     
+    #Loop over # Restarts
     for i in range(restarts):
         print("Restart Number: ",i+1)
+        #Create training/testing data
         train_data, test_data = test_train_split(all_data, shuffle_seed=shuffle_seed)
         train_p = train_data[:,1:(q+1)]
         train_y = train_data[:,-1]
@@ -1270,14 +1318,18 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
             assert len(train_p.T) ==q+m, "train_p must have the same number of dimensions as the value of q+m"
         else:
             assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
-
+        
+        #Concatenate data based on # of training points to be used.
         train_p = train_p[0:t]
         train_y = train_y[0:t]
         
+        #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False)
+        #Add all SSE/theta results at each BO iteration for that restart
         Theta_matrix[i,:,:] = BO_results[1]
         SSE_matrix[i,:] = BO_results[2]
-        
+    
+    #Plot all SSE/theta results for each BO iteration for all restarts
     plot_obj_Theta(q, SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
     return None
         
