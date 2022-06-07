@@ -1347,7 +1347,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
         
     #Find theta value corresponding to argmax(EI)
     Theta_Opt_all = np.array(Theta_matrix[argmin[0],argmin[1]])
-    restart_opt = int(argmin[0,0])
+    restart_opt = int(argmin[0,0]+1)
     return restart_opt, Theta_Opt_all
         
 
