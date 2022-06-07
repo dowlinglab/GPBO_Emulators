@@ -188,7 +188,7 @@ def create_y_data(y_param, param_space):
         y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
     return y_data
 
-def test_train_split(all_data, sep_fact=0.8, shuffle_seed = None):
+def test_train_split(all_data, sep_fact=0.8, restarts = 0, shuffle_seed = None):
     """
     Splits y data into training and testing data
     
@@ -196,6 +196,8 @@ def test_train_split(all_data, sep_fact=0.8, shuffle_seed = None):
     ----------
         all_data: ndarray or tensor, The simulated parameter space and y data
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+        restarts: int, # of restarts for bo iterations. default is 0
+        shuffle_seed, int, number of seed for shuffling training data. Default is None.
     Returns:
         train_param: ndarray, The training parameter space data
         train_data: ndarray, The training y data
@@ -210,7 +212,11 @@ def test_train_split(all_data, sep_fact=0.8, shuffle_seed = None):
     #Shuffles Random Data
     
     if shuffle_seed is not None:
-        np.random.seed(shuffle_seed)
+        if restarts != 0:
+             for i in range(restarts):
+                np.random.seed(i)
+        else:
+            np.random.seed(shuffle_seed)
     
     np.random.shuffle(all_data) 
         
@@ -1328,7 +1334,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
     for i in range(restarts):
         print("Restart Number: ",i+1)
         #Create training/testing data
-        train_data, test_data = test_train_split(all_data, shuffle_seed=shuffle_seed)
+        train_data, test_data = test_train_split(all_data, restarts=restarts, shuffle_seed=shuffle_seed)
         train_p = train_data[:,1:(q+1)]
         train_y = train_data[:,-1]
         assert len(train_p) == len(train_y), "Training data must be the same length"
@@ -1338,11 +1344,13 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
         else:
             assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
         
-        #Concatenate data based on # of training points to be used.
+        #Split data based on # of training points to be used.
         train_p = train_p[0:t]
         train_y = train_y[0:t]
         plot_org_train(theta_mesh,train_p,Theta_True)
         
+#         print(train_p)
+
         #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False)
         #Add all SSE/theta results at each BO iteration for that restart
@@ -1362,8 +1370,9 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
         
     #Find theta value corresponding to argmax(EI)
     Theta_Opt_all = np.array(Theta_matrix[argmin[0],argmin[1]])
+    SSE_abs_min = np.amin(SSE_matrix)
     restart_opt = int(argmin[0,0]+1)
-    return restart_opt, Theta_Opt_all
+    return restart_opt, Theta_Opt_all,SSE_abs_min
         
 
 def create_dicts(i,ei_components,verbose =False):
