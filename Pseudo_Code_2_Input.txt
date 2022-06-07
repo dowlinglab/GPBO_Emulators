@@ -164,7 +164,14 @@ restarts = #
     #Plot all SSE/theta results for each BO iteration for all restarts
 
 #Find restart with lowest optimal SSE for solution
-(Use argmin)
+argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
+#     print(argmin)
+
+if len(argmin) != 2: #Need to generalize this
+    argmin = np.array([[argmin[0]],[argmin[1]]])
+
+#Find theta value corresponding to argmax(EI)
+Theta_Opt_all = np.array(Theta_matrix[argmin[0],argmin[1]])
 
             
 QUESTIONS:

@@ -7,6 +7,7 @@ import gpytorch
 import scipy.optimize as optimize
 import pandas as pd
 from bo_plotters import value_plotter
+from bo_plotters import plot_org_train
 from bo_plotters import plot_xy
 from bo_plotters import plot_obj_Theta
 
@@ -1244,17 +1245,17 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
         train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
     #     train_T = np.concatenate((train_T, [Theta_Best]), axis=0) #(q x t)
         train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
-    
-    #Plot X vs Y for Yexp and Y_GP
-    title = "XY Comparison"
-    X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
-    y_true = calc_y_exp(Theta_True, X_line, noise_std = 0.1**2, noise_mean=0)
-    y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o, q, m)                         
-    plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
+   
     print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
     
     #Plots a single line of objective/theta values vs BO iteration if there are no restarts
     if restarts == 0:
+        #Plot X vs Y for Yexp and Y_GP
+        title = "XY Comparison"
+        X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
+        y_true = calc_y_exp(Theta_True, X_line, noise_std = 0.1**2, noise_mean=0)
+        y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o, q, m)   
+        plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
         plot_obj_Theta(q, All_SSE, All_Theta_Opt, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
         
     return All_Theta_Best, All_Theta_Opt, All_SSE
@@ -1327,6 +1328,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
         #Concatenate data based on # of training points to be used.
         train_p = train_p[0:t]
         train_y = train_y[0:t]
+        plot_org_train(theta_mesh,train_p,Theta_True)
         
         #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False)
@@ -1337,17 +1339,16 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
     #Plot all SSE/theta results for each BO iteration for all restarts
     plot_obj_Theta(q, SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
     
-    #Need to fix below
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
-    print(argmin)
+#     print(argmin)
     
     if len(argmin) != 2: #Need to generalize this
-        argmin = np.array([[argmin[0,1]],[argmin[1,1]],])
+        argmin = np.array([[argmin[0]],[argmin[1]]])
         
     #Find theta value corresponding to argmax(EI)
-    Theta_1_Opt_all = float(Theta_matrix[argmin[1],argmin[2]]) 
-    restart_best = float(argmin[0])
-    return restart_best,Theta_1_Opt_all
+    Theta_Opt_all = np.array(Theta_matrix[argmin[0],argmin[1]])
+    restart_opt = int(argmin[0,0])
+    return restart_opt, Theta_Opt_all
         
 
 def create_dicts(i,ei_components,verbose =False):

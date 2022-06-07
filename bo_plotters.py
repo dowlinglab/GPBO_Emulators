@@ -29,6 +29,20 @@ def plot_hyperparams(iterations, hyperparam, title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
+def plot_org_train(test_mesh,train_p,p_true):
+    xx,yy = test_mesh
+    plt.figure()
+    plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
+    plt.scatter(p_true[0],p_true[1], color="blue", label = "True Optimal Value", s=100, marker = (5,1))
+    plt.legend(loc = "best")
+    plt.xlabel("$\Theta_1$")
+    plt.ylabel("$\Theta_2$")
+    plt.xlim((np.amin(xx), np.amax(xx)))
+    plt.ylim((np.amin(yy), np.amax(yy)))
+    plt.title("Starting Training Data")
+    plt.grid(True)
+    return plt.show()
+
 def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     '''
     Plots Hyperparameters
@@ -189,8 +203,8 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title, obj 
     #Creates axis labels and title
     plt.xlabel('$\\theta_1$',weight='bold')
     plt.ylabel('$\\theta_2$',weight='bold')
-    plt.xlim((-2, 2))
-    plt.ylim((-2,2))
+    plt.xlim((np.amin(xx), np.amax(xx)))
+    plt.ylim((np.amin(yy),np.amax(yy)))
 #     plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold')
     #Shows plot
     if Bo_iter != None:
