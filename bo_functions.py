@@ -10,6 +10,7 @@ from bo_plotters import value_plotter
 from bo_plotters import plot_org_train
 from bo_plotters import plot_xy
 from bo_plotters import plot_obj_Theta
+from bo_plotters import plot_obj_abs_min
 
 def LHS_Design(csv_file):
     """
@@ -1152,6 +1153,7 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
     All_Theta_Best = np.zeros((BO_iters,q)) 
     All_Theta_Opt = np.zeros((BO_iters,q)) 
     All_SSE = np.zeros(BO_iters)
+    All_SSE_abs_min = np.zeros(BO_iters)
     
     #Loop over # of BO iterations
     for i in range(BO_iters):
@@ -1197,6 +1199,15 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
         #Calculate GP SSE and save value
         Error_mag = np.sum((y_GP_Opt-Yexp)**2)
         All_SSE[i] = Error_mag
+        
+        #Calculate best value of SSE for plotting 
+        if i == 0:
+            All_SSE_abs_min[i] = Error_mag
+        else:
+            if All_SSE_abs_min[i-1] >= Error_mag:
+                All_SSE_abs_min[i] = Error_mag
+            else: 
+                All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
         
         #Prints certain values at each iteration
         if verbose == True:
@@ -1257,8 +1268,9 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o, q, m)   
         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
         plot_obj_Theta(q, All_SSE, All_Theta_Opt, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
+        plot_obj_abs_min(BO_iters, All_SSE_abs_min, restarts)
         
-    return All_Theta_Best, All_Theta_Opt, All_SSE
+    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
 
 def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False, shuffle_seed = None):
     """
@@ -1306,6 +1318,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
     #Initialize Theta and SSE matricies
     Theta_matrix = np.zeros((restarts,BO_iters,q))
     SSE_matrix = np.zeros((restarts,BO_iters)) 
+    SSE_matrix_abs_min = np.zeros((restarts,BO_iters)) 
     
     #Set theta mesh grids
     theta1_mesh = theta_mesh[0]
@@ -1335,9 +1348,11 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
         #Add all SSE/theta results at each BO iteration for that restart
         Theta_matrix[i,:,:] = BO_results[1]
         SSE_matrix[i,:] = BO_results[2]
+        SSE_matrix_abs_min[i] = BO_results[3]
     
     #Plot all SSE/theta results for each BO iteration for all restarts
     plot_obj_Theta(q, SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
+    plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts)
     
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
 #     print(argmin)

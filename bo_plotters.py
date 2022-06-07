@@ -43,6 +43,22 @@ def plot_org_train(test_mesh,train_p,p_true):
     plt.grid(True)
     return plt.show()
 
+def plot_obj_abs_min(bo_iters, obj_abs_min, restarts):
+    bo_space = np.linspace(1,bo_iters,bo_iters)
+    
+    plt.figure()
+    if restarts ==0:
+        plt.step(bo_space,obj_abs_min, label = "Minimum SSE Value Found")
+    else:
+        for i in range(restarts):
+            plt.step(bo_space, obj_abs_min[i], label = "Restart: "+str(i+1))
+    plt.legend(loc = "best")
+    plt.xlabel("BO Iterations")
+    plt.ylabel("SSE")
+    plt.title("BO Iteration Results: Lowest Overall SSE")
+    plt.grid(True)
+    return plt.show()
+
 def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     '''
     Plots Hyperparameters
