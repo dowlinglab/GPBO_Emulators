@@ -450,7 +450,7 @@ def calc_GP_outputs(model,likelihood,test_param):
 
 
 #Approximation
-def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
+def calc_ei_emulator(error_best,pred_mean,pred_var,y_target):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -525,18 +525,20 @@ def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
           
     return ei
 
-def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
+#NEED TO REWRITE THIS FUNCTION - SPlit into 2
+def eval_GP_emulator_tot(p,Xexp,Yexp, theta_mesh, model, likelihood, obj = "LN_obj", sparse_grid = False):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
     ----------
         p: integer, the length of Theta vectors
-        n: integer, the number of experimental data points
         Xexp: ndarray, experimental x values
         Yexp: ndarray, experimental y values
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        obj: LN_obj or obj (str), determines objective function
+        sparse_grid: True/False: Determines whether an assumption or sparse grid method is used
     
     Returns
     -------
@@ -545,10 +547,10 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     """
     #Asserts that inputs are correct
     assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
-    assert isinstance(n, int)==True, "Number of experimental points, n, must be an integer"
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-    assert len(Xexp)==len(Yexp)==n, "Number of data points, n, must be same length as experimental data"
+    assert len(Xexp)==len(Yexp), "Experimental data must have same length"
+    n = len(Xexp)
     
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     #Create theta1 and theta2 mesh grids
@@ -561,48 +563,41 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
     EI = np.zeros((p,p)) #(p1 x p2)
     SSE = np.zeros((p,p))
     SSE_var_GP = np.zeros((p,p))
-    y_GP = np.zeros((p,p,n))
-    stdev_GP = np.zeros((p,p,n))
-    error_sq_GP = np.zeros((p,p,n))
+       
+    ##Will only be useful in 3D plots
+#     y_GP = np.zeros((p,p,n))
+#     stdev_GP = np.zeros((p,p,n))
+#     error_sq_GP = np.zeros((p,p,n))
+    
+    ##Calculate Best Error
     # Loop over theta 1
     for i in range(p):
         #Loop over theta2
         for j in range(p):
             ## Caclulate Best Error
-            #Create array to store error values
-            sse = np.zeros(n)
-            #Loop over Xexp
-            for k in range(n):
-                #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
-                point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
-                eval_point = np.array([point])
-#                 print(eval_point)
-                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-                model_mean = GP_Outputs[3].numpy()[0] #1xn
-                model_variance= GP_Outputs[1].numpy()[0] #1xn
-                y_GP[i,j,k] = model_mean
-                stdev_GP[i,j,k] = np.sqrt(model_variance)
-                
-                #Compute error for that point
-                error_point = (Yexp[k] - model_mean)
-                SSE_var_GP[i,j] += 2*error_point*model_variance
-                sse_mag = -(error_point)**2
-                sse[k] = sse_mag
-                error_sq_GP[i,j,k] = (error_point)**2
-                SSE[i,j] += sse_mag
+            #Find Lowest SSE Point
+            point = [theta1_mesh[i,j],theta2_mesh[i,j]]
+            q = len(point)
+            eval_point = np.array([point])
+            SSE[i,j] = create_sse_data(q,eval_point, Xexp, Yexp, obj=obj)
+         
 
-            #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
-            #This is the minimum error value
-            best_error = -max(sse)
+    #Define best_error as the minimum SSE value
+    if obj == "LN_obj":
+        best_error = np.amin(np.exp(SSE))
+    else:
+        best_error = np.amin(SSE)
+        
+    print(best_error)
             
-            #Calculate EI of a training point
-            TP = np.array([1.85665734819319,0.76582815814491,1.24174844363624])
-            Output_TP = calc_GP_outputs(model, likelihood, np.array([TP]))
-            Output_TP_mean = Output_TP[1].numpy()[0]
-            Output_TP_var = Output_TP[3].numpy()[0]
-            EI_TP = calc_ei_advanced(best_error, Output_TP_mean, Output_TP_var, 5.401062426299215)
-            
+    # Loop over theta 1
+    for i in range(p):
+        #Loop over theta2
+        for j in range(p):
             #Loop over Xexp
+            #Create lists in which to store GP mean and variances
+            GP_mean = np.zeros(n)   
+            GP_var = np.zeros(n)
             ##Calculate EI
             for k in range(n):
                 #Caclulate EI for each value n given the best error
@@ -611,168 +606,22 @@ def eval_GP_components(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
-                EI[i,j] += calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
-                #IS this calculated right?
+                GP_mean[k] = model_mean
+                GP_var[k] = model_variance
                 
+                if sparse_grid == False:
+                    #Compute EI w/ approximation
+                    EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
+#                     print(EI[i,j])
+                    #Compute error variance for that point
+                    error_point = (Yexp[k] - model_mean)
+                    SSE_var_GP[i,j] += 2*error_point*model_variance
+#                     error_sq_GP[i,j,k] = (error_point)**2
 
-            
-    #Makes Error values all positive, allows amin to work correctly            
-    SSE = -SSE
-#     print(Eval_points)
-#                 print(EI[i,j])
-    return EI,SSE, y_GP, stdev_GP, error_sq_GP, SSE_var_GP,EI_TP
-
-def calc_ei_point(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
-    """ 
-    Calculates the expected improvement of the 3 input parameter GP
-    Parameters
-    ----------
-        p: integer, the length of Theta vectors
-        n: integer, the number of experimental data points
-        Xexp: ndarray, experimental x values
-        Yexp: ndarray, experimental y values
-        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
-        model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-    
-    Returns
-    -------
-        EI: ndarray, the expected improvement of the GP model
-    """
-    #Asserts that inputs are correct
-    assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
-    assert isinstance(n, int)==True, "Number of experimental points, n, must be an integer"
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-    assert len(Xexp)==len(Yexp)==n, "Number of data points, n, must be same length as experimental data"
-    
-    #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
-    #Create theta1 and theta2 mesh grids
-    theta1_mesh = theta_mesh[0]
-    assert len(theta1_mesh)==p, "theta_mesh must be dim, pxp arrays"
-    theta2_mesh = theta_mesh[1]
-    assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
-    
-    #Create an array in which to store expected improvement values
-    EI_Point = np.zeros((n,p,p)) #(p1 x p2)
-    # Loop over theta 1
-    for i in range(p):
-        #Loop over theta2
-        for j in range(p):
-            ## Caclulate Best Error
-            #Create array to store error values
-            error = np.zeros(n)
-            #Loop over Xexp
-            for k in range(n):
-                #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
-                point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
-                eval_point = np.array([point])
-#                 print(eval_point)
-                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-                model_mean = GP_Outputs[3].numpy()[0] #1xn
-                model_variance= GP_Outputs[1].numpy()[0] #1xn
-                #Compute error for that point
-                error_mag = -(Yexp[k] - model_mean)**2
-                error[k] = error_mag
-
-            #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
-            #This is the minimum error value
-            best_error = -max(error)
-
-            #Loop over Xexp
-            ##Calculate EI
-            for k in range(n):
-                #Caclulate EI for each value n given the best error
-                point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
-                eval_point = np.array([point])
-                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-                model_mean = GP_Outputs[3].numpy()[0] #1xn
-                model_variance= GP_Outputs[1].numpy()[0] #1xn
-                EI_Point[k,i,j] = calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
-                
-#     print(Eval_points)
-#                 print(EI[i,j])
-    return EI_Point
-
-def calc_ei_total_test(p,n,Xexp,Yexp, theta_mesh, model, likelihood):
-    #Unused function - 5/19/22
-    """ 
-    Calculates the expected improvement of the 3 input parameter GP
-    Parameters
-    ----------
-        p: integer, the length of Theta vectors
-        n: integer, the number of experimental data points
-        Xexp: ndarray, experimental x values
-        Yexp: ndarray, experimental y values
-        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
-        model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-    
-    Returns
-    -------
-        EI: ndarray, the expected improvement of the GP model
-    """
-    #Asserts that inputs are correct
-    assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
-    assert isinstance(n, int)==True, "Number of experimental points, n, must be an integer"
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-    assert len(Xexp)==len(Yexp)==n, "Number of data points, n, must be same length as experimental data"
-    
-    
-    #Define f_bar and f(x)
-    #Will compare the rigorous solution and approximation later (multiensional integral over each experiment using a sparse grid)
-    #Create theta1 and theta2 mesh grids
-    theta1_mesh = theta_mesh[0]
-    assert len(theta1_mesh)==p, "theta_mesh must be dim, pxp arrays"
-    theta2_mesh = theta_mesh[1]
-    assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
-    #Create an array in which to store expected improvement values
-    EI = np.zeros((p,p)) #(p1 x p2)
-    EI_sing = np.zeros((n,p,p))
-#     print(EI_sing)
-    Error = np.zeros((p,p))
-    # Loop over theta 1
-    for i in range(p):
-        #Loop over theta2
-        for j in range(p):
-            ## Caclulate Best Error
-            #Create array to store error values
-            error = np.zeros(n)
-            #Loop over Xexp
-            for k in range(n):
-                #Evaluate GP at a point p = [Theta1,Theta2,Xexp]
-                eval_point = []
-                eval_point.append([theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]])
-                eval_point = np.array(eval_point)
-#                 print(eval_point)
-                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-                model_mean = GP_Outputs[3].numpy()[0] #1xn
-                model_variance= GP_Outputs[1].numpy()[0] #1xn
-                #Compute error for that point
-                error[k] = -(Yexp[k] - model_mean)**2
-
-            #Define best_error as the maximum value in the error array and multiply by -1 to get positive number
-            #This is the minimum error value
-            best_error = -max(error)
-            Error[i,j] = best_error
-
-            #Loop over Xexp
-            ##Calculate EI
-            for k in range(n):
-                #Caclulate EI for each value n given the best error
-                eval_point = []
-                eval_point.append([theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]])
-                eval_point = np.array(eval_point)
-                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-                model_mean = GP_Outputs[3].numpy()[0] #1xn
-                model_variance= GP_Outputs[1].numpy()[0] #1xn
-                ei = calc_ei_advanced(best_error, model_mean, model_variance, Yexp[k])
-#                 print(ei)
-                EI[i,j] += ei
-                EI_sing[k,i,j] += ei
-    return EI_sing,Error
-
+                    ##Make Sparse Grid EI Function in else
+    SSE_stdev_GP = np.sqrt(SSE_var_GP)
+#     print(EI)
+    return EI, SSE, SSE_var_GP, SSE_stdev_GP, best_error
 
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
     """ 
@@ -923,6 +772,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
         return ei, sse, var, stdev, f_best, z_term, ei_term_1, ei_term_2, CDF, PDF
 
 ##FOR USE WITH SCIPY##################################################################
+#NEED TO REVISE THIS FUNCTION FOR USE WITH 3_INPUT GP AS WELL
 def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
@@ -981,7 +831,7 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
 #         print("sse chosen")
         return sse #We want to minimize sse
 
-def eval_GP(p, theta_mesh, train_y, explore_bias, model, likelihood, verbose):    
+def eval_GP(p, theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid = False):    
     """
     Evaluates GP
     
@@ -994,6 +844,9 @@ def eval_GP(p, theta_mesh, train_y, explore_bias, model, likelihood, verbose):
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
         verbose: True/False: Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved
+        obj: LN_obj or obj (str): Determines which objective function is used
+        emulator: True/False: Determiens whether GP is an emulator of the function
+        sparse_grd: True/False: Determines whether an assumption or sparse grid is used
     
     Returns:
     --------
@@ -1022,7 +875,10 @@ def eval_GP(p, theta_mesh, train_y, explore_bias, model, likelihood, verbose):
     likelihood.eval()
 
     #Same point keeps being selected, should I remove that point by force?
-    eval_components = eval_GP_basic_tot(p,theta_mesh, train_y, model, likelihood, explore_bias, verbose)
+    if emulator == False:
+        eval_components = eval_GP_basic_tot(p,theta_mesh, train_y, model, likelihood, explore_bias, verbose)
+    else:
+        eval_components = eval_GP_emulator_tot(p,Xexp,Yexp, theta_mesh, model, likelihood, obj = obj, sparse_grid = sparse_grid)
     
     return eval_components
 
@@ -1182,13 +1038,14 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         
         #Evaluate GP
-        eval_components = eval_GP(p, theta_mesh,train_y, explore_bias, model, likelihood, verbose)
+        eval_components = eval_GP(p, theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid =False)
+#         eval_components = eval_GP(p, theta_mesh,train_y, explore_bias, model, likelihood, verbose)
         
         #Determines whether debugging parameters are saved
         if verbose == False:
             ei,sse,var,stdev,best_error = eval_components
         
-        if verbose == True:
+        if verbose == True and emulator == False:
             ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
         
         #Use argmax(EI) and argmin(SSE) to find values for Theta_best and theta_opt
@@ -1339,7 +1196,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         print("Restart Number: ",i+1)
         #Create training/testing data
         train_data, test_data = test_train_split(all_data, restarts=restarts, shuffle_seed=shuffle_seed)
-        train_p = train_data[:,1:(q+1)]
+        train_p = train_data[:,1:(q+m)]
         train_y = train_data[:,-1]
         assert len(train_p) == len(train_y), "Training data must be the same length"
         
