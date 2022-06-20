@@ -30,7 +30,7 @@ def LHS_Design(csv_file):
     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
     return param_space
 
-def calc_y_exp(Theta_True, x, noise_std, noise_mean=0):
+def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
     """
     Creates y_data for the 2 input GP function
     
@@ -40,6 +40,7 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0):
         x: ndarray, The list of xs that will be used to generate y
         noise_std: float, int: The standard deviation of the noise
         noise_mean: float, int: The mean of the noise
+        random_seed: int: The random seed
         
     Returns:
         y_exp: ndarray, The expected values of y given x data
@@ -50,8 +51,12 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0):
     assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
     assert len(Theta_True) ==2, "This function only has 2 unknowns, Theta_True can only contain 2 values."
     
+    
     #Seed Random Noise (For Bug Testing)
-    np.random.seed(6)
+    if random_seed != None:
+        assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
+        np.random.seed(random_seed)
+        
     #Creates noise values with a certain stdev and mean from a normal distribution
     noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
     # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
@@ -111,7 +116,7 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     
     return sum_error_sq
 
-def gen_y_Theta_GP(x_space, Theta, q, m=1):
+def gen_y_Theta_GP(x_space, Theta):
     """
     Generates an array of Best Theta Value and X to create y data
     
@@ -119,8 +124,6 @@ def gen_y_Theta_GP(x_space, Theta, q, m=1):
     ----------
         x_space: ndarray, array of x value
         Theta: ndarray, Array of theta values
-        q: Number of parameters to be regressed
-        m: int, Number of dimensions of x. Default is 1
         
              
     Returns
@@ -128,9 +131,8 @@ def gen_y_Theta_GP(x_space, Theta, q, m=1):
         create_y_data_space: ndarray, array of parameters [Theta, x] to be used to generate y data
         
     """
-    assert isinstance(m, int), "dimesions of x_space, m, must be an integer!"
-    assert isinstance(q, int), "Parameters to regress, q, must be an integer!"
-    assert len(Theta) == q, "Length of Theta must be equal to number of parameters to regress, q!"
+    m = x_space[0].size
+    q = len(Theta)
     
     #Define dimensions and initialize parameter matricies
     dim = q+m
@@ -447,6 +449,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     return model_mean, model_variance, model_stdev, model_prediction    
 
 
+#Approximation
 def calc_ei_advanced(error_best,pred_mean,pred_var,y_target):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
@@ -905,12 +908,13 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
 #             print(best_error)
             #Print and save certain values based on verboseness
             if verbose == True:
-                ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0] #-max(-train_sse) = min(train_sse)
-                z_term[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[1]
-                ei_term_1[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[2]
-                ei_term_2[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[3]
-                CDF[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[4]
-                PDF[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[5]
+                out1, out2, out3, out4, out5, out6 = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+                ei[i,j] = out1 #-max(-train_sse) = min(train_sse)
+                z_term[i,j] = out2
+                ei_term_1[i,j] = out3
+                ei_term_2[i,j] = out4
+                CDF[i,j] = out5
+                PDF[i,j] = out6
             else:
                 ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
     if verbose == False:
@@ -1113,7 +1117,7 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     
     return theta_b, theta_o
 
-def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False):
+def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False):
     """
     Performs BO iterations
     
@@ -1122,9 +1126,6 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
         BO_iters: integer, number of BO iteratiosn
         train_p: tensor or ndarray, The training parameter space data
         train_y: tensor or ndarray, The training y data
-        p: integer, the length of Theta vectors
-        q: integer, Number of parameters to be regressed
-        m: Number of dimensions of X
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
         train_iter: int, number of training iterations to run. Default is 300
@@ -1143,23 +1144,27 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
         theta_o: The predicted theta where objective function is minimized after all BO iterations
     
     """
-    assert all(isinstance(i, int) for i in [BO_iters, p,q,m,train_iter]), "BO_iters, p, q, m, and train_iter must be integers"
-    if emulator == True:
-        assert len(train_p.T) ==q+m, "train_p must have the same number of dimensions as the value of q+m"
-    else:
-        assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
+    assert all(isinstance(i, int) for i in [BO_iters, train_iter]), "BO_iters and train_iter must be integers"
     assert len(train_p) == len(train_y), "Training data must be the same length"
-    assert len(Theta_True)==q, "Theta True must be q-dimensional"
     assert len(Xexp) == len(Yexp), "Experimental data must have the same length"
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     assert emulator==True or emulator==False, "Verbose must be True/False"
+    
+    m = Xexp[0].size
+    q = len(Theta_True)
+    p = theta_mesh.shape[1]
     
     #Set arrays to track theta_best, theta_opt, and SSE for every BO iteration
     All_Theta_Best = np.zeros((BO_iters,q)) 
     All_Theta_Opt = np.zeros((BO_iters,q)) 
     All_SSE = np.zeros(BO_iters)
     All_SSE_abs_min = np.zeros(BO_iters)
+    
+    if emulator == True:
+        assert len(train_p.T) ==q+m, "train_p must have the same number of dimensions as the value of q+m"
+    else:
+        assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
     
     #Loop over # of BO iterations
     for i in range(BO_iters):
@@ -1200,7 +1205,7 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
         All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
         
         #Calculate values of y given the GP optimal theta values
-        y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o, q, m)
+        y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o)
         
         #Calculate GP SSE and save value
         Error_mag = np.sum((y_GP_Opt-Yexp)**2)
@@ -1278,17 +1283,14 @@ def bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,expl
         
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
 
-def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False, shuffle_seed = None):
+def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False, shuffle_seed = None):
     """
     Performs BO iterations
     
     Parameters:
     -----------
-        BO_iters: integer, number of BO iteratiosn
+        BO_iters: integer, number of BO iterations
         all_data_doc: csv name as a string, contains all training data for GP
-        p: integer, the length of Theta vectors
-        q: integer, Number of parameters to be regressed
-        m: Number of dimensions of X
         t: Number of training points to use
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
@@ -1308,14 +1310,16 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
         theta_o: The predicted theta where objective function is minimized after all BO iterations
     
     """
-    assert all(isinstance(i, int) for i in [BO_iters, p,q,m,t,restarts,train_iter]), "BO_iters, p, q, m, t, restarts, and train_iter must be integers"
-    
-    assert len(Theta_True)==q, "Theta True must be q-dimensional"
+    assert all(isinstance(i, int) for i in [BO_iters, t,restarts,train_iter]), "BO_iters, t, restarts, and train_iter must be integers"
     assert len(Xexp) == len(Yexp), "Experimental data must have the same length"
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     assert emulator==True or emulator==False, "Verbose must be True/False"
     assert isinstance(restarts, int) == True, "Number of restarts must be an integer"
+    
+    m = Xexp[0].size
+    q = len(Theta_True)
+    p = theta_mesh.shape[1]
     
     dim = m+q
     #Read data from a csv
@@ -1352,7 +1356,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,p,q,m,t,theta_mesh,Theta_True,train
 #         print(train_p)
 
         #Run BO iteration
-        BO_results = bo_iter(BO_iters,train_p,train_y,p,q,m,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False)
+        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False)
         #Add all SSE/theta results at each BO iteration for that restart
         Theta_matrix[i,:,:] = BO_results[1]
         SSE_matrix[i,:] = BO_results[2]
