@@ -58,7 +58,10 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
         np.random.seed(random_seed)
         
     #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
+    if isinstance(x, np.ndarray):
+        noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
+    else:
+        noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #1x n_x
     # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
     y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
   
@@ -147,26 +150,23 @@ def gen_y_Theta_GP(x_space, Theta):
             create_y_data_space[i,j] = Theta[j]
         create_y_data_space[i,q] = x_space[i]
     #Generate y data based on parameters
-    y_GP_Opt_data = create_y_data(dim,create_y_data_space)
+    y_GP_Opt_data = create_y_data(create_y_data_space)
     return y_GP_Opt_data
             
             
 
-def create_y_data(y_param, param_space):
+def create_y_data(param_space):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
     ----------
-        y_param: int, Number of parameters needed to calculate y
         param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
     Returns
     -------
         y_data: ndarray, The simulated y training data
     """
     #Assert statements check that the types defined in the doctring are satisfied
-    assert isinstance(y_param , int), "Number of parameters to regress must be an integer"
-#     print(param_space.T)
-    assert len(param_space.T) == y_param, str("Calculation of y requires "+str(y_param)+" parameters.")
+    assert len(param_space.T) >= 3, "Parameter space must have at least 3 parameters"
     
     #Converts parameters to numpy arrays if they are tensors
     if torch.is_tensor(param_space)==True:
@@ -175,7 +175,7 @@ def create_y_data(y_param, param_space):
     #Creates an array for train_data that will be filled with the for loop
     y_data = np.zeros(len(param_space)) #1 x n (row x col)
     
-    if len(param_space)!=y_param: #Used when multiple values of y are being calculated
+    if len(param_space)>1: #Used when multiple values of y are being calculated
         #Iterates over evey combination of theta to find the expected y value for each combination
         for i in range(len(param_space)):
             theta_1 = param_space[i,0] #nx1 
@@ -586,8 +586,6 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
         best_error = np.amin(np.exp(SSE))
     else:
         best_error = np.amin(SSE)
-        
-    print(best_error)
             
     # Loop over theta 1
     for i in range(p):
@@ -850,6 +848,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
     #Separates meshgrid
     q = len(theta_guess)
     p = theta_mesh.shape[1]
+    n = len(Xexp)
     theta1_guess = theta_guess[0]
     theta2_guess = theta_guess[1]
 
@@ -1044,7 +1043,7 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei
     return theta_b, theta_o
 
 
-def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False):
+def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig=False):
     """
     Performs BO iterations
     
@@ -1079,6 +1078,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     assert emulator==True or emulator==False, "Verbose must be True/False"
     
     m = Xexp[0].size
+    n = len(Xexp)
     q = len(Theta_True)
     p = theta_mesh.shape[1]
     
@@ -1127,7 +1127,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
 #         theta0_o = np.array([0.95,-0.95])
 
         #Use argmax/argmin method as initial guesses for use with scipy.minimize
-        theta_b, theta_o = find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei,model, likelihood, explore_bias)
+        theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei, model,likelihood,explore_bias, emulator,sparse_grid,obj)
         
         #Save theta_best and theta_opt values for iteration
         All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
@@ -1182,19 +1182,29 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
                 title = titles[j+2]
                 value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, obj, explore_bias, Bo_iter = fig_iter)
 
+
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
         train_p = train_p.numpy() #(q x t)
         train_y = train_y.numpy() #(1 x t)
+        
+        if emulator == False:   
+            #Call the expensive function and evaluate at Theta_Best
+            sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+        #     sse_Best = create_sse_data(q,Theta_Best, Xexp, Yexp) #(1 x 1)
 
-        #Call the expensive function and evaluate at Theta_Best
-        sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
-    #     sse_Best = create_sse_data(q,Theta_Best, Xexp, Yexp) #(1 x 1)
-
-        #Add Theta_Best to train_p and y_best to train_y
-        train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
-    #     train_T = np.concatenate((train_T, [Theta_Best]), axis=0) #(q x t)
-        train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
+            #Add Theta_Best to train_p and y_best to train_y
+            train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
+        #     train_T = np.concatenate((train_T, [Theta_Best]), axis=0) #(q x t)
+            train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
+            
+        else:
+            for k in range(n):
+                Best_Point = np.array([theta_b, Xexp[k]])
+#                 y_Best = create_y_data(Best_Point) #Should use calc_y_exp correct?
+                y_Best = calc_y_exp(theta_b, Xexp[k], noise_std, noise_mean=0,random_seed=6)
+                train_p = np.concatenate((train_p, [theta_b, Xexp[k]]), axis=0) #(q x t)
+                train_y = np.concatenate((train_y, [y_Best]),axis=0) #(1 x t)
    
     print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
     
@@ -1204,14 +1214,14 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         title = "XY Comparison"
         X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
         y_true = calc_y_exp(Theta_True, X_line, noise_std = 0.1**2, noise_mean=0)
-        y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o, q, m)   
+        y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
         plot_obj_Theta(q, All_SSE, All_Theta_Opt, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
         plot_obj_abs_min(BO_iters, All_SSE_abs_min, restarts)
         
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
 
-def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False, shuffle_seed = None):
+def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig=False, shuffle_seed = None):
     """
     Performs BO iterations
     
@@ -1284,7 +1294,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
 #         print(train_p)
 
         #Run BO iteration
-        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False)
+        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig=False)
         #Add all SSE/theta results at each BO iteration for that restart
         Theta_matrix[i,:,:] = BO_results[1]
         SSE_matrix[i,:] = BO_results[2]
