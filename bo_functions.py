@@ -526,7 +526,7 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target):
     return ei
 
 #NEED TO REWRITE THIS FUNCTION - SPlit into 2
-def eval_GP_emulator_tot(p,Xexp,Yexp, theta_mesh, model, likelihood, obj = "LN_obj", sparse_grid = False):
+def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -546,18 +546,17 @@ def eval_GP_emulator_tot(p,Xexp,Yexp, theta_mesh, model, likelihood, obj = "LN_o
         Error_tot: ndarray, Errors associated with each value of Theta
     """
     #Asserts that inputs are correct
-    assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
     n = len(Xexp)
+    p = theta_mesh.shape[1]
     
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     #Create theta1 and theta2 mesh grids
     theta1_mesh = theta_mesh[0]
-    assert len(theta1_mesh)==p, "theta_mesh must be dim, pxp arrays"
     theta2_mesh = theta_mesh[1]
-    assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
+    assert len(theta2_mesh)==len(theta1_mesh), "theta_mesh must be dim, pxp arrays"
     
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
@@ -684,7 +683,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
     else:
         return ei
 
-def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0.0, verbose = False):
+def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0, verbose = False):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
     Parameters
@@ -705,12 +704,12 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
         f_best: ndarray, the best value so far
     """
         #Asserts that inputs are correct
-    assert isinstance(p, int)==True, "Number of Theta1 and Theta2 values, p, must be an integer"
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     
+    p =theta_mesh.shape[1]
     #Initalize matricies to save GP outputs and calculations using GP outputs
     ei = np.zeros((p,p))
     sse = np.zeros((p,p))
@@ -727,9 +726,6 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
     #Separate Theta_mesh
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
-    
-    assert len(theta1_mesh)==p, "theta_mesh must be dim, pxp arrays"
-    assert len(theta2_mesh)==p, "theta_mesh must be dim, pxp arrays"
     
     for i in range(p):
         #Loop over Theta_2
@@ -773,7 +769,7 @@ def eval_GP_basic_tot(p,theta_mesh, train_sse, model, likelihood, explore_bias=0
 
 ##FOR USE WITH SCIPY##################################################################
 #NEED TO REVISE THIS FUNCTION FOR USE WITH 3_INPUT GP AS WELL
-def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
+def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_bias=0.0, ei_sse_choice = "ei", verbose = False, emulator=False):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
     Parameters
@@ -801,28 +797,24 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
     #Separates meshgrid
     theta1_guess = theta_guess[0]
     theta2_guess = theta_guess[1]
-    
+
     #Evaluate a point with the GP and save values for GP mean and var
-    point = [theta1_guess,theta2_guess]
-    eval_point = np.array([point])
-    GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-    model_sse = GP_Outputs[3].numpy()[0] #1xn 
-#     print(model_sse)
-    model_variance= GP_Outputs[1].numpy()[0] #1xn
-    
-    #Calculate best error
-    best_error = max(-train_sse)
-    #Negative sign because -max(-train_sse) = min(train_sse)
-#             print(best_error)
-    
-    #Calculate ei. If statement depends whether ei is the only thing returned by calc_ei_basic function
-    if verbose == True:
-        ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0]
-    else:
-        ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
-    
-    sse = model_sse
-    
+    if emulator == False:
+        point = [theta1_guess,theta2_guess]
+        eval_point = np.array([point])
+        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+        model_sse = GP_Outputs[3].numpy()[0] #1xn 
+        model_variance= GP_Outputs[1].numpy()[0] #1xn
+
+        #Calculate best error and sse
+        best_error = max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
+        sse = model_sse
+            #Calculate ei. If statement depends whether ei is the only thing returned by calc_ei_basic function
+        if verbose == True:
+            ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0]
+        else:
+            ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+            
     #Return either -ei or sse as a minimize objective function
     if ei_sse_choice == "neg_ei":
 #         print("EI chosen")
@@ -831,13 +823,85 @@ def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_b
 #         print("sse chosen")
         return sse #We want to minimize sse
 
-def eval_GP(p, theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid = False):    
+def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
+    """ 
+    Calculates the expected improvement of the 2 input parameter GP
+    Parameters
+    ----------
+        theta_guess: ndarray (1xp), The theta value that will be guessed to optimize 
+        train_sse: ndarray (1 x t), Training data for sse
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        ei_sse_choice: "neg_ei" or "sse" - Choose which one to optimize
+    
+    Returns
+    -------
+        ei: ndarray, the expected improvement of the GP model
+        sse: ndarray, the sse of the GP model
+        
+    """
+        #Asserts that inputs are correct
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    assert ei_sse_choice == "neg_ei" or ei_sse_choice == "sse", "ei_sse_choice must be string 'ei' or 'sse'"
+    assert verbose==True or verbose==False, "Verbose must be True/False"
+    
+    #Separates meshgrid
+    q = len(theta_guess)
+    p = theta_mesh.shape[1]
+    theta1_guess = theta_guess[0]
+    theta2_guess = theta_guess[1]
+
+    #Evaluate a point with the GP and save values for GP mean and var
+    if emulator == False:
+        point = [theta1_guess,theta2_guess]
+        eval_point = np.array([point])
+        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+        model_sse = GP_Outputs[3].numpy()[0] #1xn 
+        model_variance= GP_Outputs[1].numpy()[0] #1xn
+
+        #Calculate best error and sse
+        best_error = max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
+        sse = model_sse
+            #Calculate ei. If statement depends whether ei is the only thing returned by calc_ei_basic function
+        if verbose == True:
+            ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0]
+        else:
+            ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+    
+    else:
+        ei = 0
+        sse = 0
+        best_error = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid)[4]
+        for k in range(n):
+            #Caclulate EI for each value n given the best error
+            point = [theta1_guess,theta2_guess,Xexp[k]]
+            eval_point = np.array([point])
+            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+            SSE = create_sse_data(q,eval_point, Xexp, Yexp, obj="obj")
+            model_mean = GP_Outputs[3].numpy()[0] #1xn
+            model_variance= GP_Outputs[1].numpy()[0] #1xn
+
+            if sparse_grid == False:
+                #Compute EI w/ approximation
+                ei += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
+                sse += create_sse_data(q,eval_point, Xexp, Yexp, obj="obj")
+
+    #Return either -ei or sse as a minimize objective function
+    if ei_sse_choice == "neg_ei":
+#         print("EI chosen")
+        return -ei #Because we want to maximize EI and scipy.optimize is a minimizer by default
+    else:
+#         print("sse chosen")
+        return sse #We want to minimize sse
+    
+def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid = False):    
     """
     Evaluates GP
     
     Parameters:
     -----------
-        p: integer, the length of Theta vectors
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         train_y: tensor or ndarray, The training y data
         explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
@@ -853,6 +917,7 @@ def eval_GP(p, theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood,
         eval_components: ndarray, The componenets evaluate by the GP. ei, sse, var, stdev, f_best, (z_term, ei_term_1, ei_term_2, CDF, PDF)
     """
     
+    p = theta_mesh.shape[1]
     assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
@@ -876,9 +941,9 @@ def eval_GP(p, theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood,
 
     #Same point keeps being selected, should I remove that point by force?
     if emulator == False:
-        eval_components = eval_GP_basic_tot(p,theta_mesh, train_y, model, likelihood, explore_bias, verbose)
+        eval_components = eval_GP_basic_tot(theta_mesh, train_y, model, likelihood, explore_bias, verbose)
     else:
-        eval_components = eval_GP_emulator_tot(p,Xexp,Yexp, theta_mesh, model, likelihood, obj = obj, sparse_grid = sparse_grid)
+        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid)
     
     return eval_components
 
@@ -928,7 +993,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     
     return Theta_Best, Theta_Opt_GP
 
-def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, likelihood, explore_bias):
+def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,obj):
     """
     Finds the Theta value where min(sse) or min(-ei) is true using scipy.minimize and the L-BFGS-B method
     
@@ -961,17 +1026,23 @@ def find_opt_best_scipy(theta_mesh, train_y, theta0_b,theta0_o, sse, ei, model, 
     
     #Use L-BFGS Method with scipy.minimize to find theta_opt and theta_best
     ei_sse_choice1 ="neg_ei"
-    argmts_best = ((train_y, model, likelihood, explore_bias, ei_sse_choice1))
-#     Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds, method='Nelder-Mead',args=argmts_best)
-    Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
-    theta_b = Best_Solution.x
-    
     ei_sse_choice2 = "sse"
-    argmts_opt = ((train_y, model, likelihood, explore_bias, ei_sse_choice2))
-    Opt_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_o,bounds=bnds, method = "L-BFGS-B",args= argmts_opt)
+    
+    if emulator == False:
+        argmts_best = ((train_y, model, likelihood, explore_bias, ei_sse_choice1))
+        argmts_opt = ((train_y, model, likelihood, explore_bias, ei_sse_choice2))
+        Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
+        Opt_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_o,bounds=bnds, method = "L-BFGS-B",args= argmts_opt)
+    else:
+        argmts_best = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice1))
+        argmts_opt = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice2))
+        Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
+        Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
+    theta_b = Best_Solution.x
     theta_o = Opt_Solution.x  
     
     return theta_b, theta_o
+
 
 def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, obj, restarts, verbose = False,save_fig=False,emulator = False):
     """
@@ -1038,7 +1109,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         
         #Evaluate GP
-        eval_components = eval_GP(p, theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid =False)
+        eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid =False)
 #         eval_components = eval_GP(p, theta_mesh,train_y, explore_bias, model, likelihood, verbose)
         
         #Determines whether debugging parameters are saved
