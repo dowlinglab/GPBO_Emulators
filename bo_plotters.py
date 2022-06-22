@@ -92,13 +92,12 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_obj_Theta(q, obj_array, Theta_array, Theta_True, train_p, bo_iters, obj = "obj",ep=0,restarts=0):
+def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj = "obj",ep=0,restarts=0):
     """
     Plots the objective function and Theta values vs BO iteration
     
     Parameters
     ----------
-        q: int, The number of parameters that were regressed
         obj_array: ndarry, (nx1): The output array containing objective function values
         Theta_array: ndarray, (nxq): The output array containing objective function values
         Theta_True: ndarray, Used for plotting Theta Values
@@ -110,12 +109,10 @@ def plot_obj_Theta(q, obj_array, Theta_array, Theta_True, train_p, bo_iters, obj
     --------
         Plots of obj vs BO_iter and Plots of Theta vs BO_iter
     """
-    if restarts ==0:
-        assert len(Theta_array.T) == q, "Number of parameters regressed must be equal to number of columns in Theta_array"
     assert len(obj_array) == len(Theta_array), "obj_array and Theta_array must be the same length"
-    assert isinstance(q, int)==True, "q must be an integer!"
     assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
+    q = len(Theta_True)
     #Create x axis as # of bo iterations
     bo_space = np.linspace(1,bo_iters,bo_iters)
     
@@ -129,8 +126,6 @@ def plot_obj_Theta(q, obj_array, Theta_array, Theta_True, train_p, bo_iters, obj
         for i in range(restarts):
             plt.step(bo_space, obj_array[i], label = "Restart: "+str(i+1))
     else:
-#         print(bo_space)
-#         print(obj_array)
         plt.step(bo_space, obj_array, label = "SSE")
     plt.xlabel("BO Iterations")
     plt.ylabel("SSE")

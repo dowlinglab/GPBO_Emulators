@@ -611,7 +611,7 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
                     EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
 #                     print(EI[i,j])
                     #Compute error variance for that point
-                    error_point = (Yexp[k] - model_mean)
+                    error_point = np.abs((Yexp[k] - model_mean)) #Is this correct?
                     SSE_var_GP[i,j] += 2*error_point*model_variance
 #                     error_sq_GP[i,j,k] = (error_point)**2
 
@@ -1200,11 +1200,12 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             
         else:
             for k in range(n):
-                Best_Point = np.array([theta_b, Xexp[k]])
+                Best_Point = theta_b
+                Best_Point = np.append(Best_Point, Xexp[k])
 #                 y_Best = create_y_data(Best_Point) #Should use calc_y_exp correct?
                 y_Best = calc_y_exp(theta_b, Xexp[k], noise_std, noise_mean=0,random_seed=6)
-                train_p = np.concatenate((train_p, [theta_b, Xexp[k]]), axis=0) #(q x t)
-                train_y = np.concatenate((train_y, [y_Best]),axis=0) #(1 x t)
+                train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
+                train_y = np.append(train_y, [y_Best]) #(1 x t)
    
     print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
     
@@ -1213,10 +1214,10 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Plot X vs Y for Yexp and Y_GP
         title = "XY Comparison"
         X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
-        y_true = calc_y_exp(Theta_True, X_line, noise_std = 0.1**2, noise_mean=0)
+        y_true = calc_y_exp(Theta_True, X_line, noise_std = noise_std, noise_mean=0)
         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
-        plot_obj_Theta(q, All_SSE, All_Theta_Opt, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
+        plot_obj_Theta(All_SSE, All_Theta_Opt, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
         plot_obj_abs_min(BO_iters, All_SSE_abs_min, restarts)
         
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
@@ -1301,7 +1302,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         SSE_matrix_abs_min[i] = BO_results[3]
     
     #Plot all SSE/theta results for each BO iteration for all restarts
-    plot_obj_Theta(q, SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
+    plot_obj_Theta(SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
     plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts)
     
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
