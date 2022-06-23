@@ -222,6 +222,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title, obj 
         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
         ep = str(np.round(float(ep),1))
         org_TP = str(len(train_p)-(Bo_iter))
+        #Separate by iteration, org_TP, and ep
         plt.savefig("Figures/"+title+"_"+obj+"_TP_"+org_TP+"_ep_"+ep+"_iter_"+str(Bo_iter+1)+".png",dpi = 600)
     else:
         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     

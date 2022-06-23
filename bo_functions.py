@@ -12,6 +12,24 @@ from bo_plotters import plot_xy
 from bo_plotters import plot_obj_Theta
 from bo_plotters import plot_obj_abs_min
 
+
+##Table of Contents
+#LHS_Design
+#calc_y_exp
+#create_sse_data
+#gen_y_Theta_GP
+# create_y_data
+# test_train_split
+# ExactGPModel
+# train_GP_model
+# calc_GP_outputs
+# calc_ei_emulator
+# eval_GP_emulator_tot
+# calc_ei_basic
+# eval_GP_basic_tot
+
+
+
 def LHS_Design(csv_file):
     """
     Creates LHS Design based on a CSV
@@ -456,9 +474,9 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target):
     Parameters
     ----------
         error_best: float, the best predicted error encountered
-        pred_mean: tensor or ndarray, model mean
-        pred_var: tensor or ndarray, model variance
-        y_target: tensor or ndarray, the expected value of the function from data or other source
+        pred_mean: ndarray, model mean
+        pred_var: ndarray, model variance
+        y_target: ndarray, the expected value of the function from data or other source
     
     Returns
     -------
@@ -467,13 +485,14 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target):
     #Asserts that f_pred is a float, and y_target is an ndarray
     assert isinstance(error_best, (float,int))==True, "error_best must be a float or integer"
     
-    #Coverts any tensors given as inputs to ndarrays
-    if torch.is_tensor(pred_mean)==True:
-        pred_mean = pred_mean.numpy() #1xn
-    if torch.is_tensor(pred_var)==True:
-        pred_var = pred_var.detach().numpy() #1xn
-    if torch.is_tensor(y_target)==True:
-        y_target = y_target.numpy() #1xn
+    #Coverts any tensors given as inputs to ndarrays 
+    #Move this conversion outside of the function
+#     if torch.is_tensor(pred_mean)==True:
+#         pred_mean = pred_mean.numpy() #1xn
+#     if torch.is_tensor(pred_var)==True:
+#         pred_var = pred_var.detach().numpy() #1xn
+#     if torch.is_tensor(y_target)==True:
+#         y_target = y_target.numpy() #1xn
         
     #Checks for equal lengths
     assert isinstance(y_target, float)==True, "y_target, pred_mean, and pred_var must be the same length"
@@ -1027,16 +1046,11 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei
     ei_sse_choice1 ="neg_ei"
     ei_sse_choice2 = "sse"
     
-    if emulator == False:
-        argmts_best = ((train_y, model, likelihood, explore_bias, ei_sse_choice1))
-        argmts_opt = ((train_y, model, likelihood, explore_bias, ei_sse_choice2))
-        Best_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
-        Opt_Solution = optimize.minimize(eval_GP_basic_tot_scipy, theta0_o,bounds=bnds, method = "L-BFGS-B",args= argmts_opt)
-    else:
-        argmts_best = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice1))
-        argmts_opt = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice2))
-        Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
-        Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
+    argmts_best = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice1))
+    argmts_opt = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice2))
+    Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
+    Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
+    
     theta_b = Best_Solution.x
     theta_o = Opt_Solution.x  
     
@@ -1087,7 +1101,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     All_Theta_Opt = np.zeros((BO_iters,q)) 
     All_SSE = np.zeros(BO_iters)
     All_SSE_abs_min = np.zeros(BO_iters)
-    
+
     if emulator == True:
         assert len(train_p.T) ==q+m, "train_p must have the same number of dimensions as the value of q+m"
     else:
@@ -1278,7 +1292,10 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         print("Restart Number: ",i+1)
         #Create training/testing data
         train_data, test_data = test_train_split(all_data, restarts=restarts, shuffle_seed=shuffle_seed)
-        train_p = train_data[:,1:(q+m)]
+        if emulator == True:
+            train_p = train_data[:,1:(q+m+1)]
+        else:
+            train_p = train_data[:,1:(q+1)]
         train_y = train_data[:,-1]
         assert len(train_p) == len(train_y), "Training data must be the same length"
         
