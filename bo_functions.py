@@ -27,6 +27,11 @@ from bo_plotters import plot_obj_abs_min
 # eval_GP_emulator_tot
 # calc_ei_basic
 # eval_GP_basic_tot
+# find_opt_and_best_arg
+# eval_GP_scipy
+# eval_GP
+# bo_iter
+# bo_iter_w_restarts
 
 
 
@@ -784,62 +789,53 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
     else:
         return ei, sse, var, stdev, f_best, z_term, ei_term_1, ei_term_2, CDF, PDF
 
-##FOR USE WITH SCIPY##################################################################
-#NEED TO REVISE THIS FUNCTION FOR USE WITH 3_INPUT GP AS WELL
-def eval_GP_basic_tot_scipy(theta_guess, train_sse, model, likelihood, explore_bias=0.0, ei_sse_choice = "ei", verbose = False, emulator=False):
-    """ 
-    Calculates the expected improvement of the 2 input parameter GP
-    Parameters
-    ----------
-        theta_guess: ndarray (1xp), The theta value that will be guessed to optimize 
-        p: integer, the length of Theta vectors
-        train_sse: ndarray (1 x t), Training data for sse
-        model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        ei_sse_choice: "neg_ei" or "sse" - Choose which one to optimize
-    
-    Returns
-    -------
-        ei: ndarray, the expected improvement of the GP model
-        sse: ndarray, the sse of the GP model
-        
+def find_opt_and_best_arg(theta_mesh, sse, ei):
     """
-        #Asserts that inputs are correct
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-    assert ei_sse_choice == "neg_ei" or ei_sse_choice == "sse", "ei_sse_choice must be string 'ei' or 'sse'"
-    assert verbose==True or verbose==False, "Verbose must be True/False"
+    Finds the Theta value where min(sse) or min(-ei) is true using argmax and argmin
     
-    #Separates meshgrid
-    theta1_guess = theta_guess[0]
-    theta2_guess = theta_guess[1]
+    Parameters:
+    -----------
+        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        sse: ndarray (d, p x p), meshgrid of sse values for all points in theta_mesh
+        ei: ndarray (d, p x p), meshgrid of ei values for all points in theta_mesh
+    
+    Returns:
+    --------
+        Theta_Opt_GP: ndarray, The point where the objective function is minimized in theta_mesh
+        Theta_Best: ndarray, The point where the ei is maximized in theta_mesh
+    """
+    theta1_mesh = theta_mesh[0]
+    theta2_mesh = theta_mesh[1]
+    
+    #Point that the GP thinks is best has the lowest SSE
+    #Find point in sse matrix where sse is lowest (argmin(SSE))
+    argmin = np.array(np.where(np.isclose(sse, np.amin(sse),atol=np.amin(sse)*1e-6)==True))
+    
+    #ensures that only one point is used if multiple points yield a minimum
+    if len(argmin[0]) != 1:
+        argmin = np.array([[argmin[0,1]],[argmin[1,1]]])
+    
+    #Find theta value corresponding to argmin(SSE)
+    Theta_1_Opt = float(theta1_mesh[argmin[0],argmin[1]])
+    Theta_2_Opt = float(theta2_mesh[argmin[0],argmin[1]])
+    Theta_Opt_GP = np.array((Theta_1_Opt,Theta_2_Opt))
+    
+    #calculates best theta value
+    #Find point in ei matrix where ei is highest (argmax(EI))
+    argmax = np.array(np.where(np.isclose(ei, np.amax(ei),atol=np.amax(ei)*1e-6)==True))
 
-    #Evaluate a point with the GP and save values for GP mean and var
-    if emulator == False:
-        point = [theta1_guess,theta2_guess]
-        eval_point = np.array([point])
-        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-        model_sse = GP_Outputs[3].numpy()[0] #1xn 
-        model_variance= GP_Outputs[1].numpy()[0] #1xn
+    #ensures that only one point is used if multiple points yield a maximum
+    if len(argmax[0]) != 1:
+        argmax = np.array([[argmax[0,1]],[argmax[1,1]]])
+        
+    #Find theta value corresponding to argmax(EI)
+    Theta_1_Best = float(theta1_mesh[argmax[0],argmax[1]])
+    Theta_2_Best = float(theta2_mesh[argmax[0],argmax[1]])
+    Theta_Best = np.array((Theta_1_Best,Theta_2_Best))  
+    
+    return Theta_Best, Theta_Opt_GP
 
-        #Calculate best error and sse
-        best_error = max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
-        sse = model_sse
-            #Calculate ei. If statement depends whether ei is the only thing returned by calc_ei_basic function
-        if verbose == True:
-            ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0]
-        else:
-            ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
-            
-    #Return either -ei or sse as a minimize objective function
-    if ei_sse_choice == "neg_ei":
-#         print("EI chosen")
-        return -ei #Because we want to maximize EI and scipy.optimize is a minimizer by default
-    else:
-#         print("sse chosen")
-        return sse #We want to minimize sse
-
+##FOR USE WITH SCIPY##################################################################
 def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
@@ -880,6 +876,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
         model_variance= GP_Outputs[1].numpy()[0] #1xn
 
         #Calculate best error and sse
+        #Does the objective function change this?
         best_error = max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
         sse = model_sse
             #Calculate ei. If statement depends whether ei is the only thing returned by calc_ei_basic function
@@ -889,6 +886,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
             ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
     
     else:
+        print("aaaaaaaa")
         ei = 0
         sse = 0
         best_error = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid)[4]
@@ -913,7 +911,52 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
     else:
 #         print("sse chosen")
         return sse #We want to minimize sse
+
+def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,obj):
+    """
+    Finds the Theta value where min(sse) or min(-ei) is true using scipy.minimize and the L-BFGS-B method
     
+    Parameters:
+    -----------
+        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        train_y: tensor or ndarray, The training y data
+        theta0_b: Initial guess of the Theta value where ei is maximized
+        theta0_o: Initial guess of the Theta value where sse is minimized
+        sse: ndarray (d, p x p), meshgrid of sse values for all points in theta_mesh
+        ei: ndarray (d, p x p), meshgrid of ei values for all points in theta_mesh
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
+    
+    Returns:
+    --------
+        theta_b: ndarray, The point where the objective function is minimized in theta_mesh
+        theta_o: ndarray, The point where the ei is maximized in theta_mesh
+    """
+    assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    assert len(theta0_b) == len(theta0_o), "Initial guesses must be the same length."
+    
+    #Set theta meshes and bounds
+    theta1_mesh = theta_mesh[0]
+    theta2_mesh = theta_mesh[1]
+    bnds = [[np.amin(theta1_mesh), np.amax(theta1_mesh)], [np.amin(theta2_mesh), np.amax(theta2_mesh)]]
+    
+    #Use L-BFGS Method with scipy.minimize to find theta_opt and theta_best
+    ei_sse_choice1 ="neg_ei"
+    ei_sse_choice2 = "sse"
+    
+    argmts_best = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice1))
+    argmts_opt = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice2))
+    Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
+    Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_o,bounds=bnds,method = "L-BFGS-B",args=argmts_opt)
+    
+    theta_b = Best_Solution.x
+    theta_o = Opt_Solution.x  
+    
+    return theta_b, theta_o
+
 def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid = False):    
     """
     Evaluates GP
@@ -964,98 +1007,6 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
         eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid)
     
     return eval_components
-
-def find_opt_and_best_arg(theta_mesh, sse, ei):
-    """
-    Finds the Theta value where min(sse) or min(-ei) is true using argmax and argmin
-    
-    Parameters:
-    -----------
-        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
-        sse: ndarray (d, p x p), meshgrid of sse values for all points in theta_mesh
-        ei: ndarray (d, p x p), meshgrid of ei values for all points in theta_mesh
-    
-    Returns:
-    --------
-        Theta_Opt_GP: ndarray, The point where the objective function is minimized in theta_mesh
-        Theta_Best: ndarray, The point where the ei is maximized in theta_mesh
-    """
-    theta1_mesh = theta_mesh[0]
-    theta2_mesh = theta_mesh[1]
-    
-    #Point that the GP thinks is best has the lowest SSE
-    #Find point in sse matrix where sse is lowest (argmin(SSE))
-    argmin = np.array(np.where(np.isclose(sse, np.amin(sse),atol=np.amin(sse)*1e-6)==True))
-    
-    #ensures that only one point is used if multiple points yield a minimum
-    if len(argmin[0]) != 1:
-        argmin = np.array([[argmin[0,1]],[argmin[1,1]]])
-    
-    #Find theta value corresponding to argmin(SSE)
-    Theta_1_Opt = float(theta1_mesh[argmin[0],argmin[1]])
-    Theta_2_Opt = float(theta2_mesh[argmin[0],argmin[1]])
-    Theta_Opt_GP = np.array((Theta_1_Opt,Theta_2_Opt))
-    
-    #calculates best theta value
-    #Find point in ei matrix where ei is highest (argmax(EI))
-    argmax = np.array(np.where(np.isclose(ei, np.amax(ei),atol=np.amax(ei)*1e-6)==True))
-
-    #ensures that only one point is used if multiple points yield a maximum
-    if len(argmax[0]) != 1:
-        argmax = np.array([[argmax[0,1]],[argmax[1,1]]])
-        
-    #Find theta value corresponding to argmax(EI)
-    Theta_1_Best = float(theta1_mesh[argmax[0],argmax[1]])
-    Theta_2_Best = float(theta2_mesh[argmax[0],argmax[1]])
-    Theta_Best = np.array((Theta_1_Best,Theta_2_Best))  
-    
-    return Theta_Best, Theta_Opt_GP
-
-def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,obj):
-    """
-    Finds the Theta value where min(sse) or min(-ei) is true using scipy.minimize and the L-BFGS-B method
-    
-    Parameters:
-    -----------
-        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
-        train_y: tensor or ndarray, The training y data
-        theta0_b: Initial guess of the Theta value where ei is maximized
-        theta0_o: Initial guess of the Theta value where sse is minimized
-        sse: ndarray (d, p x p), meshgrid of sse values for all points in theta_mesh
-        ei: ndarray (d, p x p), meshgrid of ei values for all points in theta_mesh
-        model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
-    
-    Returns:
-    --------
-        theta_b: ndarray, The point where the objective function is minimized in theta_mesh
-        theta_o: ndarray, The point where the ei is maximized in theta_mesh
-    """
-    assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-    assert len(theta0_b) == len(theta0_o), "Initial guesses must be the same length."
-    
-    #Set theta meshes and bounds
-    theta1_mesh = theta_mesh[0]
-    theta2_mesh = theta_mesh[1]
-    bnds = [[np.amin(theta1_mesh), np.amax(theta1_mesh)], [np.amin(theta2_mesh), np.amax(theta2_mesh)]]
-    
-    #Use L-BFGS Method with scipy.minimize to find theta_opt and theta_best
-    ei_sse_choice1 ="neg_ei"
-    ei_sse_choice2 = "sse"
-    
-    argmts_best = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice1))
-    argmts_opt = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice2))
-    Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
-    Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
-    
-    theta_b = Best_Solution.x
-    theta_o = Opt_Solution.x  
-    
-    return theta_b, theta_o
-
 
 def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig=False):
     """
@@ -1179,22 +1130,26 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             fig_iter = None
         
         #Prints figures if more than 1 BO iter is happening
-        if verbose == True:  
+        if emulator == False:
             titles = ["EI","SSE","$\sigma^2$","$\sigma$","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]  
-            titles_save = ["EI","SSE","Var","StDev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]  
-            value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0], obj, explore_bias, Bo_iter = fig_iter)
-         
-            if obj == "LN_obj":
-                sse_act = np.exp(sse)
-                title = titles[1]
-                value_plotter(theta_mesh, sse_act, Theta_True, theta_o, theta_b, train_p, title, obj, explore_bias, Bo_iter = fig_iter)
-            else:
-                value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, title, obj, explore_bias, Bo_iter = fig_iter)
+            titles_save = ["EI","SSE","Var","StDev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"] 
+        else:
+            titles = ["EI","SSE","$\sigma^2$","$\sigma$","Best_Error"]  
+            titles_save = ["EI","SSE","Var","StDev","Best_Error"] 
+        value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, Bo_iter = fig_iter)
+
+        if obj == "LN_obj":
+            sse_act = np.exp(sse)
+            value_plotter(theta_mesh, sse_act, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, Bo_iter = fig_iter)
+        else:
+            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, Bo_iter = fig_iter)
             
+        if verbose == True:
             for j in range(len(titles)-2):
                 component = eval_components[j+2]
                 title = titles[j+2]
-                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, obj, explore_bias, Bo_iter = fig_iter)
+                title_save = titles_save[j+2]
+                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, Bo_iter = fig_iter)
 
 
         ##Append best values to training data 
@@ -1224,6 +1179,12 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
     
     #Plots a single line of objective/theta values vs BO iteration if there are no restarts
+    df = pd.DataFrame(All_SSE)
+    df.to_csv('CSVs/All_SSE.csv')
+    
+    df = pd.DataFrame(All_Theta_Opt)
+    df.to_csv('CSVs/All_Theta.csv')
+    
     if restarts == 0:
         #Plot X vs Y for Yexp and Y_GP
         title = "XY Comparison"
@@ -1312,12 +1273,13 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
 #         print(train_p)
 
         #Run BO iteration
-        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig=False)
+        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig = save_fig)
         #Add all SSE/theta results at each BO iteration for that restart
         Theta_matrix[i,:,:] = BO_results[1]
         SSE_matrix[i,:] = BO_results[2]
         SSE_matrix_abs_min[i] = BO_results[3]
-    
+        
+    print(train_p)
     #Plot all SSE/theta results for each BO iteration for all restarts
     plot_obj_Theta(SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj = obj,ep=explore_bias,restarts=restarts)
     plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts)

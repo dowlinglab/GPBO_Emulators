@@ -3,7 +3,57 @@ import numpy as np
 import torch
 from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
+import os
+import matplotlib.pyplot as plt
 
+def save_fig(path, ext='png', close=True, verbose=True):
+    """Save a figure from pyplot.
+    Parameters
+    ----------
+    path : string
+        The path (and filename, without the extension) to save the
+        figure to.
+    ext : string (default='png')
+        The file extension. This must be supported by the active
+        matplotlib backend (see matplotlib.backends module).  Most
+        backends support 'png', 'pdf', 'ps', 'eps', and 'svg'.
+    close : boolean (default=True)
+        Whether to close the figure after saving.  If you want to save
+        the figure multiple times (e.g., to multiple formats), you
+        should NOT close it in between saves or you will have to
+        re-plot it.
+    verbose : boolean (default=True)
+        Whether to print information about when and where the image
+        has been saved.
+    """
+    
+    # Extract the directory and filename from the given path
+    directory = os.path.split(path)[0]
+    filename = "%s.%s" % (os.path.split(path)[1], ext)
+    if directory == '':
+        directory = '.'
+
+    # If the directory does not exist, create it
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # The final path to save to
+    savepath = os.path.join(directory, filename)
+
+    if verbose:
+        print("Saving figure to '%s'..." % savepath),
+
+    # Actually save the figure
+    plt.savefig(savepath)
+    
+    # Close it
+    if close:
+        plt.close()
+
+    if verbose:
+        print("Done")
+    
+    
 def plot_hyperparams(iterations, hyperparam, title):
     '''
     Plots Hyperparameters
@@ -57,6 +107,10 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, restarts):
     plt.ylabel("SSE")
     plt.title("BO Iteration Results: Lowest Overall SSE")
     plt.grid(True)
+    
+    path = "Figures/Convergence_Figs/Min_SSE_Conv/"
+    save_fig(path, ext='png', close=False, verbose=False)
+    
     return plt.show()
 
 def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
@@ -90,9 +144,10 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     plt.xlabel('X Value',weight='bold')
     plt.ylabel('Y Value',weight='bold')
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
+    
     return plt.show()
 
-def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj = "obj",ep=0,restarts=0):
+def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj = "obj",ep=0,restats=0,):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -118,23 +173,28 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj = 
     
     #Set a string for exploration parameter and initial number of training points
     ep = str(np.round(float(ep),1))
-    org_TP = str(len(train_p)-(bo_iters))
+    org_TP = str(len(train_p))
     
-    plt.figure()
+    plt.figure() 
+    
     #Plots either 1 or multiple lines depending on whether there are restarts
     if restarts !=0:
         for i in range(restarts):
             plt.step(bo_space, obj_array[i], label = "Restart: "+str(i+1))
     else:
         plt.step(bo_space, obj_array, label = "SSE")
+        
     plt.xlabel("BO Iterations")
     plt.ylabel("SSE")
     plt.title("BO Iteration Results: SSE Metric")
     plt.grid(True)
-    plt.legend(loc = "upper left")
-#     plt.savefig("Figures/Convergence_Figs/"+"Conv_"+obj+"_TP_"+org_TP+"_ep_"+ep+"_iters_"+str(bo_iters)+".png",dpi = 600)
-    plt.show()
+    plt.legend(loc = "upper right")
     
+    path = "Figures/Convergence_Figs/SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Iter_"+str(bo_iters)
+    save_fig(path, ext='png', close=False, verbose=False)
+#     plt.savefig("Figures/Convergence_Figs/SSE_Conv/"+str(org_TP)+"/"+str(obj)+"/"+str(ep)+"Iter_"+str(bo_iters)+".png",dpi = 600)
+
+        
     for j in range(q):
         plt.figure()
         if restarts != 0:
@@ -148,11 +208,16 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj = 
         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
         plt.grid(True)
         plt.legend(loc = "upper left")
-#         plt.savefig("Figures/Convergence_Figs/"+"Theta"+str(i+1)+"_"+obj+"_TP_"+org_TP+"_ep_"+ep+"_iters_"+str(bo_iters)+".png",dpi = 600)
+        path = "Figures/Convergence_Figs/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
+        save_fig(path, ext='png', close=False, verbose=False)
+#         plt.savefig("Figures/Convergence_Figs/Theta_Conv/"+str(org_TP)+"/"+str(obj)+"/"+str(ep)+"Iter_"+str(bo_iters)+".png",dpi = 600)
         plt.show()
     
+    return
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title, obj = "obj",ep=0,Bo_iter = None):
+    
+
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj = "obj",ep=0,Bo_iter = None):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -223,7 +288,9 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title, obj 
         ep = str(np.round(float(ep),1))
         org_TP = str(len(train_p)-(Bo_iter))
         #Separate by iteration, org_TP, and ep
-        plt.savefig("Figures/"+title+"_"+obj+"_TP_"+org_TP+"_ep_"+ep+"_iter_"+str(Bo_iter+1)+".png",dpi = 600)
+        path = "Figures/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
+        save_fig(path, ext='png', close=False, verbose=False)
+#         plt.savefig(path+".png",dpi = 600, bbox_inches = "tight")
     else:
         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
            
@@ -367,9 +434,9 @@ def plotter_4D(parameter_space,z, plot_title="Model Output"):
     
     return 
 
-def error_plotter_4D(parameter_space, z):
+def value_plotter_4D(parameter_space, z, title):
     """
-    Plots the error^2 of the GP
+    Plots a value of the GP in 4D
     Parameters
     ----------
         parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
@@ -378,50 +445,13 @@ def error_plotter_4D(parameter_space, z):
     Returns
     -------
         A 3D Heat map of the values of expected improvement predicted by the GP
-    """
-    title = "Error Magnitude"
-    
+    """    
     if isinstance(z,ndarray)!=True:
         z = np.asarray(z)
         
     error = z
     return plotter_4D(parameter_space,z, title)
 
-def y_plotter_4D(parameter_space, z,title="y"):
-    '''
-    Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
-
-    Parameters
-    ----------
-        parameter_space: ndarray, n NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
-        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
-        title: str, A string containing the title of the plot
-     
-    Returns
-    -------
-        plt.show(), A heat map of test_mesh and z (y values)
-    '''
-    title = "Model Y Values"
-    return plotter_4D(parameter_space, z,title)
-
-
-def stdev_plotter_4D(parameter_space, z):
-    '''
-    Helper function for basic_plotter. Calls basic_plotter specifically for plotting standard deviation values.
-
-    Parameters
-    ----------
-        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
-        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
-        p_true: ndarray, A 2x1 containing the true input parameters
-        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
-     
-    Returns
-    -------
-        plt.show(), A heat map of test_mesh and z (standard deviation values)
-    '''
-    title = "Standard Deviation"
-    return plotter_4D(parameter_space, z,title)
 
 # def plotter_4D_2(parameter_space,z, plot_title="Model Output"):
 #     """
