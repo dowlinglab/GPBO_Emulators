@@ -150,7 +150,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     
     return plt.show()
 
-def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj, ep, emulator, restarts=0):
+def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, restarts=0):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -176,7 +176,7 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj, e
     
     #Set a string for exploration parameter and initial number of training points
     ep = str(np.round(float(ep),1))
-    org_TP = str(len(train_p))
+    org_TP = str(t)
     
     plt.figure() 
     
