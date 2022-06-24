@@ -11,7 +11,6 @@ from bo_plotters import plot_org_train
 from bo_plotters import plot_xy
 from bo_plotters import plot_obj_Theta
 from bo_plotters import plot_obj_abs_min
-# from .autonotebook import tqdm as notebook_tqdm
 import os
 
 
@@ -585,7 +584,7 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj):
         best_error = np.amin(np.exp(SSE))
     else:
         best_error = np.amin(SSE)
-    return best_error
+    return best_error, SSE
 
 def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid):
     """ 
@@ -621,7 +620,6 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
     
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
-    SSE = np.zeros((p,p))
     SSE_var_GP = np.zeros((p,p))
        
     ##Will only be useful in 3D plots
@@ -631,22 +629,7 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
     
     ##Calculate Best Error
     # Loop over theta 1
-    for i in range(p):
-        #Loop over theta2
-        for j in range(p):
-            ## Caclulate Best Error
-            #Find Lowest SSE Point
-            point = [theta1_mesh[i,j],theta2_mesh[i,j]]
-            q = len(point)
-            eval_point = np.array([point])
-            SSE[i,j] = create_sse_data(q,eval_point, Xexp, Yexp, obj=obj)
-         
-
-    #Define best_error as the minimum SSE value
-    if obj == "LN_obj":
-        best_error = np.amin(np.exp(SSE))
-    else:
-        best_error = np.amin(SSE)
+    best_error,SSE = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj)
             
     # Loop over theta 1
     for i in range(p):
@@ -923,7 +906,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
     else:
         ei = 0
         sse = 0
-        best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj)
+        best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj)[0]
         for k in range(n):
             #Caclulate EI for each value n given the best error
             point = [theta1_guess,theta2_guess,Xexp[k]]
@@ -1172,20 +1155,20 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             titles = ["EI","SSE","$\sigma^2$","$\sigma$","Best_Error"]  
             titles_save = ["EI","SSE","Var","StDev","Best_Error"] 
             
-        value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, Bo_iter = fig_iter)
+        value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, emulator, Bo_iter = fig_iter)
 
         if obj == "LN_obj":
             sse_act = np.exp(sse)
-            value_plotter(theta_mesh, sse_act, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, Bo_iter = fig_iter)
+            value_plotter(theta_mesh, sse_act, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter)
         else:
-            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, Bo_iter = fig_iter)
+            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter)
             
         if verbose == True:
             for j in range(len(titles)-2):
                 component = eval_components[j+2]
                 title = titles[j+2]
                 title_save = titles_save[j+2]
-                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, Bo_iter = fig_iter)
+                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, emulator, Bo_iter = fig_iter)
 
 
         ##Append best values to training data 
@@ -1211,8 +1194,6 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
                 y_Best = calc_y_exp(theta_b, Xexp[k], noise_std, noise_mean=0,random_seed=6)
                 train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
                 train_y = np.append(train_y, [y_Best]) #(1 x t)
-   
-#         pass
 
     print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
     
@@ -1236,8 +1217,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         y_true = calc_y_exp(Theta_True, X_line, noise_std = noise_std, noise_mean=0)
         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
-        plot_obj_Theta(All_SSE, All_Theta_Opt, Theta_True, train_p, BO_iters, obj,explore_bias)
-        plot_obj_abs_min(BO_iters, All_SSE_abs_min, restarts)
+        plot_obj_Theta(All_SSE, All_Theta_Opt, Theta_True, train_p, BO_iters, obj,explore_bias, emulator)
+        plot_obj_abs_min(BO_iters, All_SSE_abs_min, restarts, emulator)
         
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
 
@@ -1313,8 +1294,6 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         train_p = train_p[0:t]
         train_y = train_y[0:t]
         plot_org_train(theta_mesh,train_p,Theta_True)
-        
-#         print(train_p)
 
         #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig = save_fig)
@@ -1325,8 +1304,8 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         
     print(train_p)
     #Plot all SSE/theta results for each BO iteration for all restarts
-    plot_obj_Theta(SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj,explore_bias,restarts=restarts)
-    plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts)
+    plot_obj_Theta(SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj,explore_bias, emulator, restarts=restarts)
+    plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts, emulator)
     
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
 #     print(argmin)

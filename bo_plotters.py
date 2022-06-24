@@ -93,7 +93,7 @@ def plot_org_train(test_mesh,train_p,p_true):
     plt.grid(True)
     return plt.show()
 
-def plot_obj_abs_min(bo_iters, obj_abs_min, restarts):
+def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator):
     bo_space = np.linspace(1,bo_iters,bo_iters)
     
     plt.figure()
@@ -108,7 +108,10 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, restarts):
     plt.title("BO Iteration Results: Lowest Overall SSE")
     plt.grid(True)
     
-    path = "Figures/Convergence_Figs/Min_SSE_Conv/"
+    if emulator == True:
+        path = "Figures/Convergence_Figs/GP_Emulator/Min_SSE_Conv/"
+    else:
+        path = "Figures/Convergence_Figs/GP_Error_Emulator/Min_SSE_Conv/"
     save_fig(path, ext='png', close=False, verbose=False)
     
     return plt.show()
@@ -147,7 +150,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     
     return plt.show()
 
-def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj, ep,restats=0):
+def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj, ep, emulator, restarts=0):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -190,10 +193,11 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj, e
     plt.grid(True)
     plt.legend(loc = "upper right")
     
-    path = "Figures/Convergence_Figs/SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Iter_"+str(bo_iters)
+    if emulator == True:
+        path = "Figures/Convergence_Figs/GP_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Iter_"+str(bo_iters)
+    else:
+        path = "Figures/Convergence_Figs/GP_Error_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Iter_"+str(bo_iters)
     save_fig(path, ext='png', close=False, verbose=False)
-#     plt.savefig("Figures/Convergence_Figs/SSE_Conv/"+str(org_TP)+"/"+str(obj)+"/"+str(ep)+"Iter_"+str(bo_iters)+".png",dpi = 600)
-
         
     for j in range(q):
         plt.figure()
@@ -208,16 +212,19 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj, e
         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
         plt.grid(True)
         plt.legend(loc = "upper left")
-        path = "Figures/Convergence_Figs/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
+        
+        if emulator == True:
+            path = "Figures/Convergence_Figs/GP_Emulator/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
+        else:
+            path = "Figures/Convergence_Figs/GP_Error_Emulator/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
         save_fig(path, ext='png', close=False, verbose=False)
 #         plt.savefig("Figures/Convergence_Figs/Theta_Conv/"+str(org_TP)+"/"+str(obj)+"/"+str(ep)+"Iter_"+str(bo_iters)+".png",dpi = 600)
         plt.show()
     
     return
 
-    
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj = "obj",ep=0,Bo_iter = None):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, Bo_iter = None):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -258,17 +265,18 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     
     if torch.is_tensor(train_p) == True:
         train_p = train_p.numpy()
+        
+    #Plots axes such that they are scaled the same way (eg. circles look like circles)
+    plt.axis('scaled')    
     
     #Plots the true optimal value and the GP value
     plt.scatter(p_true[0],p_true[1], color="blue", label = "True Optimal Value", s=100, marker = (5,1))
         
-    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="white", s=200, label = "GP min(SSE) Value", marker = ".")
-    #Plots axes such that they are scaled the same way (eg. circles look like circles)
-    plt.axis('scaled')
-    
     plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
     
-    plt.scatter(p_GP_best[0],p_GP_best[1], color="black", s=10, label = "GP Best EI Value", marker = "D")
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="white", s=50, label = "GP min(SSE) Value", marker = ".")
+    
+    plt.scatter(p_GP_best[0],p_GP_best[1], color="black", s=25, label = "GP Best EI Value", marker = ".")
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')
     
@@ -288,7 +296,10 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         ep = str(np.round(float(ep),1))
         org_TP = str(len(train_p)-(Bo_iter))
         #Separate by iteration, org_TP, and ep
-        path = "Figures/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
+        if emulator == True:
+            path = "Figures/"+"GP_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
+        else:
+            path = "Figures/"+"GP_Error_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
         save_fig(path, ext='png', close=False, verbose=False)
 #         plt.savefig(path+".png",dpi = 600, bbox_inches = "tight")
     else:
