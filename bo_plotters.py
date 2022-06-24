@@ -147,7 +147,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
     
     return plt.show()
 
-def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj = "obj",ep=0,restats=0,):
+def plot_obj_Theta(obj_array, Theta_array, Theta_True, train_p, bo_iters, obj, ep,restats=0):
     """
     Plots the objective function and Theta values vs BO iteration
     
