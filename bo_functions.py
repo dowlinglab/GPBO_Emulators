@@ -569,14 +569,15 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj):
             point = [theta1_mesh[i,j],theta2_mesh[i,j]]
             q = len(point)
             eval_point = np.array([point])
-            SSE[i,j] = create_sse_data(q,eval_point, Xexp, Yexp, obj=obj)        
+            SSE[i,j] = create_sse_data(q,eval_point, Xexp, Yexp, obj=obj)      
+            #Is this SSE the same as the one that is calculated by the method below?
 
     #Define best_error as the minimum SSE value
     if obj == "LN_obj":
         best_error = np.amin(np.exp(SSE))
     else:
         best_error = np.amin(SSE)
-    return best_error, SSE #Note in this case SSE can be SSE or LN(SSE)
+    return best_error #Note in this case SSE can be SSE or LN(SSE)
 
 def eval_GP_sparse_grid(Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
     """Evaluate GP using the spare grid instead of an approximation.
@@ -656,6 +657,7 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
     SSE_var_GP = np.zeros((p,p))
+    SSE = np.zeros((p,p))
        
     ##Will only be useful in 3D plots
 #     y_GP = np.zeros((p,p,n))
@@ -664,7 +666,7 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
     
     ##Calculate Best Error
     # Loop over theta 1
-    best_error,SSE = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj)
+    best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj)
             
     # Loop over theta 1
     for i in range(p):
@@ -684,8 +686,10 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
                 model_variance= GP_Outputs[1].numpy()[0] #1xn
                 GP_mean[k] = model_mean
                 GP_var[k] = model_variance
+                              
+                #Compute SSE and SSE variance for that point
+                SSE[i,j] += (model_mean - Yexp[k])**2 #Is this right? or is the SSE calculated for the training points correct are they the same?
                 
-                #Compute error variance for that point
                 error_point = np.abs((Yexp[k] - model_mean)) #Is this correct?
                 SSE_var_GP[i,j] += 2*error_point*model_variance
 #                 error_sq_GP[i,j,k] = (error_point)**2
@@ -693,7 +697,7 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
                 if sparse_grid == False:
                     #Compute EI w/ approximation
                     EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
-                    
+                            
             GP_stdev = np.sqrt(GP_var)
             if sparse_grid == True:
                 #Compute EI using eparse grid
@@ -914,7 +918,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
     -------
         -ei: ndarray, the negative expected improvement of the GP model
         OR
-        sse: ndarray, the sse of the GP model
+        sse: ndarray, the sse/ln(sse) of the GP model
         
     """
         #Asserts that inputs are correct
@@ -953,28 +957,30 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
     else:
         ei = 0
         sse = 0
-        best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj)[0]
+        best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj)
         for k in range(n):
             #Caclulate EI for each value n given the best error
             point = [theta1_guess,theta2_guess,Xexp[k]]
             eval_point = np.array([point])
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-            SSE = create_sse_data(q,eval_point, Xexp, Yexp, obj="obj")
             model_mean = GP_Outputs[3].numpy()[0] #1xn
             model_variance= GP_Outputs[1].numpy()[0] #1xn
+            sse += (model_mean - Yexp[k])**2
 
             if sparse_grid == False:
                 #Compute EI w/ approximation
                 ei += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
-                sse += create_sse_data(q,eval_point, Xexp, Yexp, obj="obj")
-
+    
+        if obj == "LN_obj":
+            sse = np.log(sse)
+            
     #Return either -ei or sse as a minimize objective function
     if ei_sse_choice == "neg_ei":
 #         print("EI chosen")
         return -ei #Because we want to maximize EI and scipy.optimize is a minimizer by default
     else:
 #         print("sse chosen")
-        return sse #We want to minimize sse
+        return sse #We want to minimize sse or ln(sse)
 
 def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,obj):
     """
@@ -1083,7 +1089,7 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
     
     return eval_components
 
-def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig=False):
+def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restart, sparse_grid, emulator, verbose = False,save_fig=False):
     """
     Performs BO iterations
     
@@ -1100,7 +1106,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         Yexp: ndarray, The experimental data for y (the true value)
         noise_std: float, int: The standard deviation of the noise
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-        restarts: int, The number of times to choose new training points
+        restart: int, The iteration of the number of times new training points have been picked
         sparse_grid: True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         emulator: True/False, Determines if GP will model the function or the function error
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
@@ -1219,14 +1225,14 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             titles_save = ["EI","SSE","Var","StDev","Best_Error"] 
         
         #Plot and save figures for all figrues for EI and SSE
-        value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, emulator, Bo_iter = fig_iter)
+        value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, emulator, Bo_iter = fig_iter, restart = restart)
         
         #Ensure that a plot of SSE (and never ln(SSE) is drawn
-        if obj == "LN_obj":
+        if obj == "LN_obj" and emulator == False:
             sse_act = np.exp(sse)
-            value_plotter(theta_mesh, sse_act, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter)
+            value_plotter(theta_mesh, sse_act, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter, restart = restart )
         else:
-            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter)
+            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter, restart = restart)
         
         #Save other figures if verbose=True
         if verbose == True:
@@ -1234,7 +1240,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
                 component = eval_components[j+2]
                 title = titles[j+2]
                 title_save = titles_save[j+2]
-                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, emulator, Bo_iter = fig_iter)
+                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, emulator, Bo_iter = fig_iter, restart = restart)
 
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
@@ -1276,7 +1282,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     df.to_csv(path+ 'All_Theta.csv')
     
     #Plots a single line of objective/theta values vs BO iteration if there are no restarts
-    if restarts == 0:
+    if restart == None:
         #Plot X vs Y for Yexp and Y_GP
         X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
         y_true = calc_y_exp(Theta_True, X_line, noise_std = noise_std, noise_mean=0)
@@ -1368,7 +1374,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         plot_org_train(theta_mesh,train_p,Theta_True)
 
         #Run BO iteration
-        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig = save_fig)
+        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, verbose = False,save_fig = save_fig)
         
         #Add all SSE/theta results at each BO iteration for that restart
         Theta_matrix[i,:,:] = BO_results[1]

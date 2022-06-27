@@ -130,7 +130,7 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator):
     
     #Plot Minimum SSE value at each restart
     plt.figure()
-    if restarts ==0:
+    if restarts == None:
         plt.step(bo_space,obj_abs_min, label = "Minimum SSE Value Found")
     else:
         for i in range(restarts):
@@ -277,7 +277,7 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
     return
 
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, Bo_iter = None):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, Bo_iter = None, restart = 0):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -299,7 +299,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         plt.show(), A heat map of test_mesh and z
     '''
     #Backtrack out number of parameters from given information
-    q=len(p_True)
+    q=len(p_true)
     xx , yy = test_mesh #NxN, NxN
 
     #Assert sattements
@@ -360,9 +360,9 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         #Generate path and save figures 
         #Separate by iteration, org_TP, and ep
         if emulator == True:
-            path = "Figures/"+"GP_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
+            path = "Figures/"+"GP_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+title_save+"/"+"Restart_"+str(restart+1)+"/Iter_"+str(Bo_iter+1)
         else:
-            path = "Figures/"+"GP_Error_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
+            path = "Figures/"+"GP_Error_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Restart_"+str(restart+1)+"/Iter_"+str(Bo_iter+1)
         save_fig(path, ext='png', close=False, verbose=False)
     #Don't save if there's only 1 BO iteration
     else:
