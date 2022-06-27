@@ -12,7 +12,7 @@ from bo_plotters import plot_xy
 from bo_plotters import plot_obj_Theta
 from bo_plotters import plot_obj_abs_min
 import os
-# import Tasmanian
+import Tasmanian
 
 
 ##Table of Contents
