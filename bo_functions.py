@@ -12,6 +12,7 @@ from bo_plotters import plot_xy
 from bo_plotters import plot_obj_Theta
 from bo_plotters import plot_obj_abs_min
 import os
+# import Tasmanian
 
 
 ##Table of Contents
@@ -577,6 +578,47 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj):
         best_error = np.amin(SSE)
     return best_error, SSE #Note in this case SSE can be SSE or LN(SSE)
 
+def eval_GP_sparse_grid(Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
+    """Evaluate GP using the spare grid instead of an approximation.
+    
+    Parameters
+    ----------
+        Yexp: ndarray, experimental y values
+        theta_mesh:  ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        GP_mean: ndarray, Array of GP mean values at each experimental data point
+        GP_stdev: ndarray, Array of GP standard deviation values at each experimental data point
+        best_error: float, the best error of the 3-Input GP model
+    
+    Returns
+    ----------
+        EI_Temp: float: The expected improvement of a given point 
+    """
+    #Back out important parameters from inputs
+    q = theta_mesh.shape[0] #Number of parameters to regress
+    n = len(Yexp) #Number of experimental data points
+    
+    #Obtain Sparse Grid Points
+    grid_p = Tasmanian.SparseGrid()
+    grid_p.makeGlobalGrid(q,0,5,'level','gauss-legendre')
+    grid_p.setDomainTransform(range_p)
+    point_p = grid_p.getPoints()
+    weights_p = grid_p.getQuadratureWeights()
+    
+    #Initialize EI
+    EI_Temp = 0
+    
+    #Loop over sparse grid weights and nodes
+    for i in range(len(points_p)):
+        #Initialize SSE
+        SSE_Temp = 0
+        
+        #Loop over experimental data points
+        for j in range(n):
+            SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
+        #Apply max operator    
+        EI_Temp += weights_p[i,j]*(-np.min(SSE_Temp - best_error,0)) 
+    return EI_Temp
+
 def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
@@ -643,15 +685,19 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
                 GP_mean[k] = model_mean
                 GP_var[k] = model_variance
                 
+                #Compute error variance for that point
+                error_point = np.abs((Yexp[k] - model_mean)) #Is this correct?
+                SSE_var_GP[i,j] += 2*error_point*model_variance
+#                 error_sq_GP[i,j,k] = (error_point)**2
+                
                 if sparse_grid == False:
                     #Compute EI w/ approximation
                     EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
-                    #Compute error variance for that point
-                    error_point = np.abs((Yexp[k] - model_mean)) #Is this correct?
-                    SSE_var_GP[i,j] += 2*error_point*model_variance
-#                     error_sq_GP[i,j,k] = (error_point)**2
-
-                    ##Make Sparse Grid EI Function in else
+                    
+            GP_stdev = np.sqrt(GP_var)
+            if sparse_grid == True:
+                #Compute EI using eparse grid
+                EI[i,j] = eval_GP_sparse_grid(Yexp, theta_mesh, GP_mean, GP_stdev, best_error)
     SSE_stdev_GP = np.sqrt(SSE_var_GP)
 #     print(EI)
     return EI, SSE, SSE_var_GP, SSE_stdev_GP, best_error
