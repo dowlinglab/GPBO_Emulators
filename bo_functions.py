@@ -35,7 +35,6 @@ import os
 # bo_iter_w_restarts
 
 
-
 def LHS_Design(csv_file):
     """
     Creates LHS Design based on a CSV
@@ -92,7 +91,6 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
     return y_exp
 
 def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
-    #Tested for correctness 5/19/22
     """
     Creates y_data for the 2 input GP function
     
@@ -105,7 +103,7 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         
     Returns:
-        sum_error_sq: ndarray, The SSE values that the GP will be trained on
+        sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
     """   
     
     #Asserts that test_T is a tensor with 2 columns (May delete this)
@@ -151,8 +149,7 @@ def gen_y_Theta_GP(x_space, Theta):
     ----------
         x_space: ndarray, array of x value
         Theta: ndarray, Array of theta values
-        
-             
+           
     Returns
     -------
         create_y_data_space: ndarray, array of parameters [Theta, x] to be used to generate y data
@@ -225,10 +222,8 @@ def test_train_split(all_data, sep_fact=0.8, restarts = 0, shuffle_seed = None):
         restarts: int, # of restarts for bo iterations. default is 0
         shuffle_seed, int, number of seed for shuffling training data. Default is None.
     Returns:
-        train_param: ndarray, The training parameter space data
-        train_data: ndarray, The training y data
-        test_param: ndarray, The testing parameter space data
-        test_data: ndarray, The testing y data
+        train_data: ndarray, The training data
+        test_data: ndarray, The testing data
     
     """
     #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
@@ -535,22 +530,18 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target):
 
 def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj):
     """ 
-    Calculates the expected improvement of the 3 input parameter GP
+    Calculates the best error and SSE/ln(SSE) of the 3 input parameter GP
     Parameters
     ----------
-        p: integer, the length of Theta vectors
         Xexp: ndarray, experimental x values
         Yexp: ndarray, experimental y values
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
-        model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
         obj: LN_obj or obj (str), determines objective function
-        sparse_grid: True/False: Determines whether an assumption or sparse grid method is used
     
     Returns
     -------
-        EI: ndarray, the expected improvement of the GP model
-        Error_tot: ndarray, Errors associated with each value of Theta
+        best_error: float, the best error of the 3-Input GP model
+        SSE: ndarray (p1 x p2), SSE or ln(SSE) associated with each value of Theta
     """
     #Asserts that inputs are correct
     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
@@ -584,14 +575,13 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj):
         best_error = np.amin(np.exp(SSE))
     else:
         best_error = np.amin(SSE)
-    return best_error, SSE
+    return best_error, SSE #Note in this case SSE can be SSE or LN(SSE)
 
 def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
     ----------
-        p: integer, the length of Theta vectors
         Xexp: ndarray, experimental x values
         Yexp: ndarray, experimental y values
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
@@ -603,7 +593,10 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
     Returns
     -------
         EI: ndarray, the expected improvement of the GP model
-        Error_tot: ndarray, Errors associated with each value of Theta
+        SSE: ndarray, The SSE/ln(SSE) of the model 
+        SSE_var_GP: ndarray, The varaince of the SSE pf the GP model
+        SSE_stdev_GP: ndarray, The satndard deviation of the SSE of the GP model
+        best_error: ndarray, The best_error of the GP model
     """
     #Asserts that inputs are correct
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
@@ -677,12 +670,12 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
     Returns
     -------
         ei: float, The expected improvement of a given point
-        IF verbose == True
-        z: float, The z value of the point
-        ei_term_1: float, The first term of the ei equation
-        ei_term_2: float, The second term of the ei equation
-        norm.cdf(z): float, The CDF of the point
-        norm.pdf(z): float, The PDF of the point
+        If verbose == True
+            z: float, The z value of the point
+            ei_term_1: float, The first term of the ei equation
+            ei_term_2: float, The second term of the ei equation
+            norm.cdf(z): float, The CDF of the point
+            norm.pdf(z): float, The PDF of the point
     """
         #Checks for equal lengths
 #     assert isinstance(f_best, (np.float64,int))==True or torch.is_tensor(f_best)==True, "f_best must be a float or int"
@@ -729,7 +722,6 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
     Calculates the expected improvement of the 2 input parameter GP
     Parameters
     ----------
-        p: integer, the length of Theta vectors
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         train_sse: ndarray (1 x t), Training data for sse
         model: bound method, The model that the GP is bound by
@@ -855,18 +847,27 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
 ##FOR USE WITH SCIPY##################################################################
 def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
     """ 
-    Calculates the expected improvement of the 2 input parameter GP
+    Calculates either -ei or sse (a function to be minimized). To be used in calculating best and optimal parameter sets.
     Parameters
     ----------
         theta_guess: ndarray (1xp), The theta value that will be guessed to optimize 
         train_sse: ndarray (1 x t), Training data for sse
+        Xexp: ndarray, experimental x values
+        Yexp: ndarray, experimental y values
+        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        emulator: True/False: Determines whether the GP is a property emulator of error emulator
+        sparse_grid: True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        obj: ob or LN_obj: Determines which objective function is used for the 2 input GP
+        explore_bias: float, Exploration parameter used for calculating 2-Input GP expected improvement
         ei_sse_choice: "neg_ei" or "sse" - Choose which one to optimize
+        verbose: True/False - Determines verboseness of output
     
     Returns
     -------
-        ei: ndarray, the expected improvement of the GP model
+        -ei: ndarray, the negative expected improvement of the GP model
+        OR
         sse: ndarray, the sse of the GP model
         
     """
@@ -935,6 +936,8 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei
     
     Parameters:
     -----------
+        Xexp: ndarray, experimental x values
+        Yexp: ndarray, experimental y values
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         train_y: tensor or ndarray, The training y data
         theta0_b: Initial guess of the Theta value where ei is maximized
@@ -944,12 +947,16 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
         explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
+        emulator: True/False: Determines whether the GP is a property emulator of error emulator
+        sparse_grid: True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        obj: ob or LN_obj: Determines which objective function is used for the 2 input GP
     
     Returns:
     --------
         theta_b: ndarray, The point where the objective function is minimized in theta_mesh
         theta_o: ndarray, The point where the ei is maximized in theta_mesh
     """
+    #Assert statements to ensure no bugs
     assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
@@ -964,11 +971,13 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei
     ei_sse_choice1 ="neg_ei"
     ei_sse_choice2 = "sse"
     
+    #Set arguments and calculate best and optimal solutions
     argmts_best = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice1))
     argmts_opt = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice2))
     Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
     Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_o,bounds=bnds,method = "L-BFGS-B",args=argmts_opt)
     
+    #save best and optimal values
     theta_b = Best_Solution.x
     theta_o = Opt_Solution.x  
     
@@ -983,6 +992,8 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         train_y: tensor or ndarray, The training y data
         explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
+        Xexp: ndarray, experimental x values
+        Yexp: ndarray, experimental y values
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
         verbose: True/False: Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved
@@ -994,8 +1005,9 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
     --------
         eval_components: ndarray, The componenets evaluate by the GP. ei, sse, var, stdev, f_best, (z_term, ei_term_1, ei_term_2, CDF, PDF)
     """
-    
+    #Find Number of training points
     p = theta_mesh.shape[1]
+    
     assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
@@ -1016,7 +1028,8 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
     model.eval()
     #Puts likelihood in evaluation mode
     likelihood.eval()
-
+    
+    #Evaluate GP based on error emulator or property emulator
     if emulator == False:
         eval_components = eval_GP_basic_tot(theta_mesh, train_y, model, likelihood, explore_bias, verbose)
     else:
@@ -1039,11 +1052,13 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
         Xexp: ndarray, The list of xs that will be used to generate y
         Yexp: ndarray, The experimental data for y (the true value)
+        noise_std: float, int: The standard deviation of the noise
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         restarts: int, The number of times to choose new training points
+        sparse_grid: True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        emulator: True/False, Determines if GP will model the function or the function error
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: True/False, Determines whether figures will be saved
-        emulator: True/False, Determines if GP will model the function or the function error
         
     Returns:
     --------
@@ -1051,6 +1066,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         theta_o: The predicted theta where objective function is minimized after all BO iterations
     
     """
+    #Assert Statments
     assert all(isinstance(i, int) for i in [BO_iters, train_iter]), "BO_iters and train_iter must be integers"
     assert len(train_p) == len(train_y), "Training data must be the same length"
     assert len(Xexp) == len(Yexp), "Experimental data must have the same length"
@@ -1058,11 +1074,12 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     assert verbose==True or verbose==False, "Verbose must be True/False"
     assert emulator==True or emulator==False, "Verbose must be True/False"
     
-    m = Xexp[0].size
-    n = len(Xexp)
-    q = len(Theta_True)
-    p = theta_mesh.shape[1]
-    
+    #Find parameters
+    m = Xexp[0].size #Dimensions of X
+    n = len(Xexp) #Length of experimental data
+    q = len(Theta_True) #Number of parameters to regress
+    p = theta_mesh.shape[1] #Number of points to evaluate the GP at in any dimension of q
+    t = len(train_p) #Original length of training data
     
     #Set arrays to track theta_best, theta_opt, and SSE for every BO iteration
     All_Theta_Best = np.zeros((BO_iters,q)) 
@@ -1070,6 +1087,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     All_SSE = np.zeros(BO_iters)
     All_SSE_abs_min = np.zeros(BO_iters)
 
+    #Ensures GP will take correct # of inputs
     if emulator == True:
         GP_inputs = q+m
         assert len(train_p.T) ==q+m, "train_p must have the same number of dimensions as the value of q+m"
@@ -1094,9 +1112,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         
         #Evaluate GP
         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid =False)
-#         eval_components = eval_GP(p, theta_mesh,train_y, explore_bias, model, likelihood, verbose)
         
-        #Determines whether debugging parameters are saved
+        #Determines whether debugging parameters are saved for 2 Input GP
         if verbose == False:
             ei,sse,var,stdev,best_error = eval_components
         
@@ -1123,7 +1140,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         Error_mag = np.sum((y_GP_Opt-Yexp)**2)
         All_SSE[i] = Error_mag
         
-        #Calculate best value of SSE for plotting 
+        #Save best value of SSE for plotting 
         if i == 0:
             All_SSE_abs_min[i] = Error_mag
         else:
@@ -1132,7 +1149,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             else: 
                 All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
         
-        #Prints certain values at each iteration
+        #Prints certain values at each iteration if verbose is True
         if verbose == True:
             print("BO Iteration = ", i+1)
             print("Exploration Bias = ",explore_bias)
@@ -1154,22 +1171,24 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         else:
             titles = ["EI","SSE","$\sigma^2$","$\sigma$","Best_Error"]  
             titles_save = ["EI","SSE","Var","StDev","Best_Error"] 
-            
+        
+        #Plot and save figures for all figrues for EI and SSE
         value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, emulator, Bo_iter = fig_iter)
-
+        
+        #Ensure that a plot of SSE (and never ln(SSE) is drawn
         if obj == "LN_obj":
             sse_act = np.exp(sse)
             value_plotter(theta_mesh, sse_act, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter)
         else:
             value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter)
-            
+        
+        #Save other figures if verbose=True
         if verbose == True:
             for j in range(len(titles)-2):
                 component = eval_components[j+2]
                 title = titles[j+2]
                 title_save = titles_save[j+2]
                 value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, emulator, Bo_iter = fig_iter)
-
 
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
@@ -1187,18 +1206,19 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
             
         else:
+            #Loop over experimental data
             for k in range(n):
                 Best_Point = theta_b
                 Best_Point = np.append(Best_Point, Xexp[k])
-#                 y_Best = create_y_data(Best_Point) #Should use calc_y_exp correct?
+                #Create y-value/ experimental data ---- #Should use calc_y_exp correct?
                 y_Best = calc_y_exp(theta_b, Xexp[k], noise_std, noise_mean=0,random_seed=6)
                 train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
                 train_y = np.append(train_y, [y_Best]) #(1 x t)
-
-    print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
+        
+        if verbose == True:
+            print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
     
-    
-    #Saves files as CSVs
+    #Saves SSE and Theta_Opt values as CSV files
     path = 'CSVs/'+str(GP_inputs)+'_Input/'
     if not os.path.exists('CSVs/'+str(GP_inputs)+'_Input'):
         os.makedirs('CSVs/'+str(GP_inputs)+'_Input')
@@ -1217,7 +1237,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         y_true = calc_y_exp(Theta_True, X_line, noise_std = noise_std, noise_mean=0)
         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
-        plot_obj_Theta(All_SSE, All_Theta_Opt, Theta_True, train_p, BO_iters, obj,explore_bias, emulator)
+        #Plots objective values and theta values across BO iterations
+        plot_obj_Theta(All_SSE, All_Theta_Opt, Theta_True, t, BO_iters, obj,explore_bias, emulator)
         plot_obj_abs_min(BO_iters, All_SSE_abs_min, restarts, emulator)
         
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
@@ -1237,11 +1258,14 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
         Xexp: ndarray, The list of xs that will be used to generate y
         Yexp: ndarray, The experimental data for y (the true value)
+        noise_std: float, int: The standard deviation of the noise
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         restarts: int, The number of times to choose new training points
+        sparse_grid: Determines whether a sparse grid or approximation is used for the GP emulator
+        emulator: True/False, Determines if GP will model the function or the function error
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: True/False, Determines whether figures will be saved
-        emulator: True/False, Determines if GP will model the function or the function error
+        shuffle_seed, int, number of seed for shuffling training data. Default is None.      
         
     Returns:
     --------
@@ -1302,9 +1326,9 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         SSE_matrix[i,:] = BO_results[2]
         SSE_matrix_abs_min[i] = BO_results[3]
         
-    print(train_p)
+#     print(train_p)
     #Plot all SSE/theta results for each BO iteration for all restarts
-    plot_obj_Theta(SSE_matrix, Theta_matrix, Theta_True, train_p, BO_iters, obj,explore_bias, emulator, restarts=restarts)
+    plot_obj_Theta(SSE_matrix, Theta_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, restarts)
     plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts, emulator)
     
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))

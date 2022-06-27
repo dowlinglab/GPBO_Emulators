@@ -159,7 +159,6 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
         obj_array: ndarry, (nx1): The output array containing objective function values
         Theta_array: ndarray, (nxq): The output array containing objective function values
         Theta_True: ndarray, Used for plotting Theta Values
-        train_p: ndarray, Used for figure naming
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
     
@@ -177,7 +176,7 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
     #Set a string for exploration parameter and initial number of training points
     ep = str(np.round(float(ep),1))
     org_TP = str(t)
-    
+
     plt.figure() 
     
     #Plots either 1 or multiple lines depending on whether there are restarts
@@ -194,7 +193,7 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
     plt.legend(loc = "upper right")
     
     if emulator == True:
-        path = "Figures/Convergence_Figs/GP_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Iter_"+str(bo_iters)
+        path = "Figures/Convergence_Figs/GP_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Iter_"+str(bo_iters)
     else:
         path = "Figures/Convergence_Figs/GP_Error_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Iter_"+str(bo_iters)
     save_fig(path, ext='png', close=False, verbose=False)
@@ -214,7 +213,7 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
         plt.legend(loc = "upper left")
         
         if emulator == True:
-            path = "Figures/Convergence_Figs/GP_Emulator/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
+            path = "Figures/Convergence_Figs/GP_Emulator/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
         else:
             path = "Figures/Convergence_Figs/GP_Error_Emulator/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
         save_fig(path, ext='png', close=False, verbose=False)
@@ -290,14 +289,20 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     plt.xlim((np.amin(xx), np.amax(xx)))
     plt.ylim((np.amin(yy),np.amax(yy)))
 #     plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold')
-    #Shows plot
+    #Shows plot    
+    
     if Bo_iter != None:
         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
         ep = str(np.round(float(ep),1))
-        org_TP = str(len(train_p)-(Bo_iter))
+        
+        if emulator == True:
+            org_TP = str(len(train_p) - 5*(Bo_iter) )
+        else:
+            org_TP = str(len(train_p) - Bo_iter )
+        
         #Separate by iteration, org_TP, and ep
         if emulator == True:
-            path = "Figures/"+"GP_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
+            path = "Figures/"+"GP_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
         else:
             path = "Figures/"+"GP_Error_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
         save_fig(path, ext='png', close=False, verbose=False)
