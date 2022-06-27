@@ -67,10 +67,12 @@ def plot_hyperparams(iterations, hyperparam, title):
     -------
         plt.show(), A plot of iterations and hyperparameter
     '''
+    #Assert Statements and making an axis for training iterations
     assert isinstance(title, str)==True, "Title must be a string"
     iters_axis = np.linspace(0,iterations, iterations)
     assert len(iters_axis) == len(hyperparam), "Hyperparameter array must have length of # of training iterations"
     
+    #Plotting hyperparameters vs training iterations
     plt.figure()
     plt.plot(iters_axis, hyperparam)
     plt.grid(True)
@@ -80,13 +82,29 @@ def plot_hyperparams(iterations, hyperparam, title):
     return plt.show()
 
 def plot_org_train(test_mesh,train_p,p_true):
+    '''
+    Plots original training data with true value
+    Parameters
+    ----------
+        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        train_p: tensor or ndarray, The training parameter space data
+        p_true: ndarray, A 2x1 containing the true input parameters
+     
+    Returns
+    -------
+        plt.show(), A plot of the original training data points and the true value
+    '''
+    #xx and yy are the values of the parameter sets
     xx,yy = test_mesh
     plt.figure()
+    #plot training data and true values
     plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
     plt.scatter(p_true[0],p_true[1], color="blue", label = "True Optimal Value", s=100, marker = (5,1))
+    #Set plot details
     plt.legend(loc = "best")
     plt.xlabel("$\Theta_1$")
     plt.ylabel("$\Theta_2$")
+    #Set axis limits based on the maximum and minimum of the parameter search space
     plt.xlim((np.amin(xx), np.amax(xx)))
     plt.ylim((np.amin(yy), np.amax(yy)))
     plt.title("Starting Training Data")
@@ -94,20 +112,37 @@ def plot_org_train(test_mesh,train_p,p_true):
     return plt.show()
 
 def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator):
+    '''
+    Plots the absolute minimum of the objective over BO iterations
+    Parameters
+    ----------
+        BO_iters: integer, number of BO iteratiosn
+        obj_abs_min: ndarray, An array containing the absolute minimum of SSE found so far at each iteration
+        restarts: int, The number of times to choose new training points
+        emulator: True/False, Determines if GP will model the function or the function error
+     
+    Returns
+    -------
+        plt.show(), A plot of the minimum SSE vs BO iteration for each restart
+    '''
+    #Create bo_iters as an axis
     bo_space = np.linspace(1,bo_iters,bo_iters)
     
+    #Plot Minimum SSE value at each restart
     plt.figure()
     if restarts ==0:
         plt.step(bo_space,obj_abs_min, label = "Minimum SSE Value Found")
     else:
         for i in range(restarts):
             plt.step(bo_space, obj_abs_min[i], label = "Restart: "+str(i+1))
+    #Set plot details        
     plt.legend(loc = "best")
     plt.xlabel("BO Iterations")
     plt.ylabel("SSE")
     plt.title("BO Iteration Results: Lowest Overall SSE")
     plt.grid(True)
     
+    #Save figure path
     if emulator == True:
         path = "Figures/Convergence_Figs/GP_Emulator/Min_SSE_Conv/"
     else:
@@ -116,7 +151,7 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator):
     
     return plt.show()
 
-def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
+def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison"):
     '''
     Plots Hyperparameters
     Parameters
@@ -127,21 +162,24 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title):
         y_GP: ndarray, array of y_GP values given based on GP Theta_Best
         y_GP_long: ndarray, array of y_GP values given based on GP Theta_Best using x_line
         y_true: ndarray, array of y_true values at all points in x_line
+        title: str, Title of the plot
      
     Returns
     -------
         plt.show(), A plot of iterations and hyperparameter
     '''
+    #assert statments
     assert isinstance(title, str)==True, "Title must be a string"
     assert len(x_exp) == len(y_exp) == len(y_GP), "Xexp, Yexp, and Y_GP must be the same length"
-#     assert len(iters_axis) == len(hyperparam), "Hyperparameter array must have length of # of training iterations"
     
+    #Plot x vs Y for experimental and extrapolated data
     plt.figure()
     plt.scatter(x_exp, y_exp, label = "y $\Theta_{true}$", color = "orange")
     plt.scatter(x_exp, y_GP)
     plt.plot(x_line, y_true, color = "orange")
     plt.plot(x_line, y_GP_long, "--", label = "y $\Theta_{GP}$")
     
+    #Set plot details
     plt.grid(True)
     plt.legend(loc = "best")
     plt.xlabel('X Value',weight='bold')
@@ -159,8 +197,12 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
         obj_array: ndarry, (nx1): The output array containing objective function values
         Theta_array: ndarray, (nxq): The output array containing objective function values
         Theta_True: ndarray, Used for plotting Theta Values
+        t: int, Number of training points to use
+        bo_iters: integer, number of BO iterations
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
+        emulator: True/False, Determines if GP will model the function or the function error
+        restarts: int, The number of times to choose new training points
     
     Returns:
     --------
@@ -169,6 +211,7 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
     assert len(obj_array) == len(Theta_array), "obj_array and Theta_array must be the same length"
     assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
+    #Find value of q from given information
     q = len(Theta_True)
     #Create x axis as # of bo iterations
     bo_space = np.linspace(1,bo_iters,bo_iters)
@@ -179,32 +222,42 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
 
     plt.figure() 
     
-    #Plots either 1 or multiple lines depending on whether there are restarts
+    #Plots either 1 or multiple lines for objective function values depending on whether there are restarts
     if restarts !=0:
+        #Loop over number of restarts
         for i in range(restarts):
+            #Plot data
             plt.step(bo_space, obj_array[i], label = "Restart: "+str(i+1))
     else:
         plt.step(bo_space, obj_array, label = "SSE")
-        
+    
+    #Set plot details
     plt.xlabel("BO Iterations")
     plt.ylabel("SSE")
     plt.title("BO Iteration Results: SSE Metric")
     plt.grid(True)
     plt.legend(loc = "upper right")
     
+    #Save path and figure
     if emulator == True:
         path = "Figures/Convergence_Figs/GP_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Iter_"+str(bo_iters)
     else:
         path = "Figures/Convergence_Figs/GP_Error_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Iter_"+str(bo_iters)
     save_fig(path, ext='png', close=False, verbose=False)
-        
+    
+    #Make multiple plots for each parameter
+    #Loop over number of parameters
     for j in range(q):
         plt.figure()
+        #Plot more than 1 line if there are many restarts
         if restarts != 0:
+            #Loop over restarts and plot
             for i in range(restarts):
                 plt.step(bo_space, Theta_array[i,:,j], label = "$\Theta_" +str({j+1})+"$"+" Restart: "+str(i+1))
         else:   
             plt.step(bo_space, Theta_array[:,j], label = "$\Theta_" +str({j+1})+"$")
+        
+        #Set plot details
         plt.step(bo_space, np.repeat(Theta_True[j],bo_iters), label = "$\Theta_{true,"+str(j+1)+"}$")
         plt.xlabel("BO Iterations")
         plt.ylabel("$\Theta_" + str({j+1})+"$")
@@ -212,6 +265,7 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
         plt.grid(True)
         plt.legend(loc = "upper left")
         
+        #Save path and figure
         if emulator == True:
             path = "Figures/Convergence_Figs/GP_Emulator/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
         else:
@@ -234,20 +288,21 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
         p_GP_Best: ndarray, A 2x1 containing the input parameters predicted by the GP to have the best EI
         title: str, A string containing the title of the plot
+        title_save: str, A string containing the title of the file of the plot
         obj: str, The name of the objective function. Used for saving figures
         ep: int or float, the exploration parameter
+        emulator: True/False, Determines if GP will model the function or the function error
         Bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
      
     Returns
     -------
         plt.show(), A heat map of test_mesh and z
     '''
-    #Defines the x and y coordinates that will be used to generate the heat map, this step isn't
-    #necessary, but streamlines the process
-    q=2
+    #Backtrack out number of parameters from given information
+    q=len(p_True)
     xx , yy = test_mesh #NxN, NxN
-#     print(p_true,p_GP_opt)
-    #Assert that test_mesh and z are NxN, that p_true and p_GP_opt are 2x1, and the title is a string
+
+    #Assert sattements
     assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
     assert z.shape==xx.shape, "Array z must be NxN"
@@ -257,18 +312,20 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     assert isinstance(Bo_iter,int) == True or Bo_iter == None, "Bo_iter must be an integer or None"
     assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
+    #Set plot details
 #     plt.figure(figsize=(8,4))
     plt.contourf(xx, yy,z,cmap = "autumn")
     plt.colorbar()
 #     print(p_GP_opt[0],p_GP_opt[1])
     
+    #Can only plot np arrays
     if torch.is_tensor(train_p) == True:
         train_p = train_p.numpy()
         
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')    
     
-    #Plots the true optimal value and the GP value
+    #Plots the true optimal value, the best EI value, the GP value, and all training points
     plt.scatter(p_true[0],p_true[1], color="blue", label = "True Optimal Value", s=100, marker = (5,1))
         
     plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
@@ -276,6 +333,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     plt.scatter(p_GP_opt[0],p_GP_opt[1], color="white", s=50, label = "GP min(SSE) Value", marker = ".")
     
     plt.scatter(p_GP_best[0],p_GP_best[1], color="black", s=25, label = "GP Best EI Value", marker = ".")
+    
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')
     
@@ -287,10 +345,9 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     plt.xlabel('$\\theta_1$',weight='bold')
     plt.ylabel('$\\theta_2$',weight='bold')
     plt.xlim((np.amin(xx), np.amax(xx)))
-    plt.ylim((np.amin(yy),np.amax(yy)))
-#     plt.title("Heat Map of "+title +" Points = "+str(len(train_p)), weight='bold')
-    #Shows plot    
+    plt.ylim((np.amin(yy),np.amax(yy)))   
     
+    #Back out number of original training points for saving figures
     if Bo_iter != None:
         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
         ep = str(np.round(float(ep),1))
@@ -300,52 +357,19 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         else:
             org_TP = str(len(train_p) - Bo_iter )
         
+        #Generate path and save figures 
         #Separate by iteration, org_TP, and ep
         if emulator == True:
             path = "Figures/"+"GP_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
         else:
             path = "Figures/"+"GP_Error_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Iter_"+str(Bo_iter+1)
         save_fig(path, ext='png', close=False, verbose=False)
-#         plt.savefig(path+".png",dpi = 600, bbox_inches = "tight")
+    #Don't save if there's only 1 BO iteration
     else:
         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
            
     return plt.show()
 
-
-def y_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best,train_p,title = "y",plot_train=True, Bo_iter=None, obj="obj",ep=0):
-    '''
-    Helper function for basic_plotter. Calls basic_plotter with a title.
-
-    Parameters
-    ----------
-        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
-        z: ndarray, An NxN Array containing all points that will be plotted. Y-values
-        p_true: ndarray, A 2x1 containing the true input parameters
-        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
-        title: str, A string containing the title of the plot
-     
-    Returns
-    -------
-        plt.show(), A heat map of test_mesh and z (y values)
-    '''
-    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train,Bo_iter, obj, ep)
-
- 
-def ei_plotter_adv_test(parameter_space, z, p_true, train_p,Xexp,p_GP_opt = None,p_GP_best= None,plot_train=True):
-    """
-    Plots the expected improvement of the GP
-    Parameters
-    ----------
-        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of the GP expected improvement values
-    
-    Returns
-    -------
-        A 3D Heat map of the values of expected improvement predicted by the GP
-    """
-    title = "Expected Improvement: Xexp = " + str(Xexp)
-    return value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, title,train_p,plot_train=True)
 
 def plotter_4D(parameter_space,z, plot_title="Model Output"):
     """

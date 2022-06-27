@@ -1232,11 +1232,10 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     #Plots a single line of objective/theta values vs BO iteration if there are no restarts
     if restarts == 0:
         #Plot X vs Y for Yexp and Y_GP
-        title = "XY Comparison"
         X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
         y_true = calc_y_exp(Theta_True, X_line, noise_std = noise_std, noise_mean=0)
         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
-        plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true, title)
+        plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true)
         #Plots objective values and theta values across BO iterations
         plot_obj_Theta(All_SSE, All_Theta_Opt, Theta_True, t, BO_iters, obj,explore_bias, emulator)
         plot_obj_abs_min(BO_iters, All_SSE_abs_min, restarts, emulator)
@@ -1245,13 +1244,13 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
 
 def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig=False, shuffle_seed = None):
     """
-    Performs BO iterations
+    Performs BO iterations with restarts. A restart contains of choosing different initial training data.
     
     Parameters:
     -----------
         BO_iters: integer, number of BO iterations
         all_data_doc: csv name as a string, contains all training data for GP
-        t: Number of training points to use
+        t: int, Number of training points to use
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
         train_iter: int, number of training iterations to run. Default is 300
@@ -1269,10 +1268,12 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         
     Returns:
     --------
-        theta_b: The predicted theta where ei is maximized after all BO iteration
-        theta_o: The predicted theta where objective function is minimized after all BO iterations
+        restart_opt: int, The restart at which the lowest SSE occurs
+        Theta_Opt_all: ndarray, the theta values/parameter set that maps to the lowest SSE
+        SSE_abs_min: float, the absolute minimum SSE found
     
     """
+    #Assert statements
     assert all(isinstance(i, int) for i in [BO_iters, t,restarts,train_iter]), "BO_iters, t, restarts, and train_iter must be integers"
     assert len(Xexp) == len(Yexp), "Experimental data must have the same length"
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
@@ -1280,11 +1281,12 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
     assert emulator==True or emulator==False, "Verbose must be True/False"
     assert isinstance(restarts, int) == True, "Number of restarts must be an integer"
     
-    m = Xexp[0].size
-    q = len(Theta_True)
-    p = theta_mesh.shape[1]
+    #Find constants
+    m = Xexp[0].size #Dimensions of X
+    q = len(Theta_True) #Number of parameters to regress
+    p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q
     
-    dim = m+q
+    dim = m+q #dimensions in a CSV
     #Read data from a csv
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
     
@@ -1321,27 +1323,27 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
 
         #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restarts, sparse_grid, emulator, verbose = False,save_fig = save_fig)
+        
         #Add all SSE/theta results at each BO iteration for that restart
         Theta_matrix[i,:,:] = BO_results[1]
         SSE_matrix[i,:] = BO_results[2]
         SSE_matrix_abs_min[i] = BO_results[3]
         
-#     print(train_p)
     #Plot all SSE/theta results for each BO iteration for all restarts
     plot_obj_Theta(SSE_matrix, Theta_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, restarts)
     plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts, emulator)
     
+    #Find point corresponding to absolute minimum SSE
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
-#     print(argmin)
-    
-    if len(argmin) != 2: #Need to generalize this
+    if len(argmin) != q: #How to generalize next line?
         argmin = np.array([[argmin[0]],[argmin[1]]])
         
-    #Find theta value corresponding to argmax(EI)
+    #Find theta value corresponding to argmin(SSE) and at which restart and theta value it occurs
     Theta_Opt_all = np.array(Theta_matrix[argmin[0],argmin[1]])
     SSE_abs_min = np.amin(SSE_matrix)
     restart_opt = int(argmin[0,0]+1)
-    return restart_opt, Theta_Opt_all,SSE_abs_min
+    
+    return restart_opt, Theta_Opt_all, SSE_abs_min
         
 
 def create_dicts(i,ei_components,verbose =False):
