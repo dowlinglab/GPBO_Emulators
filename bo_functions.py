@@ -12,7 +12,7 @@ from bo_plotters import plot_xy
 from bo_plotters import plot_obj_Theta
 from bo_plotters import plot_obj_abs_min
 import os
-import Tasmanian
+# import Tasmanian
 
 
 ##Table of Contents
@@ -529,20 +529,18 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target):
           
     return ei
 
-def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj):
+def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh):
     """ 
-    Calculates the best error and SSE/ln(SSE) of the 3 input parameter GP
+    Calculates the best error of the 3 input parameter GP
     Parameters
     ----------
         Xexp: ndarray, experimental x values
         Yexp: ndarray, experimental y values
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
-        obj: LN_obj or obj (str), determines objective function
     
     Returns
     -------
         best_error: float, the best error of the 3-Input GP model
-        SSE: ndarray (p1 x p2), SSE or ln(SSE) associated with each value of Theta
     """
     #Asserts that inputs are correct
     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
@@ -569,15 +567,13 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj):
             point = [theta1_mesh[i,j],theta2_mesh[i,j]]
             q = len(point)
             eval_point = np.array([point])
-            SSE[i,j] = create_sse_data(q,eval_point, Xexp, Yexp, obj=obj)      
-            #Is this SSE the same as the one that is calculated by the method below?
+            SSE[i,j] = create_sse_data(q,eval_point, Xexp, Yexp, obj="obj") #Note in this case SSE can be SSE or LN(SSE)     
+            #Is this SSE the one we care about for minimization? No right?
 
     #Define best_error as the minimum SSE value
-    if obj == "LN_obj":
-        best_error = np.amin(np.exp(SSE))
-    else:
-        best_error = np.amin(SSE)
-    return best_error #Note in this case SSE can be SSE or LN(SSE)
+    best_error = np.amin(SSE)
+    
+    return best_error 
 
 def eval_GP_sparse_grid(Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
     """Evaluate GP using the spare grid instead of an approximation.
@@ -620,7 +616,7 @@ def eval_GP_sparse_grid(Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
         EI_Temp += weights_p[i,j]*(-np.min(SSE_Temp - best_error,0)) 
     return EI_Temp
 
-def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid):
+def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -630,13 +626,12 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        obj: LN_obj or obj (str), determines objective function
         sparse_grid: True/False: Determines whether an assumption or sparse grid method is used
     
     Returns
     -------
         EI: ndarray, the expected improvement of the GP model
-        SSE: ndarray, The SSE/ln(SSE) of the model 
+        SSE: ndarray, The SSE of the model 
         SSE_var_GP: ndarray, The varaince of the SSE pf the GP model
         SSE_stdev_GP: ndarray, The satndard deviation of the SSE of the GP model
         best_error: ndarray, The best_error of the GP model
@@ -666,7 +661,7 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
     
     ##Calculate Best Error
     # Loop over theta 1
-    best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj)
+    best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh)
             
     # Loop over theta 1
     for i in range(p):
@@ -688,7 +683,7 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
                 GP_var[k] = model_variance
                               
                 #Compute SSE and SSE variance for that point
-                SSE[i,j] += (model_mean - Yexp[k])**2 #Is this right? or is the SSE calculated for the training points correct are they the same?
+                SSE[i,j] += (model_mean - Yexp[k])**2 #Is this right? or is the SSE calculated for the training points what I should use?
                 
                 error_point = np.abs((Yexp[k] - model_mean)) #Is this correct?
                 SSE_var_GP[i,j] += 2*error_point*model_variance
@@ -702,6 +697,7 @@ def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_g
             if sparse_grid == True:
                 #Compute EI using eparse grid
                 EI[i,j] = eval_GP_sparse_grid(Yexp, theta_mesh, GP_mean, GP_stdev, best_error)
+        
     SSE_stdev_GP = np.sqrt(SSE_var_GP)
 #     print(EI)
     return EI, SSE, SSE_var_GP, SSE_stdev_GP, best_error
@@ -781,7 +777,7 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
     Returns
     -------
         ei: ndarray, the expected improvement of the GP model
-        sse: ndarray, the sse of the GP model
+        sse: ndarray, the sse/ln(sse) of the GP model
         var: ndarray, the variance of the GP model
         stdev: ndarray, the standard deviation of the GP model
         f_best: ndarray, the best value so far
@@ -895,7 +891,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     return Theta_Best, Theta_Opt_GP
 
 ##FOR USE WITH SCIPY##################################################################
-def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
+def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
     """ 
     Calculates either -ei or sse (a function to be minimized). To be used in calculating best and optimal parameter sets.
     Parameters
@@ -909,7 +905,6 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
         emulator: True/False: Determines whether the GP is a property emulator of error emulator
         sparse_grid: True/False: Determines whether a sparse grid or approximation is used for the GP emulator
-        obj: ob or LN_obj: Determines which objective function is used for the 2 input GP
         explore_bias: float, Exploration parameter used for calculating 2-Input GP expected improvement
         ei_sse_choice: "neg_ei" or "sse" - Choose which one to optimize
         verbose: True/False - Determines verboseness of output
@@ -945,7 +940,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
         model_variance= GP_Outputs[1].numpy()[0] #1xn
 
         #Calculate best error and sse
-        #Does the objective function change this?
+        #Does the objective function change this? No - As long as they're both logs this will work
         best_error = max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
         sse = model_sse
             #Calculate ei. If statement depends whether ei is the only thing returned by calc_ei_basic function
@@ -957,7 +952,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
     else:
         ei = 0
         sse = 0
-        best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh, obj)
+        best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh)
         for k in range(n):
             #Caclulate EI for each value n given the best error
             point = [theta1_guess,theta2_guess,Xexp[k]]
@@ -970,9 +965,6 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
             if sparse_grid == False:
                 #Compute EI w/ approximation
                 ei += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
-    
-        if obj == "LN_obj":
-            sse = np.log(sse)
             
     #Return either -ei or sse as a minimize objective function
     if ei_sse_choice == "neg_ei":
@@ -1024,8 +1016,8 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei
     ei_sse_choice2 = "sse"
     
     #Set arguments and calculate best and optimal solutions
-    argmts_best = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice1))
-    argmts_opt = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, obj, explore_bias, ei_sse_choice2))
+    argmts_best = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice1))
+    argmts_opt = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice2))
     Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
     Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_o,bounds=bnds,method = "L-BFGS-B",args=argmts_opt)
     
@@ -1035,7 +1027,7 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei
     
     return theta_b, theta_o
 
-def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid = False):    
+def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid = False):    
     """
     Evaluates GP
     
@@ -1049,7 +1041,6 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
         verbose: True/False: Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved
-        obj: LN_obj or obj (str): Determines which objective function is used
         emulator: True/False: Determiens whether GP is an emulator of the function
         sparse_grd: True/False: Determines whether an assumption or sparse grid is used
     
@@ -1085,7 +1076,7 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
     if emulator == False:
         eval_components = eval_GP_basic_tot(theta_mesh, train_y, model, likelihood, explore_bias, verbose)
     else:
-        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, obj, sparse_grid)
+        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid)
     
     return eval_components
 
@@ -1163,14 +1154,13 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         
         #Evaluate GP
-        eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, obj, emulator, sparse_grid =False)
+        eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid =False)
         
-        #Determines whether debugging parameters are saved for 2 Input GP
-        if verbose == False:
-            ei,sse,var,stdev,best_error = eval_components
-        
+        #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
             ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
+        else:
+            ei,sse,var,stdev,best_error = eval_components
         
         #Use argmax(EI) and argmin(SSE) to find values for Theta_best and theta_opt
         Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei)
@@ -1228,7 +1218,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, emulator, Bo_iter = fig_iter, restart = restart)
         
         #Ensure that a plot of SSE (and never ln(SSE) is drawn
-        if obj == "LN_obj" and emulator == False:
+        if obj == "LN_obj":
             sse_act = np.exp(sse)
             value_plotter(theta_mesh, sse_act, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter, restart = restart )
         else:
@@ -1360,6 +1350,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
             train_p = train_data[:,1:(q+m+1)]
         else:
             train_p = train_data[:,1:(q+1)]
+            
         train_y = train_data[:,-1]
         assert len(train_p) == len(train_y), "Training data must be the same length"
         
