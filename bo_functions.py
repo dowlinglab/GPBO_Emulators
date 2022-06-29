@@ -12,7 +12,7 @@ from bo_plotters import plot_xy
 from bo_plotters import plot_obj_Theta
 from bo_plotters import plot_obj_abs_min
 import os
-# import Tasmanian
+import Tasmanian
 
 
 ##Table of Contents
@@ -594,11 +594,13 @@ def eval_GP_sparse_grid(Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
     q = theta_mesh.shape[0] #Number of parameters to regress
     n = len(Yexp) #Number of experimental data points
     
+    range_p = np.array([[np.amin(theta_mesh[0]), np.amax(theta_mesh[0])],[np.amin(theta_mesh[1]), np.amax(theta_mesh[1])]])
+    
     #Obtain Sparse Grid Points
     grid_p = Tasmanian.SparseGrid()
     grid_p.makeGlobalGrid(q,0,5,'level','gauss-legendre')
     grid_p.setDomainTransform(range_p)
-    point_p = grid_p.getPoints()
+    points_p = grid_p.getPoints()
     weights_p = grid_p.getQuadratureWeights()
     
     #Initialize EI
@@ -611,7 +613,7 @@ def eval_GP_sparse_grid(Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
         
         #Loop over experimental data points
         for j in range(n):
-            SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
+            SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2 #Should this be part of the SSE Matrix? If so, how will this work?
         #Apply max operator    
         EI_Temp += weights_p[i,j]*(-np.min(SSE_Temp - best_error,0)) 
     return EI_Temp
@@ -953,6 +955,8 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
         ei = 0
         sse = 0
         best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh)
+        GP_mean = np.zeros(n)
+        GP_stdev = np.zeros(n)
         for k in range(n):
             #Caclulate EI for each value n given the best error
             point = [theta1_guess,theta2_guess,Xexp[k]]
@@ -960,11 +964,19 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
             model_mean = GP_Outputs[3].numpy()[0] #1xn
             model_variance= GP_Outputs[1].numpy()[0] #1xn
+            
+            GP_mean[k] = model_mean
+            GP_stdev = np.sqrt(model_variance)
             sse += (model_mean - Yexp[k])**2
 
             if sparse_grid == False:
                 #Compute EI w/ approximation
                 ei += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
+            
+        if sparse_grid == True:
+            #Compute EI using sparse grid
+            ei = eval_GP_sparse_grid(Yexp, theta_mesh, GP_mean, GP_stdev, best_error)
+                
             
     #Return either -ei or sse as a minimize objective function
     if ei_sse_choice == "neg_ei":
@@ -1154,7 +1166,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         
         #Evaluate GP
-        eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid =False)
+        eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid)
         
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
@@ -1218,7 +1230,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, emulator, Bo_iter = fig_iter, restart = restart)
         
         #Ensure that a plot of SSE (and never ln(SSE) is drawn
-        if obj == "LN_obj":
+        if obj == "LN_obj" and emulator == False:
             sse_act = np.exp(sse)
             value_plotter(theta_mesh, sse_act, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, Bo_iter = fig_iter, restart = restart )
         else:
@@ -1261,9 +1273,13 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             print("Magnitude of SSE given Theta_Opt = ",theta_o, "is", "{:.4e}".format(Error_mag))
     
     #Saves SSE and Theta_Opt values as CSV files
-    path = 'CSVs/'+str(GP_inputs)+'_Input/'
-    if not os.path.exists('CSVs/'+str(GP_inputs)+'_Input'):
-        os.makedirs('CSVs/'+str(GP_inputs)+'_Input')
+    if i < 10:
+        Bo_str = str(0) + str(i+1)
+    else:
+        Bo_str = str(i+1)
+    path = 'CSVs/'+str(GP_inputs)+'_Input/Restart_'+restart+'Iter_'+Bo_str
+    if not os.path.exists(path):
+        os.makedirs(path)
         
     df = pd.DataFrame(All_SSE)    
     df.to_csv(path+ 'All_SSE.csv')
@@ -1279,8 +1295,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true)
         #Plots objective values and theta values across BO iterations
-        plot_obj_Theta(All_SSE, All_Theta_Opt, Theta_True, t, BO_iters, obj,explore_bias, emulator)
-        plot_obj_abs_min(BO_iters, All_SSE_abs_min, restarts, emulator)
+        plot_obj_Theta(All_SSE, All_Theta_Opt, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid)
+        plot_obj_abs_min(BO_iters, All_SSE_abs_min, restart, emulator, sparse_grid)
         
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
 
@@ -1373,8 +1389,8 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         SSE_matrix_abs_min[i] = BO_results[3]
         
     #Plot all SSE/theta results for each BO iteration for all restarts
-    plot_obj_Theta(SSE_matrix, Theta_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, restarts)
-    plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts, emulator)
+    plot_obj_Theta(SSE_matrix, Theta_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid, restarts)
+    plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts, emulator, sparse_grid)
     
     #Find point corresponding to absolute minimum SSE
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))

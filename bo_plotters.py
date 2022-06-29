@@ -111,7 +111,7 @@ def plot_org_train(test_mesh,train_p,p_true):
     plt.grid(True)
     return plt.show()
 
-def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator):
+def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator, sparse_grid):
     '''
     Plots the absolute minimum of the objective over BO iterations
     Parameters
@@ -144,7 +144,10 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator):
     
     #Save figure path
     if emulator == True:
-        path = "Figures/Convergence_Figs/GP_Emulator/Min_SSE_Conv/"
+        if sparse_grid == False:
+            path = "Figures/Convergence_Figs/GP_Emulator/Approx/Min_SSE_Conv/"
+        else:
+            path = "Figures/Convergence_Figs/GP_Emulator/Sparse/Min_SSE_Conv/"
     else:
         path = "Figures/Convergence_Figs/GP_Error_Emulator/Min_SSE_Conv/"
     save_fig(path, ext='png', close=False, verbose=False)
@@ -188,7 +191,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison")
     
     return plt.show()
 
-def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, restarts=0):
+def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, restarts=0):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -234,13 +237,18 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
     #Set plot details
     plt.xlabel("BO Iterations")
     plt.ylabel("SSE")
+    if emulator == False:
+        plt.ylim(0,2)
     plt.title("BO Iteration Results: SSE Metric")
     plt.grid(True)
     plt.legend(loc = "upper right")
     
     #Save path and figure
     if emulator == True:
-        path = "Figures/Convergence_Figs/GP_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Iter_"+str(bo_iters)
+        if sparse_grid == False:
+            path = "Figures/Convergence_Figs/GP_Emulator/Approx/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Iter_"+str(bo_iters)
+        else:
+            path = "Figures/Convergence_Figs/GP_Emulator/Sparse/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Iter_"+str(bo_iters)
     else:
         path = "Figures/Convergence_Figs/GP_Error_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Iter_"+str(bo_iters)
     save_fig(path, ext='png', close=False, verbose=False)
@@ -349,6 +357,8 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     
     #Back out number of original training points for saving figures
     if Bo_iter != None:
+        if restart == None:
+            restart = 0
         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
         ep = str(np.round(float(ep),1))
         
@@ -359,11 +369,21 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         
         #Generate path and save figures 
         #Separate by iteration, org_TP, and ep
-        if emulator == True:
-            path = "Figures/"+"GP_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+title_save+"/"+"Restart_"+str(restart+1)+"/Iter_"+str(Bo_iter+1)
+        if Bo_iter < 10:
+            Bo_itr_str = str(0)+str(Bo_iter+1)
         else:
-            path = "Figures/"+"GP_Error_Emulator/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+title_save+"/"+"Restart_"+str(restart+1)+"/Iter_"+str(Bo_iter+1)
-        save_fig(path, ext='png', close=False, verbose=False)
+            Bo_itr_str = str(Bo_iter +1)
+
+        restart_str = str(restart+1)
+        obj_str = str(obj)
+        org_TP_str = str(org_TP)
+        ep_str = str(ep)
+        
+        if emulator == True:
+            path = "Figures/"+"GP_Emulator/"+"TP_"+org_TP_str+"/"+obj_str+"/"+title_save+"/"+"Restart_"+restart_str+"/Iter_"+Bo_itr_str
+        else:
+            path = "Figures/"+"GP_Error_Emulator/"+"TP_"+org_TP_str+"/"+obj_str+"/"+"ep_"+ep_str+"/"+title_save+"/"+"Restart_"+restart_str+"/Iter_"+Bo_itr_str
+        save_fig(path, ext='png', close=True, verbose=False)
     #Don't save if there's only 1 BO iteration
     else:
         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
