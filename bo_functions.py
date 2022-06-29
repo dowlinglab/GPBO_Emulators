@@ -1274,10 +1274,18 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     
     #Saves SSE and Theta_Opt values as CSV files
     if i < 10:
-        Bo_str = str(0) + str(i+1)
+        Bo_str = str(0) + str(0)+ str(i+1)
+    elif: Bo_iter <100:
+        Bo_itr_str = str(0)+str(Bo_iter+1)
     else:
         Bo_str = str(i+1)
-    path = 'CSVs/'+str(GP_inputs)+'_Input/Restart_'+restart+'Iter_'+Bo_str
+        
+    if restart < 10:
+        restart_str = str(0) + str(restart +1)
+    else:
+        restart_str = str(restart +1)
+        
+    path = 'CSVs/'+str(GP_inputs)+'_Input/Restart_'+restart_str+'Iter_'+Bo_str
     if not os.path.exists(path):
         os.makedirs(path)
         

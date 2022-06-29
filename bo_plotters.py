@@ -360,7 +360,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         if restart == None:
             restart = 0
         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
-        ep = str(np.round(float(ep),1))
+        ep = str(np.round(float(ep),3))
         
         if emulator == True:
             org_TP = str(len(train_p) - 5*(Bo_iter) )
@@ -370,11 +370,17 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         #Generate path and save figures 
         #Separate by iteration, org_TP, and ep
         if Bo_iter < 10:
+            Bo_itr_str = str(0)+str(0)+str(Bo_iter+1)
+        elif: Bo_iter <100:
             Bo_itr_str = str(0)+str(Bo_iter+1)
         else:
             Bo_itr_str = str(Bo_iter +1)
+        
+        if restart < 10:
+            restart_str = str(0) + str(restart+1)
+        else:
+            restart_str = str(restart+1)
 
-        restart_str = str(restart+1)
         obj_str = str(obj)
         org_TP_str = str(org_TP)
         ep_str = str(ep)
