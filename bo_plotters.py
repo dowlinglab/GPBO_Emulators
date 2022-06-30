@@ -52,7 +52,80 @@ def save_fig(path, ext='png', close=True, verbose=True):
 
     if verbose:
         print("Done")
+        
+def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, restart = None):
+    """
+    names a path
     
+    Parameters
+    ----------
+        emulator: True/False
+        ep: float
+        sparse_grid: True/False
+        fxn: str,
+        set_lengthscale: float or None,
+        t: int,
+        obj: str,
+        bo_iter, int:
+        title_save: str or None,
+        restart, int or None, 
+    Returns:
+        path: str, The path to which the file is saved
+    
+    """
+    obj_str = "/"+str(obj)
+    len_scl = "/len_scl_varies"
+    org_TP_str = "/TP_"+ str(t)
+    
+    if emulator == False:
+        Emulator = "/GP_Error_Emulator"
+        exp_str = "/ep_"+str(np.round(float(ep),3))
+        method = ""
+    else:
+        Emulator = "/GP_Emulator"
+        exp_str = ""
+        if sparse_grid == True:
+            method = "/Sparse"
+        else:
+            method = "/Approx"
+                
+    if fxn == "plot_obj":
+        plot = "/SSE_Conv"
+    
+    if fxn == "plot_Theta":
+        plot = "/Theta_Conv"
+    
+    if fxn == "plot_obj_abs_min":
+        plot = "/Min_SSE_Conv"
+    
+    if set_lengthscale is not None:
+        len_scl = "/len_scl_"+ str(set_lengthscale)      
+    
+    if bo_iter is not None:
+        if bo_iter+1 < 10:
+            Bo_itr_str = "/Iter_"+str(0)+str(0)+str(bo_iter+1)
+        elif bo_iter+1 <100:
+            Bo_itr_str = "/Iter_"+str(0)+str(bo_iter+1)
+        else:
+            Bo_itr_str = "/Iter_"+str(bo_iter +1)
+    else:
+        Bo_itr_str = ""
+
+    if restart is not None:
+        if restart+1 < 10:
+            restart_str = "/Restart_"+str(0) + str(restart+1)
+        else:
+            restart_str = "/Restart_"+str(restart+1)
+    else:
+        restart_str = ""
+    
+
+    if fxn != "value_plotter":
+        path = "Figures/Convergence_Figs" + Emulator + method + plot + org_TP_str + exp_str+ len_scl + obj_str+Bo_itr_str
+    else:
+        path = "Figures/" + Emulator + method + org_TP_str + obj_str + exp_str + len_scl + "/"+ title_save + restart_str + Bo_itr_str
+
+    return path
     
 def plot_hyperparams(iterations, hyperparam, title):
     '''
@@ -111,7 +184,7 @@ def plot_org_train(test_mesh,train_p,p_true):
     plt.grid(True)
     return plt.show()
 
-def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator, sparse_grid):
+def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator, ep, sparse_grid, set_lengthscale, t, obj):
     '''
     Plots the absolute minimum of the objective over BO iterations
     Parameters
@@ -123,33 +196,28 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator, sparse_grid):
      
     Returns
     -------
-        plt.show(), A plot of the minimum SSE vs BO iteration for each restart
+        plt.show(), A plot of the minimum ln(SSE) vs BO iteration for each restart
     '''
+    fxn = "plot_obj_abs_min"
     #Create bo_iters as an axis
     bo_space = np.linspace(1,bo_iters,bo_iters)
     
     #Plot Minimum SSE value at each restart
     plt.figure()
     if restarts == None:
-        plt.step(bo_space,obj_abs_min, label = "Minimum SSE Value Found")
+        plt.step(bo_space,obj_abs_min, label = "Minimum ln(SSE) Value Found")
     else:
         for i in range(restarts):
             plt.step(bo_space, obj_abs_min[i], label = "Restart: "+str(i+1))
     #Set plot details        
     plt.legend(loc = "best")
     plt.xlabel("BO Iterations")
-    plt.ylabel("SSE")
-    plt.title("BO Iteration Results: Lowest Overall SSE")
+    plt.ylabel("ln(SSE)")
+    plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
     plt.grid(True)
     
     #Save figure path
-    if emulator == True:
-        if sparse_grid == False:
-            path = "Figures/Convergence_Figs/GP_Emulator/Approx/Min_SSE_Conv/"
-        else:
-            path = "Figures/Convergence_Figs/GP_Emulator/Sparse/Min_SSE_Conv/"
-    else:
-        path = "Figures/Convergence_Figs/GP_Error_Emulator/Min_SSE_Conv/"
+    path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, restart = restarts)
     save_fig(path, ext='png', close=False, verbose=False)
     
     return plt.show()
@@ -191,7 +259,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison")
     
     return plt.show()
 
-def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, restarts=0):
+def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, restarts=0):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -205,24 +273,19 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
         emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid
+        set_lengthscale:
         restarts: int, The number of times to choose new training points
     
     Returns:
     --------
         Plots of obj vs BO_iter and Plots of Theta vs BO_iter
     """
-    assert len(obj_array) == len(Theta_array), "obj_array and Theta_array must be the same length"
     assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
-    #Find value of q from given information
-    q = len(Theta_True)
+    fxn = "plot_obj"
     #Create x axis as # of bo iterations
     bo_space = np.linspace(1,bo_iters,bo_iters)
-    
-    #Set a string for exploration parameter and initial number of training points
-    ep = str(np.round(float(ep),1))
-    org_TP = str(t)
-
     plt.figure() 
     
     #Plots either 1 or multiple lines for objective function values depending on whether there are restarts
@@ -236,23 +299,51 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
     
     #Set plot details
     plt.xlabel("BO Iterations")
-    plt.ylabel("SSE")
-    if emulator == False:
-        plt.ylim(0,2)
+    plt.ylabel("ln(SSE)")
+#     if emulator == False:
+#         plt.ylim(0,2)
     plt.title("BO Iteration Results: SSE Metric")
     plt.grid(True)
     plt.legend(loc = "upper right")
     
+    
     #Save path and figure
-    if emulator == True:
-        if sparse_grid == False:
-            path = "Figures/Convergence_Figs/GP_Emulator/Approx/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Iter_"+str(bo_iters)
-        else:
-            path = "Figures/Convergence_Figs/GP_Emulator/Sparse/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Iter_"+str(bo_iters)
-    else:
-        path = "Figures/Convergence_Figs/GP_Error_Emulator/"+"SSE_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Iter_"+str(bo_iters)
+    path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, restart = restarts)
     save_fig(path, ext='png', close=False, verbose=False)
     
+    return plt.show()
+
+def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, restarts=0):
+    """
+    Plots the objective function and Theta values vs BO iteration
+    
+    Parameters
+    ----------
+        obj_array: ndarry, (nx1): The output array containing objective function values
+        Theta_array: ndarray, (nxq): The output array containing objective function values
+        Theta_True: ndarray, Used for plotting Theta Values
+        t: int, Number of training points to use
+        bo_iters: integer, number of BO iterations
+        obj: string, name of objective function. Default "obj"
+        ep: int or float, exploration parameter. Used for naming
+        emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid
+        set_lengthscale:
+        restarts: int, The number of times to choose new training points
+    
+    Returns:
+    --------
+        Plots of obj vs BO_iter and Plots of Theta vs BO_iter
+    """
+    assert isinstance(obj,str)==True, "Objective function name must be a string" 
+    
+    fxn = "plot_Theta"
+    #Find value of q from given information
+    q = len(Theta_True)
+    #Create x axis as # of bo iterations
+    bo_space = np.linspace(1,bo_iters,bo_iters)
+    #Set a string for exploration parameter and initial number of training points
+
     #Make multiple plots for each parameter
     #Loop over number of parameters
     for j in range(q):
@@ -274,10 +365,7 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
         plt.legend(loc = "upper left")
         
         #Save path and figure
-        if emulator == True:
-            path = "Figures/Convergence_Figs/GP_Emulator/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
-        else:
-            path = "Figures/Convergence_Figs/GP_Error_Emulator/Theta_Conv/"+"TP_"+str(org_TP)+"/"+str(obj)+"/"+"ep_"+str(ep)+"/"+"Theta_"+str(j)+"/"+"Iter_"+str(bo_iters)
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, restart = restarts)
         save_fig(path, ext='png', close=False, verbose=False)
 #         plt.savefig("Figures/Convergence_Figs/Theta_Conv/"+str(org_TP)+"/"+str(obj)+"/"+str(ep)+"Iter_"+str(bo_iters)+".png",dpi = 600)
         plt.show()
@@ -285,7 +373,7 @@ def plot_obj_Theta(obj_array, Theta_array, Theta_True, t, bo_iters, obj, ep, emu
     return
 
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, Bo_iter = None, restart = 0):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, Bo_iter = None, restart = 0):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -307,6 +395,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         plt.show(), A heat map of test_mesh and z
     '''
     #Backtrack out number of parameters from given information
+    fxn = "value_plotter"
     q=len(p_true)
     xx , yy = test_mesh #NxN, NxN
 
@@ -360,318 +449,17 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         if restart == None:
             restart = 0
         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
-        ep = str(np.round(float(ep),3))
         
         if emulator == True:
-            org_TP = str(len(train_p) - 5*(Bo_iter) )
+            t = str(len(train_p) - 5*(Bo_iter) )
         else:
-            org_TP = str(len(train_p) - Bo_iter )
+            t = str(len(train_p) - Bo_iter )
         
         #Generate path and save figures 
-        #Separate by iteration, org_TP, and ep
-        if Bo_iter < 10:
-            Bo_itr_str = str(0)+str(0)+str(Bo_iter+1)
-        elif: Bo_iter <100:
-            Bo_itr_str = str(0)+str(Bo_iter+1)
-        else:
-            Bo_itr_str = str(Bo_iter +1)
-        
-        if restart < 10:
-            restart_str = str(0) + str(restart+1)
-        else:
-            restart_str = str(restart+1)
-
-        obj_str = str(obj)
-        org_TP_str = str(org_TP)
-        ep_str = str(ep)
-        
-        if emulator == True:
-            path = "Figures/"+"GP_Emulator/"+"TP_"+org_TP_str+"/"+obj_str+"/"+title_save+"/"+"Restart_"+restart_str+"/Iter_"+Bo_itr_str
-        else:
-            path = "Figures/"+"GP_Error_Emulator/"+"TP_"+org_TP_str+"/"+obj_str+"/"+"ep_"+ep_str+"/"+title_save+"/"+"Restart_"+restart_str+"/Iter_"+Bo_itr_str
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, Bo_iter, title_save, restart)
         save_fig(path, ext='png', close=True, verbose=False)
     #Don't save if there's only 1 BO iteration
     else:
         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
            
     return plt.show()
-
-
-def plotter_4D(parameter_space,z, plot_title="Model Output"):
-    """
-    Plots the values of the GP given by the user
-    Parameters
-    ----------
-        parameter_space: tensor or ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  tensor or ndarray, nx1 array of values
-        plot_title: str, The title for the graph
-    
-    Returns
-    -------
-        A 4D Heat map of the values of z predicted by the GP
-    """
-    #Converts tensors and tuples to ndarrays
-    if torch.is_tensor(parameter_space)==True:
-        parameter_space= parameter_space.numpy()
-        
-#     if isinstance(z,ndarray)!=True:
-#         z = np.asarray(z)
-   
-    #Asserts that the parameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
-    assert isinstance(plot_title,str) == True, "Plot title must be a string."
-
-    #https://stackoverflow.com/questions/17756925/how-to-plot-heatmap-colors-in-3d-in-matplotlib
-    
-    # Define dimensions
-    X, Y, Z = parameter_space
-
-    # Create data
-#     point_num = point_num
-#     data = z.reshape(point_num,point_num,point_num).T
-    data = z
-    kw = {
-        'vmin': data.min(),
-        'vmax': data.max(),
-        'levels': np.linspace(data.min(), data.max()),
-    }
-
-    # Create a figure with 3D ax
-    fig = plt.figure(figsize=(5, 4))
-    ax = fig.add_subplot(111, projection='3d')
-
-    # Plot contour surfaces
-    _ = ax.contourf(
-        X[:, :, -1], Y[:, :, -1], data[:, :, -1],
-        zdir='z', offset=Z.max(), **kw
-    ) 
-    _ = ax.contourf(
-        X[0, :, :], data[0, :, :], Z[0, :, :],
-        zdir='y', offset=Y.min(), **kw
-    )
-    C = ax.contourf(
-        data[:, -1, :], Y[:, -1, :], Z[:, -1, :],
-        zdir='x', offset=X.max(), **kw
-    )
-    #CHange these
-#     _ = ax.contourf(
-#     X[:, :, 0], Y[:, :, 0], data[:, :, 0],
-#     zdir='z', offset=Z.min(), **kw
-#     )
-#     _ = ax.contourf(
-#         X[-1, :, :], data[-1, :, :], Z[-1, :, :],
-#         zdir='y', offset=Y.max(), **kw
-#     )
-#     C = ax.contourf(
-#         data[:, 0, :], Y[:, 0, :], Z[:, 0, :],
-#         zdir='x', offset=X.min(), **kw
-#     )
-    # --
-
-
-    # Set limits of the plot from coord limits
-    xmin, xmax = X.min(), X.max()
-    ymin, ymax = Y.min(), Y.max()
-    zmin, zmax = Z.min(), Z.max()
-    ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
-
-    # Plot edges
-    edges_kw = dict(color='0.4', linewidth=1, zorder=1e3)
-    ax.plot([xmax, xmax], [ymin, ymax], [zmax, zmax], **edges_kw)
-    ax.plot([xmin, xmax], [ymin, ymin], [zmax, zmax], **edges_kw)
-    ax.plot([xmax, xmax], [ymin, ymin], [zmin, zmax], **edges_kw)
-
-    # Set labels and zticks
-    ax.set(
-        xlabel='$\Theta_1$',
-        ylabel='$\Theta_2$',
-        zlabel='x coord',
-    )
-    ax.set_title("Heat Map of "+plot_title, fontsize = 18)
-    # Set distance and angle view
-    ax.view_init(40, -30)
-    ax.dist = 11
-
-    # Colorbar
-    fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label=plot_title)
-
-    # Show Figure
-#     plt.savefig(plot_title+'_4D'+'.png')
-    plt.show()
-    
-    return 
-
-def value_plotter_4D(parameter_space, z, title):
-    """
-    Plots a value of the GP in 4D
-    Parameters
-    ----------
-        parameter_space: ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-        z:  ndarray, nx1 array of the GP expected improvement values
-    
-    Returns
-    -------
-        A 3D Heat map of the values of expected improvement predicted by the GP
-    """    
-    if isinstance(z,ndarray)!=True:
-        z = np.asarray(z)
-        
-    error = z
-    return plotter_4D(parameter_space,z, title)
-
-
-# def plotter_4D_2(parameter_space,z, plot_title="Model Output"):
-#     """
-#     Plots the values of the GP given by the user
-#     Parameters
-#     ----------
-#         parameter_space: tensor or ndarray, meshgrid of 3 input parameters, Theta1, Theta2, and x
-#         z:  tensor or ndarray, nx1 array of values
-#         plot_title: str, The title for the graph
-    
-#     Returns
-#     -------
-#         A 4D Heat map of the values of z predicted by the GP
-#     """
-#     #Converts tensors and tuples to ndarrays
-#     if torch.is_tensor(parameter_space)==True:
-#         parameter_space= parameter_space.numpy()
-        
-# #     if isinstance(z,ndarray)!=True:
-# #         z = np.asarray(z)
-   
-#     #Asserts that the parameter space is 3 inuts, the data to be plotted is an array, and the plot title is a string
-#     assert isinstance(plot_title,str) == True, "Plot title must be a string."
-
-#     #https://stackoverflow.com/questions/17756925/how-to-plot-heatmap-colors-in-3d-in-matplotlib
-    
-#     # Define dimensions
-#     X, Y, Z = parameter_space
-
-#     # Create data
-# #     point_num = point_num
-# #     data = z.reshape(point_num,point_num,point_num).T
-#     data = z
-#     kw = {
-#         'vmin': data.min(),
-#         'vmax': data.max(),
-#         'levels': np.linspace(data.min(), data.max()),
-#     }
-
-#     fig = plt.figure(figsize=(5, 4))
-#     ax = fig.add_subplot(111, projection='3d')
-
-#     # Plot contour surfaces
-#     for i in range(int(len(Z))):
-#         ranges = int(len(Z)/2)
-#         _ = ax.contourf(
-#             X[:, :, i], Y[:, :, i], data[:, :, i],
-#             zdir='z', offset=Z[0,0,i], **kw, cmap = ""
-#         ) 
-
-#     _ = ax.contourf(
-#         X[0, :, :], data[0, :, :], Z[0, :, :],
-#         zdir='y', offset=Y[0,0,0], **kw, cmap = "viridis"
-#     )
-#     C = ax.contourf(
-#         data[:, 0, :], Y[:, 0, :], Z[:, 0, :],
-#         zdir='x', offset=X[0,0,0], **kw, cmap = "viridis"
-#     )
-
-#     #     C = ax.contourf(
-#     #         data[:, -1, :], Y[:, -1, :], Z[:, i, :],
-#     #         zdir='x', offset=X[0,-1,0], **kw,cmap = "viridis"
-#     #     )
-
-
-#     # Set limits of the plot from coord limits
-#     xmin, xmax = X.min(), X.max()
-#     ymin, ymax = Y.min(), Y.max()
-#     zmin, zmax = Z.min(), Z.max()
-#     ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
-
-#     # Plot edges
-#     edges_kw = dict(color='0.4', linewidth=1, zorder=1e3)
-#     ax.plot([xmax, xmax], [ymin, ymax], [zmax, zmax], **edges_kw)
-#     ax.plot([xmin, xmax], [ymax, ymax], [zmax, zmax], **edges_kw)
-#     ax.plot([xmax, xmax], [ymin, ymin], [zmin, zmax], **edges_kw)
-#     ax.plot([xmax, xmax], [ymax, ymax], [zmin, zmax], **edges_kw)
-#     ax.plot([xmin, xmax], [ymin, ymin], [zmax, zmax], **edges_kw)
-
-#     # Set labels and zticks
-#     ax.set(
-#         xlabel='$\Theta_1$',
-#         ylabel='$\Theta_2$',
-#         zlabel='x coord',
-#     )
-
-#     # Set distance and angle view
-#     ax.view_init(40, 30)
-#     ax.dist = 11
-
-#     # Colorbar
-#     fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label=":)")
-
-#     # Show Figure
-#     plt.show()
-
-#     # Plot contour surfaces
-#     shrink = len(Z)/2
-#     for i in range(3):
-#         # Create a figure with 3D ax
-#         fig = plt.figure(figsize=(5, 4))
-#         ax = fig.add_subplot(111, projection='3d')
-#         for i in range(int(len(Z)/2)):
-#             up_lim = len(Z) - int(len(Z)/shrink)
-#             low_lim = int(len(Z)/shrink)
-#     #         print(low_lim,up_lim)
-#             _ = ax.contourf(
-#                 X[low_lim:up_lim, low_lim:up_lim, i], 
-#                 Y[low_lim:up_lim, low_lim:up_lim, i], 
-#                 data[low_lim:up_lim, low_lim:up_lim, i],
-#                 zdir='z',offset=Z[-1,-1,i+low_lim],  **kw, cmap = "viridis"
-#             ) 
-
-#         # Set limits of the plot from coord limits
-#         xmin, xmax = test_p1.min(), test_p1.max()
-#         ymin, ymax = test_p2.min(), test_p2.max()
-#         zmin, zmax = test_p3.min(), test_p3.max()
-#         ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
-
-#         # Plot edges
-#         edges_kw = dict(color='0.4', linewidth=1, zorder=1e3)
-
-#         # Set labels and zticks
-#         ax.set(
-#             xlabel='$\Theta_1$',
-#             ylabel='$\Theta_2$',
-#             zlabel='x coord',
-#         )
-
-#         # Set distance and angle view
-#         ax.view_init(40, 30)
-#         ax.dist = 11
-
-#         # Colorbar
-#         fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label=":)")
-
-#         # Show Figure
-#         plt.show()
-#         shrink = shrink/1.75
-#     return
-
-# def y_plotter_4D_2(parameter_space, z,title="y"):
-#     '''
-#     Helper function for basic_plotter. Calls basic_plotter specifically for plotting y values.
-
-#     Parameters
-#     ----------
-#         parameter_space: ndarray, n NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
-#         z: ndarray, An NxN Array containing all points that will be plotted. Y-values
-#         title: str, A string containing the title of the plot
-     
-#     Returns
-#     -------
-#         plt.show(), A heat map of test_mesh and z (y values)
-#     '''
-#     title = "Model Y Values"
-#     return plotter_4D_2(parameter_space, z,title)
