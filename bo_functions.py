@@ -582,6 +582,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
     
     Parameters
     ----------
+        Xexp: ndarray, experimental x value
         Yexp: ndarray, experimental y values
         theta_mesh:  ndarray (d, p x p), meshgrid of Theta1 and Theta2
         GP_mean: ndarray, Array of GP mean values at each experimental data point
@@ -621,7 +622,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
         EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) 
     return EI_Temp
 
-def eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid):
+def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -1119,6 +1120,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         restart: int, The iteration of the number of times new training points have been picked
         sparse_grid: True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         emulator: True/False, Determines if GP will model the function or the function error
+        set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: True/False, Determines whether figures will be saved
         set_lengthscale: True/False: Determines whether hyperparameters are fixed before GP evaluation
@@ -1299,10 +1301,10 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         os.makedirs(path)
         
     df = pd.DataFrame(All_SSE)    
-    df.to_csv(path+ 'All_SSE.csv')
+    df.to_csv(path+ '/All_SSE.csv')
     
     df = pd.DataFrame(All_Theta_Opt)
-    df.to_csv(path+ 'All_Theta.csv')
+    df.to_csv(path+ '/All_Theta.csv')
     
     #Plots a single line of objective/theta values vs BO iteration if there are no restarts
     if restart == None:
@@ -1326,7 +1328,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
     -----------
         BO_iters: integer, number of BO iterations
         all_data_doc: csv name as a string, contains all training data for GP
-        t: int, Number of training points to use
+        t: int, Number of initial training points to use
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
         train_iter: int, number of training iterations to run. Default is 300
@@ -1337,6 +1339,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         restarts: int, The number of times to choose new training points
         sparse_grid: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         emulator: True/False, Determines if GP will model the function or the function error
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: True/False, Determines whether figures will be saved

@@ -59,16 +59,16 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
     
     Parameters
     ----------
-        emulator: True/False
-        ep: float
-        sparse_grid: True/False
-        fxn: str,
-        set_lengthscale: float or None,
-        t: int,
-        obj: str,
-        bo_iter, int:
-        title_save: str or None,
-        restart, int or None, 
+        emulator: True/False, Determines if GP will model the function or the function error
+        ep: float, float,int,tensor,ndarray (1 value) The exploration bias parameter
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        fxn: str, The name of the function whose file path name will be created
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        t: int, int, Number of initial training points to use
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        bo_iter: int, integer, number of the specific BO iterations
+        title_save: str or None,  A string containing the title of the file of the plot
+        restart, int or None, The iteration of the number of times new training points have been picked
     Returns:
         path: str, The path to which the file is saved
     
@@ -193,6 +193,11 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator, ep, sparse_grid,
         obj_abs_min: ndarray, An array containing the absolute minimum of SSE found so far at each iteration
         restarts: int, The number of times to choose new training points
         emulator: True/False, Determines if GP will model the function or the function error
+        ep: float, float,int,tensor,ndarray (1 value) The exploration bias parameter
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        t: int, int, Number of initial training points to use
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
      
     Returns
     -------
@@ -268,13 +273,13 @@ def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengths
         obj_array: ndarry, (nx1): The output array containing objective function values
         Theta_array: ndarray, (nxq): The output array containing objective function values
         Theta_True: ndarray, Used for plotting Theta Values
-        t: int, Number of training points to use
+        t: int, Number of initial training points to use
         bo_iters: integer, number of BO iterations
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
         emulator: True/False, Determines if GP will model the function or the function error
-        sparse_grid
-        set_lengthscale:
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         restarts: int, The number of times to choose new training points
     
     Returns:
@@ -322,13 +327,13 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         obj_array: ndarry, (nx1): The output array containing objective function values
         Theta_array: ndarray, (nxq): The output array containing objective function values
         Theta_True: ndarray, Used for plotting Theta Values
-        t: int, Number of training points to use
+        t: int, Number of initial training points to use
         bo_iters: integer, number of BO iterations
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
         emulator: True/False, Determines if GP will model the function or the function error
-        sparse_grid
-        set_lengthscale:
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         restarts: int, The number of times to choose new training points
     
     Returns:
@@ -388,7 +393,10 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         obj: str, The name of the objective function. Used for saving figures
         ep: int or float, the exploration parameter
         emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         Bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
+        restart, int or None, The iteration of the number of times new training points have been picked
      
     Returns
     -------
