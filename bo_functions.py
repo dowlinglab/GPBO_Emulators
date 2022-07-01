@@ -1380,6 +1380,7 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
     
     #Loop over # Restarts
     for i in range(restarts):
+        restart = i
         print("Restart Number: ",i+1)
         #Create training/testing data
         train_data, test_data = test_train_split(all_data, restarts=restarts, shuffle_seed=shuffle_seed)
@@ -1399,10 +1400,11 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         #Split data based on # of training points to be used.
         train_p = train_p[0:t]
         train_y = train_y[0:t]
-        plot_org_train(theta_mesh,train_p,Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig)
+#         plot_org_train(theta_mesh,train_p,Theta_True)
+        plot_org_train(theta_mesh,train_p,Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, restart, save_fig)
 
         #Run BO iteration
-        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig = save_fig)
+        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restart, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig = save_fig)
         
         #Add all SSE/theta results at each BO iteration for that restart
         Theta_matrix[i,:,:] = BO_results[1]
