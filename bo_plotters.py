@@ -122,6 +122,9 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
 
     if fxn != "value_plotter":
         path = "Figures/Convergence_Figs" + Emulator + method + org_TP_str + obj_str + exp_str +len_scl + plot + Bo_itr_str
+    elif fxn == "plot_org_train":
+        path = "Figures/" + Emulator + method + org_TP_str + obj_str + exp_str + len_scl + restart_str+ "/"+ "org_TP"
+        
     else:
         path = "Figures/" + Emulator + method + org_TP_str + obj_str + exp_str + len_scl + restart_str+ "/"+ title_save + Bo_itr_str
 
@@ -154,7 +157,7 @@ def plot_hyperparams(iterations, hyperparam, title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_org_train(test_mesh,train_p,p_true):
+def plot_org_train(test_mesh,train_p,p_true, emulator, sparse_grid, obj, ep, len_scl, restart, save_fig):
     '''
     Plots original training data with true value
     Parameters
@@ -162,11 +165,20 @@ def plot_org_train(test_mesh,train_p,p_true):
         test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
         train_p: tensor or ndarray, The training parameter space data
         p_true: ndarray, A 2x1 containing the true input parameters
+        emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        ep: float, float,int,tensor,ndarray (1 value) The exploration bias parameter
+        len_scl: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        restart, int or None, The iteration of the number of times new training points have been picked
+        save_fig: True/False, Determines whether figures will be saved
      
     Returns
     -------
         plt.show(), A plot of the original training data points and the true value
     '''
+    fxn = "plot_org_train"
+    t = len(train_p)
     #xx and yy are the values of the parameter sets
     xx,yy = test_mesh
     plt.figure()
@@ -182,6 +194,10 @@ def plot_org_train(test_mesh,train_p,p_true):
     plt.ylim((np.amin(yy), np.amax(yy)))
     plt.title("Starting Training Data")
     plt.grid(True)
+    
+    if save_fig == True:
+        path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, restart = restart)
+        
     return plt.show()
 
 def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison"):
