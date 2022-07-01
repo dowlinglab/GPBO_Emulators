@@ -1237,15 +1237,15 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error"] 
         
         #Plot and save figures for all figrues for EI and SSE
-        value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, emulator, sparse_grid, set_lengthscale, Bo_iter = fig_iter, restart = restart)
+        value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, Bo_iter = fig_iter, restart = restart)
         
         #Ensure that a plot of SSE (and never ln(SSE) is drawn
         if obj == "LN_obj" and emulator == False:
             ln_sse = sse
-            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, sparse_grid, set_lengthscale, Bo_iter = fig_iter, restart = restart )
+            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, sparse_grid, set_lengthscale,save_fig, Bo_iter = fig_iter, restart = restart )
         else:
             ln_sse = np.log(sse)
-            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, sparse_grid, set_lengthscale, Bo_iter = fig_iter, restart = restart)
+            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, Bo_iter = fig_iter, restart = restart)
         
         #Save other figures if verbose=True
         if verbose == True:
@@ -1253,7 +1253,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
                 component = eval_components[j+2]
                 title = titles[j+2]
                 title_save = titles_save[j+2]
-                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, emulator, Bo_iter = fig_iter, restart = restart)
+                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, Bo_iter = fig_iter, restart = restart)
 
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
@@ -1296,7 +1296,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     else:
         restart_str = str(restart +1)
         
-    path = 'CSVs/'+str(GP_inputs)+'_Input/Restart_'+restart_str+'/Iter_'+Bo_str
+    path = 'Output_CSVs/'+str(GP_inputs)+'_Input/Restart_'+restart_str+'/Iter_'+Bo_str
     if not os.path.exists(path):
         os.makedirs(path)
         
@@ -1314,9 +1314,9 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true)
         #Plots objective values and theta values across BO iterations
-        plot_obj(All_SSE, t, BO_iters, obj,explore_bias, emulator, sparse_grid, set_lengthscale)
-        plot_Theta(All_Theta_Opt, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid)
-        plot_obj_abs_min(BO_iters, All_SSE_abs_min, restart, emulator, explore_bias, sparse_grid, set_lengthscale, t, obj)
+        plot_obj(All_SSE, t, BO_iters, obj,explore_bias, emulator, sparse_grid, set_lengthscale, save_fig)
+        plot_Theta(All_Theta_Opt, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid, set_lengthscale, save_fig)
+        plot_obj_abs_min(BO_iters, All_SSE_abs_min, restart, emulator, explore_bias, sparse_grid, set_lengthscale, t, obj, save_fig)
         
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
 
@@ -1410,10 +1410,10 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         SSE_matrix_abs_min[i] = BO_results[3]
         
     #Plot all SSE/theta results for each BO iteration for all restarts
-    plot_obj(SSE_matrix, t, BO_iters, obj,explore_bias, emulator, sparse_grid, set_lengthscale, restarts)
-    plot_Theta(Theta_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid,  set_lengthscale, restarts)
+    plot_obj(SSE_matrix, t, BO_iters, obj,explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, restarts)
+    plot_Theta(Theta_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid,  set_lengthscale, save_fig, restarts)
 #     plot_obj_Theta(F_matrix, Theta_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid, restarts)
-    plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts, emulator, explore_bias, sparse_grid, set_lengthscale, t, obj)
+    plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, restarts, emulator, explore_bias, sparse_grid, set_lengthscale, t, obj, save_fig)
     
     #Find point corresponding to absolute minimum SSE
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
@@ -1424,8 +1424,9 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
     Theta_Opt_all = np.array(Theta_matrix[argmin[0],argmin[1]])
     SSE_abs_min = np.amin(SSE_matrix)
     restart_opt = int(argmin[0,0]+1)
+    bo_opt = int(argmin[1,0]+1)
     
-    return restart_opt, Theta_Opt_all, SSE_abs_min
+    return bo_opt, restart_opt, Theta_Opt_all, SSE_abs_min
         
 
 def create_dicts(i,ei_components,verbose =False):
