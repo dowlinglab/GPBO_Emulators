@@ -200,7 +200,7 @@ def plot_org_train(test_mesh,train_p,p_true, emulator, sparse_grid, obj, ep, len
     
     if save_figure == True:
         path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, restart = restart)
-        save_fig(path, ext='png', close=False, verbose=False) 
+        save_fig(path, ext='png', close=True, verbose=False) 
         
     return plt.show()
 
@@ -282,7 +282,7 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, restarts, emulator, ep, sparse_grid,
     #Save figure path
     if save_figure == True:
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, restart = restarts)
-        save_fig(path, ext='png', close=False, verbose=False)
+        save_fig(path, ext='png', close=True, verbose=False)
     
     return plt.show()
 
@@ -338,7 +338,7 @@ def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengths
     #Save path and figure
     if save_figure == True:
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, restart = restarts)
-        save_fig(path, ext='png', close=False, verbose=False)
+        save_fig(path, ext='png', close=True, verbose=False)
     
     return plt.show()
 
@@ -397,7 +397,7 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         #Save path and figure
         if save_figure == True:
             path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, restart = restarts)
-            save_fig(path, ext='png', close=False, verbose=False)
+            save_fig(path, ext='png', close=True, verbose=False)
             
         plt.show() 
     return

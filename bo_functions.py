@@ -617,7 +617,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
         
         #Loop over experimental data points
         for j in range(n):
-            SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2 #Should this be part of the SSE Matrix? If so, how will this work?
+            SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
         #Apply max operator    
         EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) 
     return EI_Temp
@@ -689,7 +689,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid)
                 GP_var[k] = model_variance
                               
                 #Compute SSE and SSE variance for that point
-                SSE[i,j] += (model_mean - Yexp[k])**2 #Is this right? or is the SSE calculated for the training points what I should use?
+                SSE[i,j] += (model_mean - Yexp[k])**2
                 
                 error_point = np.abs((Yexp[k] - model_mean)) #Is this correct?
                 SSE_var_GP[i,j] += 2*error_point*model_variance
@@ -1149,8 +1149,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     #Set arrays to track theta_best, theta_opt, and SSE for every BO iteration
     All_Theta_Best = np.zeros((BO_iters,q)) 
     All_Theta_Opt = np.zeros((BO_iters,q)) 
-    All_SSE = np.zeros(BO_iters)
-    All_SSE_abs_min = np.zeros(BO_iters)
+    All_SSE = np.zeros(BO_iters) #Will save ln(SSE) values
+    All_SSE_abs_min = np.zeros(BO_iters) #Will save ln(SSE) values
 
     #Ensures GP will take correct # of inputs
     if emulator == True:
@@ -1242,10 +1242,10 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Ensure that a plot of SSE (and never ln(SSE) is drawn
         if obj == "LN_obj" and emulator == False:
             ln_sse = sse
-            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, sparse_grid, set_lengthscale,save_fig, Bo_iter = fig_iter, restart = restart )
+            value_plotter(theta_mesh, ln_sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, sparse_grid, set_lengthscale,save_fig, Bo_iter = fig_iter, restart = restart )
         else:
             ln_sse = np.log(sse)
-            value_plotter(theta_mesh, sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, Bo_iter = fig_iter, restart = restart)
+            value_plotter(theta_mesh, ln_sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, Bo_iter = fig_iter, restart = restart)
         
         #Save other figures if verbose=True
         if verbose == True:
@@ -1300,7 +1300,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     if not os.path.exists(path):
         os.makedirs(path)
         
-    df = pd.DataFrame(All_SSE)    
+    df = pd.DataFrame(All_SSE)    #Saves ln(SSE) values
     df.to_csv(path+ '/All_SSE.csv')
     
     df = pd.DataFrame(All_Theta_Opt)
@@ -1371,8 +1371,8 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
     
     #Initialize Theta and SSE matricies
     Theta_matrix = np.zeros((restarts,BO_iters,q))
-    SSE_matrix = np.zeros((restarts,BO_iters)) 
-    SSE_matrix_abs_min = np.zeros((restarts,BO_iters)) 
+    SSE_matrix = np.zeros((restarts,BO_iters)) #Saves ln(SSE) values
+    SSE_matrix_abs_min = np.zeros((restarts,BO_iters)) #Saves ln(SSE) values
     
     #Set theta mesh grids
     theta1_mesh = theta_mesh[0]

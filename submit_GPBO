@@ -1,0 +1,19 @@
+#!/bin/csh
+
+# required in inputfile for smp 4:
+
+#$ -pe smp 1
+#$ -m ae
+#$ -r n
+#$ -M mcarlozo@nd.edu
+#$ -q long
+#$ -N GP_runs_15_100
+
+conda activate Toy_Problem_env
+module purge
+module load python
+
+set INPUT = "$1"
+
+python3 $INPUT 
+
