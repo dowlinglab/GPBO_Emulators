@@ -1277,7 +1277,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         if verbose == True:
             print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o, "is", "{:.4e}".format(ln_error_mag))
     
-    if save_fig == True:
+    if save_fig == True and verbose == True:
         Bo_str = str(i+1).zfill(len(str(BO_iters)))
         run_str = str(run+1).zfill(len(str(tot_runs)))
         path = 'Output_CSVs/'+str(GP_inputs)+'_Input/Run_'+run_str+'/Total_Iters_'+Bo_str
