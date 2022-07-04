@@ -1283,28 +1283,29 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         if verbose == True:
             print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o, "is", "{:.4e}".format(ln_error_mag))
     
-    #Saves SSE and Theta_Opt values as CSV files
-    if i+1 < 10:
-        Bo_str = str(0) + str(0)+ str(i+1)
-    elif i+1 <100:
-        Bo_str = str(0)+str(i+1)
-    else:
-        Bo_str = str(i+1)
-        
-    if restart+1 < 10:
-        restart_str = str(0) + str(restart +1)
-    else:
-        restart_str = str(restart +1)
-        
-    path = 'Output_CSVs/'+str(GP_inputs)+'_Input/Restart_'+restart_str+'/Iter_'+Bo_str
-    if not os.path.exists(path):
-        os.makedirs(path)
-        
-    df = pd.DataFrame(All_SSE)    #Saves ln(SSE) values
-    df.to_csv(path+ '/All_SSE.csv')
-    
-    df = pd.DataFrame(All_Theta_Opt)
-    df.to_csv(path+ '/All_Theta.csv')
+    if verbose == True:
+            #Saves SSE and Theta_Opt values as CSV files
+        if i+1 < 10:
+            Bo_str = str(0) + str(0)+ str(i+1)
+        elif i+1 <100:
+            Bo_str = str(0)+str(i+1)
+        else:
+            Bo_str = str(i+1)
+
+        if restart+1 < 10:
+            restart_str = str(0) + str(restart +1)
+        else:
+            restart_str = str(restart +1)
+            
+        path = 'Output_CSVs/'+str(GP_inputs)+'_Input/Restart_'+restart_str+'/Iter_'+Bo_str
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        df = pd.DataFrame(All_SSE)    #Saves ln(SSE) values
+        df.to_csv(path+ '/All_SSE.csv')
+
+        df = pd.DataFrame(All_Theta_Opt)
+        df.to_csv(path+ '/All_Theta.csv')
     
     #Plots a single line of objective/theta values vs BO iteration if there are no restarts
     if restart == None:
@@ -1380,8 +1381,8 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
     
     #Loop over # Restarts
     for i in range(restarts):
-        restart = i
-        print("Restart Number: ",i+1)
+        if verbose == True or save_fig == False:
+            print("Restart Number: ",i+1)
         #Create training/testing data
         train_data, test_data = test_train_split(all_data, restarts=restarts, shuffle_seed=shuffle_seed)
         if emulator == True:
@@ -1401,10 +1402,10 @@ def bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,
         train_p = train_p[0:t]
         train_y = train_y[0:t]
 #         plot_org_train(theta_mesh,train_p,Theta_True)
-        plot_org_train(theta_mesh,train_p,Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, restart, save_fig)
+        plot_org_train(theta_mesh,train_p,Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig)
 
         #Run BO iteration
-        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, restart, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig = save_fig)
+        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig = save_fig)
         
         #Add all SSE/theta results at each BO iteration for that restart
         Theta_matrix[i,:,:] = BO_results[1]
