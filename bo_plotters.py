@@ -108,7 +108,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
 #         print("Rest",len(str(tot_runs)) , tot_runs)
         else: run_str = "/Run_" + str(run+1).zfill(len(str(tot_runs)))     
     
-    path_org = "Figures2" 
+    path_org = "Figures" 
     path_end = Emulator + method + org_TP_str + obj_str + exp_str + len_scl + run_str+ plot + Bo_itr_str   
     
     if fxn in ["value_plotter", "plot_org_train"]:
