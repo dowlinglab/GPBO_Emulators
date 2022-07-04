@@ -1,16 +1,16 @@
 import numpy as np
 import pandas as pd
 import torch
-from bo_functions import bo_iter_w_restarts
+from bo_functions import bo_iter_w_runs
 import matplotlib as mpl
 mpl.rcParams['figure.dpi'] = 200
 
 #Set Parameters
 Theta_True = np.array([1,-1])
 BO_iters = 100
+runs = 15
 train_iter = 300
 noise_std = 0.1
-restarts = 15
 shuffle_seed = 6
 t=4
 explore_bias = torch.tensor([0, 0.5, 0.75, 1, 5])
@@ -43,16 +43,16 @@ else:
     
 all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
 
-print("Restarts:", restarts)
+print("Runs:", runs)
 print("BO Iterations:",BO_iters)
-print("\n")
+print("-------------------------")
 for i in range(len(set_lengthscale)):
     for j in range(len(explore_bias)):
         print("Lengthscale Set As:", set_lengthscale[i])
         print("Explore Bias:", str(np.round(float(explore_bias[j]),3)))
-        results = bo_iter_w_restarts(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias[j], Xexp, Yexp,
-                                     noise_std, obj, restarts, sparse_grid, emulator, set_lengthscale[i], verbose, 
+        results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias[j], Xexp, Yexp,
+                                     noise_std, obj, runs, sparse_grid, emulator, set_lengthscale[i], verbose, 
                                      save_fig, shuffle_seed)
         print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2][0], 
-                  "during restart", results[1], "at BO iteration", results[0])
+                  "during Run", results[1], "at BO iteration", results[0])
         print(" \n")
