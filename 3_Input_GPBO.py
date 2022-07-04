@@ -39,6 +39,9 @@ theta_mesh = np.array(np.meshgrid(Theta1, Theta2)) #2 Uniform 5x5 arrays
 all_data_doc = "Input_CSVs/Train_Data/all_3_data/t=25.csv"
 all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
 
+print("Restarts:", restarts)
+print("BO Iterations:",BO_iters)
+print("\n")
 for i in range(len(set_lengthscale)):
     for j in range(len(explore_bias)):
         print("Lengthscale Set As:", set_lengthscale[i])

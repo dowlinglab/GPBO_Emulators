@@ -43,6 +43,9 @@ else:
     
 all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
 
+print("Restarts:", restarts)
+print("BO Iterations:",BO_iters)
+print("\n")
 for i in range(len(set_lengthscale)):
     for j in range(len(explore_bias)):
         print("Lengthscale Set As:", set_lengthscale[i])
