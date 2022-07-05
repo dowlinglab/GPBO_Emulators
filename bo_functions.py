@@ -576,7 +576,7 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh):
     best_error = np.amin(SSE)
     
     return best_error 
-def get_sparse_grids(range_p,dim,output=0,depth=5, rule='gauss-legendre', verbose = False):
+def get_sparse_grids(dim,output=0,depth=5, rule='gauss-hermite', verbose = False):
     '''
     This function shows the sparse grids generated with different rules
     Parameters:
@@ -597,7 +597,6 @@ def get_sparse_grids(range_p,dim,output=0,depth=5, rule='gauss-legendre', verbos
     '''
     grid_p = Tasmanian.SparseGrid()
     grid_p.makeGlobalGrid(dim,output,depth,'level',rule)
-    grid_p.setDomainTransform(range_p)
     points_p = grid_p.getPoints()
     weights_p = grid_p.getQuadratureWeights()
     if verbose == True:
