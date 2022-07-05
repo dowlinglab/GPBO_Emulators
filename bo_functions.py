@@ -1201,7 +1201,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o)
         
         #Calculate GP SSE and save value
-        ln_error_mag = np.log(np.sum((y_GP_Opt-Yexp)**2))
+        ln_error_mag = np.log(np.sum((y_GP_Opt-Yexp)**2)) #Should SSE be calculated like this or should we use the GP approximation
         All_SSE[i] = ln_error_mag
         
         #Save best value of SSE for plotting 
@@ -1257,11 +1257,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
-        #     sse_Best = create_sse_data(q,Theta_Best, Xexp, Yexp) #(1 x 1)
-
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
-        #     train_T = np.concatenate((train_T, [Theta_Best]), axis=0) #(q x t)
             train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
             
         else:
@@ -1351,8 +1348,10 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
     
     #Initialize Theta and SSE matricies
-    Theta_matrix = np.zeros((runs,BO_iters,q))
+    Theta_Opt_matrix = np.zeros((runs,BO_iters,q))
+    Theta_Best_matrix = np.zeros((runs,BO_iters,q))
     SSE_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
+    EI_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     SSE_matrix_abs_min = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     
     #Set theta mesh grids
@@ -1388,29 +1387,31 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs)
         
         #Add all SSE/theta results at each BO iteration for that run
-        Theta_matrix[i,:,:] = BO_results[1]
+        Theta_Best_matrix[i,:,:] = BO_results[0]
+        Theta_Opt_matrix[i,:,:] = BO_results[1]
         SSE_matrix[i,:] = BO_results[2]
         SSE_matrix_abs_min[i] = BO_results[3]
         
     #Plot all SSE/theta results for each BO iteration for all runs
     if runs > 1:
         plot_obj(SSE_matrix, t, BO_iters, obj,explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs)
-        plot_Theta(Theta_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid,  set_lengthscale, save_fig, BO_iters, runs)
+        plot_Theta(Theta_Opt_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid,  set_lengthscale, save_fig, BO_iters, runs)
     #     plot_obj_Theta(F_matrix, Theta_matrix, Theta_True, t, BO_iters, obj,explore_bias, emulator, sparse_grid, runs)
         plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, emulator, explore_bias, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs)
     
-    #Find point corresponding to absolute minimum SSE
+    #Find point corresponding to absolute minimum SSE and max(-ei) at that point
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
     if len(argmin) != q: #How to generalize next line?
         argmin = np.array([[argmin[0]],[argmin[1]]])
-
-    #Find theta value corresponding to argmin(SSE) and at which run and theta value it occurs
-    Theta_Opt_all = np.array(Theta_matrix[argmin[0],argmin[1]])
+    
+    #Find theta value corresponding to argmin(SSE) and corresponding argmax(ei) at which run and theta value they occur
+    Theta_Best_all = np.array(Theta_Best_matrix[argmin[0],argmin[1]])
+    Theta_Opt_all = np.array(Theta_Opt_matrix[argmin[0],argmin[1]])
     SSE_abs_min = np.amin(SSE_matrix)
     run_opt = int(argmin[0,0]+1)
     bo_opt = int(argmin[1,0]+1)
     
-    return bo_opt, run_opt, Theta_Opt_all, SSE_abs_min
+    return bo_opt, run_opt, Theta_Opt_all, SSE_abs_min, Theta_Best_all
         
 
 def create_dicts(i,ei_components,verbose =False):
