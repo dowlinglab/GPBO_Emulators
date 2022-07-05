@@ -15,7 +15,7 @@ shuffle_seed = 6
 t=4
 explore_bias = torch.tensor([0, 0.5, 0.75, 1, 5])
 # set_lengthscale = np.array([None, 0.5, 1, 5])
-set_lengthscale = np.array([None, 0.1, 0.25, 1, 5])
+set_lengthscale = np.array([0.1, 0.25])
 
 obj = "LN_obj"
 emulator = False
