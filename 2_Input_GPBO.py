@@ -56,4 +56,5 @@ for i in range(len(set_lengthscale)):
                                      save_fig, shuffle_seed)
         print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2][0], 
                   "during Run", results[1], "at BO iteration", results[0])
+        print("At this point, the highest EI occurs at \u03B8 =", results[4][0])
         print(" \n")

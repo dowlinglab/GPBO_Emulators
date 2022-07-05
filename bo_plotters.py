@@ -322,7 +322,7 @@ def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengths
     plt.ylabel("ln(SSE)")
 #     if emulator == False:
 #         plt.ylim(0,2)
-    plt.title("BO Iteration Results: SSE Metric")
+    plt.title("BO Iteration Results: ln(SSE) Metric")
     plt.grid(True)
     plt.legend(loc = "upper right")
     
@@ -439,7 +439,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     
     #Set plot details
 #     plt.figure(figsize=(8,4))
-    plt.contourf(xx, yy,z,cmap = "autumn")
+    plt.contourf(xx, yy,z, levels = 20, cmap = "autumn")
     plt.colorbar()
 #     print(p_GP_opt[0],p_GP_opt[1])
     
