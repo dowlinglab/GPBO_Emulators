@@ -576,8 +576,38 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh):
     best_error = np.amin(SSE)
     
     return best_error 
+def get_sparse_grids(range_p,dim,output=0,depth=5, rule='gauss-legendre', verbose = False):
+    '''
+    This function shows the sparse grids generated with different rules
+    Parameters:
+    -----------
+        range_p: ndarray, dimension ranges of grid parameters. Must be equal to len(Xexp)
+        dim: int, sparse grids dimension. Default is zero
+        output: int, output level for function that would be interpolated
+        depth: int, depth level. Controls density of abscissa points
+        rule: str, quadrature rule. Default is 'gauss-legendre'
+        Verbose: bool, determines Whether or not plot of sparse grid is shown. False by default
+    Returns:
+    --------
+        weights_p: ndarray, The Gauss-Legendre Quadrature Rule Weights
+        points_p: ndarray, The sparse grid points
+    Other:
+    ------
+        A figure shows 2D sparse grids (if verbose = True)
+    '''
+    grid_p = Tasmanian.SparseGrid()
+    grid_p.makeGlobalGrid(dim,output,depth,'level',rule)
+    grid_p.setDomainTransform(range_p)
+    points_p = grid_p.getPoints()
+    weights_p = grid_p.getQuadratureWeights()
+    if verbose == True:
+        for i in range(len(points_p)):
+            plt.scatter(points_p[i,0], points_p[i,1])
+            plt.title('Sparse Grid of'+rule)
+        plt.show()
+    return points_p, weights_p
 
-def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
+def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, verbose = False):
     """Evaluate GP using the spare grid instead of an approximation.
     
     Parameters
@@ -596,33 +626,28 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error):
     #Back out important parameters from inputs
     n = len(Yexp) #Number of experimental data points
     
-    Point_Range = [np.amin(Xexp[0]), np.amax(Xexp[0])]
-    range_p = np.array([Point_Range, Point_Range, Point_Range, Point_Range, Point_Range])
-    
-    #Obtain Sparse Grid Points
-    grid_p = Tasmanian.SparseGrid()
-    grid_p.makeGlobalGrid(n,0,5,'level','gauss-legendre')
-    grid_p.setDomainTransform(range_p)
-    points_p = grid_p.getPoints()
-    weights_p = grid_p.getQuadratureWeights()
+    range_p = np.zeros((n,2))
+    for i in range(n):
+        Point_Range = [np.amin(Xexp), np.amax(Xexp)]
+        range_p[i] = Point_Range
+#     print(range_p)
+    #Obtain Sparse Grid points and weights
+    points_p, weights_p = get_sparse_grids(range_p,n,output=0,depth=5, rule='gauss-legendre', verbose = False)
 #     print(weights_p)
-    
     #Initialize EI
     EI_Temp = 0
-    
     #Loop over sparse grid weights and nodes
     for i in range(len(points_p)):
         #Initialize SSE
         SSE_Temp = 0
-        
         #Loop over experimental data points
         for j in range(n):
             SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
         #Apply max operator    
-        EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) 
+        EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Is this right?
     return EI_Temp
 
-def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid):
+def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, verbose = False):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -702,10 +727,10 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid)
             GP_stdev = np.sqrt(GP_var)
             if sparse_grid == True:
                 #Compute EI using eparse grid
-                EI[i,j] = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error)
+                EI[i,j] = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, verbose)
         
     SSE_stdev_GP = np.sqrt(SSE_var_GP)
-#     print(EI)
+#     print(SSE_var_GP)
     return EI, SSE, SSE_var_GP, SSE_stdev_GP, best_error
 
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
@@ -1096,7 +1121,7 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
     if emulator == False:
         eval_components = eval_GP_basic_tot(theta_mesh, train_y, model, likelihood, explore_bias, verbose)
     else:
-        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid)
+        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, verbose)
     
     return eval_components
 
@@ -1243,7 +1268,11 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         
         #Save other figures if verbose=True
         if verbose == True:
-            for j in range(len(titles)-2):
+            last_skip = 0
+            if emulator == True:
+                print("Best Error is:",  eval_components[-1])
+                last_skip = 1
+            for j in range(len(eval_components)-2-last_skip):
                 component = eval_components[j+2]
                 title = titles[j+2]
                 title_save = titles_save[j+2]

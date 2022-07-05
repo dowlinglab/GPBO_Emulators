@@ -426,7 +426,6 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     fxn = "value_plotter"
     q=len(p_true)
     xx , yy = test_mesh #NxN, NxN
-
     #Assert sattements
     assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
