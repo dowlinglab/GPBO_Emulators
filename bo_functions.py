@@ -576,7 +576,7 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh):
     best_error = np.amin(SSE)
     
     return best_error 
-def get_sparse_grids(dim,output=0,depth=5, rule='gauss-hermite', verbose = False):
+def get_sparse_grids(dim,output=0,depth=3, rule='rule_gausshermite', verbose = False, alpha = 0):
     '''
     This function shows the sparse grids generated with different rules
     Parameters:
@@ -631,7 +631,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
         range_p[i] = Point_Range
 #     print(range_p)
     #Obtain Sparse Grid points and weights
-    points_p, weights_p = get_sparse_grids(range_p,n,output=0,depth=5, rule='gauss-legendre', verbose = False)
+    points_p, weights_p = get_sparse_grids(n,output=0,depth=5, rule='gauss-hermite', verbose = False)
 #     print(weights_p)
     #Initialize EI
     EI_Temp = 0
@@ -643,7 +643,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
         for j in range(n):
             SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
         #Apply max operator    
-        EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Is this right?
+        EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Is this right? Why is EI negative?
     return EI_Temp
 
 def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, verbose = False):
