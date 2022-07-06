@@ -3,7 +3,15 @@ import pandas as pd
 import torch
 from bo_functions import bo_iter_w_runs
 import matplotlib as mpl
+from datetime import datetime
 mpl.rcParams['figure.dpi'] = 200
+
+#Set Date and Time
+dateTimeObj = datetime.now()
+timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
+print("Date and Time: ", timestampStr)
+DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
+# DateTime = None ##For Testing
 
 #Set Parameters
 Theta_True = np.array([1,-1])
@@ -14,9 +22,8 @@ noise_std = 0.1
 shuffle_seed = 6
 t=4
 explore_bias = torch.tensor([0.75])
-# set_lengthscale = np.array([None, 0.5, 1, 5])
 set_lengthscale = np.array([None, 0.1, 0.25, 0.5, 1, 5])
-
+# set_lengthscale = np.array([None, 0.5, 1, 5])
 
 obj = "obj"
 emulator = True
@@ -50,7 +57,7 @@ for i in range(len(set_lengthscale)):
         print("Explore Bias:", str(np.round(float(explore_bias[j]),3)))
         results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias[j], Xexp, Yexp,
                                      noise_std, obj, runs, sparse_grid, emulator, set_lengthscale[i], verbose, 
-                                     save_fig, shuffle_seed)
+                                     save_fig, shuffle_seed, DateTime)
         print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2][0], 
                   "during Run", results[1], "at BO iteration", results[0])
         print("At this point, the highest EI occurs at \u03B8 =", results[4][0])
