@@ -472,7 +472,7 @@ def calc_GP_outputs(model,likelihood,test_param):
 
 
 #Approximation
-def calc_ei_emulator(error_best,pred_mean,pred_var,y_target):
+def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -481,6 +481,7 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target):
         pred_mean: ndarray, model mean
         pred_var: ndarray, model variance
         y_target: ndarray, the expected value of the function from data or other source
+        explore_bias: float, the numerical bias towards exploration, zero is the default
     
     Returns
     -------
@@ -501,16 +502,16 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target):
     #If variance is zero this is important
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Alex Dowling's Derivation
-        bound_a = ((y_target - pred_mean) +np.sqrt(error_best))/pred_stdev #1xn
-        bound_b = ((y_target - pred_mean) -np.sqrt(error_best))/pred_stdev #1xn
+        bound_a = ((y_target - pred_mean - explore_bias) +np.sqrt(error_best))/pred_stdev #1xn
+        bound_b = ((y_target - pred_mean - explore_bias) -np.sqrt(error_best))/pred_stdev #1xn
         bound_lower = np.min([bound_a,bound_b])
         bound_upper = np.max([bound_a,bound_b])        
 
         #Creates EI terms in terms of Alex Dowling's Derivation
         ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
-        ei_term1_comp2 = error_best - (y_target - pred_mean)**2 #1xn
+        ei_term1_comp2 = error_best - (y_target - pred_mean - explore_bias)**2 #1xn
 
-        ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
+        ei_term2_comp1 = 2*(y_target - pred_mean - explore_bias)*pred_stdev #1xn
         ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
         ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
         ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
@@ -646,7 +647,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
         EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Is this right? Why is EI negative?
     return EI_Temp
 
-def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, verbose = False):
+def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -657,6 +658,8 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
         sparse_grid: True/False: Determines whether an assumption or sparse grid method is used
+        explore_bias: float, the numerical bias towards exploration, zero is the default
+        verbose: bool, Determines whether output is verbose
     
     Returns
     -------
@@ -721,7 +724,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                 
                 if sparse_grid == False:
                     #Compute EI w/ approximation
-                    EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
+                    EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias)
                             
             GP_stdev = np.sqrt(GP_var)
             if sparse_grid == True:
@@ -999,7 +1002,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
 
             if sparse_grid == False:
                 #Compute EI w/ approximation
-                ei += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k])
+                ei += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias)
            
         if sparse_grid == True:
             #Compute EI using sparse grid
@@ -1120,7 +1123,7 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
     if emulator == False:
         eval_components = eval_GP_basic_tot(theta_mesh, train_y, model, likelihood, explore_bias, verbose)
     else:
-        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, verbose)
+        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose)
     
     return eval_components
 
