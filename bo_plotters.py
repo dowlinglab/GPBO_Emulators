@@ -78,16 +78,15 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
     len_scl = "/len_scl_varies"
     org_TP_str = "/TP_"+ str(t)
     ep = str(np.round(float(ep),3))
+    exp_str = "/ep_"+ep
     Bo_itr_str = ""
     run_str = "/Single_Run"
     
     if emulator == False:
         Emulator = "/GP_Error_Emulator"
-        exp_str = "/ep_"+ep
         method = ""
     else:
         Emulator = "/GP_Emulator"
-        exp_str = ""
         if sparse_grid == True:
             method = "/Sparse"
         else:
