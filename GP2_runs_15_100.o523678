@@ -4,3 +4,106 @@ X = torch.triangular_solve(B, A).solution
 should be replaced with
 X = torch.linalg.solve_triangular(A, B). (Triggered internally at  ../aten/src/ATen/native/BatchLinearAlgebra.cpp:1672.)
   res = torch.triangular_solve(right_tensor, self.evaluate(), upper=self.upper).solution
+Runs: 15
+BO Iterations: 100
+-------------------------
+Lengthscale Set As: None
+Explore Bias: 0.0
+The GP predicts the lowest SSE of 5.991e-05 occurs at θ = [ 0.99241827 -1.00297624] during Run 14 at BO iteration 18
+ 
+
+Lengthscale Set As: None
+Explore Bias: 0.5
+The GP predicts the lowest SSE of 3.761e-05 occurs at θ = [ 0.99369394 -1.00289176] during Run 9 at BO iteration 71
+ 
+
+Lengthscale Set As: None
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 3.590e-05 occurs at θ = [ 0.99352365 -1.00300885] during Run 5 at BO iteration 20
+ 
+
+Lengthscale Set As: None
+Explore Bias: 1.0
+The GP predicts the lowest SSE of 2.125e-04 occurs at θ = [ 0.99020748 -1.00439092] during Run 2 at BO iteration 53
+ 
+
+Lengthscale Set As: None
+Explore Bias: 5.0
+The GP predicts the lowest SSE of 1.745e-03 occurs at θ = [ 1.00711494 -1.00319593] during Run 11 at BO iteration 10
+ 
+
+Lengthscale Set As: 0.5
+Explore Bias: 0.0
+The GP predicts the lowest SSE of 1.266e-03 occurs at θ = [ 1.00250186 -0.99944158] during Run 15 at BO iteration 22
+ 
+
+Lengthscale Set As: 0.5
+Explore Bias: 0.5
+The GP predicts the lowest SSE of 3.773e-04 occurs at θ = [ 0.99980054 -1.00270708] during Run 8 at BO iteration 8
+ 
+
+Lengthscale Set As: 0.5
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 8.402e-05 occurs at θ = [ 0.99381415 -1.00208266] during Run 12 at BO iteration 51
+ 
+
+Lengthscale Set As: 0.5
+Explore Bias: 1.0
+The GP predicts the lowest SSE of 2.743e-04 occurs at θ = [ 0.99000406 -1.0017781 ] during Run 7 at BO iteration 5
+ 
+
+Lengthscale Set As: 0.5
+Explore Bias: 5.0
+The GP predicts the lowest SSE of 6.496e-04 occurs at θ = [ 0.99294341 -1.00757228] during Run 5 at BO iteration 59
+ 
+
+Lengthscale Set As: 1
+Explore Bias: 0.0
+The GP predicts the lowest SSE of 1.480e-03 occurs at θ = [ 0.99533697 -1.0098355 ] during Run 12 at BO iteration 26
+ 
+
+Lengthscale Set As: 1
+Explore Bias: 0.5
+The GP predicts the lowest SSE of 7.442e-04 occurs at θ = [ 0.99103836 -1.00763195] during Run 2 at BO iteration 4
+ 
+
+Lengthscale Set As: 1
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 1.044e-03 occurs at θ = [ 1.00409309 -1.00336024] during Run 9 at BO iteration 19
+ 
+
+Lengthscale Set As: 1
+Explore Bias: 1.0
+The GP predicts the lowest SSE of 1.322e-03 occurs at θ = [ 0.98265583 -1.00332691] during Run 12 at BO iteration 16
+ 
+
+Lengthscale Set As: 1
+Explore Bias: 5.0
+The GP predicts the lowest SSE of 1.289e-03 occurs at θ = [ 0.98810133 -0.9981735 ] during Run 5 at BO iteration 30
+ 
+
+Lengthscale Set As: 5
+Explore Bias: 0.0
+The GP predicts the lowest SSE of 1.012e+01 occurs at θ = [ 2.         -0.99320869] during Run 14 at BO iteration 25
+ 
+
+Lengthscale Set As: 5
+Explore Bias: 0.5
+The GP predicts the lowest SSE of 3.833e+00 occurs at θ = [ 1.55388518 -1.14667462] during Run 14 at BO iteration 16
+ 
+
+Lengthscale Set As: 5
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 3.097e+00 occurs at θ = [ 1.30377136 -1.25409975] during Run 14 at BO iteration 13
+ 
+
+Lengthscale Set As: 5
+Explore Bias: 1.0
+The GP predicts the lowest SSE of 2.859e+00 occurs at θ = [ 1.29281166 -1.24380258] during Run 14 at BO iteration 13
+ 
+
+Lengthscale Set As: 5
+Explore Bias: 5.0
+The GP predicts the lowest SSE of 1.558e-01 occurs at θ = [ 1.00403991 -1.0708029 ] during Run 5 at BO iteration 23
+ 
+
