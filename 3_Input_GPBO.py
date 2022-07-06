@@ -29,8 +29,9 @@ obj = "obj"
 emulator = True
 verbose = False
 save_fig=True
-# sparse_grid = True
-sparse_grid = False
+# sparse_grid = False
+sparse_grid = True
+
 
 #Pull Experimental data from CSV
 exp_data_doc = 'Input_CSVs/Exp_Data/n=5.csv'
