@@ -45,10 +45,16 @@ Theta1 =  np.linspace(-2,2,p) #1x10
 Theta2 =  np.linspace(-2,2,p) #1x10
 theta_mesh = np.array(np.meshgrid(Theta1, Theta2)) #2 Uniform 5x5 arrays
 
-if obj == "obj":
-    all_data_doc = "Input_CSVs/Train_Data/all_2_data/t=25.csv"   
-else:
-    all_data_doc = "Input_CSVs/Train_Data/all_2_ln_obj_data/t=25.csv"
+if emulator == True:
+    if obj == "obj":
+        all_data_doc = "Input_CSVs/Train_Data/all_2_data/t=25.csv"   
+    else:
+        all_data_doc = "Input_CSVs/Train_Data/all_2_ln_obj_data/t=25.csv"
+else:    
+    if obj == "obj":
+        all_data_doc = "Input_CSVs/Train_Data/all_2_data/t=25.csv"   
+    else:
+        all_data_doc = "Input_CSVs/Train_Data/all_2_ln_obj_data/t=25.csv"
     
 all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
 

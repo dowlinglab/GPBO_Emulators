@@ -258,6 +258,30 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     
     return torch.tensor(train_data),torch.tensor(test_data)
 
+def find_train_doc_path(emulator, obj):
+    """
+    Finds the document that contains the correct training data based on the GP objective function and number of training inputs
+    
+    Parameters
+    ----------
+    obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+    emulator: True/False, Determines if GP will model the function or the function error
+    
+    Returns
+    -------
+    all_data_doc: csv name as a string, contains all training data for GP
+    
+    """
+    if emulator == False:
+        if obj == "obj":
+            all_data_doc = "Input_CSVs/Train_Data/all_2_data/t=25.csv"   
+        else:
+            all_data_doc = "Input_CSVs/Train_Data/all_2_ln_obj_data/t=25.csv"
+    else:    
+        all_data_doc = "Input_CSVs/Train_Data/all_3_data/t=25.csv"
+            
+    return all_data_doc
+
 class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     """
     The base class for any Gaussian process latent function to be used in conjunction

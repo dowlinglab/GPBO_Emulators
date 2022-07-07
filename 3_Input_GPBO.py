@@ -21,16 +21,17 @@ train_iter = 300
 noise_std = 0.1
 shuffle_seed = 6
 t=4
-explore_bias = torch.tensor([0.75])
+# explore_bias = torch.tensor([0.75])
+explore_bias = torch.tensor([0, 0.5, 0.75, 1, 5])
 set_lengthscale = np.array([None, 0.1, 0.25, 0.5, 1, 5])
 # set_lengthscale = np.array([None, 0.5, 1, 5])
 
 obj = "obj"
 emulator = True
 verbose = False
-save_fig=True
+save_fig = True
 # sparse_grid = False
-sparse_grid = True
+sparse_grid = False
 
 
 #Pull Experimental data from CSV
