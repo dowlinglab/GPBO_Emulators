@@ -66,7 +66,7 @@ for emul in emulator:
         
     for sparse in sparse_grid_use:
         if sparse == True:
-            ep_use = torch.tensor([0.25]) 
+            ep_use = torch.tensor([0]) 
         else:
             ep_use = explore_bias
         print("______________________________")
