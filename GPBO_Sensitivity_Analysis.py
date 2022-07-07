@@ -16,16 +16,14 @@ DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 
 #Set Parameters
 Theta_True = np.array([1,-1])
-BO_iters = 3
-runs = 2
+BO_iters = 100
+runs = 15
 train_iter = 300
 noise_std = 0.1
 shuffle_seed = 6
 t=4
-# explore_bias = torch.tensor([0.75])
-explore_bias = torch.tensor([0, 0.5])
-set_lengthscale = np.array([None, 0.1])
-# set_lengthscale = np.array([None, 0.5, 1, 5])
+explore_bias = torch.tensor([0, 0.5, 0.75, 1, 5])
+set_lengthscale = np.array([None, 0.1, 0.25, 0.5, 1, 5])
 
 # obj = "obj"
 obj = np.array(["obj","LN_obj"])
@@ -55,31 +53,38 @@ theta_mesh = np.array(np.meshgrid(Theta1, Theta2)) #2 Uniform 5x5 arrays
 
 print("Runs:", runs)
 print("BO Iterations:",BO_iters)
-print("-------------------------")
+print("%%%%%%%%%%%%%%%%%%%%%%%%%%")
 for emul in emulator: 
+    print("-------------------")
     print("Emulator?:", emul)
     if emul == True:
-        obj = np.array(["obj"])    
+        obj_use = np.array(["obj"])   
+        sparse_grid_use = sparse_grid
     else:
-        sparse_grid == np.array([False])   
-    
-    for sparse in sparse_grid:
+        obj_use = obj
+        sparse_grid_use = np.array([sparse_grid[1]])
+        
+    for sparse in sparse_grid_use:
         if sparse == True:
-            explore_bias = torch.tensor([0.25]) 
-            
-        for obj_func in obj:
-            all_data_doc = find_train_doc_path(emul, obj)
+            ep_use = torch.tensor([0.25]) 
+        else:
+            ep_use = explore_bias
+        print("______________________________")
+        print("Sparse Grid?:", sparse)  
+
+        for obj_func in obj_use:
+            all_data_doc = find_train_doc_path(emul, obj_func)
             all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
             print("Objective Function:", obj_func)
-            
+
             for i in range(len(set_lengthscale)):
-                for j in range(len(explore_bias)):
+                for j in range(len(ep_use)):
+                    print(" \n")
                     print("Lengthscale Set As:", set_lengthscale[i])
-                    print("Explore Bias:", str(np.round(float(explore_bias[j]),3)))
-                    results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias[j], Xexp, Yexp,
+                    print("Explore Bias:", str(np.round(float(ep_use[j]),3)))
+                    results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,ep_use[j], Xexp, Yexp,
                                                  noise_std, obj_func, runs, sparse, emul, set_lengthscale[i], verbose, 
                                                  save_fig, shuffle_seed, DateTime)
                     print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2][0], 
                               "during Run", results[1], "at BO iteration", results[0])
                     print("At this point, the highest EI occurs at \u03B8 =", results[4][0])
-                    print(" \n")
