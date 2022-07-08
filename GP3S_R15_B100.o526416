@@ -4,3 +4,43 @@ X = torch.triangular_solve(B, A).solution
 should be replaced with
 X = torch.linalg.solve_triangular(A, B). (Triggered internally at  ../aten/src/ATen/native/BatchLinearAlgebra.cpp:1672.)
   res = torch.triangular_solve(right_tensor, self.evaluate(), upper=self.upper).solution
+Date and Time:  06-Jul-2022 (16:16:57)
+Runs: 15
+BO Iterations: 100
+-------------------------
+Lengthscale Set As: None
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 4.713e-04 occurs at θ = [ 0.99781716 -1.00038363] during Run 8 at BO iteration 19
+At this point, the highest EI occurs at θ = [ 1.00593952 -0.99564166]
+ 
+
+Lengthscale Set As: 0.1
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 4.033e-01 occurs at θ = [ 1.19483809 -1.00237167] during Run 13 at BO iteration 98
+At this point, the highest EI occurs at θ = [ 1.29282134 -1.06760633]
+ 
+
+Lengthscale Set As: 0.25
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 4.086e-02 occurs at θ = [ 1.05747092 -0.99923402] during Run 7 at BO iteration 100
+At this point, the highest EI occurs at θ = [ 1.05794055 -1.00200145]
+ 
+
+Lengthscale Set As: 0.5
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 1.249e-02 occurs at θ = [ 1.02149392 -0.99132096] during Run 12 at BO iteration 100
+At this point, the highest EI occurs at θ = [ 1.02472107 -0.99400915]
+ 
+
+Lengthscale Set As: 1
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 1.097e-03 occurs at θ = [ 1.00099081 -0.99920668] during Run 12 at BO iteration 47
+At this point, the highest EI occurs at θ = [ 1.0051582  -0.99991041]
+ 
+
+Lengthscale Set As: 5
+Explore Bias: 0.75
+The GP predicts the lowest SSE of 1.271e-04 occurs at θ = [ 0.99712894 -1.00350841] during Run 11 at BO iteration 29
+At this point, the highest EI occurs at θ = [ 0.99813494 -1.00339286]
+ 
+
