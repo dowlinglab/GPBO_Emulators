@@ -28,9 +28,9 @@ set_lengthscale = np.array([None, 0.1, 0.25, 0.5, 1, 5])
 # obj = "obj"
 obj = np.array(["obj","LN_obj"])
 # emulator = False
-emulator = np.array([True,False])
+emulator = np.array([False,True])
 # sparse_grid = False
-sparse_grid = np.array([True,False])
+sparse_grid = np.array([False,True])
 
 verbose = False
 save_fig = True
