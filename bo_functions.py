@@ -649,36 +649,40 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
     """
     #Back out important parameters from inputs
     n = len(Yexp) #Number of experimental data points
+#     print(best_error)
     #Obtain Sparse Grid points and weights
     points_p, weights_p = get_sparse_grids(n,output=0,depth=3, rule='gauss-hermite', verbose = False)
+#     Inside_matrix =  np.zeros((len(points_p),n))
+#     sse_temp_list = np.zeros(len(points_p))
+    
 #     print(points_p)
-    print("GP_mean", GP_mean, "\n",
-          "GP stdev", GP_stdev, "\n",
-          "Yexp", Yexp)
+#     print("GP_mean", GP_mean)
+#     print("GP stdev", np.min(GP_stdev), np.max(GP_stdev))
+#     print("(Yexp - GP_Mean)^2:",(Yexp - GP_mean)**2)
+
     #Initialize EI
     EI_Temp = 0
     #Loop over sparse grid weights and nodes
     for i in range(len(points_p)):
-        print("Points_p",points_p[i,:])
+#         print("Points_p",points_p[i,:])
         #Initialize SSE
         SSE_Temp = 0
+#         Inside_List = np.zeros(n)
         #Loop over experimental data points
         for j in range(n):
-            
-        #BREAK THIS UP AND PRINT THEM OUT AND SEE WHAT TERMS IS MAKING THESE HUGE
-        #Which j is making the SSE += term large?
-            Inside = (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
-#             print("Point", i, "Exp Point",j,"Inside",Inside)
+#             Inside_List[j] = (GP_stdev[j]*points_p[i,j])**2
+#             Inside_matrix[i,j] = (GP_stdev[j]*points_p[i,j])**2
+#             print("Point", i, "Exp Point",j,"Inside",Inside_List[j])
             SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
-#         print("SSE Temp",SSE_Temp)
+#         sse_temp_list[i] = SSE_Temp
+#         print("Stdev*Points_p:",Inside_List)
         #Apply max operator  
-#         print(SSE_Temp- best_error) #This values is never negative, so EI is always 0
-        
-#         print(-np.min([SSE_Temp - best_error,0]))
 #         EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Leades to negative EIs
-        EI_Temp += weights_p[i]*(-np.min([SSE_Temp - best_error,0])) #Leads to zero EIs
+        EI_Temp += weights_p[i]*(-np.min([SSE_Temp - best_error,0])) #Leads to zero EIs: #Min values is never negative, so EI is always 0
         #All Eis are coming out as zero :(
 #         print(EI_Temp)
+#     print(np.min(sse_temp_list), np.argmin(sse_temp_list))
+#     print(np.min(Inside_matrix), np.max(Inside_matrix))
     return EI_Temp
 
 def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False):
