@@ -601,7 +601,7 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh):
     best_error = np.amin(SSE)
     
     return best_error 
-def get_sparse_grids(dim,output=0,depth=3, rule='rule_gausshermite', verbose = False, alpha = 0):
+def get_sparse_grids(dim,output=0,depth=3, rule="gauss-hermite", verbose = False, alpha = 0):
     '''
     This function shows the sparse grids generated with different rules
     Parameters:
@@ -621,7 +621,7 @@ def get_sparse_grids(dim,output=0,depth=3, rule='rule_gausshermite', verbose = F
         A figure shows 2D sparse grids (if verbose = True)
     '''
     grid_p = Tasmanian.SparseGrid()
-    grid_p.makeGlobalGrid(dim,output,depth,'level',rule)
+    grid_p.makeGlobalGrid(dim,output,depth,"level",rule)
     points_p = grid_p.getPoints()
     weights_p = grid_p.getQuadratureWeights()
     if verbose == True:
