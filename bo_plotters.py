@@ -124,6 +124,31 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
     
     return path
     
+def plot_GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta):
+    """
+    """
+    print(GP_mean)
+    plt.close()
+    fig, ax = plt.subplots()
+    
+    ax.plot(Xexp, GP_mean, lw=2, label="GP_mean")
+    ax.plot(Xexp, Yexp, color = "green", label = "Yexp")
+    
+    ax.fill_between(
+        Xexp,
+        GP_mean - 1.96 * GP_stdev,
+        GP_mean + 1.96 * GP_stdev,
+        alpha=0.3
+    )
+#     ax.set_title("GP Mean + confidence interval at"+ str(Theta))
+    ax.set_xlabel("Xexp")
+    ax.set_ylabel("Function Value")
+    ax.legend()
+    fig.legend()
+    plt.show()
+    plt.close()
+    return
+
 def plot_hyperparams(iterations, hyperparam, title):
     '''
     Plots Hyperparameters
