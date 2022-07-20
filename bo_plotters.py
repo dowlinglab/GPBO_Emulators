@@ -127,7 +127,9 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
 def plot_GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta):
     """
     """
-    print(GP_mean)
+    print("GP Mean",GP_mean)
+    print("GP Stdev",GP_stdev)
+    print("SSE",sum(GP_mean-Yexp)**2)
     plt.close()
     fig, ax = plt.subplots()
     
@@ -144,7 +146,7 @@ def plot_GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta):
     ax.set_xlabel("Xexp")
     ax.set_ylabel("Function Value")
     ax.legend()
-    fig.legend()
+#     fig.legend()
     plt.show()
     plt.close()
     return

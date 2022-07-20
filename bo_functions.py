@@ -767,10 +767,12 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                             
             GP_stdev = np.sqrt(GP_var)
             
-            if i in [5,14] and j in [5,14]:
-                Theta = np.array([theta1_mesh[i,j],theta2_mesh[i,j]])
-                print("Theta = ", Theta)
-                plot_GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta)
+#             if i in [5,14] and j in [5,14]:
+            if verbose == True:
+                if i in [5] and j in [14]:
+                    Theta = np.array([theta1_mesh[i,j],theta2_mesh[i,j]])
+                    print("Theta = ", Theta)
+                    plot_GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta)
 
             if sparse_grid == True:
                 #Compute EI using eparse grid
