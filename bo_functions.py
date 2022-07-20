@@ -643,6 +643,8 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
         GP_mean: ndarray, Array of GP mean values at each experimental data point
         GP_stdev: ndarray, Array of GP standard deviation values at each experimental data point
         best_error: float, the best error of the 3-Input GP model
+        ep: float, the exploration parameter (Add later)
+        verbose: bool, determines whether plot of sparse grid points is printed
     
     Returns
     ----------
@@ -675,6 +677,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
 #             Inside_matrix[i,j] = (GP_stdev[j]*points_p[i,j])**2
 #             print("Point", i, "Exp Point",j,"Inside",Inside_List[j])
             SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
+#             SSE_Temp += (Yexp[j] - GP_mean[j] - ep - GP_stdev[j]*points_p[i,j])**2 #If there is an ep, need to add
 #         sse_temp_list[i] = SSE_Temp
 #         print("Stdev*Points_p:",Inside_List)
         #Apply max operator  
