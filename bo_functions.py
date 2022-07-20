@@ -13,6 +13,7 @@ from bo_plotters import plot_xy
 from bo_plotters import plot_Theta
 from bo_plotters import plot_obj
 from bo_plotters import plot_obj_abs_min
+from bo_plotters import plot_GP_performance
 import os
 import Tasmanian
 
@@ -765,6 +766,12 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                     EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias)
                             
             GP_stdev = np.sqrt(GP_var)
+            
+            if i in [5,14] and j in [5,14]:
+                Theta = np.array([theta1_mesh[i,j],theta2_mesh[i,j]])
+                print("Theta = ", Theta)
+                plot_GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta)
+
             if sparse_grid == True:
                 #Compute EI using eparse grid
                 EI[i,j] = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, verbose)
@@ -1248,6 +1255,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
         else:
             ei,sse,var,stdev,best_error = eval_components
+        
         
         #Use argmax(EI) and argmin(SSE) to find values for Theta_best and theta_opt
         Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei)
