@@ -13,7 +13,7 @@ from bo_plotters import plot_xy
 from bo_plotters import plot_Theta
 from bo_plotters import plot_obj
 from bo_plotters import plot_obj_abs_min
-from bo_plotters import plot_GP_performance
+from bo_plotters import plot_3GP_performance
 import os
 import Tasmanian
 
@@ -689,7 +689,8 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
 #     print(np.min(Inside_matrix), np.max(Inside_matrix))
     return EI_Temp
 
-def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False):
+# def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False):
+def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False, train_p = None, train_y = None, test_p = None):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -737,15 +738,19 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     ##Calculate Best Error
     # Loop over theta 1
     best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh)
-            
+    
+    if test_p != None:
+        test_y = calc_GP_outputs(model, likelihood, test_p)[3]
+    
     # Loop over theta 1
     for i in range(p):
         #Loop over theta2
         for j in range(p):
             #Loop over Xexp
             #Create lists in which to store GP mean and variances
-            GP_mean = np.zeros(n)   
+            GP_mean = np.zeros(n)
             GP_var = np.zeros(n)
+            
             ##Calculate EI
             for k in range(n):
                 #Caclulate EI for each value n given the best error
@@ -767,7 +772,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                 if sparse_grid == False:
                     #Compute EI w/ approximation
                     EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias)
-                            
+                           
             GP_stdev = np.sqrt(GP_var)
             
 #             if i in [5,14] and j in [5,14]:
@@ -775,7 +780,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                 if i in [5] and j in [14]:
                     Theta = np.array([theta1_mesh[i,j],theta2_mesh[i,j]])
                     print("Theta = ", Theta)
-                    plot_GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta)
+                    plot_3GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta, train_p, train_y, test_p, test_y)
 
             if sparse_grid == True:
                 #Compute EI using eparse grid
@@ -1120,7 +1125,8 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei
     
     return theta_b, theta_o
 
-def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale):    
+# def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale):  
+def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, test_p = None):
     """
     Evaluates GP
     
@@ -1173,11 +1179,12 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
     if emulator == False:
         eval_components = eval_GP_basic_tot(theta_mesh, train_y, model, likelihood, explore_bias, verbose)
     else:
-        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose)
+#         eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose)
+        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose, train_p, train_y, test_p)
     
     return eval_components
 
-def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig=False, tot_runs = 1, DateTime=None):
+def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None):
     """
     Performs BO iterations
     
@@ -1244,6 +1251,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             train_p = torch.from_numpy(train_p)
         if torch.is_tensor(train_y) != True:
             train_y = torch.from_numpy(train_y)
+        if torch.is_tensor(test_p) != True:
+            test_p = torch.from_numpy(test_p)
             
         #Redefine likelihood and model based on new training data
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
@@ -1253,7 +1262,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         
         #Evaluate GP
-        eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
+#         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
+        eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, test_p)
         
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
@@ -1452,10 +1462,13 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
             print("Run Number: ",i+1)
         #Create training/testing data
         train_data, test_data = test_train_split(all_data, runs=runs, shuffle_seed=shuffle_seed)
+#         print(train_data)
         if emulator == True:
             train_p = train_data[:,1:(q+m+1)]
+            test_p = test_data[:,1:(q+m+1)]
         else:
             train_p = train_data[:,1:(q+1)]
+            test_p = test_data[:,1:(q+1)]
             
         train_y = train_data[:,-1]
         assert len(train_p) == len(train_y), "Training data must be the same length"
@@ -1468,11 +1481,12 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         #Split data based on # of training points to be used.
         train_p = train_p[0:t]
         train_y = train_y[0:t]
+        test_p = test_p[0:t]
 #         plot_org_train(theta_mesh,train_p,Theta_True)
         plot_org_train(theta_mesh,train_p,Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig, BO_iters, runs, DateTime)
 
         #Run BO iteration
-        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime)
+        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p)
         
         #Add all SSE/theta results at each BO iteration for that run
         Theta_Best_matrix[i,:,:] = BO_results[0]
