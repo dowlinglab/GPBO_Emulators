@@ -495,6 +495,46 @@ def calc_GP_outputs(model,likelihood,test_param):
     model_prediction = observed_pred.loc #1 x n_test
     return model_mean, model_variance, model_stdev, model_prediction    
 
+def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, e_inc = 1.5, ep_f = 0.01, ep_method = None ):
+    """
+    Creates a value for the exploration parameter
+    
+    Parameters
+    ----------
+        Bo_iter: int, The value of the current BO iteration
+        mean_of_var: float, The value of the average of all posterior variances
+        best_error: float, The best error of the GP
+        OPTIONAL:
+        ep_o: float, The initial exploration parameter value: Default is 1
+        e_inc: float, the increment for the Boyle's method for calculating exploration parameter: Default is 1.5
+        ep_f: float, The final exploration parameter value: Default is 0.01
+        ep_method: float, determines if Boyle, Jasrasaria, or exponential method will be used: Defaults to exponential method
+        
+    Returns
+    --------
+        ep: The exploration parameter for the iteration
+    """
+    if Bo_iter == 0:
+        ep = ep_o
+        
+    elif ep_method == "Boyle":
+        ep_inc = 0
+        if ep_inc ==0: #last acquisition was an improvement: Change this
+            ep = ep*ep_inc
+        else:
+            ep = ep/ep_inc
+    
+    elif ep_method == "Jasrasaria":
+        ep = mean_of_var/best_error
+    
+    else:
+        if Bo_iter < 30:
+            alpha = -np.log(ep_f/ep_o)/30
+            ep = ep_o*np.exp(-alpha*Bo_iter)
+        else: 
+            ep = 0.01
+    
+    return ep
 
 #Approximation
 def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0):
@@ -876,13 +916,17 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     
+    #Calculate and save best error
+    #Negative sign because -max(-train_sse) = min(train_sse)
+    best_error = -max(-train_sse).numpy() 
+
     p =theta_mesh.shape[1]
     #Initalize matricies to save GP outputs and calculations using GP outputs
     ei = np.zeros((p,p))
     sse = np.zeros((p,p))
     var = np.zeros((p,p))
     stdev = np.zeros((p,p))
-    f_best = np.zeros((p,p))
+
     if verbose == True:
         z_term = np.zeros((p,p))
         ei_term_1 = np.zeros((p,p))
@@ -910,11 +954,8 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
             #Save GP outputs
             sse[i,j] = model_sse
             var[i,j] = model_variance
-            stdev[i,j] = np.sqrt(model_variance)
-            
-            #Calculate and save best error
-            best_error = max(-train_sse)
-            f_best[i,j] = best_error
+            stdev[i,j] = np.sqrt(model_variance)      
+
             #Negative sign because -max(-train_sse) = min(train_sse)
             #Print and save certain values based on verboseness
             if verbose == True:
@@ -928,9 +969,10 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
             else:
                 ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
     if verbose == True:
-        return ei, sse, var, stdev, f_best, z_term, ei_term_1, ei_term_2, CDF, PDF
+        return ei, sse, var, stdev, best_error, z_term, ei_term_1, ei_term_2, CDF, PDF
     else:
-        return ei, sse, var, stdev, f_best
+        return ei, sse, var, stdev, best_error #Prints just the value
+#         return ei, sse, var, stdev, f_best
 
 def find_opt_and_best_arg(theta_mesh, sse, ei):
     """
@@ -1244,6 +1286,9 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         GP_inputs = q
         assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
     
+    mean_of_var = 0
+    best_error_num = 0
+    
     #Loop over # of BO iterations
     for i in range(BO_iters):
         #Converts numpy arrays to tensors
@@ -1263,6 +1308,10 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         
         #Evaluate GP
 #         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
+
+        #Set Exploration parameter
+        explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = explore_bias)
+        
         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, test_p)
         
         #Determines whether debugging parameters are saved for 2 Input GP       
@@ -1271,6 +1320,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         else:
             ei,sse,var,stdev,best_error = eval_components
         
+        mean_of_var = np.average(var)
+        best_error_num = best_error
         
         #Use argmax(EI) and argmin(SSE) to find values for Theta_best and theta_opt
         Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei)
@@ -1337,15 +1388,14 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         
         #Save other figures if verbose=True
         if verbose == True:
-            last_skip = 0
-            if emulator == True:
-                print("Best Error is:",  eval_components[-1])
-                last_skip = 1
-            for j in range(len(eval_components)-2-last_skip):
+            for j in range(len(eval_components)-2):
                 component = eval_components[j+2]
                 title = titles[j+2]
                 title_save = titles_save[j+2]
-                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, i, run, BO_iters, tot_runs, DateTime)
+                try:
+                    value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, i, run, BO_iters, tot_runs, DateTime)
+                except:
+                    print("Best Error is:",  np.round(eval_components[j+2],4))
 
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
@@ -1462,7 +1512,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
             print("Run Number: ",i+1)
         #Create training/testing data
         train_data, test_data = test_train_split(all_data, runs=runs, shuffle_seed=shuffle_seed)
-#         print(train_data)
+        print(test_data)
         if emulator == True:
             train_p = train_data[:,1:(q+m+1)]
             test_p = test_data[:,1:(q+m+1)]
@@ -1478,12 +1528,12 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         else:
             assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
         
-        #Split data based on # of training points to be used.
+        #Split data based on # of training points to be used. Will delete later, theoreticall all data wll be either training or testing
         train_p = train_p[0:t]
         train_y = train_y[0:t]
-        test_p = test_p[0:t]
+        
 #         plot_org_train(theta_mesh,train_p,Theta_True)
-        plot_org_train(theta_mesh,train_p,Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig, BO_iters, runs, DateTime)
+        plot_org_train(theta_mesh,train_p, test_p, Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig, BO_iters, runs, DateTime)
 
         #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p)
