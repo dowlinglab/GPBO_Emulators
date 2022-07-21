@@ -124,13 +124,14 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
     
     return path
     
-def plot_3GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta, train_p = None, train_y = None, test_p = None, test_y = None):
+def plot_3GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta, train_p = None, train_y = None, test_p = None, test_y = None , verbose = True):
     """
     """
-    print("GP Mean",GP_mean)
-    print("GP Stdev",GP_stdev)
-    print("SSE",sum(GP_mean-Yexp)**2)
-    plt.close()
+    if verbose == True:
+        print("GP Mean",GP_mean)
+        print("GP Stdev",GP_stdev)
+        print("SSE",sum(GP_mean-Yexp)**2)
+        plt.close()
     fig, ax = plt.subplots()
     
     ax.plot(Xexp, GP_mean, lw=2, label="GP_mean")
@@ -181,13 +182,14 @@ def plot_hyperparams(iterations, hyperparam, title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_org_train(test_mesh,train_p,p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None):
+def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None):
     '''
     Plots original training data with true value
     Parameters
     ----------
         test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
         train_p: tensor or ndarray, The training parameter space data
+        test_p: tensor or ndarray, The training parameter space data
         p_true: ndarray, A 2x1 containing the true input parameters
         emulator: True/False, Determines if GP will model the function or the function error
         sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
@@ -208,6 +210,10 @@ def plot_org_train(test_mesh,train_p,p_true, emulator, sparse_grid, obj, ep, len
     plt.figure()
     #plot training data and true values
     plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
+    try:
+        plt.scatter(test_p[:,0],test_p[:,1], color="red",s=25, label = "Testing Data", marker = "x")
+    except:
+        plt.scatter(test_p[0],test_p[1], color="red",s=25, label = "Testing Data", marker = "x")
     plt.scatter(p_true[0],p_true[1], color="blue", label = "True Optimal Value", s=100, marker = (5,1))
     #Set plot details
     plt.legend(loc = "best")
