@@ -448,6 +448,47 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         optimizer.step()
     return noise_list,lengthscale_list,outputscale_list
 
+def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, e_inc = 1.5, ep_f = 0.01, ep_method = None ):
+    """
+    Creates a value for the exploration parameter
+    
+    Parameters
+    ----------
+        Bo_iter: int, The value of the current BO iteration
+        mean_of_var: float, The value of the average of all posterior variances
+        best_error: float, The best error of the GP
+        OPTIONAL:
+        ep_o: float, The initial exploration parameter value: Default is 1
+        e_inc: float, the increment for the Boyle's method for calculating exploration parameter: Default is 1.5
+        ep_f: float, The final exploration parameter value: Default is 0.01
+        ep_method: float, determines if Boyle, Jasrasaria, or exponential method will be used: Defaults to exponential method
+        
+    Returns
+    --------
+        ep: The exploration parameter for the iteration
+    """
+    if Bo_iter == 0:
+        ep = ep_o
+        
+    elif ep_method == "Boyle":
+        ep_inc = 0
+        if ep_inc ==0: #last acquisition was an improvement: Change this
+            ep = ep*ep_inc
+        else:
+            ep = ep/ep_inc
+    
+    elif ep_method == "Jasrasaria":
+        ep = mean_of_var/best_error
+    
+    else:
+        if Bo_iter < 30:
+            alpha = -np.log(ep_f/ep_o)/30
+            ep = ep_o*np.exp(-alpha*Bo_iter)
+        else: 
+            ep = 0.01
+    
+    return ep
+
 def calc_GP_outputs(model,likelihood,test_param):
     #Checked for Correctness 5/19/22
     """
@@ -1217,6 +1258,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     for i in range(BO_iters):
         if verbose == True:
             print("BO Iteration = ", i+1)
+            
         #Converts numpy arrays to tensors
         if torch.is_tensor(train_p) != True:
             train_p = torch.from_numpy(train_p)

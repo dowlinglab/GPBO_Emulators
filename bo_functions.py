@@ -495,7 +495,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     model_prediction = observed_pred.loc #1 x n_test
     return model_mean, model_variance, model_stdev, model_prediction    
 
-def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, e_inc = 1.5, ep_f = 0.01, ep_method = None ):
+def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, ep_inc = 1.5, ep_f = 0.01, ep_method = None, improvement = False):
     """
     Creates a value for the exploration parameter
     
@@ -509,7 +509,7 @@ def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, e_inc = 1.
         e_inc: float, the increment for the Boyle's method for calculating exploration parameter: Default is 1.5
         ep_f: float, The final exploration parameter value: Default is 0.01
         ep_method: float, determines if Boyle, Jasrasaria, or exponential method will be used: Defaults to exponential method
-        
+        improvement: Bool, Determines whether last objective was an improvement
     Returns
     --------
         ep: The exploration parameter for the iteration
@@ -517,18 +517,17 @@ def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, e_inc = 1.
     if Bo_iter == 0:
         ep = ep_o
         
-    elif ep_method == "Boyle":
-        ep_inc = 0
-        if ep_inc ==0: #last acquisition was an improvement: Change this
+    elif ep_method == "Boyle": #Works
+        if improvement == True:
             ep = ep*ep_inc
         else:
             ep = ep/ep_inc
     
-    elif ep_method == "Jasrasaria":
+    elif ep_method == "Jasrasaria": #Works
         ep = mean_of_var/best_error
     
     else:
-        if Bo_iter < 30:
+        if Bo_iter < 30: #Works
             alpha = -np.log(ep_f/ep_o)/30
             ep = ep_o*np.exp(-alpha*Bo_iter)
         else: 
@@ -1288,6 +1287,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     
     mean_of_var = 0
     best_error_num = 0
+    ep_init = explore_bias
     
     #Loop over # of BO iterations
     for i in range(BO_iters):
@@ -1310,7 +1310,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
 #         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
 
         #Set Exploration parameter
-        explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = explore_bias)
+        explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init) #Defaulting to exp method
         
         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, test_p)
         
@@ -1321,6 +1321,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             ei,sse,var,stdev,best_error = eval_components
         
         mean_of_var = np.average(var)
+#         print("MOV",mean_of_var)
         best_error_num = best_error
         
         #Use argmax(EI) and argmin(SSE) to find values for Theta_best and theta_opt
@@ -1351,16 +1352,25 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Save best value of SSE for plotting 
         if i == 0:
             All_SSE_abs_min[i] = ln_error_mag
+            improvement = False
 #             All_SSE_abs_min[i] = sse_opt
         else:
             if All_SSE_abs_min[i-1] >= ln_error_mag:
                 All_SSE_abs_min[i] = ln_error_mag
+                improvement = True
             else: 
                 All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
+                improvement = False
         
         #Prints certain values at each iteration if verbose is True
         if verbose == True:
             print("BO Iteration = ", i+1)
+            Jas_ep = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Jasrasaria")
+            print("Jasrasaria EP:", Jas_ep)
+            Boy_ep = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Boyle", improvement = improvement)
+            print("Boyle EP:", Boy_ep)
+            Exp_ep = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init)
+            print("Exp EP:", Exp_ep)
             print("Exploration Bias = ",explore_bias)
             print("Scipy Theta Best = ",theta_b)
             print("Argmax Theta Best = ",Theta_Best)
@@ -1445,7 +1455,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
               
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
 
-def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, verbose = False,save_fig=False, shuffle_seed = None, DateTime=None):
+def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, verbose = True,save_fig=False, shuffle_seed = None, DateTime=None):
     """
     Performs BO iterations with runs. A run contains of choosing different initial training data.
     
@@ -1512,7 +1522,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
             print("Run Number: ",i+1)
         #Create training/testing data
         train_data, test_data = test_train_split(all_data, runs=runs, shuffle_seed=shuffle_seed)
-        print(test_data)
+#         print(test_data)
         if emulator == True:
             train_p = train_data[:,1:(q+m+1)]
             test_p = test_data[:,1:(q+m+1)]
