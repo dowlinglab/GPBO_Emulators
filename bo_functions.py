@@ -256,10 +256,11 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     
     train_data = np.column_stack((train_param, train_y))
     test_data = np.column_stack((test_param, test_y))
-    
+#     print(train_data)
+#     print(test_data)
     return torch.tensor(train_data),torch.tensor(test_data)
 
-def find_train_doc_path(emulator, obj):
+def find_train_doc_path(emulator, obj, t):
     """
     Finds the document that contains the correct training data based on the GP objective function and number of training inputs
     
@@ -275,11 +276,11 @@ def find_train_doc_path(emulator, obj):
     """
     if emulator == False:
         if obj == "obj":
-            all_data_doc = "Input_CSVs/Train_Data/all_2_data/t=25.csv"   
+            all_data_doc = "Input_CSVs/Train_Data/all_2_data/t="+str(t)+".csv"   
         else:
-            all_data_doc = "Input_CSVs/Train_Data/all_2_ln_obj_data/t=25.csv"
+            all_data_doc = "Input_CSVs/Train_Data/all_2_ln_obj_data/t="+str(t)+".csv" 
     else:    
-        all_data_doc = "Input_CSVs/Train_Data/all_3_data/t=25.csv"
+        all_data_doc = "Input_CSVs/Train_Data/all_3_data/t="+str(t)+".csv" 
             
     return all_data_doc
 
@@ -778,8 +779,8 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     # Loop over theta 1
     best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh)
     
-    if test_p != None:
-        test_y = calc_GP_outputs(model, likelihood, test_p)[3]
+#     if test_p != None:
+#         test_y = calc_GP_outputs(model, likelihood, test_p)[3]
     
     # Loop over theta 1
     for i in range(p):
@@ -814,12 +815,12 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                            
             GP_stdev = np.sqrt(GP_var)
             
-#             if i in [5,14] and j in [5,14]:
-            if verbose == True:
-                if i in [5] and j in [14]:
-                    Theta = np.array([theta1_mesh[i,j],theta2_mesh[i,j]])
-                    print("Theta = ", Theta)
-                    plot_3GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta, train_p, train_y, test_p, test_y)
+# #             if i in [5,14] and j in [5,14]:
+#             if verbose == True:
+#                 if i in [5] and j in [14]:
+#                     Theta = np.array([theta1_mesh[i,j],theta2_mesh[i,j]])
+#                     print("Theta = ", Theta)
+#                     plot_3GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta, Xexp, train_p, train_y, test_p, test_y)
 
             if sparse_grid == True:
                 #Compute EI using eparse grid
@@ -1521,7 +1522,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         if verbose == True or save_fig == False:
             print("Run Number: ",i+1)
         #Create training/testing data
-        train_data, test_data = test_train_split(all_data, runs=runs, shuffle_seed=shuffle_seed)
+        train_data, test_data = test_train_split(all_data, runs = runs, shuffle_seed=shuffle_seed)
 #         print(test_data)
         if emulator == True:
             train_p = train_data[:,1:(q+m+1)]
@@ -1538,9 +1539,10 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         else:
             assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
         
-        #Split data based on # of training points to be used. Will delete later, theoreticall all data wll be either training or testing
-        train_p = train_p[0:t]
-        train_y = train_y[0:t]
+        #Split data based on # of training points to be used. Will delete later, theoretically, all data wll be either training or testing
+#         print(train_p)
+#         train_p = train_p[0:t]
+#         train_y = train_y[0:t]
         
 #         plot_org_train(theta_mesh,train_p,Theta_True)
         plot_org_train(theta_mesh,train_p, test_p, Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig, BO_iters, runs, DateTime)
