@@ -119,29 +119,29 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
 
     else:
         path = path_org + "/Convergence_Figs" + path_end 
-        
-
-    
+       
     return path
     
-def plot_3GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta, train_p = None, train_y = None, test_p = None, test_y = None , verbose = True):
+def plot_3GP_performance(X_space, Y_sim, GP_mean, GP_stdev, Theta, Xexp, train_p = None, train_y = None, test_p = None, test_y = None, verbose = True):
     """
     """
     if verbose == True:
         print("GP Mean",GP_mean)
         print("GP Stdev",GP_stdev)
-        print("SSE",sum(GP_mean-Yexp)**2)
+        print("SSE",sum(GP_mean-Y_sim)**2)
         plt.close()
     fig, ax = plt.subplots()
     
-    ax.plot(Xexp, GP_mean, lw=2, label="GP_mean")
-    ax.plot(Xexp, Yexp, color = "green", label = "Yexp")
-    if [train_p, test_p] != None:
-        ax.scatter(train_p[:,-1], train_y, color = "black", label = "Training")
-        ax.scatter(test_p[:,-1], test_y, color = "red", label = "Testing")
+
+    ax.plot(X_space, GP_mean, lw=2, label="GP_mean")
+    ax.plot(X_space, Y_sim, color = "green", label = "Y_sim")
+#     if train_p != None:
+#         ax.scatter(train_p[:,-1], train_y, color = "black", label = "Training")
+    if test_p != None:
+        ax.scatter(Xexp, test_y, color = "red", label = "Testing")
     
     ax.fill_between(
-        Xexp,
+        X_space,
         GP_mean - 1.96 * GP_stdev,
         GP_mean + 1.96 * GP_stdev,
         alpha=0.3

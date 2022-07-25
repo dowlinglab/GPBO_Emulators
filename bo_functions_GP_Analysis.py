@@ -200,7 +200,7 @@ def create_y_data(param_space):
     #Creates an array for train_data that will be filled with the for loop
     y_data = np.zeros(len(param_space)) #1 x n (row x col)
     
-    if len(param_space)>1: #Used when multiple values of y are being calculated
+    try: #Used when multiple values of y are being calculated
         #Iterates over evey combination of theta to find the expected y value for each combination
         for i in range(len(param_space)):
             theta_1 = param_space[i,0] #nx1 
@@ -208,14 +208,14 @@ def create_y_data(param_space):
             x = param_space[i,2] #nx1 
             y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
             #Returns all_y
-    else:
+    except:
         theta_1 = param_space[0] #nx1 
         theta_2 = param_space[1] #nx1
         x = param_space[2] #nx1 
         y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
     return y_data
 
-def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
+def test_train_split(all_data, len_Xexp=5, run = 0, shuffle_seed = None):
     """
     Splits y data into training and testing data
     
@@ -231,8 +231,8 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     
     """
     #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
-    assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
-    assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
+#     assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
+#     assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
     
     #Shuffles Random Data
     #No shuffling for this test
@@ -245,21 +245,37 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     
 #     np.random.shuffle(all_data) 
         
-    #Creates the index on which to split data
-    train_enteries = int(len(all_data)*sep_fact)
+    #Make every group of 5 points testing data
+    test_ind = list(range(len_Xexp*run,len_Xexp*run+len_Xexp))
+#     print(test_ind)
     
     #Training and testing data are created and converted into tensors
-    train_y =all_data[:train_enteries, -1] #1x(n*sep_fact)
-    test_y = all_data[train_enteries:, -1] #1x(n-n*sep_fact)
-    train_param = all_data[:train_enteries,:-1] #1x(n*sep_fact)
-    test_param = all_data[train_enteries:,:-1] #1x(n-n*sep_fact)
+#     print(all_data[:,-1])
+    all_param = all_data[:,:-1]
+    all_y = all_data[:,-1]
+#     print(all_y)
+#     print(all_param)
+    
+    train_y = np.delete(all_y,test_ind)
+    train_param = np.delete(all_param,test_ind,axis = 0)
+    test_y = all_data[test_ind[0]:test_ind[-1]+1, -1] #1x(n-n*sep_fact)
+    test_param = all_data[test_ind[0]:test_ind[-1]+1,:-1] #1x(n-n*sep_fact)
+    
+
+#     train_y =all_data[:train_enteries, -1] #1x(n*sep_fact)
+#     test_y = all_data[train_enteries:, -1] #1x(n-n*sep_fact)
+#     train_param = all_data[:train_enteries,:-1] #1x(n*sep_fact)
+#     test_param = all_data[train_enteries:,:-1] #1x(n-n*sep_fact)
     
     train_data = np.column_stack((train_param, train_y))
     test_data = np.column_stack((test_param, test_y))
     
+#     print(train_data)
+#     print(test_data)
+    
     return torch.tensor(train_data),torch.tensor(test_data)
 
-def find_train_doc_path(emulator, obj):
+def find_train_doc_path(emulator, obj, t=100):
     """
     Finds the document that contains the correct training data based on the GP objective function and number of training inputs
     
@@ -275,11 +291,11 @@ def find_train_doc_path(emulator, obj):
     """
     if emulator == False:
         if obj == "obj":
-            all_data_doc = "Input_CSVs/Train_Data/all_2_data/t=25.csv"   
+            all_data_doc = "Input_CSVs/Train_Data/all_2_data/t="+str(t)+".csv"   
         else:
-            all_data_doc = "Input_CSVs/Train_Data/all_2_ln_obj_data/t=25.csv"
+            all_data_doc = "Input_CSVs/Train_Data/all_2_ln_obj_data/t="+str(t)+".csv" 
     else:    
-        all_data_doc = "Input_CSVs/Train_Data/all_3_data/t=25.csv"
+        all_data_doc = "Input_CSVs/Train_Data/all_3_data/t="+str(t)+".csv" 
             
     return all_data_doc
 
@@ -754,12 +770,6 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     # Loop over theta 1
     best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh)
     
-    if test_p != None:
-        test_p = np.array([[test_p[0],test_p[1],test_p[2]]])
-#         print(test_p.shape)
-#         print(train_p.shape)
-        test_y = calc_GP_outputs(model, likelihood, test_p[0:1])[3]
-    
     # Loop over theta 1
     for i in range(p):
         #Loop over theta2
@@ -792,13 +802,6 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                     EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias)
                            
             GP_stdev = np.sqrt(GP_var)
-            
-#             if i in [5,14] and j in [5,14]:
-            if verbose == True:
-                if i in [5] and j in [14]:
-                    Theta = np.array([theta1_mesh[i,j],theta2_mesh[i,j]])
-                    print("Showing X/Y Plot for Theta = ", Theta, "On the Meshgrid.")
-                    plot_3GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta, train_p, train_y, test_p, test_y, verbose=False)
 
             if sparse_grid == True:
                 #Compute EI using eparse grid
@@ -1277,6 +1280,29 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Evaluate GP
         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, test_p)
         
+        #Create LOO Plots
+        X_space = np.linspace(-2,2,50)
+        y_sim = np.zeros(len(X_space))
+        GP_mean = np.zeros(len(X_space))
+        GP_stdev = np.zeros(len(X_space))
+        test_y = np.zeros(len(Xexp))
+        for k in range(len(X_space)):
+            point = [test_p[0,0],test_p[0,1],X_space[k]]
+            eval_point = np.array([point])
+            y_sim[k] = create_y_data(eval_point[0])
+            GP_mean[k] = calc_GP_outputs(model, likelihood, eval_point[0:1])[3]
+            GP_stdev[k] = calc_GP_outputs(model, likelihood, eval_point[0:1])[1]
+               
+        for k in range(len(Xexp)):
+            point = [test_p[0,0],test_p[0,1],Xexp[k]]
+            eval_point = np.array([point])
+            test_y[k] = calc_GP_outputs(model, likelihood, eval_point[0:1])[3]
+            
+        Theta = np.array([test_p[0,0],test_p[0,1]])
+        print("Showing X/Y Plot for Theta = ", Theta, "with Xexp =", Xexp)
+        
+        plot_3GP_performance(X_space, y_sim, GP_mean, GP_stdev, Theta, Xexp, test_p = test_p, test_y = test_y, verbose=False)
+        
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
             ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
@@ -1399,6 +1425,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     m = Xexp[0].size #Dimensions of X
     q = len(Theta_True) #Number of parameters to regress
     p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q
+    n = len(Xexp)
     
     dim = m+q #dimensions in a CSV
     #Read data from a csv
@@ -1420,7 +1447,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         if verbose == True or save_fig == False:
             print("Run Number: ",i+1)
         #Create training/testing data
-        train_data, test_data = test_train_split(all_data, sep_fact = 0.98, runs=runs, shuffle_seed=shuffle_seed)
+        train_data, test_data = test_train_split(all_data, len_Xexp = int(len(Xexp)), run = i, shuffle_seed=shuffle_seed)
         if emulator == True:
             train_p = train_data[:,1:(q+m+1)]
             test_p = test_data[:,1:(q+m+1)]
@@ -1436,14 +1463,6 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         else:
             assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
         
-        #Split data based on # of training points to be used.
-        test_p = train_p[i]
-        print("Test point is:", test_p.numpy())
-        train_p = np.delete(train_p.numpy(), i, 0)
-        train_y = np.delete(train_y, i, 0)
-        
-        train_p = torch.tensor(train_p)
-        train_y = train_y.clone().detach()
         
 #         plot_org_train(theta_mesh,train_p,Theta_True)
         plot_org_train(theta_mesh,train_p, test_p, Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig, BO_iters, runs, DateTime)
