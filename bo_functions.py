@@ -112,12 +112,15 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     
     #Asserts that test_T is a tensor with 2 columns (May delete this)
     assert isinstance(q, int), "Number of inputs must be an integer"
-#     print(train_T.T)
-    assert len(train_T.T) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
+#     print(train_T.T)    
+    if torch.is_tensor(train_T)==True:
+        assert len(train_T.permute(*torch.arange(train_T.ndim -1, -1, -1))) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
+    else:
+        assert len(train_T.T) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
     assert len(x) == len(y_exp), "Xexp and Yexp must be the same length"
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     
-    if len(train_T)!= q: #For the case where more than 1 point is geing generated
+    try: #For the case where more than 1 point is geing generated
         #Creates an array for train_sse that will be filled with the for loop
         sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
 
@@ -130,7 +133,7 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
                 sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
             else:
                 sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
-    else:
+    except:
          #Creates a value for train_sse that will be filled with the for loop
         sum_error_sq = 0 #1 x n_train^2
 
@@ -139,9 +142,9 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
         theta_2 = train_T[1] #n_train^2x1
         y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
         if obj == "obj":
-            sum_error_sq = torch.tensor(sum((y_sim - y_exp)**2)) #Scaler 
+            sum_error_sq = sum((y_sim - y_exp)**2) #Scaler 
         else:
-            sum_error_sq = torch.tensor(np.log(sum((y_sim - y_exp)**2))) #Scaler 
+            sum_error_sq = np.log(sum((y_sim - y_exp)**2)) #Scaler 
     
     return sum_error_sq
 
@@ -595,14 +598,60 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0):
           
     return ei
 
-def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh): #Reformulate to get best error
+# def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh): #Reformulate to get best error
+#     """ 
+#     Calculates the best error of the 3 input parameter GP
+#     Parameters
+#     ----------
+#         Xexp: ndarray, experimental x values
+#         Yexp: ndarray, experimental y values
+#         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+    
+#     Returns
+#     -------
+#         best_error: float, the best error of the 3-Input GP model
+#     """
+#     #Asserts that inputs are correct
+#     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
+    
+#     n = len(Xexp)
+#     p = theta_mesh.shape[1]
+    
+#     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
+#     #Create theta1 and theta2 mesh grids
+#     theta1_mesh = theta_mesh[0]
+#     theta2_mesh = theta_mesh[1]
+#     assert len(theta2_mesh)==len(theta1_mesh), "theta_mesh must be dim, pxp arrays"
+    
+#     #Create an array in which to store SSE
+#     SSE = np.zeros((p,p))
+    
+#     ##Calculate Best Error
+#     # Loop over theta 1
+#     for i in range(p):
+#         #Loop over theta2
+#         for j in range(p):
+#             ## Caclulate Best Error
+#             #Find Lowest SSE Point
+#             point = [theta1_mesh[i,j],theta2_mesh[i,j]]
+#             q = len(point)
+#             eval_point = np.array([point])
+#             SSE[i,j] = create_sse_data(q,eval_point, Xexp, Yexp, obj="obj") #Note in this case SSE can be SSE or LN(SSE)     
+#             #Is this SSE the one we care about for minimization? No right?
+
+#     #Define best_error as the minimum SSE value
+#     best_error = np.amin(SSE)
+    
+#     return best_error 
+
+def eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2): 
     """ 
     Calculates the best error of the 3 input parameter GP
     Parameters
     ----------
         Xexp: ndarray, experimental x values
         Yexp: ndarray, experimental y values
-        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        train_p: ndarray (d, p x p), training data
     
     Returns
     -------
@@ -612,34 +661,19 @@ def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh): #Reformulate to get best error
     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
     
     n = len(Xexp)
-    p = theta_mesh.shape[1]
+#     q = 2 #will need to change this
+    t = len(train_p)
     
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
-    #Create theta1 and theta2 mesh grids
-    theta1_mesh = theta_mesh[0]
-    theta2_mesh = theta_mesh[1]
-    assert len(theta2_mesh)==len(theta1_mesh), "theta_mesh must be dim, pxp arrays"
-    
-    #Create an array in which to store SSE
-    SSE = np.zeros((p,p))
-    
-    ##Calculate Best Error
-    # Loop over theta 1
-    for i in range(p):
-        #Loop over theta2
-        for j in range(p):
-            ## Caclulate Best Error
-            #Find Lowest SSE Point
-            point = [theta1_mesh[i,j],theta2_mesh[i,j]]
-            q = len(point)
-            eval_point = np.array([point])
-            SSE[i,j] = create_sse_data(q,eval_point, Xexp, Yexp, obj="obj") #Note in this case SSE can be SSE or LN(SSE)     
-            #Is this SSE the one we care about for minimization? No right?
+    SSE = np.zeros(t)
+    for i in range(t):
+        SSE[i] = create_sse_data(q,train_p[i], Xexp, Yexp, obj="obj")     
 
     #Define best_error as the minimum SSE value
     best_error = np.amin(SSE)
     
     return best_error 
+
 def get_sparse_grids(dim,output=0,depth=3, rule="gauss-hermite", verbose = False, alpha = 0):
     '''
     This function shows the sparse grids generated with different rules
@@ -721,6 +755,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
         #Apply max operator  
 #         EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Leades to negative EIs
         EI_Temp += weights_p[i]*(-np.min([SSE_Temp - best_error,0])) #Leads to zero EIs: #Min values is never negative, so EI is always 0
+#     print(min(weights_p))
         #All Eis are coming out as zero :(
 #         print(EI_Temp)
 #     print(np.min(sse_temp_list), np.argmin(sse_temp_list))
@@ -775,7 +810,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     
     ##Calculate Best Error
     # Loop over theta 1
-    best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh)
+    best_error = eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2)
     
 #     if test_p != None:
 #         test_y = calc_GP_outputs(model, likelihood, test_p)[3]
@@ -1019,7 +1054,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     return Theta_Best, Theta_Opt_GP
 
 ##FOR USE WITH SCIPY##################################################################
-def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
+def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
     """ 
     Calculates either -ei or sse (a function to be minimized). To be used in calculating best and optimal parameter sets.
     Parameters
@@ -1080,7 +1115,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
     else:
         ei = 0
         sse = 0
-        best_error = eval_GP_emulator_BE(Xexp,Yexp, theta_mesh)
+        best_error = eval_GP_emulator_BE(Xexp,Yexp, train_p, q)
         GP_mean = np.zeros(n)
         GP_stdev = np.zeros(n)
         for k in range(n):
@@ -1112,7 +1147,7 @@ def eval_GP_scipy(theta_guess, train_sse, Xexp,Yexp, theta_mesh, model, likeliho
 #         print("sse chosen")
         return sse #We want to minimize sse or ln(sse)
 
-def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,obj):
+def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,obj):
     """
     Finds the Theta value where min(sse) or min(-ei) is true using scipy.minimize and the L-BFGS-B method
     
@@ -1154,8 +1189,8 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei
     ei_sse_choice2 = "sse"
     
     #Set arguments and calculate best and optimal solutions
-    argmts_best = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice1))
-    argmts_opt = ((train_y, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice2))
+    argmts_best = ((train_y, train_p, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice1))
+    argmts_opt = ((train_y, train_p, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice2))
     Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
     Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_o,bounds=bnds,method = "L-BFGS-B",args=argmts_opt)
     
@@ -1331,7 +1366,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
 #         theta0_o = np.array([0.95,-0.95])
 
         #Use argmax/argmin method as initial guesses for use with scipy.minimize
-        theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,theta0_b,theta0_o,sse,ei, model,likelihood,explore_bias, emulator,sparse_grid,obj)
+        theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y, train_p, theta0_b,theta0_o,sse,ei, model,likelihood,explore_bias, emulator,sparse_grid,obj)
         
        
         #Save theta_best and theta_opt values for iteration
