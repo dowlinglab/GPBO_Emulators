@@ -207,24 +207,46 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
     t = int(len(train_p))
     #xx and yy are the values of the parameter sets
     xx,yy = test_mesh
-    plt.figure()
-    #plot training data and true values
-    plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
-    try:
-        plt.scatter(test_p[:,0],test_p[:,1], color="red",s=25, label = "Testing Data", marker = "x")
-    except:
-        plt.scatter(test_p[0],test_p[1], color="red",s=25, label = "Testing Data", marker = "x")
-    plt.scatter(p_true[0],p_true[1], color="blue", label = "True Optimal Value", s=100, marker = (5,1))
-    #Set plot details
-    plt.legend(loc = "best")
-    plt.xlabel("$\Theta_1$")
-    plt.ylabel("$\Theta_2$")
-    #Set axis limits based on the maximum and minimum of the parameter search space
-    plt.xlim((np.amin(xx), np.amax(xx)))
-    plt.ylim((np.amin(yy), np.amax(yy)))
-    plt.title("Starting Training Data")
-    plt.grid(True)
-    
+    if emulator == False or len(test_p)<=5:
+        plt.figure()
+        #plot training data and true values
+        plt.scatter(train_p[:,0],train_p[:,1], color="green",s=50, label = "Training Data", marker = "x")
+        try:
+            plt.scatter(test_p[:,0],test_p[:,1], color="red",s=25, label = "Testing Data", marker = "x")
+        except:
+            plt.scatter(test_p[0],test_p[1], color="red",s=25, label = "Testing Data", marker = "x")
+        plt.scatter(p_true[0],p_true[1], color="blue", label = "True Optimal Value", s=100, marker = (5,1))
+        #Set plot details
+        plt.legend(loc = "best")
+        plt.xlabel("$\Theta_1$")
+        plt.ylabel("$\Theta_2$")
+        #Set axis limits based on the maximum and minimum of the parameter search space
+        plt.xlim((np.amin(xx), np.amax(xx)))
+        plt.ylim((np.amin(yy), np.amax(yy)))
+        plt.title("Starting Training Data")
+        plt.grid(True)
+        
+    else:
+        # Create the figure
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        # Plot the values
+        ax.scatter(train_p[:,0], train_p[:,1], train_p[:,2], color = "green", s=50, label = "Training Data", marker='o')
+        try:
+            ax.scatter(test_p[:,0],test_p[:,1], test_p[:,2], color="red", s=25, label = "Testing Data", marker = "x")
+        except:
+            ax.scatter(test_p[0],test_p[1], test_p[2], color="red",s=25, label = "Testing Data", marker = "x")
+        ax.set_xlabel('$\Theta_1$')
+        ax.set_ylabel('$\Theta_2$')
+        ax.set_zlabel('X-Value')
+        ax.legend(loc = "best")
+        plt.xlim((np.amin(xx), np.amax(xx)))
+        plt.ylim((np.amin(yy), np.amax(yy)))
+        plt.title("Starting Training Data")
+        plt.grid(True)
+        plt.title("Starting Training Data")
+        
     if save_figure == True:
         path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime)
         save_fig(path, ext='png', close=True, verbose=False) 

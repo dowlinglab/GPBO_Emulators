@@ -237,7 +237,7 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     #Shuffles Random Data
     
     if shuffle_seed is not None:
-        if runs != 0:
+        if runs > 1:
              for i in range(runs):
                 np.random.seed(i)
         else:
@@ -256,8 +256,6 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     
     train_data = np.column_stack((train_param, train_y))
     test_data = np.column_stack((test_param, test_y))
-#     print(train_data)
-#     print(test_data)
     return torch.tensor(train_data),torch.tensor(test_data)
 
 def find_train_doc_path(emulator, obj, t):
@@ -597,7 +595,7 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0):
           
     return ei
 
-def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh):
+def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh): #Reformulate to get best error
     """ 
     Calculates the best error of the 3 input parameter GP
     Parameters
@@ -1543,7 +1541,8 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
 #         print(train_p)
 #         train_p = train_p[0:t]
 #         train_y = train_y[0:t]
-        
+#         print("test_p",test_p)
+#         print("train_p",train_p)
 #         plot_org_train(theta_mesh,train_p,Theta_True)
         plot_org_train(theta_mesh,train_p, test_p, Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig, BO_iters, runs, DateTime)
 

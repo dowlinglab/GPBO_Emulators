@@ -1296,7 +1296,9 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         for k in range(len(Xexp)):
             point = [test_p[0,0],test_p[0,1],Xexp[k]]
             eval_point = np.array([point])
-            test_y[k] = calc_GP_outputs(model, likelihood, eval_point[0:1])[3]
+            calc_eval_point = np.array([test_p[0,0],test_p[0,1]])
+#             test_y[k] = calc_GP_outputs(model, likelihood, eval_point[0:1])[3]
+            test_y = calc_y_exp(calc_eval_point, Xexp, noise_std, noise_mean=0,random_seed=6)
             
         Theta = np.array([test_p[0,0],test_p[0,1]])
         print("Showing X/Y Plot for Theta = ", Theta, "with Xexp =", Xexp)
