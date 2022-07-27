@@ -125,14 +125,13 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
 def plot_3GP_performance(X_space, Y_sim, GP_mean, GP_stdev, Theta, Xexp, train_p = None, train_y = None, test_p = None, test_y = None, verbose = True):
     """
     """
-    if verbose == True:
-        print("GP Mean",GP_mean)
-        print("GP Stdev",GP_stdev)
-        print("SSE",sum(GP_mean-Y_sim)**2)
-        plt.close()
+#     if verbose == True:
+#         print("GP Mean",GP_mean)
+#         print("GP Stdev",GP_stdev)
+#         print("SSE",sum(GP_mean-Y_sim)**2)
+#         plt.close()
     fig, ax = plt.subplots()
     
-
     ax.plot(X_space, GP_mean, lw=2, label="GP_mean")
     ax.plot(X_space, Y_sim, color = "green", label = "Y_sim")
 #     if train_p != None:
@@ -150,10 +149,8 @@ def plot_3GP_performance(X_space, Y_sim, GP_mean, GP_stdev, Theta, Xexp, train_p
     ax.set_xlabel("Xexp")
     ax.set_ylabel("Function Value")
     ax.legend()
-#     fig.legend()
-    plt.show()
-    plt.close()
-    return
+    
+    return plt.show()
 
 def plot_hyperparams(iterations, hyperparam, title):
     '''
@@ -182,7 +179,7 @@ def plot_hyperparams(iterations, hyperparam, title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None):
+def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True):
     '''
     Plots original training data with true value
     Parameters
@@ -249,9 +246,14 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
         
     if save_figure == True:
         path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime)
-        save_fig(path, ext='png', close=True, verbose=False) 
+        save_fig(path, ext='png', close=True, verbose=False)  
+    
+    if verbose == True:
+        plt.show()
         
-    return plt.show()
+    plt.close()
+    
+    return 
 
 def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison"):
     '''
