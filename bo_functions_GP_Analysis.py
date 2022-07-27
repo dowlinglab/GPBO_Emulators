@@ -7,19 +7,13 @@ import gpytorch
 import scipy.optimize as optimize
 import pandas as pd
 
-
 from bo_functions import train_GP_model, calc_y_exp, create_sse_data, create_y_data, find_train_doc_path, ExactGPModel, train_GP_model 
 from bo_functions import calc_GP_outputs, test_train_split
 
-
-from bo_plotters import value_plotter
+import matplotlib.pyplot as plt
 from bo_plotters import plot_org_train
-from bo_plotters import plot_xy
-# from bo_plotters import plot_obj_Theta
-from bo_plotters import plot_Theta
-from bo_plotters import plot_obj
-from bo_plotters import plot_obj_abs_min
 from bo_plotters import plot_3GP_performance
+
 import os
 import Tasmanian
 
@@ -83,9 +77,6 @@ def LOO_test_train_split(all_data, Xexp, sep_fact=0.95, run = 0, shuffle_seed = 
     
     train_data = np.column_stack((train_param, train_y))
     test_data = np.column_stack((test_param, test_y))
-    
-#     print(train_data)
-#     print(test_data)
     
     return torch.tensor(train_data),torch.tensor(test_data)
  
@@ -186,14 +177,6 @@ def LOO_Analysis(train_p,train_y, Theta_True, train_iter, Xexp, Yexp, noise_std,
         GP_inputs = q
         assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
 
-#     #Converts numpy arrays to tensors
-#     if torch.is_tensor(train_p) != True:
-#         train_p = torch.from_numpy(train_p)
-#     if torch.is_tensor(train_y) != True:
-#         train_y = torch.from_numpy(train_y)
-#     if torch.is_tensor(test_p) != True:
-#         test_p = torch.from_numpy(test_p)
-
     #Redefine likelihood and model based on new training data
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
     model = ExactGPModel(train_p, train_y, likelihood)
@@ -242,11 +225,13 @@ def LOO_Analysis(train_p,train_y, Theta_True, train_iter, Xexp, Yexp, noise_std,
         test_y = calc_y_exp(calc_eval_point, Xexp, noise_std, noise_mean=0,random_seed=6)
 
     Theta = np.array([point[0:2]])[0]
-    print("Showing X/Y Plot for Theta = ",Theta , "with Xexp =", Xexp)
-    print("SSE_Total is", SSE_GP_Analy)
-    plot_3GP_performance(X_space, y_sim, GP_mean, GP_stdev, Theta, Xexp, test_p = test_p, test_y = test_y, verbose=False)
+    if verbose == True:
+        print("Showing X/Y Plot for Theta = ",Theta , "with Xexp =", Xexp)
+        print("SSE_Total is", SSE_GP_Analy)
+         
+        plot_3GP_performance(X_space, y_sim, GP_mean, GP_stdev, Theta, Xexp, test_p = test_p, test_y = test_y, verbose=verbose)
 
-    return
+    return Theta, SSE_GP_Analy
 
 def LSO_LOO_Analysis(all_data_doc,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, sparse_grid, emulator,set_lengthscale, verbose = False, save_fig = False, shuffle_seed = None, DateTime=None, LOO = True, LSO = False):
     """
@@ -291,7 +276,9 @@ def LSO_LOO_Analysis(all_data_doc,theta_mesh,Theta_True,train_iter,explore_bias,
     p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q
     n = len(Xexp)
     BO_iters = 1
-    sep_facts = [0.95, 0.8, 0.7, 0.6, 0.5]
+    sep_facts = np.linspace(0.5,0.99,100)
+#     sep_facts = [0.95, 0.8, 0.7, 0.6, 0.5]
+    ln_SSE_GP_Analy_List = []
     dim = m+q #dimensions in a CSV
     
     #Read data from a csv
@@ -304,18 +291,18 @@ def LSO_LOO_Analysis(all_data_doc,theta_mesh,Theta_True,train_iter,explore_bias,
     
     #Loop over # runs
     for i in range(runs): #Using number of runs to do the Leave one out analysis
-        if verbose == True or save_fig == False:
-            print("Run Number: ",i+1)
         #Create training/testing data
-        if LOO:
-            sep_fact = 0.8
-            if LSO:
-                sep_fact = sep_facts[i] 
-            print("Train/Test Separation Factor", sep_fact)
-            train_data, test_data = LOO_test_train_split(all_data, Xexp, sep_fact, i, shuffle_seed, LSO)
+        if LSO:
+            sep_fact = sep_facts[i] 
         else:
             sep_fact = 0.8
-            print("Train/Test Separation Factor", sep_facts[i])
+        
+        if verbose == True:
+            print("Train/Test Separation Factor",sep_fact)
+            
+        if LOO:
+            train_data, test_data = LOO_test_train_split(all_data, Xexp, sep_fact, i, shuffle_seed, LSO)    
+        else:
             train_data, test_data = test_train_split(all_data, sep_fact, runs, shuffle_seed)
             
         if emulator:
@@ -332,9 +319,20 @@ def LSO_LOO_Analysis(all_data_doc,theta_mesh,Theta_True,train_iter,explore_bias,
         assert len(train_p) == len(train_y), "Training data must be the same length"
                           
 #         plot_org_train(theta_mesh,train_p,Theta_True)
-        plot_org_train(theta_mesh,train_p, test_p, Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig, BO_iters, runs, DateTime)
+        plot_org_train(theta_mesh,train_p, test_p, Theta_True, emulator, sparse_grid, obj, explore_bias, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose)
 
         #Run BO iteration
-        LOO_Analysis(train_p, train_y, Theta_True, train_iter, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p, LOO = LOO, LSO = LSO)
+        Theta, SSE_for_sep_fact = LOO_Analysis(train_p, train_y, Theta_True, train_iter, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p, LOO = LOO, LSO = LSO)
+        ln_SSE_GP_Analy_List.append(np.log(SSE_for_sep_fact))
+        
+    if LSO==True:
+        plt.figure()
+        plt.plot(sep_facts, ln_SSE_GP_Analy_List, label = "ln(SSE)")
+        plt.legend(loc = "best")
+        plt.xlabel("Separation Factor")
+        plt.ylabel("ln(SSE)")
+        plt.title("Separation Factor Analysis at Theta = " +str(Theta))
+        plt.grid(True)
+        plt.show()
         
     return 
