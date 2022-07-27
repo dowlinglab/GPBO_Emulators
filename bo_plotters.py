@@ -207,7 +207,7 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
     t = int(len(train_p))
     #xx and yy are the values of the parameter sets
     xx,yy = test_mesh
-    if emulator == False or len(test_p)<=5:
+    if emulator == False:
         plt.figure()
         #plot training data and true values
         plt.scatter(train_p[:,0],train_p[:,1], color="green",s=50, label = "Training Data", marker = "x")
