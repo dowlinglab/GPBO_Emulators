@@ -276,8 +276,8 @@ def LSO_LOO_Analysis(all_data_doc,theta_mesh,Theta_True,train_iter,explore_bias,
     p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q
     n = len(Xexp)
     BO_iters = 1
-    sep_facts = np.linspace(0.5,0.99,100)
-#     sep_facts = [0.95, 0.8, 0.7, 0.6, 0.5]
+#     sep_facts = np.linspace(0.5,0.99,100)
+    sep_facts = [0.95, 0.8, 0.7, 0.6, 0.5]
     ln_SSE_GP_Analy_List = []
     dim = m+q #dimensions in a CSV
     
