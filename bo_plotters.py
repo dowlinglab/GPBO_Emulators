@@ -53,18 +53,93 @@ def save_fig(path, ext='png', close=True, verbose=True):
     if verbose:
         print("Done")
         
-def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=1, tot_runs=1, DateTime = None):
+def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=1, tot_runs=1, DateTime = None, sep_fact = None):
     """
     names a path
     
     Parameters
     ----------
         emulator: True/False, Determines if GP will model the function or the function error
-        ep: float, float,int,tensor,ndarray (1 value) The exploration bias parameter
+        ep: float, float,int,tensor,ndarray (1 value) The original exploration bias parameter
         sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         fxn: str, The name of the function whose file path name will be created
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         t: int, int, Number of initial training points to use
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        bo_iter: int, integer, number of the specific BO iterations
+        title_save: str or None,  A string containing the title of the file of the plot
+        run, int or None, The iteration of the number of times new training points have been picked
+    Returns:
+        path: str, The path to which the file is saved
+    
+    """
+
+    obj_str = "/"+str(obj)
+    len_scl = "/len_scl_varies"
+    org_TP_str = "/TP_"+ str(t)
+    ep = str(np.round(float(ep),3))
+    exp_str = "/ep_"+ep
+    Bo_itr_str = ""
+    sep_fact_str = ""
+    run_str = "/Single_Run"
+    
+    if emulator == False:
+        Emulator = "/GP_Error_Emulator"
+        method = ""
+    else:
+        Emulator = "/GP_Emulator"
+        if sparse_grid == True:
+            method = "/Sparse"
+        else:
+            method = "/Approx"
+            
+    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Theta_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis"}
+    plot = fxn_dict[fxn]
+    
+    if sep_fact is not None:
+        sep_fact_str = "/Sep_Fact_"+str(sep_fact)
+    
+    if set_lengthscale is not None:
+        len_scl = "/len_scl_"+ str(set_lengthscale)         
+    
+    if bo_iter is not None and tot_iter > 1:
+        Bo_itr_str = "/Iter_" + str(bo_iter+1).zfill(len(str(tot_iter)))  
+#         print("BO",len(str(tot_iter)) , tot_iter)
+
+    if tot_runs > 1:
+        if run == None:
+            run_str = "/Total_Runs_" + str(tot_runs).zfill(len(str(tot_runs))) 
+#         print("Rest",len(str(tot_runs)) , tot_runs)
+        else: run_str = "/Run_" + str(run+1).zfill(len(str(tot_runs)))  
+        
+    if DateTime is not None:
+        path_org = DateTime+"/Figures" 
+    else:
+#         path_org = "Test_Figs"+"/Figures"
+        path_org = "Test_Figs"+"/Sep_Analysis2"+"/Figures"
+        
+    path_end = Emulator + method + org_TP_str + obj_str + exp_str + len_scl + sep_fact_str + run_str+ plot + Bo_itr_str   
+    
+    if fxn in ["value_plotter", "plot_org_train"]:
+        path = path_org + path_end      
+
+    else:
+        path = path_org + "/Convergence_Figs" + path_end 
+       
+    return path
+
+def path_name_old(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=1, tot_runs=1, DateTime = None):
+    """
+    names a path
+    
+    Parameters
+    ----------
+        emulator: True/False, Determines if GP will model the function or the function error
+        ep: float, float,int,tensor,ndarray (1 value) The original exploration bias parameter
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        fxn: str, The name of the function whose file path name will be created
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        t: int, int, Number of initial data points to use
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         bo_iter: int, integer, number of the specific BO iterations
         title_save: str or None,  A string containing the title of the file of the plot
@@ -111,6 +186,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
     if DateTime is not None:
         path_org = DateTime+"/Figures" 
     else:
+#         path_org = "Test_Figs"+"/Sep_Analysis"+"/Figures"
         path_org = "Test_Figs"+"/Figures"
     path_end = Emulator + method + org_TP_str + obj_str + exp_str + len_scl + run_str+ plot + Bo_itr_str   
     
@@ -179,7 +255,7 @@ def plot_hyperparams(iterations, hyperparam, title):
     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True):
+def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None):
     '''
     Plots original training data with true value
     Parameters
@@ -201,7 +277,8 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
         plt.show(), A plot of the original training data points and the true value
     '''
     fxn = "plot_org_train"
-    t = int(len(train_p))
+#     t = int(len(train_p))
+    t = int(len(train_p)) + int(len(test_p))
     #xx and yy are the values of the parameter sets
     xx,yy = test_mesh
     if emulator == False:
@@ -245,10 +322,10 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
         plt.title("Starting Training Data")
         
     if save_figure == True:
-        path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime)
+        path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)  
     
-    if verbose == True:
+    if verbose == True and save_fig == False:
         plt.show()
         
     plt.close()
@@ -292,7 +369,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison")
     
     return plt.show()
 
-def plot_obj_abs_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None):
+def plot_obj_abs_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None, sep_fact = None):
     '''
     Plots the absolute minimum of the objective over BO iterations
     Parameters
@@ -335,12 +412,60 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengt
     
     #Save figure path
     if save_figure == True:
-        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime)
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)
     
     return plt.show()
 
-def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None):
+def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1 ,DateTime=None, sep_list = None):
+    '''
+    Plots the absolute minimum of the objective over BO iterations
+    Parameters
+    ----------
+        BO_iters: integer, number of BO iteratiosn
+        obj_abs_min: ndarray, An array containing the absolute minimum of SSE found so far at each iteration
+        runs: int, The number of times to choose new training points
+        emulator: True/False, Determines if GP will model the function or the function error
+        ep: float, float,int,tensor,ndarray (1 value) The exploration bias parameter
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        t: int, int, Number of initial training points to use
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        save_figure: True/False, Determines whether figures will be saved
+     
+    Returns
+    -------
+        plt.show(), A plot of the minimum ln(SSE) vs BO iteration for each run
+    '''
+    fxn = "plot_sep_fact_min"
+    #Create bo_iters as an axis
+    bo_space = np.linspace(1,bo_iters,bo_iters)
+    
+    #Plot Minimum SSE value at each run
+    plt.figure()
+    tot_runs = int(len(sep_list))
+    for i in range(tot_runs):
+        if tot_runs == 1:
+            label = "Minimum ln(SSE) Value Found"
+        else:  
+            label = "Sep: "+str(np.round(sep_list[i],3))
+        plt.step(bo_space, obj_abs_min[i], label = label)
+        
+    #Set plot details        
+    plt.legend(loc = "best")
+    plt.xlabel("BO Iterations")
+    plt.ylabel("ln(SSE)")
+    plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
+    plt.grid(True)
+    
+    #Save figure path
+    if save_figure == True:
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = None)
+        save_fig(path, ext='png', close=True, verbose=False)
+    
+    return plt.show()
+
+def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -392,12 +517,12 @@ def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengths
     
     #Save path and figure
     if save_figure == True:
-        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime)
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)
     
     return plt.show()
 
-def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure,tot_iter=1, tot_runs=1, DateTime=None):
+def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure,tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -453,14 +578,14 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         
         #Save path and figure
         if save_figure == True:
-            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime)
+            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
             save_fig(path, ext='png', close=True, verbose=False)
             
         plt.show() 
     return
 
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -539,14 +664,15 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     if tot_iter > 1:
         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
         
-        if emulator == True:
-            t = str(len(train_p) - 5*(Bo_iter) )
-        else:
-            t = str(len(train_p) - Bo_iter )
+#         t = t = str(t - Bo_iter )
+#         if emulator == True:
+#             t = str(t - 5*(Bo_iter) )
+#         else:
+#             t = str(t - Bo_iter )
         
         #Generate path and save figures     
         if save_figure == True:
-            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime)
+            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
             save_fig(path, ext='png', close=True, verbose=False)
     #Don't save if there's only 1 BO iteration
     else:
