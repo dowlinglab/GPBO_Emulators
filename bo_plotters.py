@@ -97,7 +97,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
     plot = fxn_dict[fxn]
     
     if sep_fact is not None:
-        sep_fact_str = "/Sep_Fact_"+str(sep_fact)
+        sep_fact_str = "/Sep_Fact_"+str(np.round(float(sep_fact),3))
     
     if set_lengthscale is not None:
         len_scl = "/len_scl_"+ str(set_lengthscale)         
