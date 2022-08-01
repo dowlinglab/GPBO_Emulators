@@ -832,7 +832,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                 eval_point = np.array([point])
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
-                model_variance= GP_Outputs[1].numpy()[0] #1xn
+                model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
                 GP_mean[k] = model_mean
                 GP_var[k] = model_variance
                               
@@ -980,7 +980,7 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
             eval_point = np.array([point])
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
             model_sse = GP_Outputs[3].numpy()[0] #1xn
-            model_variance= GP_Outputs[1].numpy()[0] #1xn
+            model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
 #             if verbose == True:
 #                 print("Point",eval_point)
 #                 print("Model Mean",model_sse)
@@ -1101,7 +1101,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
         eval_point = np.array([point])
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         model_sse = GP_Outputs[3].numpy()[0] #1xn 
-        model_variance= GP_Outputs[1].numpy()[0] #1xn
+        model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
 
         #Calculate best error and sse
         #Does the objective function change this? No - As long as they're both logs this will work
@@ -1125,7 +1125,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
             eval_point = np.array([point])
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
             model_mean = GP_Outputs[3].numpy()[0] #1xn
-            model_variance= GP_Outputs[1].numpy()[0] #1xn
+            model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
             
             GP_mean[k] = model_mean
             GP_stdev[k] = np.sqrt(model_variance) 
