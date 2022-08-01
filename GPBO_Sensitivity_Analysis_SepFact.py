@@ -44,12 +44,6 @@ Theta1 =  np.linspace(-2,2,p) #1x10
 Theta2 =  np.linspace(-2,2,p) #1x10
 theta_mesh = np.array(np.meshgrid(Theta1, Theta2)) #2 Uniform 5x5 arrays
 
-#Define GP Testing space
-p=20
-Theta1 =  np.linspace(-2,2,p) #1x10
-Theta2 =  np.linspace(-2,2,p) #1x10
-theta_mesh = np.array(np.meshgrid(Theta1, Theta2)) #2 Uniform 5x5 arrays
-
 all_data_doc = find_train_doc_path(emulator, obj, t)
 all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=",")) 
 
