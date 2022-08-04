@@ -526,8 +526,11 @@ def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, ep_inc = 1
         else:
             ep = ep/ep_inc
     
-    elif ep_method == "Jasrasaria": #Works
+    elif ep_method == "Jasrasaria": #Works, but is bad because of high variances
         ep = mean_of_var/best_error
+        
+    elif ep_method == "Constant":
+        ep = ep_o
     
     else:
         if Bo_iter < 30: #Works
@@ -569,16 +572,16 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0):
     #If variance is zero this is important
     with np.errstate(divide = 'warn'):
         #Creates upper and lower bounds and described by Alex Dowling's Derivation
-        bound_a = ((y_target - pred_mean - explore_bias) +np.sqrt(error_best))/pred_stdev #1xn
-        bound_b = ((y_target - pred_mean - explore_bias) -np.sqrt(error_best))/pred_stdev #1xn
+        bound_a = ((y_target - pred_mean) +np.sqrt(error_best - explore_bias))/pred_stdev #1xn
+        bound_b = ((y_target - pred_mean) -np.sqrt(error_best - explore_bias))/pred_stdev #1xn
         bound_lower = np.min([bound_a,bound_b])
         bound_upper = np.max([bound_a,bound_b])        
 
         #Creates EI terms in terms of Alex Dowling's Derivation
         ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
-        ei_term1_comp2 = error_best - (y_target - pred_mean - explore_bias)**2 #1xn
+        ei_term1_comp2 = (error_best - explore_bias) - (y_target - pred_mean)**2 #1xn
 
-        ei_term2_comp1 = 2*(y_target - pred_mean - explore_bias)*pred_stdev #1xn
+        ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
         ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
         ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
         ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
@@ -705,7 +708,7 @@ def get_sparse_grids(dim,output=0,depth=3, rule="gauss-hermite", verbose = False
         plt.show()
     return points_p, weights_p
 
-def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, verbose = False):
+def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, ep, verbose = False):
     """Evaluate GP using the spare grid instead of an approximation.
     
     Parameters
@@ -716,7 +719,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
         GP_mean: ndarray, Array of GP mean values at each experimental data point
         GP_stdev: ndarray, Array of GP standard deviation values at each experimental data point
         best_error: float, the best error of the 3-Input GP model
-        ep: float, the exploration parameter (Add later)
+        ep: float, the exploration parameter
         verbose: bool, determines whether plot of sparse grid points is printed
     
     Returns
@@ -755,7 +758,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, v
 #         print("Stdev*Points_p:",Inside_List)
         #Apply max operator  
 #         EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Leades to negative EIs
-        EI_Temp += weights_p[i]*(-np.min([SSE_Temp - best_error,0])) #Leads to zero EIs: #Min values is never negative, so EI is always 0
+        EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error-ep),0])) #Leads to zero EIs: #Min values is never negative, so EI is always 0
 #     print(min(weights_p))
         #All Eis are coming out as zero :(
 #         print(EI_Temp)
@@ -802,6 +805,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     #Create an array in which to store expected improvement values
     EI = np.zeros((p,p)) #(p1 x p2)
     SSE_var_GP = np.zeros((p,p))
+    SSE_stdev_GP = np.zeros((p,p))
     SSE = np.zeros((p,p))
        
     ##Will only be useful in 3D plots
@@ -839,10 +843,14 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                 #Compute SSE and SSE variance for that point
                 SSE[i,j] += (model_mean - Yexp[k])**2
                 
-                error_point = np.abs((Yexp[k] - model_mean)) #Is this correct?
-                SSE_var_GP[i,j] += 2*error_point*model_variance
-#                 error_sq_GP[i,j,k] = (error_point)**2
+                error_point = (model_mean - Yexp[k]) #This SSE_variance CAN be negative
+                SSE_var_GP[i,j] += 2*error_point*model_variance #Error Propogation approach
                 
+                try:
+                    SSE_stdev_GP[i,j] = np.sqrt(SSE_var_GP[i,j])
+                except:
+                    SSE_stdev_GP[i,j] = np.sqrt(np.abs(SSE_var_GP[i,j]))
+                    
                 if sparse_grid == False:
                     #Compute EI w/ approximation
                     EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias)
@@ -858,10 +866,11 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
 
             if sparse_grid == True:
                 #Compute EI using eparse grid
-                EI[i,j] = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, verbose)
+                EI[i,j] = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, explore_bias, verbose)
         
-    SSE_stdev_GP = np.sqrt(SSE_var_GP)
-#     print(SSE_var_GP)
+#     SSE_stdev_GP = np.sqrt(SSE_var_GP)
+    if verbose == True:
+        print(EI)
     return EI, SSE, SSE_var_GP, SSE_stdev_GP, best_error
 
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
@@ -1137,7 +1146,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
            
         if sparse_grid == True:
             #Compute EI using sparse grid
-            ei = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error)
+            ei = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, explore_bias)
                 
             
     #Return either -ei or sse as a minimize objective function
@@ -1317,6 +1326,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     All_Theta_Opt = np.zeros((BO_iters,q)) 
     All_SSE = np.zeros(BO_iters) #Will save ln(SSE) values
     All_SSE_abs_min = np.zeros(BO_iters) #Will save ln(SSE) values
+    
+    All_EI_sum = np.zeros(BO_iters) #Used in stopping criteria
 
     #Ensures GP will take correct # of inputs
     if emulator == True:
@@ -1351,7 +1362,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
 #         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
 
         #Set Exploration parameter
-        explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init) #Defaulting to exp method
+        explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
         
         eval_components = eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, test_p)
         
@@ -1417,6 +1428,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             print("Argmax Theta Best = ",Theta_Best)
             print("Scipy Theta Opt = ",theta_o)
             print("Argmin Theta_Opt_GP = ",Theta_Opt_GP, "\n")
+            print("EI_max =", np.amax(ei))
         
         #Prints figures if more than 1 BO iter is happening
         if emulator == False:
@@ -1437,16 +1449,17 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             
         value_plotter(theta_mesh, ln_sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, i, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
         
-        #Save other figures if verbose=True
-        if verbose == True:
-            for j in range(len(eval_components)-2):
-                component = eval_components[j+2]
-                title = titles[j+2]
-                title_save = titles_save[j+2]
-                try:
-                    value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, i, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
-                except:
-                    print("Best Error is:",  np.round(eval_components[j+2],4))
+        #Save other figures
+        for j in range(len(eval_components)-2):
+            component = eval_components[j+2]
+            title = titles[j+2]
+            title_save = titles_save[j+2]
+            try:
+                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, i, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
+            except:
+                Best_Error_Found = np.round(eval_components[j+2],4)
+                if verbose == True:
+                    print("Best Error is:", Best_Error_Found)
 
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
@@ -1483,7 +1496,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
               
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
 
-def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, verbose = True,save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 0.8):
+def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, verbose = True,save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1):
     """
     Performs BO iterations with runs. A run contains of choosing different initial training data.
     
@@ -1551,13 +1564,6 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
 #         print("Run Number: ",i+1)
         if verbose == True or save_fig == False:
             print("Run Number: ",i+1)
-            
-#         Create training/testing data
-#         if runs > 1: ##DELETE THIS IF/ELSE AFTER SEP FACT SENS ANALYS
-#             train_data, test_data = test_train_split(all_data, runs = runs, sep_fact = sep_fact[i], shuffle_seed=shuffle_seed)
-#             print("Separation Factor =", sep_fact[i])
-#         else:
-#             train_data, test_data = test_train_split(all_data, runs = runs, shuffle_seed=shuffle_seed)
 
         train_data, test_data = test_train_split(all_data, runs = runs, sep_fact = sep_fact, shuffle_seed=shuffle_seed)
         if emulator == True:

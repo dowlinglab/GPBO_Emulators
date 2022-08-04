@@ -325,7 +325,7 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
         path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)  
     
-    if verbose == True and save_fig == False:
+    if verbose == True and save_figure == False:
         plt.show()
         
     plt.close()
