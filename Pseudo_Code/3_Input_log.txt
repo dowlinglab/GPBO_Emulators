@@ -1,0 +1,26 @@
+from scipy import integrate
+
+Step 1) Define EI function for ln version to integrate
+    def EI_approx_ln(epsilon, error_best, pred_mean, pred_stdev, y_target, ep):    
+        EI = ( (error_best - ep) - np.log(y_target - pred_mean - pred_stdev*epsilon)**2 )*norm.pdf(epsilon) )
+        return EI
+
+Step 2) Add if/else statement inside of calc_ei_emulator
+    if obj == "obj"
+        #Use regular function based on integrated approaximation
+    else:
+        #See step 3
+        
+    return ei
+    
+Step 3) Create new bounds and integrate function in step 1
+        with np.errstate(divide = 'warn'):
+            #Creates upper and lower bounds and described by Alex Dowling's Derivation
+            bound_a = ((y_target - pred_mean) +np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
+            bound_b = ((y_target - pred_mean) -np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
+            bound_lower = np.min([bound_a,bound_b])
+            bound_upper = np.max([bound_a,bound_b])
+            args = (error_best, pred_mean, pred_stdev, y_target, explore_bias)
+            ei, abs_err, info_dict = integrate.quad(EI_approx_ln, bound_lower, bound_upper,full_output=1, args = args)
+            
+Step 4) Ensure all places where calc_ei_emulator or eval_GP_emulator_BE is called is called with an "obj" parameter      

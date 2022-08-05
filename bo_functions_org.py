@@ -1,7 +1,6 @@
 import numpy as np
 import math
 from scipy.stats import norm
-from scipy import integrate
 import torch
 import csv
 import gpytorch
@@ -542,28 +541,8 @@ def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, ep_inc = 1
     
     return ep
 
-def EI_approx_ln(epsilon, error_best, pred_mean, pred_stdev, y_target, ep): 
-    """ 
-    Calculates the integrand of expected improvement of the 3 input parameter GP using the log version
-    Parameters
-    ----------
-        epsilon: The random variable. This is the variable that is integrated w.r.t
-        error_best: float, the best predicted error encountered
-        pred_mean: ndarray, model mean
-        pred_stdev: ndarray, model stdev
-        y_target: ndarray, the expected value of the function from data or other source
-        explore_bias: float, the numerical bias towards exploration, zero is the default
-        obj: str, LN_obj or obj, determines whether log or regular EI function is calculated
-    
-    Returns
-    -------
-        ei: ndarray, the expected improvement for one term of the GP model
-    """
-    EI = ( (error_best - ep) - np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 ) )*norm.pdf(epsilon)
-    return EI
-    
 #Approximation
-def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, obj = "obj"): #Will need obj toggle soon
+def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0): #Will need obj toggle soon
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -592,54 +571,83 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
     pred_stdev = np.sqrt(pred_var) #1xn
     
     #If variance is zero this is important
-    if obj == "obj":
-        with np.errstate(divide = 'warn'):
-            #Creates upper and lower bounds and described by Alex Dowling's Derivation
-            bound_a = ((y_target - pred_mean) +np.sqrt(error_best - explore_bias))/pred_stdev #1xn
-            bound_b = ((y_target - pred_mean) -np.sqrt(error_best - explore_bias))/pred_stdev #1xn
-            bound_lower = np.min([bound_a,bound_b])
-            bound_upper = np.max([bound_a,bound_b])        
+    with np.errstate(divide = 'warn'):
+        #Creates upper and lower bounds and described by Alex Dowling's Derivation
+        bound_a = ((y_target - pred_mean) +np.sqrt(error_best - explore_bias))/pred_stdev #1xn
+        bound_b = ((y_target - pred_mean) -np.sqrt(error_best - explore_bias))/pred_stdev #1xn
+        bound_lower = np.min([bound_a,bound_b])
+        bound_upper = np.max([bound_a,bound_b])        
 
-            #Creates EI terms in terms of Alex Dowling's Derivation
-            ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
-            ei_term1_comp2 = (error_best - explore_bias) - (y_target - pred_mean)**2 #1xn
+        #Creates EI terms in terms of Alex Dowling's Derivation
+        ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
+        ei_term1_comp2 = (error_best - explore_bias) - (y_target - pred_mean)**2 #1xn
 
-            ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
-            ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
-            ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
-            ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
+        ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
+        ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
+        ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
+        ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
+        
+        ei_term3_comp1 = bound_upper*ei_eta_upper #1xn
+        ei_term3_comp2 = bound_lower*ei_eta_lower #1xn
+        
+        ei_term3_comp3 = (1/2)*math.erf(bound_upper/np.sqrt(2)) #1xn
+        ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2)) #1xn     
 
-            ei_term3_comp1 = bound_upper*ei_eta_upper #1xn
-            ei_term3_comp2 = bound_lower*ei_eta_lower #1xn
-
-            ei_term3_comp3 = (1/2)*math.erf(bound_upper/np.sqrt(2)) #1xn
-            ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2)) #1xn     
-
-            ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
-            ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4 #1xn
-            ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
-
-            ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
-            ei_term3 = -pred_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
-            EI = ei_term1 + ei_term2 + ei_term3 #1xn
-    else:
-        with np.errstate(divide = 'warn'):
-            #Creates upper and lower bounds and described by Alex Dowling's Derivation
-            bound_a = ((y_target - pred_mean) +np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
-            bound_b = ((y_target - pred_mean) -np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
-            bound_lower = np.min([bound_a,bound_b])
-            bound_upper = np.max([bound_a,bound_b])
-            args = (error_best, pred_mean, pred_stdev, y_target, explore_bias)
-            #This first way is very slow
-#             ei, abs_err = integrate.quad(EI_approx_ln, bound_lower, bound_upper, args = args) 
-            #This 2nd way throws the error -> too many values to unpack (expected 3) even though 3 values are being unpacked unless you do it like this and not, EI, abs_err, infordict =
-            int_out = integrate.quad(EI_approx_ln, bound_lower, bound_upper, args = args, full_output = 1)
-            EI = int_out[0] 
-            abs_err = int_out[1]
-    
-    ei = EI
-            
+        ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
+        ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4 #1xn
+        ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
+        
+        ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
+        ei_term3 = -pred_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
+        ei = ei_term1 + ei_term2 + ei_term3 #1xn
+          
     return ei
+
+# def eval_GP_emulator_BE(Xexp,Yexp, theta_mesh): #Reformulate to get best error
+#     """ 
+#     Calculates the best error of the 3 input parameter GP
+#     Parameters
+#     ----------
+#         Xexp: ndarray, experimental x values
+#         Yexp: ndarray, experimental y values
+#         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+    
+#     Returns
+#     -------
+#         best_error: float, the best error of the 3-Input GP model
+#     """
+#     #Asserts that inputs are correct
+#     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
+    
+#     n = len(Xexp)
+#     p = theta_mesh.shape[1]
+    
+#     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
+#     #Create theta1 and theta2 mesh grids
+#     theta1_mesh = theta_mesh[0]
+#     theta2_mesh = theta_mesh[1]
+#     assert len(theta2_mesh)==len(theta1_mesh), "theta_mesh must be dim, pxp arrays"
+    
+#     #Create an array in which to store SSE
+#     SSE = np.zeros((p,p))
+    
+#     ##Calculate Best Error
+#     # Loop over theta 1
+#     for i in range(p):
+#         #Loop over theta2
+#         for j in range(p):
+#             ## Caclulate Best Error
+#             #Find Lowest SSE Point
+#             point = [theta1_mesh[i,j],theta2_mesh[i,j]]
+#             q = len(point)
+#             eval_point = np.array([point])
+#             SSE[i,j] = create_sse_data(q,eval_point, Xexp, Yexp, obj="obj") #Note in this case SSE can be SSE or LN(SSE)     
+#             #Is this SSE the one we care about for minimization? No right?
+
+#     #Define best_error as the minimum SSE value
+#     best_error = np.amin(SSE)
+    
+#     return best_error 
 
 def eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2, obj = "obj"): #When log is added this will need an extra argument
     """ 
@@ -664,9 +672,9 @@ def eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2, obj = "obj"): #When log is adde
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     SSE = np.zeros(t_train)
     for i in range(t_train):
-        SSE[i] = create_sse_data(q,train_p[i], Xexp, Yexp, obj= obj)     
+        SSE[i] = create_sse_data(q,train_p[i], Xexp, Yexp, obj="obj")     
 
-    #Define best_error as the minimum SSE or ln(SSE) value
+    #Define best_error as the minimum SSE value
     best_error = np.amin(SSE)
     
     return best_error 
@@ -760,7 +768,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, e
     return EI_Temp
 
 # def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False):
-def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False, train_p = None, obj = "obj"):
+def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False, train_p = None, train_y = None, test_p = None):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -808,7 +816,10 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     
     ##Calculate Best Error
     # Loop over theta 1
-    best_error = eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2, obj = obj)
+    best_error = eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2)
+    
+#     if test_p != None:
+#         test_y = calc_GP_outputs(model, likelihood, test_p)[3]
     
     # Loop over theta 1
     for i in range(p):
@@ -843,11 +854,16 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                     
                 if sparse_grid == False:
                     #Compute EI w/ approximation
-                    EI_temp = calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias, obj)
-#                     print(EI_temp)
-                    EI[i,j] += EI_temp
+                    EI[i,j] += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias)
                            
             GP_stdev = np.sqrt(GP_var)
+            
+# #             if i in [5,14] and j in [5,14]:
+#             if verbose == True:
+#                 if i in [5] and j in [14]:
+#                     Theta = np.array([theta1_mesh[i,j],theta2_mesh[i,j]])
+#                     print("Theta = ", Theta)
+#                     plot_3GP_performance(Xexp, Yexp, GP_mean, GP_stdev, Theta, Xexp, train_p, train_y, test_p, test_y)
 
             if sparse_grid == True:
                 #Compute EI using eparse grid
@@ -1049,7 +1065,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     return Theta_Best, Theta_Opt_GP
 
 ##FOR USE WITH SCIPY##################################################################
-def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias=0.0, ei_sse_choice = "ei", verbose = False, obj = "obj"):
+def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias=0.0, ei_sse_choice = "ei", verbose = False):
     """ 
     Calculates either -ei or sse (a function to be minimized). To be used in calculating best and optimal parameter sets.
     Parameters
@@ -1127,7 +1143,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
 
             if sparse_grid == False:
                 #Compute EI w/ approximation
-                ei += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias, obj)
+                ei += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias)
            
         if sparse_grid == True:
             #Compute EI using sparse grid
@@ -1196,7 +1212,7 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,train_p, theta0_b,theta0
     return theta_b, theta_o
 
 # def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale):  
-def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, test_p = None, obj = "obj"):
+def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, test_p = None):
     """
     Evaluates GP
     
@@ -1250,7 +1266,7 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
         eval_components = eval_GP_basic_tot(theta_mesh, train_y, model, likelihood, explore_bias, verbose)
     else:
 #         eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose)
-        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose, train_p, obj)
+        eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose, train_p, train_y, test_p)
     
     return eval_components
 
@@ -1348,7 +1364,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Set Exploration parameter
         explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
         
-        eval_components = eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, test_p, obj = obj)
+        eval_components = eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, test_p)
         
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
