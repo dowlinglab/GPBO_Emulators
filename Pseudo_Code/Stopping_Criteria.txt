@@ -1,0 +1,78 @@
+#Step 1: Initialize matricies and Total_BO_counter
+    Total_BO_iters = BO_iters
+    All_Max_EI = []
+    All_Theta_Best = []
+    All_Theta_Opt = []
+    All_SSE = []
+    All_SSE_abs_min = []
+#Step 2: Add Max(BO) and other values at each iteration
+    maxEI = np.max(ei)
+    All_Max_EI.append(maxEI)
+    All_Theta_Best.append(theta_b)
+    All_Theta_Opt.append(theta_o)
+    All_SSE.append(ln_error_mag)
+    
+    #Save best value of SSE for plotting 
+    if i == 0:
+        All_SSE_abs_min.append(ln_error_mag)
+        improvement = False
+    else:
+        if All_SSE_abs_min[i-1] >= ln_error_mag:
+            All_SSE_abs_min.append(ln_error_mag)
+            improvement = True
+        else: 
+            All_SSE_abs_min.append(All_SSE_abs_min[i-1])
+            improvement = False
+    
+#Step 3: If statement to check for two 0s in a row and break loop if so
+    if  i > 0:
+        if All_Max_EI[i-1] <= 1E-10 and All_Max_EI[i] <= 1e-10:
+            Total_BO_iters = i+1
+            break
+            
+#Step 4: make everything np arrays :)
+    All_Max_EI = np.array(All_Max_EI[0])
+    All_Theta_Best = np.array(All_Theta_Best)
+    All_Theta_Opt = np.array(All_Theta_Opt)
+    All_SSE = np.array(All_SSE)
+    All_SSE_abs_min = np.array(All_SSE_abs_min)
+#Step 5: Save total # of BO Loops performed
+    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters   
+    
+#Step 6: Reformat how arrays are saved  in runsto ensure correct plotting 
+THIS DOESN'T GIVE THE CORRECT SHAPE
+    a) #Initialize lists and add to the list at each run
+            Theta_Opt_matrix = []
+            Theta_Best_matrix = []
+            SSE_matrix = []
+            EI_matrix = []
+            SSE_matrix_abs_min = []
+            Total_BO_iters_matrix = []
+            
+    b) #Save important quanitites at each run
+            Theta_Best_matrix.append(BO_results[0])
+            Theta_Opt_matrix.append(BO_results[1])
+            SSE_matrix.append(BO_results[2])
+            SSE_matrix_abs_min.append(BO_results[3])
+            Total_BO_iters.append(BO_results[4])
+
+#Step 7: Change plotters to use the number of BO_iters for the run rather than the max # of iters
+    if runs > 1:
+        plot_obj(SSE_matrix, t, Total_BO_iters_matrix, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        plot_Theta(Theta_Opt_matrix, Theta_True, t, Total_BO_iters_matrix[i], obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        plot_obj_abs_min(Total_BO_iters_matrix, SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        
+    #Fix functions to choose BO_iter # based on run # by definining bo_space inside the for loop for # of runs.
+        
+#Step 8: Change lists to numpy arrays and find values for final results (Outside of run for loop)
+    Theta_Best_matrix = np.array(Theta_Best_matrix)
+    Theta_Opt_matrix = np.array(Theta_Opt_matrix)
+    SSE_matrix = np.array(SSE_matrix)
+    SSE_matrix_abs_min = np.array(SSE_matrix_abs_min)
+    
+    Theta_Best_all = np.array(Theta_Best_matrix[argmin[0],argmin[1]])
+    Theta_Opt_all = np.array(Theta_Opt_matrix[argmin[0],argmin[1]])
+    SSE_abs_min = np.amin(SSE_matrix)
+    run_opt = int(argmin[0,0]+1)
+    bo_opt = int(argmin[1,0]+1)
+    

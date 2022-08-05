@@ -390,13 +390,13 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengt
         plt.show(), A plot of the minimum ln(SSE) vs BO iteration for each run
     '''
     fxn = "plot_obj_abs_min"
-    #Create bo_iters as an axis
-    bo_space = np.linspace(1,bo_iters,bo_iters)
     
     #Plot Minimum SSE value at each run
     plt.figure()
    
     for i in range(tot_runs):
+        #Create bo_iters as an axis
+        bo_space = np.linspace(1,bo_iters[i],bo_iters[i])
         if tot_runs == 1:
             label = "Minimum ln(SSE) Value Found"
         else:  
@@ -438,13 +438,13 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
         plt.show(), A plot of the minimum ln(SSE) vs BO iteration for each run
     '''
     fxn = "plot_sep_fact_min"
-    #Create bo_iters as an axis
-    bo_space = np.linspace(1,bo_iters,bo_iters)
     
     #Plot Minimum SSE value at each run
     plt.figure()
     tot_runs = int(len(sep_list))
     for i in range(tot_runs):
+        #Create bo_iters as an axis
+        bo_space = np.linspace(1,bo_iters[i],bo_iters[i])
         if tot_runs == 1:
             label = "Minimum ln(SSE) Value Found"
         else:  
@@ -492,12 +492,13 @@ def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengths
     
     fxn = "plot_obj"
     #Create x axis as # of bo iterations
-    bo_space = np.linspace(1,bo_iters,bo_iters)
     plt.figure() 
     
     #Plots either 1 or multiple lines for objective function values depending on whether there are runs     
     #Loop over number of runs
     for i in range(tot_runs):
+        #Create bo_iters as an axis
+        bo_space = np.linspace(1,bo_iters[i],bo_iters[i])
         if tot_runs > 1:
             label = "Run: "+str(i+1)      
         else:
@@ -546,31 +547,35 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         Plots of obj vs BO_iter and Plots of Theta vs BO_iter
     """
     assert isinstance(obj,str)==True, "Objective function name must be a string"
-    if not isinstance(Theta_array, np.ndarray):
-        Theta_array = np.array(Theta_array)
+    print(Theta_array[0])
+    print(Theta_array[0][0])
+    print(Theta_array[0][0][0])
     fxn = "plot_Theta"
     #Find value of q from given information
     q = len(Theta_True)
-    #Create x axis as # of bo iterations
-    bo_space = np.linspace(1,bo_iters,bo_iters)
     #Set a string for exploration parameter and initial number of training points
-
+    bo_max = np.max(bo_iters)
+    bo_space_max = np.linspace(1,bo_max,bo_max)
     #Make multiple plots for each parameter
     #Loop over number of parameters
     for j in range(q):
         plt.figure()
         #Loop over runs and plot
         for i in range(tot_runs):
+            print(Theta_array[i][:][j])
+            #Create bo_iters as an axis
+            bo_space = np.linspace(1,bo_iters[i],bo_iters[i])
             #Plot more than 1 line if there are many runs
             if tot_runs > 1:
                 label = "$\Theta_" +str({j+1})+"$" + " Run: "+str(i+1)         
             else:
                 label = "$\Theta_" +str({j+1})+"$"
             
-            plt.step(bo_space, Theta_array[i,:,j], label = label)
+            plt.step(bo_space, Theta_array[i][:][j], label = label)
         
         #Set plot details
-        plt.step(bo_space, np.repeat(Theta_True[j],bo_iters), label = "$\Theta_{true,"+str(j+1)+"}$")
+        
+        plt.step(bo_space_max, np.repeat(Theta_True[j],bo_iters), label = "$\Theta_{true,"+str(j+1)+"}$")
         plt.xlabel("BO Iterations")
         plt.ylabel("$\Theta_" + str({j+1})+"$")
         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")

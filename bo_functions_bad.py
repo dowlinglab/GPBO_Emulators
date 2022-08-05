@@ -533,7 +533,7 @@ def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, ep_inc = 1
         ep = ep_o
     
     else:
-        if Bo_iter < 30 and ep_o > 0.01: #Works
+        if Bo_iter < 30 and ep_o > 0: #Works
             alpha = -np.log(ep_f/ep_o)/30
             ep = ep_o*np.exp(-alpha*Bo_iter)
         else: 
@@ -1322,11 +1322,17 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     ep0 = explore_bias
     
     #Set arrays to track theta_best, theta_opt, and SSE for every BO iteration
-    All_Theta_Best = np.zeros((BO_iters,q)) 
-    All_Theta_Opt = np.zeros((BO_iters,q)) 
-    All_SSE = np.zeros(BO_iters) #Will save ln(SSE) values
-    All_SSE_abs_min = np.zeros(BO_iters) #Will save ln(SSE) values  
-    All_EI_max = np.zeros(BO_iters) #Used in stopping criteria
+    Total_BO_iters = BO_iters
+    All_Max_EI = []
+    All_Theta_Best = []
+    All_Theta_Opt = []
+    All_SSE = []
+    All_SSE_abs_min = []
+#     All_Theta_Best = np.zeros((BO_iters,q)) 
+#     All_Theta_Opt = np.zeros((BO_iters,q)) 
+#     All_SSE = np.zeros(BO_iters) #Will save ln(SSE) values
+#     All_SSE_abs_min = np.zeros(BO_iters) #Will save ln(SSE) values  
+#     All_EI_max = np.zeros(BO_iters) #Used in stopping criteria
 
     #Ensures GP will take correct # of inputs
     if emulator == True:
@@ -1371,6 +1377,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         else:
             ei,sse,var,stdev,best_error = eval_components
         
+        
         mean_of_var = np.average(var)
 #         print("MOV",mean_of_var)
         best_error_num = best_error
@@ -1386,8 +1393,11 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y, train_p, theta0_b,theta0_o,sse,ei, model,likelihood,explore_bias, emulator,sparse_grid,obj)
         
        
-        #Save theta_best and theta_opt values for iteration
-        All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
+        #Save theta_best and theta_opt values for iteration also save maxEI value
+#         All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
+        All_Max_EI.append(np.max(ei))
+        All_Theta_Best.append(theta_b)
+        All_Theta_Opt.append(theta_o)
         
         #Calculate values of y given the GP optimal theta values
         y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o)
@@ -1398,21 +1408,32 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
 #       sse_opt = eval_GP_scipy(theta_o, train_p, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice = "sse", verbose = False)
 #         ln_error_mag = sse_opt
 
-        All_SSE[i] = ln_error_mag
+#         All_SSE[i] = ln_error_mag
+        All_SSE.append(ln_error_mag)
         
         #Save best value of SSE for plotting 
+#         if i == 0:
+#             All_SSE_abs_min[i] = ln_error_mag
+#             improvement = False
+# #             All_SSE_abs_min[i] = sse_opt
+#         else:
+#             if All_SSE_abs_min[i-1] >= ln_error_mag:
+#                 All_SSE_abs_min[i] = ln_error_mag
+#                 improvement = True
+#             else: 
+#                 All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
+#                 improvement = False
         if i == 0:
-            All_SSE_abs_min[i] = ln_error_mag
+            All_SSE_abs_min.append(ln_error_mag)
             improvement = False
-#             All_SSE_abs_min[i] = sse_opt
         else:
             if All_SSE_abs_min[i-1] >= ln_error_mag:
-                All_SSE_abs_min[i] = ln_error_mag
+                All_SSE_abs_min.append(ln_error_mag)
                 improvement = True
             else: 
-                All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
+                All_SSE_abs_min.append(All_SSE_abs_min[i-1])
                 improvement = False
-        
+            
         #Prints certain values at each iteration if verbose is True
         if verbose == True:
             print("BO Iteration = ", i+1)
@@ -1426,8 +1447,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             print("Scipy Theta Best = ",theta_b)
             print("Argmax Theta Best = ",Theta_Best)
             print("Scipy Theta Opt = ",theta_o)
-            print("Argmin Theta_Opt_GP = ",Theta_Opt_GP, "\n")
-            print("EI_max =", np.amax(ei))
+            print("Argmin Theta_Opt_GP = ",Theta_Opt_GP)
+            print("EI_max =", np.max(ei), "\n")
         
         #Prints figures if more than 1 BO iter is happening
         if emulator == False:
@@ -1465,6 +1486,11 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         train_p = train_p.numpy() #(q x t)
         train_y = train_y.numpy() #(1 x t)
         
+        if  i > 0:
+            if All_Max_EI[i-1] <= 1e-10 and All_Max_EI[i] <= 1e-10:
+                Total_BO_iters = i+1
+                break
+        
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
@@ -1493,7 +1519,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true)
               
-    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min
+    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters
 
 def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, verbose = True,save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1):
     """
@@ -1548,11 +1574,16 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=",")) 
     
     #Initialize Theta and SSE matricies
-    Theta_Opt_matrix = np.zeros((runs,BO_iters,q))
-    Theta_Best_matrix = np.zeros((runs,BO_iters,q))
-    SSE_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
-    EI_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
-    SSE_matrix_abs_min = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
+#     Theta_Opt_matrix = np.zeros((runs,BO_iters,q))
+#     Theta_Best_matrix = np.zeros((runs,BO_iters,q))
+#     SSE_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
+#     EI_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
+#     SSE_matrix_abs_min = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
+    Theta_Opt_matrix = []
+    Theta_Best_matrix = []
+    SSE_matrix = []
+    SSE_matrix_abs_min = []
+    Total_BO_iters_matrix = []
     
     #Set theta mesh grids
     theta1_mesh = theta_mesh[0]
@@ -1593,25 +1624,40 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact)
         
         #Add all SSE/theta results at each BO iteration for that run
-        Theta_Best_matrix[i,:,:] = BO_results[0]
-        Theta_Opt_matrix[i,:,:] = BO_results[1]
-        SSE_matrix[i,:] = BO_results[2]
-        SSE_matrix_abs_min[i] = BO_results[3]
-        
-#         print(Theta_Best_matrix)
+#         Theta_Best_matrix[i,:,:] = BO_results[0]
+#         Theta_Opt_matrix[i,:,:] = BO_results[1]
+#         SSE_matrix[i,:] = BO_results[2]
+#         SSE_matrix_abs_min[i] = BO_results[3]
+        Theta_Best_matrix.append(BO_results[0])
+        Theta_Opt_matrix.append(BO_results[1])
+        SSE_matrix.append(BO_results[2])
+        SSE_matrix_abs_min.append(BO_results[3])
+        Total_BO_iters_matrix.append(BO_results[4])
+
     #Plot all SSE/theta results for each BO iteration for all runs
     if runs > 1:
-        plot_obj(SSE_matrix, t, BO_iters, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
-        plot_Theta(Theta_Opt_matrix, Theta_True, t, BO_iters, obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
-        plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
-#         plot_sep_fact_min(BO_iters, SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, sep_fact=sep_fact,DateTime=None)
+#         plot_obj(SSE_matrix, t, BO_iters, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+#         plot_Theta(Theta_Opt_matrix, Theta_True, t, BO_iters, obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+#         plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        plot_obj(SSE_matrix, t, Total_BO_iters_matrix, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        plot_obj_abs_min(Total_BO_iters_matrix, SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        
+        ##This function can't be plotted given the data structure without a crap ton of work
+#         plot_Theta(Theta_Opt_matrix, Theta_True, t, Total_BO_iters_matrix, obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+
     
     #Find point corresponding to absolute minimum SSE and max(-ei) at that point
-    argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
+    argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=float(np.amin(SSE_matrix))*1e-6)==True))
     if len(argmin) != q: #How to generalize next line?
         argmin = np.array([[argmin[0]],[argmin[1]]])
-#     print(argmin)
-    #Find theta value corresponding to argmin(SSE) and corresponding argmax(ei) at which run and theta value they occur
+    
+    #Find theta value corresponding to argmin(SSE) and corresponding argmax(ei) at which run and theta value they occur    
+    Theta_Best_matrix = np.array(Theta_Best_matrix)
+    Theta_Opt_matrix = np.array(Theta_Opt_matrix)
+    print("Theta_Opt_matrix",Theta_Opt_matrix)
+    SSE_matrix = np.array(SSE_matrix)
+    SSE_matrix_abs_min = np.array(SSE_matrix_abs_min)
+    
     Theta_Best_all = np.array(Theta_Best_matrix[argmin[0],argmin[1]])
     Theta_Opt_all = np.array(Theta_Opt_matrix[argmin[0],argmin[1]])
     SSE_abs_min = np.amin(SSE_matrix)
