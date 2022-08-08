@@ -1639,7 +1639,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
 #         plot_obj(SSE_matrix, t, BO_iters, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
 #         plot_Theta(Theta_Opt_matrix, Theta_True, t, BO_iters, obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
 #         plot_obj_abs_min(BO_iters, SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
-        plot_obj(SSE_matrix, t, Total_BO_iters_matrix, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        obj_mins_df = plot_obj(SSE_matrix, t, Total_BO_iters_matrix, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
         plot_obj_abs_min(Total_BO_iters_matrix, SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
         
         ##This function can't be plotted given the data structure without a crap ton of work
@@ -1664,7 +1664,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     run_opt = int(argmin[0,0]+1)
     bo_opt = int(argmin[1,0]+1)
     
-    return bo_opt, run_opt, Theta_Opt_all, SSE_abs_min, Theta_Best_all
+    return bo_opt, run_opt, Theta_Opt_all, SSE_abs_min, Theta_Best_all, obj_mins_df
         
 
 def create_dicts(i,ei_components,verbose =False):
