@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
+import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
@@ -374,7 +375,7 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengt
     Plots the absolute minimum of the objective over BO iterations
     Parameters
     ----------
-        BO_iters: integer, number of BO iteratiosn
+        bo_iters: integer, number of BO iteratiosn
         obj_abs_min: ndarray, An array containing the absolute minimum of SSE found so far at each iteration
         runs: int, The number of times to choose new training points
         emulator: True/False, Determines if GP will model the function or the function error
@@ -390,18 +391,27 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengt
         plt.show(), A plot of the minimum ln(SSE) vs BO iteration for each run
     '''
     fxn = "plot_obj_abs_min"
+    #Make Data Frames
+    obj_mins_df = pd.DataFrame(data = obj_abs_min)
+#     obj_mins_df_T = obj_mins_df.T
+#     print("Obj mins", obj_mins_df)
+    
     #Create bo_iters as an axis
-    bo_space = np.linspace(1,bo_iters,bo_iters)
+#     bo_space = np.linspace(1,bo_iters,bo_iters)
     
     #Plot Minimum SSE value at each run
     plt.figure()
    
     for i in range(tot_runs):
+#         bo_space = np.linspace(1,bo_iters[i],bo_iters[i])
         if tot_runs == 1:
             label = "Minimum ln(SSE) Value Found"
         else:  
-            label = "Run: "+str(i+1)
-        plt.step(bo_space, obj_abs_min[i], label = label)
+            label = "Run: "+str(i+1)      
+        obj_mins_df_i = obj_mins_df.loc[i,(abs(obj_mins_df) > 1e-6).any(axis=0)]
+        bo_len = len(obj_mins_df_i)
+        bo_space = np.linspace(1,bo_len,bo_len)
+        plt.scatter(bo_space, obj_mins_df_i, label = label)
         
     #Set plot details        
     plt.legend(loc = "best")
@@ -415,7 +425,9 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengt
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)
     
-    return plt.show()
+    plt.show()
+    
+    return 
 
 def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1 ,DateTime=None, sep_list = None):
     '''
@@ -491,8 +503,10 @@ def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengths
     assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
     fxn = "plot_obj"
+    obj_df = pd.DataFrame(data = obj_array)
+    
     #Create x axis as # of bo iterations
-    bo_space = np.linspace(1,bo_iters,bo_iters)
+#     bo_space = np.linspace(1,bo_iters,bo_iters)
     plt.figure() 
     
     #Plots either 1 or multiple lines for objective function values depending on whether there are runs     
@@ -503,7 +517,11 @@ def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengths
         else:
             label = "ln(SSE)"
         #Plot data
-        plt.step(bo_space, obj_array[i], label = label)
+        obj_df_i = obj_df.loc[i,(abs(obj_df) > 1e-6).any(axis=0)]
+        bo_len = len(obj_df_i)
+        bo_space = np.linspace(1,bo_len,bo_len)
+        plt.step(bo_space, obj_df_i, label = label)
+#         plt.step(bo_space, obj_array[i], label = label)
     
     #Set plot details
     plt.xlabel("BO Iterations")
