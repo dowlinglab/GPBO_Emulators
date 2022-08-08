@@ -370,12 +370,11 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison")
     
     return plt.show()
 
-def plot_obj_abs_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None, sep_fact = None):
+def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None, sep_fact = None):
     '''
     Plots the absolute minimum of the objective over BO iterations
     Parameters
     ----------
-        bo_iters: integer, number of BO iteratiosn
         obj_abs_min: ndarray, An array containing the absolute minimum of SSE found so far at each iteration
         runs: int, The number of times to choose new training points
         emulator: True/False, Determines if GP will model the function or the function error
@@ -411,7 +410,7 @@ def plot_obj_abs_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengt
         obj_mins_df_i = obj_mins_df.loc[i,(abs(obj_mins_df) > 1e-6).any(axis=0)]
         bo_len = len(obj_mins_df_i)
         bo_space = np.linspace(1,bo_len,bo_len)
-        plt.scatter(bo_space, obj_mins_df_i, label = label)
+        plt.step(bo_space, obj_mins_df_i, label = label)
         
     #Set plot details        
     plt.legend(loc = "best")
@@ -434,7 +433,7 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
     Plots the absolute minimum of the objective over BO iterations
     Parameters
     ----------
-        BO_iters: integer, number of BO iteratiosn
+        bo_iters: integer, number of BO iterations
         obj_abs_min: ndarray, An array containing the absolute minimum of SSE found so far at each iteration
         runs: int, The number of times to choose new training points
         emulator: True/False, Determines if GP will model the function or the function error
@@ -477,7 +476,7 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
     
     return plt.show()
 
-def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
+def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -487,7 +486,6 @@ def plot_obj(obj_array, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengths
         Theta_array: ndarray, (nxq): The output array containing objective function values
         Theta_True: ndarray, Used for plotting Theta Values
         t: int, Number of initial training points to use
-        bo_iters: integer, number of BO iterations
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
         emulator: True/False, Determines if GP will model the function or the function error
