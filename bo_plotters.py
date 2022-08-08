@@ -391,10 +391,9 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
     '''
     fxn = "plot_obj_abs_min"
     #Make Data Frames
-    obj_mins_df = pd.DataFrame(data = obj_abs_min)
+#     obj_mins_df = pd.DataFrame(data = obj_abs_min)
 #     obj_mins_df_T = obj_mins_df.T
 #     print("Obj mins", obj_mins_df)
-    
     #Create bo_iters as an axis
 #     bo_space = np.linspace(1,bo_iters,bo_iters)
     
@@ -406,8 +405,9 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
         if tot_runs == 1:
             label = "Minimum ln(SSE) Value Found"
         else:  
-            label = "Run: "+str(i+1)      
-        obj_mins_df_i = obj_mins_df.loc[i,(abs(obj_mins_df) > 1e-6).any(axis=0)]
+            label = "Run: "+str(i+1) 
+        obj_mins_df_run = pd.DataFrame(data = obj_abs_min[i])
+        obj_mins_df_i = obj_mins_df_run.loc[(abs(obj_mins_df_run) > 1e-6).any(axis=1),0]
         bo_len = len(obj_mins_df_i)
         bo_space = np.linspace(1,bo_len,bo_len)
         plt.step(bo_space, obj_mins_df_i, label = label)
@@ -515,7 +515,8 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
         else:
             label = "ln(SSE)"
         #Plot data
-        obj_df_i = obj_df.loc[i,(abs(obj_df) > 1e-6).any(axis=0)]
+        obj_df_run = pd.DataFrame(data = obj_array[i])
+        obj_df_i = obj_df_run.loc[(abs(obj_df_run) > 1e-6).any(axis=1),0]
         bo_len = len(obj_df_i)
         bo_space = np.linspace(1,bo_len,bo_len)
         plt.step(bo_space, obj_df_i, label = label)
@@ -568,25 +569,33 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
     #Find value of q from given information
     q = len(Theta_True)
     #Create x axis as # of bo iterations
-    bo_space = np.linspace(1,bo_iters,bo_iters)
+#     bo_space = np.linspace(1,bo_iters,bo_iters)
     #Set a string for exploration parameter and initial number of training points
-
+    bo_lens = np.zeros(tot_runs)
     #Make multiple plots for each parameter
     #Loop over number of parameters
     for j in range(q):
         plt.figure()
         #Loop over runs and plot
         for i in range(tot_runs):
+            Theta_j_df = pd.DataFrame(data = Theta_array[i])
             #Plot more than 1 line if there are many runs
             if tot_runs > 1:
                 label = "$\Theta_" +str({j+1})+"$" + " Run: "+str(i+1)         
             else:
                 label = "$\Theta_" +str({j+1})+"$"
-            
-            plt.step(bo_space, Theta_array[i,:,j], label = label)
+                
+            Theta_j_df_i = Theta_j_df.loc[(abs(Theta_j_df) > 1e-6).any(axis=1),j]
+            bo_len = len(Theta_j_df_i)
+            bo_lens[i] = bo_len
+            bo_space = np.linspace(1,bo_len,bo_len)
+            plt.step(bo_space, Theta_j_df_i, label = label)
+#             plt.step(bo_space, Theta_array[i,:,j], label = label)
         
         #Set plot details
-        plt.step(bo_space, np.repeat(Theta_True[j],bo_iters), label = "$\Theta_{true,"+str(j+1)+"}$")
+        bo_len_max = int(np.max(bo_lens))
+        bo_space_long = np.linspace(1,bo_len_max,bo_len_max)
+        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = "$\Theta_{true,"+str(j+1)+"}$")
         plt.xlabel("BO Iterations")
         plt.ylabel("$\Theta_" + str({j+1})+"$")
         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
