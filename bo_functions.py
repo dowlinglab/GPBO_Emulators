@@ -1038,7 +1038,9 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     argmax = np.array(np.where(np.isclose(ei, np.amax(ei),atol=np.amax(ei)*1e-6)==True))
 
     #ensures that only one point is used if multiple points yield a maximum
+#     print(argmax)
     if len(argmax[0]) != 1:
+#         print("Argmax at Ei=0", argmax)
         argmax = np.array([[argmax[0,1]],[argmax[1,1]]])
         
     #Find theta value corresponding to argmax(EI)
