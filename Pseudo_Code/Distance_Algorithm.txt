@@ -1,0 +1,24 @@
+#Initialize max distance
+max_distance = 0
+
+#Only use this algorithm when >1 points have the max ei
+if len(argmax[0]) > 1:
+    #Check each point in argmax with all training points and find max distance
+    #Loop over Theta1 coord points
+    for i in range(len(argmax[0])):
+        #Loop over theta 2 coord Points
+        for i in range(len(argmax[1])):
+            #Create the corresponding argmax point that maps to theta 1 and theta 2 values
+            point = np.array([[argmax[0,i]],[argmax[1,j]]])
+            
+            #Find theta value corresponding to argmax(EI)
+            Theta_1 = float(theta1_mesh[point[0],point[1]])
+            Theta_2 = float(theta2_mesh[point[0],point[1]])
+            Theta_Arr = np.array((Theta_1,Theta_2)) 
+            
+            #Loop over training data
+            for i in range(len(train_data)):
+                distance = (train_data[i,0] - Theta_Arr[0])**2 + (train_data[i,1] - Theta_Arr[1])**2
+                #Check for greatest distance
+                if distance > max_distance:
+                    argmax = point
