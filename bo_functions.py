@@ -1002,7 +1002,7 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
         return ei, sse, var, stdev, best_error #Prints just the value
 #         return ei, sse, var, stdev, f_best
 
-def find_opt_and_best_arg(theta_mesh, sse, ei):
+def find_opt_and_best_arg(theta_mesh, sse, ei, train_p):
     """
     Finds the Theta value where min(sse) or min(-ei) is true using argmax and argmin
     
@@ -1011,6 +1011,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         sse: ndarray (d, p x p), meshgrid of sse values for all points in theta_mesh
         ei: ndarray (d, p x p), meshgrid of ei values for all points in theta_mesh
+        train_p: tensor or ndarray, The training parameter space data
     
     Returns:
     --------
@@ -1025,6 +1026,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
     argmin = np.array(np.where(np.isclose(sse, np.amin(sse),atol=np.amin(sse)*1e-6)==True))
     
     #ensures that only one point is used if multiple points yield a minimum
+    
     if len(argmin[0]) != 1:
         argmin = np.array([[argmin[0,1]],[argmin[1,1]]])
     
@@ -1039,17 +1041,62 @@ def find_opt_and_best_arg(theta_mesh, sse, ei):
 
     #ensures that only one point is used if multiple points yield a maximum
 #     print(argmax)
-    if len(argmax[0]) != 1:
-#         print("Argmax at Ei=0", argmax)
-        argmax = np.array([[argmax[0,1]],[argmax[1,1]]])
-        
+    if len(argmax[0]) > 1:
+        argmax = argmax_multiple(argmax, train_p, theta_mesh)
+            
     #Find theta value corresponding to argmax(EI)
     Theta_1_Best = float(theta1_mesh[argmax[0],argmax[1]])
     Theta_2_Best = float(theta2_mesh[argmax[0],argmax[1]])
-    Theta_Best = np.array((Theta_1_Best,Theta_2_Best))  
+    Theta_Best = np.array((Theta_1_Best,Theta_2_Best))
     
     return Theta_Best, Theta_Opt_GP
 
+def argmax_multiple(argmax, train_p, theta_mesh):
+    """
+    Finds the best ei point argument when more than one point has the maximum ei
+    
+    Parameters:
+    -----------
+        argmax: ndarray, The indecies of all parameters that have the maximum ei
+        train_p: tensor or ndarray, The training parameter space data
+        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        
+    Returns:
+    --------
+        argmax: ndarray, The indecies of the parameters that have the maximum ei that is furthest from the rest of the training points
+    """
+    #Initialize max distance and theta arrays
+    max_distance_sq = 0
+    q = len(argmax)
+    theta1_mesh = theta_mesh[0]
+    theta2_mesh = theta_mesh[1]
+    argmax_best = np.array([[0],[0]])
+    #Only use this algorithm when >1 points have the max ei
+    #Create avg x y pt for training data
+    train_T12_avg = np.array([np.average(train_p[:,0]), np.average(train_p[:,1])])
+    assert len(argmax[0]) == len(argmax[1]), "Ensure argmax arrays are the same length"
+
+    #Check each point in argmax with all training points and find max distance
+    #Loop over all coord points
+    for i in range(len(argmax[0])):
+        #Create the corresponding argmax point that maps to theta 1 and theta 2 values
+        point = np.array([[argmax[0,i]],[argmax[1,i]]])
+
+        #Find theta value corresponding to argmax(EI)
+        Theta_1 = float(theta1_mesh[point[0],point[1]])
+        Theta_2 = float(theta2_mesh[point[0],point[1]])
+        Theta_Arr = np.array((Theta_1,Theta_2))
+
+        #Calculate Distance
+        distance_sq = (train_T12_avg[0] - Theta_Arr[0])**2 + (train_T12_avg[1] - Theta_Arr[1])**2
+
+        #Set distance to max distance if it is applicable. At the end of the loop, argmax will be the point with the greatest distance.
+        if distance_sq > max_distance_sq:
+            max_distance_sq = distance_sq
+            argmax_best = point
+            
+    return argmax_best
+             
 ##FOR USE WITH SCIPY##################################################################
 def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias=0.0, ei_sse_choice = "ei", verbose = False, obj = "obj"):
     """ 
@@ -1365,7 +1412,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         best_error_num = best_error
         
         #Use argmax(EI) and argmin(SSE) to find values for Theta_best and theta_opt
-        Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei)
+        Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei, train_p)
         theta0_b = Theta_Best
         theta0_o = Theta_Opt_GP
 #         theta0_b = np.array([0.95,-0.95])
@@ -1558,7 +1605,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
 #         print("Run Number: ",i+1)
         if verbose == True or save_fig == False:
             print("Run Number: ",i+1)
-
+        #Note: sep_fact can be used to use less training data points
         train_data, test_data = test_train_split(all_data, runs = runs, sep_fact = sep_fact, shuffle_seed=shuffle_seed)
         if emulator == True:
             train_p = train_data[:,1:(q+m+1)]
