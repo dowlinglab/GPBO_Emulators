@@ -24,9 +24,7 @@ if len(argmax[0]) > 1:
         #Set distance to max distance if it is applicable. At the end of the loop, argmax will be the point with the greatest distance.
         if distance_sq > max_distance:
             max_distance = distance_sq
-            argmax = point
-            
-            
+            argmax = point       
             
             
             
