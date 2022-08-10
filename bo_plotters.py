@@ -501,7 +501,7 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
     fxn = "plot_obj"
-    obj_df = pd.DataFrame(data = obj_array)
+#     obj_df = pd.DataFrame(data = obj_array)
     
     #Create x axis as # of bo iterations
 #     bo_space = np.linspace(1,bo_iters,bo_iters)
