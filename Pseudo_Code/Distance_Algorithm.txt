@@ -18,7 +18,7 @@ if len(argmax[0]) > 1:
             
             #Loop over training data
             for i in range(len(train_data)):
-                distance = (train_data[i,0] - Theta_Arr[0])**2 + (train_data[i,1] - Theta_Arr[1])**2
+                distance += (train_data[i,0] - Theta_Arr[0])**2 + (train_data[i,1] - Theta_Arr[1])**2
                 #Check for greatest distance
                 if distance > max_distance:
                     argmax = point
