@@ -7,39 +7,17 @@ import csv
 import gpytorch
 import scipy.optimize as optimize
 import pandas as pd
+import os
+import Tasmanian
+
 from bo_plotters import value_plotter
 from bo_plotters import plot_org_train
 from bo_plotters import plot_xy
-# from bo_plotters import plot_obj_Theta
 from bo_plotters import plot_Theta
 from bo_plotters import plot_obj
 from bo_plotters import plot_obj_abs_min
 from bo_plotters import plot_3GP_performance
 from bo_plotters import plot_sep_fact_min
-import os
-import Tasmanian
-
-
-##Table of Contents
-#LHS_Design
-#calc_y_exp
-#create_sse_data
-#gen_y_Theta_GP
-# create_y_data
-# test_train_split
-# ExactGPModel
-# train_GP_model
-# calc_GP_outputs
-# calc_ei_emulator
-# eval_GP_emulator_tot
-# calc_ei_basic
-# eval_GP_basic_tot
-# find_opt_and_best_arg
-# eval_GP_scipy
-# eval_GP
-# bo_iter
-# bo_iter_w_runs
-
 
 def LHS_Design(csv_file):
     """
@@ -181,9 +159,7 @@ def gen_y_Theta_GP(x_space, Theta):
         create_y_data_space[i,q] = x_space[i]
     #Generate y data based on parameters
     y_GP_Opt_data = create_y_data(create_y_data_space)
-    return y_GP_Opt_data
-            
-            
+    return y_GP_Opt_data      
 
 def create_y_data(param_space):
     """
@@ -271,6 +247,7 @@ def find_train_doc_path(emulator, obj, t):
     ----------
     obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
     emulator: True/False, Determines if GP will model the function or the function error
+    t: int, The number of total data points
     
     Returns
     -------
@@ -534,7 +511,7 @@ def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, ep_inc = 1
         ep = ep_o
     
     else:
-        if Bo_iter < 30 and ep_o > 0.01: #Works
+        if Bo_iter < 30 and ep_o > 0: #Works
             alpha = -np.log(ep_f/ep_o)/30
             ep = ep_o*np.exp(-alpha*Bo_iter)
         else: 
@@ -542,6 +519,7 @@ def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, ep_inc = 1
     
     return ep
 
+#Approximation
 def EI_approx_ln(epsilon, error_best, pred_mean, pred_stdev, y_target, ep): 
     """ 
     Calculates the integrand of expected improvement of the 3 input parameter GP using the log version
@@ -552,8 +530,7 @@ def EI_approx_ln(epsilon, error_best, pred_mean, pred_stdev, y_target, ep):
         pred_mean: ndarray, model mean
         pred_stdev: ndarray, model stdev
         y_target: ndarray, the expected value of the function from data or other source
-        explore_bias: float, the numerical bias towards exploration, zero is the default
-        obj: str, LN_obj or obj, determines whether log or regular EI function is calculated
+        ep: float, the numerical bias towards exploration, zero is the default
     
     Returns
     -------
@@ -562,7 +539,6 @@ def EI_approx_ln(epsilon, error_best, pred_mean, pred_stdev, y_target, ep):
     EI = ( (error_best - ep) - np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 ) )*norm.pdf(epsilon)
     return EI
     
-#Approximation
 def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, obj = "obj"): #Will need obj toggle soon
     """ 
     Calculates the expected improvement of the 3 input parameter GP
@@ -641,7 +617,7 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
             
     return ei
 
-def eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2, obj = "obj"): #When log is added this will need an extra argument
+def eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2, obj = "obj"):
     """ 
     Calculates the best error of the 3 input parameter GP
     Parameters
@@ -676,16 +652,18 @@ def get_sparse_grids(dim,output=0,depth=3, rule="gauss-hermite", verbose = False
     This function shows the sparse grids generated with different rules
     Parameters:
     -----------
-        range_p: ndarray, dimension ranges of grid parameters. Must be equal to len(Xexp)
         dim: int, sparse grids dimension. Default is zero
         output: int, output level for function that would be interpolated
         depth: int, depth level. Controls density of abscissa points
         rule: str, quadrature rule. Default is 'gauss-legendre'
-        Verbose: bool, determines Whether or not plot of sparse grid is shown. False by default
+        verbose: bool, determines Whether or not plot of sparse grid is shown. False by default
+        alpha: int, specifies the $\alpha$ parameter for the integration weight $\rho(x)$, ignored when rule doesn't have this parameter
+    
     Returns:
     --------
-        weights_p: ndarray, The Gauss-Legendre Quadrature Rule Weights
         points_p: ndarray, The sparse grid points
+        weights_p: ndarray, The Gauss-Legendre Quadrature Rule Weights    
+    
     Other:
     ------
         A figure shows 2D sparse grids (if verbose = True)
@@ -773,6 +751,8 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
         sparse_grid: True/False: Determines whether an assumption or sparse grid method is used
         explore_bias: float, the numerical bias towards exploration, zero is the default
         verbose: bool, Determines whether output is verbose
+        train_p: tensor or ndarray, The training parameter space data
+        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
     
     Returns
     -------
@@ -928,6 +908,7 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
         train_sse: ndarray (1 x t), Training data for sse
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        explore_bias: float, the numerical bias towards exploration, zero is the default
         verbose: True/False: Determines whether z and ei terms are printed
     
     Returns
@@ -1027,7 +1008,9 @@ def find_opt_and_best_arg(theta_mesh, sse, ei, train_p):
     
     #ensures that only one point is used if multiple points yield a minimum
     
-    if len(argmin[0]) != 1:
+    if len(argmin[0]) > 1:
+#         rand_ind = np.random.randint(np.max(argmin[0]))
+#         argmin = np.array([[argmin[0,rand_ind]],[argmin[1,rand_ind]]])
         argmin = np.array([[argmin[0,1]],[argmin[1,1]]])
     
     #Find theta value corresponding to argmin(SSE)
@@ -1040,7 +1023,6 @@ def find_opt_and_best_arg(theta_mesh, sse, ei, train_p):
     argmax = np.array(np.where(np.isclose(ei, np.amax(ei),atol=np.amax(ei)*1e-6)==True))
 
     #ensures that only one point is used if multiple points yield a maximum
-#     print(argmax)
     if len(argmax[0]) > 1:
         argmax = argmax_multiple(argmax, train_p, theta_mesh)
             
@@ -1063,7 +1045,7 @@ def argmax_multiple(argmax, train_p, theta_mesh):
         
     Returns:
     --------
-        argmax: ndarray, The indecies of the parameters that have the maximum ei that is furthest from the rest of the training points
+        argmax_best: ndarray, The indecies of the parameters that have the maximum ei that is furthest from the rest of the training points
     """
     #Initialize max distance and theta arrays
     max_distance_sq = 0
@@ -1105,6 +1087,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
     ----------
         theta_guess: ndarray (1xp), The theta value that will be guessed to optimize 
         train_sse: ndarray (1 x t), Training data for sse
+        train_p: tensor or ndarray, The training parameter space data
         Xexp: ndarray, experimental x values
         Yexp: ndarray, experimental y values
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
@@ -1115,6 +1098,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
         explore_bias: float, Exploration parameter used for calculating 2-Input GP expected improvement
         ei_sse_choice: "neg_ei" or "sse" - Choose which one to optimize
         verbose: True/False - Determines verboseness of output
+        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
     
     Returns
     -------
@@ -1201,6 +1185,7 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,train_p, theta0_b,theta0
         Yexp: ndarray, experimental y values
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         train_y: tensor or ndarray, The training y data
+        train_p: tensor or ndarray, The training parameter space data
         theta0_b: Initial guess of the Theta value where ei is maximized
         theta0_o: Initial guess of the Theta value where sse is minimized
         sse: ndarray (d, p x p), meshgrid of sse values for all points in theta_mesh
@@ -1245,7 +1230,7 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,train_p, theta0_b,theta0
     return theta_b, theta_o
 
 # def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale):  
-def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, test_p = None, obj = "obj"):
+def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, obj = "obj"):
     """
     Evaluates GP
     
@@ -1262,6 +1247,8 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
         emulator: True/False: Determiens whether GP is an emulator of the function
         sparse_grd: True/False: Determines whether an assumption or sparse grid is used
         set_lengthscale: float/None: Determines whether Hyperparameter values will be set
+        train_p: tensor or ndarray, The training parameter space data
+        obj: ob or LN_obj: Determines which objective function is used for the 2 input GP
     
     Returns:
     --------
@@ -1326,17 +1313,19 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: True/False, Determines whether figures will be saved
-        tot_runs
-        DateTime
-        test_p
-        sep_fact: float, Separation factor for train test data, only needed for saving figures
+        tot_runs: The total number of runs to perform
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        test_p: None, tensor, or ndarray, The testing parameter space data. Default None
+        sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
         
         
     Returns:
     --------
-        theta_b: The predicted theta where ei is maximized after all BO iteration
-        theta_o: The predicted theta where objective function is minimized after all BO iterations
-    
+        All_Theta_Best: ndarray, Array of all Best Theta values (as determined by max(ei)) for each iteration 
+        All_Theta_Opt: ndarray, Array of all Optimal Theta values (as determined by min(sse)) for each iteration
+        All_SSE: ndarray, Array of all minimum SSE values (as determined by min(sse)) for each iteration
+        All_SSE_abs_min: ndarray, Array of the absolute minimum SSE values (as determined by min(sse)) at each iteration 
+        Total_BO_iters: int, The number of BO iteration actually completed    
     """
     #Assert Statments
     assert all(isinstance(i, int) for i in [BO_iters, train_iter]), "BO_iters and train_iter must be integers"
@@ -1397,7 +1386,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Set Exploration parameter
         explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
         
-        eval_components = eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, test_p, obj = obj)
+        eval_components = eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj)
         
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
@@ -1559,14 +1548,17 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         emulator: True/False, Determines if GP will model the function or the function error
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: True/False, Determines whether figures will be saved
-        shuffle_seed, int, number of seed for shuffling training data. Default is None.      
-        sep_fact: float, 
+        shuffle_seed, int, number of seed for shuffling training data. Default is None. 
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
         
     Returns:
     --------
+        bo_opt: int, The BO iteration at which the lowest SSE occurs
         run_opt: int, The run at which the lowest SSE occurs
         Theta_Opt_all: ndarray, the theta values/parameter set that maps to the lowest SSE
         SSE_abs_min: float, the absolute minimum SSE found
+        Theta_Best_all: ndarray, the theta values/parameter set that maps to the highest EI
     
     """
     #Assert statements
@@ -1660,4 +1652,4 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     run_opt = int(argmin[0,0]+1)
     bo_opt = int(argmin[1,0]+1)
     
-    return bo_opt, run_opt, Theta_Opt_all, SSE_abs_min, Theta_Best_all, SSE_matrix, Theta_Opt_matrix
+    return bo_opt, run_opt, Theta_Opt_all, SSE_abs_min, Theta_Best_all, SSE_matrix
