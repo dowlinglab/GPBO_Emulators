@@ -7,7 +7,7 @@ if len(argmax[0]) > 1:
     #Loop over Theta1 coord points
     for i in range(len(argmax[0])):
         #Loop over theta 2 coord Points
-        for i in range(len(argmax[1])):
+        for j in range(len(argmax[1])):
             #Create the corresponding argmax point that maps to theta 1 and theta 2 values
             point = np.array([[argmax[0,i]],[argmax[1,j]]])
             
