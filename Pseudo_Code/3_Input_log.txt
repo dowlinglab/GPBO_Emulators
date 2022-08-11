@@ -22,5 +22,6 @@ Step 3) Create new bounds and integrate function in step 1
             bound_upper = np.max([bound_a,bound_b])
             args = (error_best, pred_mean, pred_stdev, y_target, explore_bias)
             ei, abs_err, info_dict = integrate.quad(EI_approx_ln, bound_lower, bound_upper,full_output=1, args = args)
+            #Try https://docs.scipy.org/doc/scipy/tutorial/integrate.html
             
 Step 4) Ensure all places where calc_ei_emulator or eval_GP_emulator_BE is called is called with an "obj" parameter      

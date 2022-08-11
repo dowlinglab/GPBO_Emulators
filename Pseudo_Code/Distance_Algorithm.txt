@@ -24,15 +24,4 @@ if len(argmax[0]) > 1:
         #Set distance to max distance if it is applicable. At the end of the loop, argmax will be the point with the greatest distance.
         if distance_sq > max_distance:
             max_distance = distance_sq
-            argmax = point       
-            
-            
-            
-            ##OLD VERSION
-            #Loop over training data
-            for i in range(len(train_data)):
-                distance += (train_data[i,0] - Theta_Arr[0])**2 + (train_data[i,1] - Theta_Arr[1])**2
-                #Check for greatest distance
-                if distance > max_distance:
-                    max_distance = distance
-                    argmax = point
+            argmax = point
