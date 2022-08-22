@@ -536,7 +536,8 @@ def EI_approx_ln(epsilon, error_best, pred_mean, pred_stdev, y_target, ep):
     -------
         ei: ndarray, the expected improvement for one term of the GP model
     """
-    EI = ( (error_best - ep) - np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 ) )*norm.pdf(epsilon)
+#     EI = ( (error_best - ep) - np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 ) )*norm.pdf(epsilon)
+    EI = ( (error_best*ep) - np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 ) )*norm.pdf(epsilon)
     return EI
     
 def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, obj = "obj"): #Will need obj toggle soon
@@ -571,14 +572,17 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
     if obj == "obj":
         with np.errstate(divide = 'warn'):
             #Creates upper and lower bounds and described by Alex Dowling's Derivation
-            bound_a = ((y_target - pred_mean) +np.sqrt(error_best - explore_bias))/pred_stdev #1xn
-            bound_b = ((y_target - pred_mean) -np.sqrt(error_best - explore_bias))/pred_stdev #1xn
+#             bound_a = ((y_target - pred_mean) +np.sqrt(error_best - explore_bias))/pred_stdev #1xn
+#             bound_b = ((y_target - pred_mean) -np.sqrt(error_best - explore_bias))/pred_stdev #1xn
+            bound_a = ((y_target - pred_mean) +np.sqrt(error_best*explore_bias))/pred_stdev #1xn
+            bound_b = ((y_target - pred_mean) -np.sqrt(error_best*explore_bias))/pred_stdev #1xn
             bound_lower = np.min([bound_a,bound_b])
             bound_upper = np.max([bound_a,bound_b])        
 
             #Creates EI terms in terms of Alex Dowling's Derivation
             ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
-            ei_term1_comp2 = (error_best - explore_bias) - (y_target - pred_mean)**2 #1xn
+#             ei_term1_comp2 = (error_best - explore_bias) - (y_target - pred_mean)**2 #1xn
+            ei_term1_comp2 = (error_best*explore_bias) - (y_target - pred_mean)**2 #1xn
 
             ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
             ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
@@ -601,8 +605,10 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
     else:
         with np.errstate(divide = 'warn'):
             #Creates upper and lower bounds and described by Alex Dowling's Derivation
-            bound_a = ((y_target - pred_mean) +np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
-            bound_b = ((y_target - pred_mean) -np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
+#             bound_a = ((y_target - pred_mean) +np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
+#             bound_b = ((y_target - pred_mean) -np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
+            bound_a = ((y_target - pred_mean) +np.sqrt(np.exp(error_best*explore_bias)))/pred_stdev #1xn
+            bound_b = ((y_target - pred_mean) -np.sqrt(np.exp(error_best*explore_bias)))/pred_stdev #1xn
             bound_lower = np.min([bound_a,bound_b])
             bound_upper = np.max([bound_a,bound_b])
             args = (error_best, pred_mean, pred_stdev, y_target, explore_bias)
@@ -699,42 +705,24 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, e
     """
     #Back out important parameters from inputs
     n = len(Yexp) #Number of experimental data points
-#     print(best_error)
+    
     #Obtain Sparse Grid points and weights
     points_p, weights_p = get_sparse_grids(n,output=0,depth=3, rule='gauss-hermite', verbose = False)
-#     Inside_matrix =  np.zeros((len(points_p),n))
-#     sse_temp_list = np.zeros(len(points_p))
     
-#     print(points_p)
-#     print("GP_mean", GP_mean)
-#     print("GP stdev", np.min(GP_stdev), np.max(GP_stdev))
-#     print("(Yexp - GP_Mean)^2:",(Yexp - GP_mean)**2)
-
     #Initialize EI
     EI_Temp = 0
     #Loop over sparse grid weights and nodes
     for i in range(len(points_p)):
-#         print("Points_p",points_p[i,:])
         #Initialize SSE
         SSE_Temp = 0
-#         Inside_List = np.zeros(n)
         #Loop over experimental data points
         for j in range(n):
-#             Inside_List[j] = (GP_stdev[j]*points_p[i,j])**2
-#             Inside_matrix[i,j] = (GP_stdev[j]*points_p[i,j])**2
-#             print("Point", i, "Exp Point",j,"Inside",Inside_List[j])
             SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
 #             SSE_Temp += (Yexp[j] - GP_mean[j] - ep - GP_stdev[j]*points_p[i,j])**2 #If there is an ep, need to add
-#         sse_temp_list[i] = SSE_Temp
-#         print("Stdev*Points_p:",Inside_List)
         #Apply max operator  
 #         EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Leades to negative EIs
-        EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error-ep),0])) #Leads to zero EIs: #Min values is never negative, so EI is always 0
-#     print(min(weights_p))
-        #All Eis are coming out as zero :(
-#         print(EI_Temp)
-#     print(np.min(sse_temp_list), np.argmin(sse_temp_list))
-#     print(np.min(Inside_matrix), np.max(Inside_matrix))
+#         EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error-ep),0])) #Leads to zero EIs: #Min values is never negative, so EI is always 0
+        EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error*ep),0]))
     return EI_Temp
 
 # def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False):
@@ -780,11 +768,6 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     SSE_var_GP = np.zeros((p,p))
     SSE_stdev_GP = np.zeros((p,p))
     SSE = np.zeros((p,p))
-       
-    ##Will only be useful in 3D plots
-#     y_GP = np.zeros((p,p,n))
-#     stdev_GP = np.zeros((p,p,n))
-#     error_sq_GP = np.zeros((p,p,n))
     
     ##Calculate Best Error
     # Loop over theta 1
@@ -867,6 +850,8 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
     #Converts tensors to np arrays and defines standard deviation
     if torch.is_tensor(pred_mean)==True:
         pred_mean = pred_mean.numpy() #1xn
+    if torch.is_tensor(explore_bias)==True:
+        explore_bias = explore_bias.numpy() #1xn
     if torch.is_tensor(pred_var)==True:
         pred_var = pred_var.detach().numpy() #1xn
     pred_stdev = np.sqrt(pred_var) #1xn_test
@@ -874,13 +859,15 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
     #Checks that all standard deviations are positive
     if pred_stdev > 0:
         #Calculates z-score based on Ke's formula
-        z = (pred_mean - f_best - explore_bias)/pred_stdev #scaler
+#         z = (pred_mean - f_best - explore_bias)/pred_stdev #scaler
+        z = (f_best*explore_bias - pred_mean)/pred_stdev #scaler
+#         z = (pred_mean - f_best*explore_bias)/pred_stdev #scaler
         
         #Calculates ei based on Ke's formula
         #Explotation term
-        
-        #Should we be assuming Mean(z) =0 and stdv(z) =1?
-        ei_term_1 = (pred_mean - f_best - explore_bias)*norm.cdf(z) #scaler
+#         ei_term_1 = (pred_mean - f_best - explore_bias)*norm.cdf(z) #scaler
+        ei_term_1 = (f_best*explore_bias - pred_mean)*norm.cdf(z) #scaler
+#         ei_term_1 = (pred_mean - f_best*explore_bias)*norm.cdf(z) #scaler
         #Exploration Term
         ei_term_2 = pred_stdev*norm.pdf(z) #scaler
         ei = ei_term_1 +ei_term_2 #scaler
@@ -928,8 +915,9 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
     #Calculate and save best error
     #Negative sign because -max(-train_sse) = min(train_sse)
     best_error = -max(-train_sse).numpy() 
+#     best_error = max(-train_sse).numpy()
 
-    p =theta_mesh.shape[1]
+    p = theta_mesh.shape[1]
     #Initalize matricies to save GP outputs and calculations using GP outputs
     ei = np.zeros((p,p))
     sse = np.zeros((p,p))
@@ -968,7 +956,8 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
             #Negative sign because -max(-train_sse) = min(train_sse)
             #Print and save certain values based on verboseness
             if verbose == True:
-                out1, out2, out3, out4, out5, out6 = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+                out1, out2, out3, out4, out5, out6 = calc_ei_basic(best_error,model_sse,model_variance,explore_bias,verbose)
+#                 out1, out2, out3, out4, out5, out6 = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
                 ei[i,j] = out1
                 z_term[i,j] = out2
                 ei_term_1[i,j] = out3
@@ -976,7 +965,8 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
                 CDF[i,j] = out5
                 PDF[i,j] = out6
             else:
-                ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+                ei[i,j] = calc_ei_basic(best_error,model_sse,model_variance,explore_bias,verbose)
+#                 ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
     if verbose == True:
         return ei, sse, var, stdev, best_error, z_term, ei_term_1, ei_term_2, CDF, PDF
     else:
@@ -1132,13 +1122,16 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
 
         #Calculate best error and sse
         #Does the objective function change this? No - As long as they're both logs this will work
-        best_error = max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
+        best_error = -max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
+#         best_error = max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
         sse = model_sse
             #Calculate ei. If statement depends whether ei is the only thing returned by calc_ei_basic function
         if verbose == True:
-            ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0]
+            ei = calc_ei_basic(best_error,model_sse,model_variance,explore_bias,verbose)[0]
+#             ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)[0]
         else:
-            ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+            ei = calc_ei_basic(best_error,model_sse,model_variance,explore_bias,verbose)
+#             ei = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
     
     else:
         ei = 0
@@ -1384,7 +1377,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
 #         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
 
         #Set Exploration parameter
-        explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
+#         explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
+        explore_bias = ep_init #Sets ep to the scaler between 0.1 and 1 
         
         eval_components = eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj)
         
@@ -1440,13 +1434,14 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Prints certain values at each iteration if verbose is True
         if verbose == True:
             print("BO Iteration = ", i+1)
-            Jas_ep = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Jasrasaria")
-            print("Jasrasaria EP:", Jas_ep)
-            Boy_ep = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Boyle", improvement = improvement)
-            print("Boyle EP:", Boy_ep)
-            Exp_ep = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init)
-            print("Exp EP:", Exp_ep)
-            print("Exploration Bias = ",explore_bias)
+#             Jas_ep = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Jasrasaria")
+#             print("Jasrasaria EP:", Jas_ep)
+#             Boy_ep = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Boyle", improvement = improvement)
+#             print("Boyle EP:", Boy_ep)
+#             Exp_ep = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init)
+#             print("Exp EP:", Exp_ep)
+#             print("Exploration Bias = ",explore_bias)
+            print("Exploration Bias Factor = ",explore_bias)
             print("Scipy Theta Best = ",theta_b)
             print("Argmax Theta Best = ",Theta_Best)
             print("Scipy Theta Opt = ",theta_o)
