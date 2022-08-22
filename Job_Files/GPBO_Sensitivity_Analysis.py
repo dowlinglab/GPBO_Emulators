@@ -20,8 +20,8 @@ BO_iters = 100
 runs = 15
 train_iter = 300
 noise_std = 0.1
-shuffle_seed = 6
-t=4
+shuffle_seed = 9
+sep_fact = 1
 explore_bias = torch.tensor([0.5, 0.75, 1, 5])
 set_lengthscale = np.array([None, 0.1, 0.25, 0.5])
 
@@ -58,13 +58,16 @@ for emul in emulator:
     print("-------------------")
     print("Emulator?:", emul)
     if emul == True:
+        t = 100
         obj_use = np.array(["obj"])   
         sparse_grid_use = sparse_grid
     else:
+        t = 20
         obj_use = obj
         sparse_grid_use = np.array([sparse_grid[1]])
         
     for sparse in sparse_grid_use:
+        #Can use only 0 for sparse grid exploration parameter
         if sparse == True:
             ep_use = torch.tensor([0]) 
         else:
