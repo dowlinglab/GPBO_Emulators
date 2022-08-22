@@ -520,7 +520,7 @@ def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, ep_inc = 1
     return ep
 
 #Approximation
-def EI_approx_ln(epsilon, error_best, pred_mean, pred_stdev, y_target, ep): 
+def ei_approx_ln_term(epsilon, error_best, pred_mean, pred_stdev, y_target, ep): 
     """ 
     Calculates the integrand of expected improvement of the 3 input parameter GP using the log version
     Parameters
@@ -537,8 +537,9 @@ def EI_approx_ln(epsilon, error_best, pred_mean, pred_stdev, y_target, ep):
         ei: ndarray, the expected improvement for one term of the GP model
     """
 #     EI = ( (error_best - ep) - np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 ) )*norm.pdf(epsilon)
-    EI = ( (error_best*ep) - np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 ) )*norm.pdf(epsilon)
-    return EI
+    
+    ei_term_2_integral = np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 )*norm.pdf(epsilon)
+    return ei_term_2_integral
     
 def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, obj = "obj"): #Will need obj toggle soon
     """ 
@@ -603,6 +604,7 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
             ei_term3 = -pred_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
             EI = ei_term1 + ei_term2 + ei_term3 #1xn
     else:
+#         print("It's working")
         with np.errstate(divide = 'warn'):
             #Creates upper and lower bounds and described by Alex Dowling's Derivation
 #             bound_a = ((y_target - pred_mean) +np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
@@ -611,16 +613,18 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
             bound_b = ((y_target - pred_mean) -np.sqrt(np.exp(error_best*explore_bias)))/pred_stdev #1xn
             bound_lower = np.min([bound_a,bound_b])
             bound_upper = np.max([bound_a,bound_b])
+            
             args = (error_best, pred_mean, pred_stdev, y_target, explore_bias)
             #This first way is very slow
-#             ei, abs_err = integrate.quad(EI_approx_ln, bound_lower, bound_upper, args = args) 
+#             ei, abs_err = integrate.quad(ei_approx_ln_term, bound_lower, bound_upper, args = args) 
             #This 2nd way throws the error -> too many values to unpack (expected 3) even though 3 values are being unpacked unless you do it like this and not, EI, abs_err, infordict =
-            int_out = integrate.quad(EI_approx_ln, bound_lower, bound_upper, args = args, full_output = 1)
-            EI = int_out[0] 
-            abs_err = int_out[1]
-    
-    ei = EI
-            
+            ei_term_1 = (error_best*explore_bias)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
+            ei_term_2_out = integrate.quad(ei_approx_ln_term, bound_lower, bound_upper, args = args, full_output = 1)
+            ei_term_2 = (-1)*ei_term_2_out[0] 
+            term_2_abs_err = ei_term_2_out[1]
+            EI = ei_term_1 + ei_term_2
+   
+    ei = EI         
     return ei
 
 def eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2, obj = "obj"):
