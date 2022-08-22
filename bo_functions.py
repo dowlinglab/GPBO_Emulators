@@ -615,6 +615,8 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
             bound_upper = np.max([bound_a,bound_b])
             
             args = (error_best, pred_mean, pred_stdev, y_target, explore_bias)
+#             print(bound_lower,bound_upper)
+#             print(error_best, pred_mean, pred_stdev, y_target, explore_bias)
             #This first way is very slow
 #             ei, abs_err = integrate.quad(ei_approx_ln_term, bound_lower, bound_upper, args = args) 
             #This 2nd way throws the error -> too many values to unpack (expected 3) even though 3 values are being unpacked unless you do it like this and not, EI, abs_err, infordict =
@@ -623,6 +625,7 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
             ei_term_2 = (-1)*ei_term_2_out[0] 
             term_2_abs_err = ei_term_2_out[1]
             EI = ei_term_1 + ei_term_2
+#             print(EI)
    
     ei = EI         
     return ei
@@ -795,7 +798,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
                 model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
                 GP_mean[k] = model_mean
-                GP_var[k] = model_variance
+                GP_var[k] = model_variance               
                               
                 #Compute SSE and SSE variance for that point
                 SSE[i,j] += (model_mean - Yexp[k])**2
@@ -813,9 +816,17 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                     EI_temp = calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias, obj)
 #                     print(EI_temp)
                     EI[i,j] += EI_temp
-                           
+                
             GP_stdev = np.sqrt(GP_var)
-
+            
+            #Get testing values for integration
+#             if i == j == 0:
+#                 print("Model mean", GP_mean)
+#                 print("Model stdev", GP_stdev)
+#                 print("EP", explore_bias)
+#                 print("best error", best_error)
+#                 print("y_target", Yexp)
+                
             if sparse_grid == True:
                 #Compute EI using eparse grid
                 EI[i,j] = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, explore_bias, verbose)
