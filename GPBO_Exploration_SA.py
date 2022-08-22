@@ -26,7 +26,7 @@ train_iter = 300
 noise_std = 0.1
 shuffle_seed = 9
 sep_fact = 1
-explore_bias = torch.tensor(np.linspace(0.1,1,2))
+explore_bias = torch.tensor(np.linspace(0.1,1,9))
 set_lengthscale = None
 
 # obj = "obj"
