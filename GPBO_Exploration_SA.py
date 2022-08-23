@@ -21,12 +21,12 @@ DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 #Set Parameters
 Theta_True = np.array([1,-1])
 BO_iters = 100
-runs = 15
+runs = 5
 train_iter = 300
 noise_std = 0.1
 shuffle_seed = 9
 sep_fact = 1
-explore_bias = torch.tensor(np.linspace(0.1,1,9))
+explore_bias = torch.tensor(np.linspace(0.1,1,10))
 set_lengthscale = None
 
 # obj = "obj"
