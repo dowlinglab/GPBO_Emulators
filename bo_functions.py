@@ -1393,7 +1393,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
 
         #Set Exploration parameter
 #         explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
-        explore_bias = ep_init #Sets ep to the scaler between 0.1 and 1 
+        explore_bias = ep_init #Sets ep to the multiplicative scaler between 0.1 and 1 
         
         eval_components = eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj)
         
