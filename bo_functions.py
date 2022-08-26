@@ -537,8 +537,9 @@ def ei_approx_ln_term(epsilon, error_best, pred_mean, pred_stdev, y_target, ep):
         ei: ndarray, the expected improvement for one term of the GP model
     """
 #     EI = ( (error_best - ep) - np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 ) )*norm.pdf(epsilon)
-    
-    ei_term_2_integral = np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 )*norm.pdf(epsilon)
+
+    ei_term_2_integral = np.log( abs((y_target - pred_mean - pred_stdev*epsilon)) )*norm.pdf(epsilon)
+#     ei_term_2_integral = np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 )*norm.pdf(epsilon)
     return ei_term_2_integral
     
 def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, obj = "obj"): #Will need obj toggle soon
@@ -622,7 +623,8 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
             #This 2nd way throws the error -> too many values to unpack (expected 3) even though 3 values are being unpacked unless you do it like this and not, EI, abs_err, infordict =
             ei_term_1 = (error_best*explore_bias)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
             ei_term_2_out = integrate.quad(ei_approx_ln_term, bound_lower, bound_upper, args = args, full_output = 1)
-            ei_term_2 = (-1)*ei_term_2_out[0] 
+            ei_term_2 = (-2)*ei_term_2_out[0] 
+#             ei_term_2 = (-1)*ei_term_2_out[0] 
             term_2_abs_err = ei_term_2_out[1]
             EI = ei_term_1 + ei_term_2
 #             print(EI)
