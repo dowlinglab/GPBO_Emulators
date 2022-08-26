@@ -559,6 +559,10 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
         ei: ndarray, the expected improvement for one term of the GP model
     """
     #Asserts that f_pred is a float, and y_target is an ndarray
+    if isinstance(explore_bias, float)!=True:
+        explore_bias = explore_bias.numpy()
+#     print(explore_bias)
+#     explore_bias = float(explore_bias)
     assert isinstance(error_best, (float,int))==True, "error_best must be a float or integer"
     
     #Coverts any tensors given as inputs to ndarrays         

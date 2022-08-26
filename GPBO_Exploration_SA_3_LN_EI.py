@@ -26,14 +26,15 @@ train_iter = 300
 noise_std = 0.1
 shuffle_seed = 9
 sep_fact = 1
-explore_bias = torch.tensor(np.linspace(0.1,1,10))
+explore_bias = np.linspace(0.1,1,10)
 set_lengthscale = None
+t = 100
 
-obj = np.array(["LN_obj"])
+obj = "LN_obj"
 # obj = np.array(["obj","LN_obj"])
-emulator = np.array([True])
+emulator = True
 # emulator = np.array([False,True])
-sparse_grid = np.array([False])
+sparse_grid = False
 # sparse_grid = np.array([False,True])
 verbose = False
 save_fig = True
@@ -54,42 +55,26 @@ theta_mesh = np.array(np.meshgrid(Theta1, Theta2)) #2 Uniform 5x5 arrays
 print("Runs:", runs)
 print("BO Iterations:",BO_iters)
 print("%%%%%%%%%%%%%%%%%%%%%%%%%%")
-for emul in emulator: 
-    print("-------------------")
-    print("Emulator?:", emul)
-    if emul == True:
-        t = 100
-        obj_use = obj
-        if len(emulator) >= 2:
-            obj_use = np.array(["obj"]) #There is no ln() version for the emulator approximation yet  
-        sparse_grid_use = sparse_grid
-    else:
-        t = 20
-        obj_use = obj
-        sparse_grid_use = np.array([sparse_grid[0]]) #Sparse Grid will always be False for 2-Input
-        
-    for sparse in sparse_grid_use:
-#         #Can set ep to 1 for sparse grid if wanted
-#         if sparse == True:
-#             ep_use = torch.tensor([1]) 
-#         else:
-#             ep_use = explore_bias
-        print("______________________________")
-        print("Sparse Grid?:", sparse)  
 
-        for obj_func in obj_use:
-            all_data_doc = find_train_doc_path(emul, obj_func, t)
-            all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=",")) 
-            print("Objective Function:", obj_func)
-            print("-  -  -  -  -  -  -  -  -  -  -")
-            for i in range(len(explore_bias)):
-                print("Separation Factor Train/Test:", str(np.round(sep_fact,3)))
-                print("Lengthscale Set To:", set_lengthscale)
-                print("Explore Bias Multiplier:", str(np.round(float(explore_bias[i]),3)))
-                results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias[i], Xexp, Yexp,
-                                             noise_std, obj_func, runs, sparse, emul, set_lengthscale, verbose, 
-                                             save_fig, shuffle_seed, DateTime, sep_fact = sep_fact)
-                print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2][0], 
-                          "during run", results[1], "at BO iteration", results[0])
-                print("At this point, the highest EI occurs at \u03B8 =", results[4][0])
-                print("\n")
+print("-------------------")
+print("Emulator?:", emulator)
+print("______________________________")
+print("Sparse Grid?:", sparse_grid)  
+
+
+all_data_doc = find_train_doc_path(emulator, obj, t)
+all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=",")) 
+print("Objective Function:", obj)
+print("-  -  -  -  -  -  -  -  -  -  -")
+for i in range(len(explore_bias)):
+    print("Separation Factor Train/Test:", str(np.round(sep_fact,3)))
+    print("Lengthscale Set To:", set_lengthscale)
+    ep = torch.tensor([float(explore_bias[i])])
+    print("Explore Bias Multiplier:", str(np.round(float(ep),3)))
+    results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,ep, Xexp, Yexp,
+                                 noise_std, obj, runs, sparse_grid, emulator, set_lengthscale, verbose, 
+                                 save_fig, shuffle_seed, DateTime, sep_fact = sep_fact)
+    print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2][0], 
+              "during run", results[1], "at BO iteration", results[0])
+    print("At this point, the highest EI occurs at \u03B8 =", results[4][0])
+    print("\n")
