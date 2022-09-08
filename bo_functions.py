@@ -19,6 +19,36 @@ from bo_plotters import plot_obj_abs_min
 from bo_plotters import plot_3GP_performance
 from bo_plotters import plot_sep_fact_min
 
+def set_ep(emulator, obj, sparse):
+    '''
+    Sets the ep of the method based on results of the ep sensitivity analysis for all 5 methods
+    
+    Parameters:
+    -----------
+        emulator: True/False, Determines if GP will model the function or the function error
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        sparse_grid: Determines whether a sparse grid or approximation is used for the GP emulator
+    Returns:
+    --------
+        ep: float, the optimal ep for the method based on previous analysis
+    '''
+    
+    if emulator == False:
+        if obj == "obj":
+            ep =0.3
+        else:
+            ep = 0.5
+    
+    if emulator == True:
+        if sparse == True:
+            ep = 1
+        else:
+            if obj == "obj":
+                ep = 0.8
+            else:
+                ep = 1
+    return ep
+
 def LHS_Design(csv_file):
     """
     Creates LHS Design based on a CSV
@@ -212,11 +242,11 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     
     """
     #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
-    assert isinstance(sep_fact, (float, int))==True, "Separation factor must be a float or integer"
+    assert isinstance(sep_fact, (float, int))==True or torch.is_tensor(sep_fact)==True, "Separation factor must be a float, int, or tensor"
     assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
     
     #Shuffles Random Data
-    
+#     if sep_fact 
     if shuffle_seed is not None:
         if runs > 1:
              for i in range(runs):
