@@ -26,7 +26,7 @@ train_iter = 300
 noise_std = 0.1
 shuffle_seed = 9
 sep_fact = 1
-explore_bias = torch.tensor(np.linspace(0.1,1,10))
+explore_bias = np.linspace(0.1,1,10)
 set_lengthscale = None
 
 # obj = "obj"
@@ -81,10 +81,11 @@ for emul in emulator:
             print("Objective Function:", obj_func)
             print("-  -  -  -  -  -  -  -  -  -  -")
             for i in range(len(explore_bias)):
+                ep = torch.tensor([float(explore_bias[i])])
                 print("Separation Factor Train/Test:", str(np.round(sep_fact,3)))
                 print("Lengthscale Set To:", set_lengthscale)
-                print("Explore Bias Multiplier:", str(np.round(float(explore_bias[i]),3)))
-                results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias[i], Xexp, Yexp,
+                print("Explore Bias Multiplier:", str(np.round(float(ep),3)))
+                results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,ep, Xexp, Yexp,
                                              noise_std, obj_func, runs, sparse, emul, set_lengthscale, verbose, 
                                              save_fig, shuffle_seed, DateTime, sep_fact = sep_fact)
                 print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2][0], 
