@@ -16,7 +16,7 @@ dateTimeObj = datetime.now()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
-# DateTime = None ##For Testing
+DateTime = None ##For Testing
 
 #Set Parameters
 Theta_True = np.array([1,-1])
@@ -55,20 +55,20 @@ print("Runs:", runs)
 print("BO Iterations:",BO_iters)
 print("%%%%%%%%%%%%%%%%%%%%%%%%%%")
 for emul in emulator: 
+    obj_use = obj
     print("-------------------")
     print("Emulator?:", emul)
     if emul == True:
         t = 100
-        obj_use = np.array(["obj"]) #There is no ln() version for the emulator approximation yet  
         sparse_grid_use = sparse_grid
     else:
         t = 20
-        obj_use = obj
         sparse_grid_use = np.array([sparse_grid[0]]) #Sparse Grid will always be False for 2-Input
         
     for sparse in sparse_grid_use:
 #         #Can set ep to 1 for sparse grid if wanted
-#         if sparse == True:
+        if sparse == True:
+            obj_use =  np.array(["obj"])
 #             ep_use = torch.tensor([1]) 
 #         else:
 #             ep_use = explore_bias
