@@ -7,7 +7,7 @@ import gpytorch
 import scipy.optimize as optimize
 import pandas as pd
 
-from bo_functions import train_GP_model, calc_y_exp, create_sse_data, create_y_data, find_train_doc_path, ExactGPModel, train_GP_model 
+from bo_functions import find_train_doc_path, train_GP_model, calc_y_exp, create_sse_data, create_y_data, find_train_doc_path, ExactGPModel, train_GP_model 
 from bo_functions import calc_GP_outputs, test_train_split
 
 import matplotlib.pyplot as plt
@@ -123,6 +123,9 @@ def LOO_eval_GP(train_y, model, likelihood, verbose, set_lengthscale):
     
     return
 
+def set_eval_point():
+    "Set the Eval point used in LOO_Analysis based off number of dimensions"
+    
 def LOO_Analysis(train_p,train_y, Theta_True, train_iter, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig=False, runs = 1, DateTime=None, test_p = None, LOO = True, LSO = False):
     """
     Performs BO iterations
@@ -233,13 +236,12 @@ def LOO_Analysis(train_p,train_y, Theta_True, train_iter, Xexp, Yexp, noise_std,
 
     return Theta, SSE_GP_Analy
 
-def LSO_LOO_Analysis(all_data_doc,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, sparse_grid, emulator,set_lengthscale, verbose = False, save_fig = False, shuffle_seed = None, DateTime=None, LOO = True, LSO = False):
+def LSO_LOO_Analysis(theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, sparse_grid, emulator,set_lengthscale, len_data, verbose = False, save_fig = False, shuffle_seed = None, DateTime=None, LOO = True, LSO = False):
     """
     Performs BO iterations with runs. A run contains of choosing different initial training data.
     
     Parameters:
     -----------
-        all_data_doc: csv name as a string, contains all training data for GP
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
         train_iter: int, number of training iterations to run. Default is 300
@@ -251,6 +253,7 @@ def LSO_LOO_Analysis(all_data_doc,theta_mesh,Theta_True,train_iter,explore_bias,
         sparse_grid: Determines whether a sparse grid or approximation is used for the GP emulator
         emulator: True/False, Determines if GP will model the function or the function error
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        len_data: int, original number of data points in the document
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: True/False, Determines whether figures will be saved
         shuffle_seed, int, number of seed for shuffling training data. Default is None.  
@@ -270,18 +273,21 @@ def LSO_LOO_Analysis(all_data_doc,theta_mesh,Theta_True,train_iter,explore_bias,
     assert verbose==True or verbose==False, "Verbose must be True/False"
     assert emulator==True or emulator==False, "Verbose must be True/False"
     
+    
     #Find constants
     m = Xexp[0].size #Dimensions of X
     q = len(Theta_True) #Number of parameters to regress
     p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q
     n = len(Xexp)
     BO_iters = 1
-#     sep_facts = np.linspace(0.5,0.99,100)
+#     sep_facts = np.linspace(0.05,0.95,19)
     sep_facts = [0.95, 0.8, 0.7, 0.6, 0.5]
     ln_SSE_GP_Analy_List = []
     dim = m+q #dimensions in a CSV
     
     #Read data from a csv
+    
+    all_data_doc = find_train_doc_path(emulator, obj, len_data)
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
     
     if LOO==True and LSO == False:
