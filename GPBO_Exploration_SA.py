@@ -21,7 +21,7 @@ DateTime = None ##For Testing
 #Set Parameters
 Theta_True = np.array([1,-1])
 BO_iters = 100
-runs = 5
+runs = 1
 train_iter = 300
 noise_std = 0.1
 shuffle_seed = 9
