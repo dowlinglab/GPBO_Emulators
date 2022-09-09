@@ -16,7 +16,7 @@ dateTimeObj = datetime.now()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
-DateTime = None ##For Testing
+# DateTime = None ##For Testing
 
 #Set Parameters
 Theta_True = np.array([1,-1])
