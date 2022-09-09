@@ -10,3 +10,9 @@ X = torch.linalg.solve_triangular(A, B). (Triggered internally at  ../aten/src/A
   ln_sse = np.log(sse)
 /scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
   ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
