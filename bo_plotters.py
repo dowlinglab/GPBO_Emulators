@@ -78,8 +78,9 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
     obj_str = "/"+str(obj)
     len_scl = "/len_scl_varies"
     org_TP_str = "/TP_"+ str(t)
-    ep = str(np.round(float(ep),3))
-    exp_str = "/ep_"+ep
+    if ep != None:
+        ep = str(np.round(float(ep),3))
+        exp_str = "/ep_"+ep
     Bo_itr_str = ""
     sep_fact_str = ""
     run_str = "/Single_Run"
@@ -91,6 +92,8 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
         Emulator = "/GP_Emulator"
         if sparse_grid == True:
             method = "/Sparse"
+        elif sparse_grid == None:
+            method = ""
         else:
             method = "/Approx"
             
@@ -129,76 +132,6 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
        
     return path
 
-def path_name_old(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=1, tot_runs=1, DateTime = None):
-    """
-    names a path
-    
-    Parameters
-    ----------
-        emulator: True/False, Determines if GP will model the function or the function error
-        ep: float, float,int,tensor,ndarray (1 value) The original exploration bias parameter
-        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
-        fxn: str, The name of the function whose file path name will be created
-        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
-        t: int, int, Number of initial data points to use
-        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-        bo_iter: int, integer, number of the specific BO iterations
-        title_save: str or None,  A string containing the title of the file of the plot
-        run, int or None, The iteration of the number of times new training points have been picked
-    Returns:
-        path: str, The path to which the file is saved
-    
-    """
-
-    obj_str = "/"+str(obj)
-    len_scl = "/len_scl_varies"
-    org_TP_str = "/TP_"+ str(t)
-    ep = str(np.round(float(ep),3))
-    exp_str = "/ep_"+ep
-    Bo_itr_str = ""
-    run_str = "/Single_Run"
-    
-    if emulator == False:
-        Emulator = "/GP_Error_Emulator"
-        method = ""
-    else:
-        Emulator = "/GP_Emulator"
-        if sparse_grid == True:
-            method = "/Sparse"
-        else:
-            method = "/Approx"
-            
-    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Theta_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save)}
-    plot = fxn_dict[fxn]
-    
-    if set_lengthscale is not None:
-        len_scl = "/len_scl_"+ str(set_lengthscale)         
-    
-    if bo_iter is not None and tot_iter > 1:
-        Bo_itr_str = "/Iter_" + str(bo_iter+1).zfill(len(str(tot_iter)))  
-#         print("BO",len(str(tot_iter)) , tot_iter)
-
-    if tot_runs > 1:
-        if run == None:
-            run_str = "/Total_Runs_" + str(tot_runs).zfill(len(str(tot_runs))) 
-#         print("Rest",len(str(tot_runs)) , tot_runs)
-        else: run_str = "/Run_" + str(run+1).zfill(len(str(tot_runs)))  
-        
-    if DateTime is not None:
-        path_org = DateTime+"/Figures" 
-    else:
-#         path_org = "Test_Figs"+"/Sep_Analysis"+"/Figures"
-        path_org = "Test_Figs"+"/Figures"
-    path_end = Emulator + method + org_TP_str + obj_str + exp_str + len_scl + run_str+ plot + Bo_itr_str   
-    
-    if fxn in ["value_plotter", "plot_org_train"]:
-        path = path_org + path_end      
-
-    else:
-        path = path_org + "/Convergence_Figs" + path_end 
-       
-    return path
-    
 def plot_3GP_performance(X_space, Y_sim, GP_mean, GP_stdev, Theta, Xexp, train_p = None, train_y = None, test_p = None, test_y = None, verbose = True):
     """
     """
@@ -228,6 +161,36 @@ def plot_3GP_performance(X_space, Y_sim, GP_mean, GP_stdev, Theta, Xexp, train_p
     ax.legend()
     
     return plt.show()
+
+# def plot_2GP_performance(X_space, Y_sim, y_mean, GP_stdev, Theta, Xexp, train_p = None, train_y = None, test_p = None, test_y = None, verbose = True):
+#     """
+#     """
+# #     if verbose == True:
+# #         print("GP Mean",GP_mean)
+# #         print("GP Stdev",GP_stdev)
+# #         print("SSE",sum(GP_mean-Y_sim)**2)
+# #         plt.close()
+#     fig, ax = plt.subplots()
+    
+#     ax.plot(X_space, GP_mean, lw=2, label="GP_mean")
+#     ax.plot(X_space, Y_sim, color = "green", label = "Y_sim")
+# #     if train_p != None:
+# #         ax.scatter(train_p[:,-1], train_y, color = "black", label = "Training")
+#     if test_p != None:
+#         ax.scatter(Xexp, test_y, color = "red", label = "Testing")
+    
+#     ax.fill_between(
+#         X_space,
+#         GP_mean - 1.96 * GP_stdev,
+#         GP_mean + 1.96 * GP_stdev,
+#         alpha=0.3
+#     )
+# #     ax.set_title("GP Mean + confidence interval at"+ str(Theta))
+#     ax.set_xlabel("Xexp")
+#     ax.set_ylabel("Function Value")
+#     ax.legend()
+    
+#     return plt.show()
 
 def plot_hyperparams(iterations, hyperparam, title):
     '''
