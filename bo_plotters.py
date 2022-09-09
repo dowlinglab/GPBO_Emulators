@@ -672,9 +672,6 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     
     plt.scatter(p_GP_best[0],p_GP_best[1], color="black", s=25, label = "GP Best EI Value", marker = ".")
     
-    #Plots axes such that they are scaled the same way (eg. circles look like circles)
-    plt.axis('scaled')
-    
     #Plots grid and legend
 #     plt.grid()
     plt.legend(loc = 'upper right')
