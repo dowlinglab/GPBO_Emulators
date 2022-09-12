@@ -12,8 +12,7 @@ from bo_functions import calc_GP_outputs, test_train_split
 from bo_functions import gen_y_Theta_GP
 
 import matplotlib.pyplot as plt
-from bo_plotters import plot_org_train
-from bo_plotters import plot_3GP_performance
+from bo_plotters_GP_Analysis import plot_org_train, plot_3GP_performance, path_name, save_fig, plot_hyperparams
 
 import os
 import Tasmanian
@@ -127,7 +126,7 @@ def LOO_eval_GP(train_y, model, likelihood, verbose, set_lengthscale):
 def set_eval_point():
     "Set the Eval point used in LOO_Analysis based off number of dimensions"
     
-def LOO_Analysis(train_p,train_y, Theta_True, train_iter, Xexp, Yexp, noise_std, obj, run, emulator, set_lengthscale, verbose = False,save_fig=False, runs = 1, DateTime=None, test_p = None, LOO = True, LSO = False):
+def LOO_Analysis(train_p,train_y, Theta_True, train_iter, Xexp, Yexp, noise_std, obj, run, emulator, set_lengthscale, sep_fact, len_data, verbose = False,save_fig=False, runs = 1, DateTime=None, test_p = None, LOO = True, LSO = False):
     """
     Performs BO iterations
     
@@ -169,7 +168,7 @@ def LOO_Analysis(train_p,train_y, Theta_True, train_iter, Xexp, Yexp, noise_std,
     m = Xexp[0].size #Dimensions of X
     n = len(Xexp) #Length of experimental data
     q = len(Theta_True) #Number of parameters to regress
-    t = len(train_p) #Original length of training data
+    t = len_data
 
     #Ensures GP will take correct # of inputs
     if emulator == True:
@@ -191,10 +190,10 @@ def LOO_Analysis(train_p,train_y, Theta_True, train_iter, Xexp, Yexp, noise_std,
 
     #Create LOO Plots
     if emulator == True:
-        Theta, SSE_GP_Analy = LOO_Plots_3_Input(model, likelihood, Xexp, noise_std, run, verbose = verbose, save_fig=False, runs = runs, DateTime = None, test_p = test_p, LOO = LOO, LSO = LSO)
+        Theta, SSE_GP_Analy = LOO_Plots_3_Input(model, likelihood, Xexp, noise_std, emulator, set_lengthscale, t, obj, sep_fact, verbose = verbose, runs = runs, DateTime = DateTime, test_p = test_p, LOO = LOO, LSO = LSO, save_figure = save_fig)
         
     if emulator == False:
-        Theta, SSE_GP_Analy = LOO_Plots_2_Input(model, likelihood, Xexp, noise_std, run, obj, verbose = verbose, save_fig=False, runs = 1, DateTime=None, test_p = test_p, LOO = LOO, LSO = LSO)
+        Theta, SSE_GP_Analy = LOO_Plots_2_Input(model, likelihood, Xexp, noise_std, run, obj, verbose = verbose, save_fig=save_fig, runs = 1, DateTime = DateTime, test_p = test_p, LOO = LOO, LSO = LSO)
 
     return Theta, SSE_GP_Analy
 
@@ -278,7 +277,7 @@ def LOO_Plots_2_Input(model, likelihood, Xexp, noise_std, run, obj, verbose = Fa
 #     print(Theta)    
     return Theta, SSE_GP_Analy
 
-def LOO_Plots_3_Input(model, likelihood, Xexp, noise_std, run, verbose = False, save_fig=False, runs = 1, DateTime=None, test_p = None, LOO = True, LSO = False):
+def LOO_Plots_3_Input(model, likelihood, Xexp, noise_std, emulator, len_scl, t, obj, sep_fact, verbose = True, runs = 1, DateTime=None, test_p = None, LOO = True, LSO = False, save_figure = False):
     """
      Creates LOO Plots for 3-Input - Note: SSE Calculation is identical for all 3-Input Methods (Sparse, Approx, log(EI) Approx)
     
@@ -290,7 +289,7 @@ def LOO_Plots_3_Input(model, likelihood, Xexp, noise_std, run, verbose = False, 
         run: int, The number of which run you are on
         save_fig: True/False, Determines whether figures will be saved
         DateTime: None or bool, Determines whether the date and time will be used to save figures
-        runs: int, the total number of runs
+        emulator
         test_p: ndarray, test points for GP
         LOO: bool, Determines whether leave one out is a true LOO plot or has random values that are left out
         LSO: bool, determines whether 1 set of training points or multiple training points are left out
@@ -340,15 +339,15 @@ def LOO_Plots_3_Input(model, likelihood, Xexp, noise_std, run, verbose = False, 
 
     Theta = np.array([point[0:2]])[0]
 #     print(Theta)
-    if verbose == True:
+    if verbose == True and save_figure == False:
         print("Showing X/Y Plot for Theta = ",Theta , "with Xexp =", Xexp)
         print("SSE_Total is", SSE_GP_Analy)
          
-        plot_3GP_performance(X_space, y_sim, GP_mean, GP_stdev, Theta, Xexp, test_p = test_p, test_y = test_y, verbose=verbose)
+    plot_3GP_performance(X_space, y_sim, GP_mean, GP_stdev, Theta, Xexp, emulator, len_scl, t, obj, sep_fact, test_p, test_y, verbose, save_figure, DateTime)
         
     return Theta, SSE_GP_Analy
 
-def LSO_LOO_Analysis(theta_mesh,Theta_True,train_iter, Xexp, Yexp, noise_std, obj, emulator,set_lengthscale, len_data, verbose = False, save_fig = False, shuffle_seed = None, DateTime=None, LOO = True, LSO = False):
+def LSO_LOO_Analysis(theta_mesh,Theta_True,train_iter, Xexp, Yexp, noise_std, obj, emulator,set_lengthscale, len_data, verbose = False, save_figure = False, shuffle_seed = None, DateTime=None, LOO = True, LSO = False):
     """
     Performs BO iterations with runs. A run contains of choosing different initial training data.
     
@@ -365,7 +364,7 @@ def LSO_LOO_Analysis(theta_mesh,Theta_True,train_iter, Xexp, Yexp, noise_std, ob
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         len_data: int, original number of data points in the document
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
-        save_fig: True/False, Determines whether figures will be saved
+        save_figure: True/False, Determines whether figures will be saved
         shuffle_seed, int, number of seed for shuffling training data. Default is None.  
         DateTime: None or bool, Determines whether the date and time will be used to save figures
         LOO: Bool, Determines whether leave one out is a true LOO plot or has random values that are left out
@@ -383,7 +382,7 @@ def LSO_LOO_Analysis(theta_mesh,Theta_True,train_iter, Xexp, Yexp, noise_std, ob
     assert verbose==True or verbose==False, "Verbose must be True/False"
     assert emulator==True or emulator==False, "Verbose must be True/False"
     
-    
+    fxn = "LSO_LOO_Analysis"
     #Find constants
     m = Xexp[0].size #Dimensions of X
     q = len(Theta_True) #Number of parameters to regress
@@ -391,18 +390,19 @@ def LSO_LOO_Analysis(theta_mesh,Theta_True,train_iter, Xexp, Yexp, noise_std, ob
     n = len(Xexp)
     BO_iters = 1
     sep_facts = np.linspace(0.05,0.95,19)
-#     sep_facts = [0.95, 0.8, 0.7, 0.6, 0.5]
+#     sep_facts = [0.95, 0.5]
     ln_SSE_GP_Analy_List = []
     dim = m+q #dimensions in a CSV
     
     #Read data from a csv
     
     all_data_doc = find_train_doc_path(emulator, obj, len_data)
-    all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))   
+    all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))  
+    t = len(all_data)
 #     print(all_data)
     
     if LOO==True and LSO == False:
-        runs = 20
+        runs = 20 #Number of training points in theta1, theta2 Ex: 2-Input = 20, 3-Input = 100/5 = 20 
     else: 
         runs = len(sep_facts)
     
@@ -436,11 +436,12 @@ def LSO_LOO_Analysis(theta_mesh,Theta_True,train_iter, Xexp, Yexp, noise_std, ob
         train_y = train_data[:,-1]
         assert len(train_p) == len(train_y), "Training data must be the same length"
                           
+        plot_org_train(theta_mesh, train_p, test_p, Theta_True, emulator, obj, set_lengthscale, save_figure, DateTime, verbose, sep_fact)
 #         plot_org_train(theta_mesh,train_p,Theta_True)
-        plot_org_train(theta_mesh,train_p, test_p, Theta_True, emulator, None, obj, None, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose)
+#         plot_org_train(theta_mesh,train_p, test_p, Theta_True, emulator, None, obj, None, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose)
 
         #Run BO iteration
-        Theta, SSE_for_sep_fact = LOO_Analysis(train_p, train_y, Theta_True, train_iter, Xexp, Yexp, noise_std, obj, i, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p, LOO = LOO, LSO = LSO)
+        Theta, SSE_for_sep_fact = LOO_Analysis(train_p, train_y, Theta_True, train_iter, Xexp, Yexp, noise_std, obj, i, emulator, set_lengthscale, sep_fact, t, verbose, save_figure, runs, DateTime, test_p, LOO = LOO, LSO = LSO)
         ln_SSE_GP_Analy_List.append(np.log(SSE_for_sep_fact))
         
     if LSO==True:
@@ -451,6 +452,12 @@ def LSO_LOO_Analysis(theta_mesh,Theta_True,train_iter, Xexp, Yexp, noise_std, ob
         plt.ylabel("ln(SSE)")
         plt.title("Separation Factor Analysis at Theta = " +str(Theta))
         plt.grid(True)
+        
+        #Save Figure Here
+        if save_figure == True:
+            path = path_name(emulator, fxn, set_lengthscale, t, obj, sep_fact = None, DateTime = DateTime)
+            save_fig(path, ext='png', close=True, verbose=False) 
+        
         plt.show()
         
     return 
