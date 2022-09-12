@@ -4,3 +4,82 @@ X = torch.triangular_solve(B, A).solution
 should be replaced with
 X = torch.linalg.solve_triangular(A, B). (Triggered internally at  ../aten/src/ATen/native/BatchLinearAlgebra.cpp:1672.)
   res = torch.triangular_solve(right_tensor, self.evaluate(), upper=self.upper).solution
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/numpy/core/shape_base.py:65: FutureWarning: The input object of type 'Tensor' is an array-like implementing one of the corresponding protocols (`__array__`, `__array_interface__` or `__array_struct__`); but not a sequence (or 0-D). In the future, this object will be coerced as if it was first converted using `np.array(obj)`. To retain the old behaviour, you have to either modify the type 'Tensor', or assign to an empty array created with `np.empty(correct_shape, dtype=object)`.
+  ary = asanyarray(ary)
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/numpy/core/shape_base.py:65: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
+  ary = asanyarray(ary)
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/numpy/core/shape_base.py:65: FutureWarning: The input object of type 'Tensor' is an array-like implementing one of the corresponding protocols (`__array__`, `__array_interface__` or `__array_struct__`); but not a sequence (or 0-D). In the future, this object will be coerced as if it was first converted using `np.array(obj)`. To retain the old behaviour, you have to either modify the type 'Tensor', or assign to an empty array created with `np.empty(correct_shape, dtype=object)`.
+  ary = asanyarray(ary)
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/numpy/core/shape_base.py:65: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
+  ary = asanyarray(ary)
+Date and Time:  12-Sep-2022 (15:16:17)
+Emulator?: True
+-------------------
+Objective Function: obj
+Lengthscale Set To: None
+Train/Test Separation Factor 0.05
+Train/Test Separation Factor 0.1
+Train/Test Separation Factor 0.15
+Train/Test Separation Factor 0.2
+Train/Test Separation Factor 0.25
+Train/Test Separation Factor 0.3
+Train/Test Separation Factor 0.35
+Train/Test Separation Factor 0.39999999999999997
+Train/Test Separation Factor 0.44999999999999996
+Train/Test Separation Factor 0.49999999999999994
+Train/Test Separation Factor 0.5499999999999999
+Train/Test Separation Factor 0.6
+Train/Test Separation Factor 0.65
+Train/Test Separation Factor 0.7
+Train/Test Separation Factor 0.75
+Train/Test Separation Factor 0.7999999999999999
+Train/Test Separation Factor 0.85
+Train/Test Separation Factor 0.9
+Train/Test Separation Factor 0.95
+-  -  -  -  -  -  -  -  -  -  -
+Emulator?: False
+-------------------
+Objective Function: obj
+Lengthscale Set To: None
+Train/Test Separation Factor 0.05
+Train/Test Separation Factor 0.1
+Train/Test Separation Factor 0.15
+Train/Test Separation Factor 0.2
+Train/Test Separation Factor 0.25
+Train/Test Separation Factor 0.3
+Train/Test Separation Factor 0.35
+Train/Test Separation Factor 0.39999999999999997
+Train/Test Separation Factor 0.44999999999999996
+Train/Test Separation Factor 0.49999999999999994
+Train/Test Separation Factor 0.5499999999999999
+Train/Test Separation Factor 0.6
+Train/Test Separation Factor 0.65
+Train/Test Separation Factor 0.7
+Train/Test Separation Factor 0.75
+Train/Test Separation Factor 0.7999999999999999
+Train/Test Separation Factor 0.85
+Train/Test Separation Factor 0.9
+Train/Test Separation Factor 0.95
+-  -  -  -  -  -  -  -  -  -  -
+Objective Function: LN_obj
+Lengthscale Set To: None
+Train/Test Separation Factor 0.05
+Train/Test Separation Factor 0.1
+Train/Test Separation Factor 0.15
+Train/Test Separation Factor 0.2
+Train/Test Separation Factor 0.25
+Train/Test Separation Factor 0.3
+Train/Test Separation Factor 0.35
+Train/Test Separation Factor 0.39999999999999997
+Train/Test Separation Factor 0.44999999999999996
+Train/Test Separation Factor 0.49999999999999994
+Train/Test Separation Factor 0.5499999999999999
+Train/Test Separation Factor 0.6
+Train/Test Separation Factor 0.65
+Train/Test Separation Factor 0.7
+Train/Test Separation Factor 0.75
+Train/Test Separation Factor 0.7999999999999999
+Train/Test Separation Factor 0.85
+Train/Test Separation Factor 0.9
+Train/Test Separation Factor 0.95
+-  -  -  -  -  -  -  -  -  -  -
