@@ -10,70 +10,23 @@ import pandas as pd
 import os
 import Tasmanian
 
-from bo_plotters import value_plotter
-from bo_plotters import plot_org_train
-from bo_plotters import plot_xy
-from bo_plotters import plot_Theta
-from bo_plotters import plot_obj
-from bo_plotters import plot_obj_abs_min
-from bo_plotters import plot_3GP_performance
-from bo_plotters import plot_sep_fact_min
+from CS2_bo_plotters import value_plotter
+from CS2_bo_plotters import plot_org_train
+from CS2_bo_plotters import plot_xy
+from CS2_bo_plotters import plot_Theta
+from CS2_bo_plotters import plot_obj
+from CS2_bo_plotters import plot_obj_abs_min
+from CS2_bo_plotters import plot_3GP_performance
+from CS2_bo_plotters import plot_sep_fact_min
 
-def set_ep(emulator, obj, sparse):
-    '''
-    Sets the ep of the method based on results of the ep sensitivity analysis for all 5 methods
-    
-    Parameters:
-    -----------
-        emulator: True/False, Determines if GP will model the function or the function error
-        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-        sparse_grid: Determines whether a sparse grid or approximation is used for the GP emulator
-    Returns:
-    --------
-        ep: float, the optimal ep for the method based on previous analysis
-    '''
-    
-    if emulator == False:
-        if obj == "obj":
-            ep =0.3
-        else:
-            ep = 0.5
-    
-    if emulator == True:
-        if sparse == True:
-            ep = 1
-        else:
-            if obj == "obj":
-                ep = 0.8
-            else:
-                ep = 1
-    return ep
 
-def LHS_Design(csv_file):
+def calc_y_exp(Constants_True, x, noise_std, noise_mean=0,random_seed=9):
     """
-    Creates LHS Design based on a CSV
-    Parameters
-    ----------
-        csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
-    Returns
-    -------
-        param_space: ndarray , the parameter space that will be used with the GP
-    """
-    #Asserts that the csv filename is a string
-    assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
-    
-    reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
-    lhs_design = list(reader) #Creates list from CSV
-    param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
-    return param_space
-
-def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
-    """
-    Creates y_data for the 2 input GP function
+    Creates y_data (Muller Potential) for the 2 input GP function
     
     Parameters
     ----------
-        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
+        Constants_True: ndarray, The array containing the true values of a1-a4
         x: ndarray, The list of xs that will be used to generate y
         noise_std: float, int: The standard deviation of the noise
         noise_mean: float, int: The mean of the noise
@@ -82,25 +35,35 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
     Returns:
         y_exp: ndarray, The expected values of y given x data
     """   
-    
-    #Asserts that test_T is a tensor with 2 columns
+   #Asserts that test_T is a tensor with 2 columns
     assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
     assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
-    assert len(Theta_True) ==2, "This function only has 2 unknowns, Theta_True can only contain 2 values."
     
+    try:
+        len_x = x.shape[1]
+    except:
+        len_x = 1
+        len_a = 1
     
+#     print(len_x)
     #Seed Random Noise (For Bug Testing)
     if random_seed != None:
         assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
         np.random.seed(random_seed)
         
     #Creates noise values with a certain stdev and mean from a normal distribution
-    if isinstance(x, np.ndarray):
-        noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
-    else:
-        noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #1x n_x
-    # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
-    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
+    noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
+    
+    # True function is Muller Potential
+    A, a, b, c, x0, y0 = Constants_True
+    y_exp = np.zeros(len_x)
+    
+    for i in range(len_x):
+        X1, X2 = x
+        Term1 = a*(X1[i] - x0)**2
+        Term2 = b*(X1[i] - x0)*(X2[i] - y0)
+        Term3 = c*(X2[i] - y0)**2
+        y_exp[i] = np.sum(A*np.exp(Term1 + Term2 + Term3) ) + noise
   
     return y_exp
 
@@ -157,6 +120,54 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
             sum_error_sq = np.log(sum((y_sim - y_exp)**2)) #Scaler 
     
     return sum_error_sq
+
+def set_ep(emulator, obj, sparse):
+    '''
+    Sets the ep of the method based on results of the ep sensitivity analysis for all 5 methods
+    
+    Parameters:
+    -----------
+        emulator: True/False, Determines if GP will model the function or the function error
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        sparse_grid: Determines whether a sparse grid or approximation is used for the GP emulator
+    Returns:
+    --------
+        ep: float, the optimal ep for the method based on previous analysis
+    '''
+    
+    if emulator == False:
+        if obj == "obj":
+            ep =0.3
+        else:
+            ep = 0.5
+    
+    if emulator == True:
+        if sparse == True:
+            ep = 1
+        else:
+            if obj == "obj":
+                ep = 0.8
+            else:
+                ep = 1
+    return ep
+
+def LHS_Design(csv_file):
+    """
+    Creates LHS Design based on a CSV
+    Parameters
+    ----------
+        csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
+    Returns
+    -------
+        param_space: ndarray , the parameter space that will be used with the GP
+    """
+    #Asserts that the csv filename is a string
+    assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
+    
+    reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
+    lhs_design = list(reader) #Creates list from CSV
+    param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
+    return param_space
 
 def gen_y_Theta_GP(x_space, Theta):
     """

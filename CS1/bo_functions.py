@@ -286,11 +286,11 @@ def find_train_doc_path(emulator, obj, t):
     """
     if emulator == False:
         if obj == "obj":
-            all_data_doc = "../Input_CSVs/Train_Data/all_2_data/t="+str(t)+".csv"   
+            all_data_doc = "Input_CSVs/Train_Data/all_2_data/t="+str(t)+".csv"   
         else:
-            all_data_doc = "../Input_CSVs/Train_Data/all_2_ln_obj_data/t="+str(t)+".csv" 
+            all_data_doc = "Input_CSVs/Train_Data/all_2_ln_obj_data/t="+str(t)+".csv" 
     else:    
-        all_data_doc = "../Input_CSVs/Train_Data/all_3_data/t="+str(t)+".csv" 
+        all_data_doc = "Input_CSVs/Train_Data/all_3_data/t="+str(t)+".csv" 
             
     return all_data_doc
 
