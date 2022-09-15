@@ -117,9 +117,9 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=N
         else: run_str = "/Run_" + str(run+1).zfill(len(str(tot_runs)))  
         
     if DateTime is not None:
-        path_org = DateTime+"/Figures" 
+        path_org = "../"+DateTime+"/Figures" #Will send to the Datetime folder outside of CS1
     else:
-        path_org = "Test_Figs"+"/Figures"
+        path_org = "../Test_Figs"+"/Figures"
 #         path_org = "Test_Figs"+"/Sep_Analysis2"+"/Figures"
         
     path_end = Emulator + method + org_TP_str + obj_str + exp_str + len_scl + sep_fact_str + run_str+ plot + Bo_itr_str   
