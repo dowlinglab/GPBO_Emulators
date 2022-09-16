@@ -8,7 +8,7 @@
 #$ -q long
 #$ -N GP_Output_runs_15_100
 
-export PATH=/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/CS1bin:$PATH
+export PATH=/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/bin:$PATH
 
 export  INPUT=$1
 python3  ${INPUT}
