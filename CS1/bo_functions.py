@@ -16,7 +16,6 @@ from bo_plotters import plot_xy
 from bo_plotters import plot_Theta
 from bo_plotters import plot_obj
 from bo_plotters import plot_obj_abs_min
-from bo_plotters import plot_3GP_performance
 from bo_plotters import plot_sep_fact_min
 
 def set_ep(emulator, obj, sparse):

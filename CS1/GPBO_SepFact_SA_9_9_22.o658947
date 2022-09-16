@@ -1,0 +1,284 @@
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/gpytorch/lazy/triangular_lazy_tensor.py:130: UserWarning: torch.triangular_solve is deprecated in favor of torch.linalg.solve_triangularand will be removed in a future PyTorch release.
+torch.linalg.solve_triangular has its arguments reversed and does not return a copy of one of the inputs.
+X = torch.triangular_solve(B, A).solution
+should be replaced with
+X = torch.linalg.solve_triangular(A, B). (Triggered internally at  ../aten/src/ATen/native/BatchLinearAlgebra.cpp:1672.)
+  res = torch.triangular_solve(right_tensor, self.evaluate(), upper=self.upper).solution
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/bo_functions.py:1517: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+Date and Time:  09-Sep-2022 (13:57:41)
+Runs: 15
+BO Iterations: 100
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+-------------------
+Emulator?: False
+______________________________
+Sparse Grid?: False
+Objective Function: obj
+-  -  -  -  -  -  -  -  -  -  -
+Separation Factor Train/Test: 0.2
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 4.997e-01 occurs at θ = [ 1.13305243 -1.09826763] during run 7 at BO iteration 8
+At this point, the highest EI occurs at θ = [ 0.94736804 -1.15789491]
+
+
+Separation Factor Train/Test: 0.289
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 5.810e-01 occurs at θ = [ 1.21898996 -0.95641271] during run 1 at BO iteration 5
+At this point, the highest EI occurs at θ = [-2. -2.]
+
+
+Separation Factor Train/Test: 0.378
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 9.726e-04 occurs at θ = [ 0.98441808 -1.00412059] during run 3 at BO iteration 44
+At this point, the highest EI occurs at θ = [ 0.94736842 -0.94736841]
+
+
+Separation Factor Train/Test: 0.467
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 2.283e-01 occurs at θ = [ 1.1449273  -1.00732092] during run 10 at BO iteration 66
+At this point, the highest EI occurs at θ = [ 1.15789474 -0.94736838]
+
+
+Separation Factor Train/Test: 0.556
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 1 at BO iteration 16
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 0.644
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 2 at BO iteration 7
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 0.733
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 3 at BO iteration 11
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 0.822
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 3 at BO iteration 9
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 0.911
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 9 at BO iteration 10
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 1.0
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.100e+01 occurs at θ = [ 1.04034073 -1.57163903] during run 13 at BO iteration 100
+At this point, the highest EI occurs at θ = [ 0.94736842 -1.57894737]
+
+
+Objective Function: LN_obj
+-  -  -  -  -  -  -  -  -  -  -
+Separation Factor Train/Test: 0.2
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 4.238e-05 occurs at θ = [ 0.99293641 -1.00317389] during run 2 at BO iteration 94
+At this point, the highest EI occurs at θ = [ 0.10526316 -0.73684211]
+
+
+Separation Factor Train/Test: 0.289
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 3.471e-05 occurs at θ = [ 0.99465395 -1.00352117] during run 4 at BO iteration 77
+At this point, the highest EI occurs at θ = [-1.78947368  2.        ]
+
+
+Separation Factor Train/Test: 0.378
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 3.489e-05 occurs at θ = [ 0.99441184 -1.00367426] during run 6 at BO iteration 69
+At this point, the highest EI occurs at θ = [ 1.78947434 -0.94736842]
+
+
+Separation Factor Train/Test: 0.467
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 3.333e-05 occurs at θ = [ 0.99374019 -1.00304993] during run 6 at BO iteration 83
+At this point, the highest EI occurs at θ = [ 1.00925798 -0.99967212]
+
+
+Separation Factor Train/Test: 0.556
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 2.973e-05 occurs at θ = [ 0.99401351 -1.00328809] during run 14 at BO iteration 96
+At this point, the highest EI occurs at θ = [ 1.58492672 -0.51948769]
+
+
+Separation Factor Train/Test: 0.644
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 5.192e-05 occurs at θ = [ 0.9955149  -1.00333634] during run 12 at BO iteration 94
+At this point, the highest EI occurs at θ = [ 1.15789474 -0.31578947]
+
+
+Separation Factor Train/Test: 0.733
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 3.060e-05 occurs at θ = [ 0.9941927  -1.00348317] during run 10 at BO iteration 63
+At this point, the highest EI occurs at θ = [ 0.32845744 -0.94787822]
+
+
+Separation Factor Train/Test: 0.822
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 3.059e-05 occurs at θ = [ 0.99396288 -1.0035073 ] during run 2 at BO iteration 63
+At this point, the highest EI occurs at θ = [ 0.94736842 -0.31578947]
+
+
+Separation Factor Train/Test: 0.911
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 3.519e-05 occurs at θ = [ 0.99341597 -1.00357787] during run 4 at BO iteration 65
+At this point, the highest EI occurs at θ = [ 0.88372628 -1.05101532]
+
+
+Separation Factor Train/Test: 1.0
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.5
+The GP predicts the lowest SSE of 2.981e-05 occurs at θ = [ 0.9941219  -1.00329495] during run 8 at BO iteration 100
+At this point, the highest EI occurs at θ = [ 0.99485773 -1.0045457 ]
+
+
+-------------------
+Emulator?: True
+______________________________
+Sparse Grid?: False
+Objective Function: obj
+-  -  -  -  -  -  -  -  -  -  -
+Separation Factor Train/Test: 0.2
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 5.207e-04 occurs at θ = [ 0.99649674 -0.99978687] during run 14 at BO iteration 7
+At this point, the highest EI occurs at θ = [ 1.03450963 -0.99726479]
+
+
+Separation Factor Train/Test: 0.289
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 8.607e-04 occurs at θ = [ 1.00028455 -0.99974977] during run 6 at BO iteration 10
+At this point, the highest EI occurs at θ = [ 1.01075147 -1.01075147]
+
+
+Separation Factor Train/Test: 0.378
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 5.595e-04 occurs at θ = [ 0.98757048 -1.00517049] during run 6 at BO iteration 7
+At this point, the highest EI occurs at θ = [ 0.94736842 -0.94736842]
+
+
+Separation Factor Train/Test: 0.467
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 4.546e-04 occurs at θ = [ 0.99448815 -0.99981607] during run 15 at BO iteration 9
+At this point, the highest EI occurs at θ = [ 0.94736842 -0.94736842]
+
+
+Separation Factor Train/Test: 0.556
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 8.967e-04 occurs at θ = [ 0.9977     -0.99870331] during run 6 at BO iteration 5
+At this point, the highest EI occurs at θ = [ 0.9968311 -0.9968311]
+
+
+Separation Factor Train/Test: 0.644
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 2.233e-04 occurs at θ = [ 0.99825125 -1.00268368] during run 12 at BO iteration 7
+At this point, the highest EI occurs at θ = [ 1.05240391 -0.9936585 ]
+
+
+Separation Factor Train/Test: 0.733
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 2.562e-03 occurs at θ = [ 0.99368734 -0.99471389] during run 6 at BO iteration 6
+At this point, the highest EI occurs at θ = [-0.52062826  0.53769084]
+
+
+Separation Factor Train/Test: 0.822
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 2.690e-03 occurs at θ = [ 0.99399272 -0.99449612] during run 6 at BO iteration 41
+At this point, the highest EI occurs at θ = [ 1.16167595 -1.15411352]
+
+
+Separation Factor Train/Test: 0.911
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 2.632e-03 occurs at θ = [ 0.99378497 -0.99459508] during run 1 at BO iteration 79
+At this point, the highest EI occurs at θ = [-0.51729     0.53534158]
+
+
+Separation Factor Train/Test: 1.0
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.8
+The GP predicts the lowest SSE of 2.554e-03 occurs at θ = [ 0.99422209 -0.9947257 ] during run 14 at BO iteration 60
+At this point, the highest EI occurs at θ = [ 1.798639  -1.7798614]
+
+
+Objective Function: LN_obj
+-  -  -  -  -  -  -  -  -  -  -
+Separation Factor Train/Test: 0.2
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 7.262e-05 occurs at θ = [ 0.99500955 -1.00235373] during run 11 at BO iteration 6
+At this point, the highest EI occurs at θ = [ 0.94736842 -0.94736842]
+
+
+Separation Factor Train/Test: 0.289
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 6.156e-04 occurs at θ = [ 1.00066758 -1.00128205] during run 12 at BO iteration 11
+At this point, the highest EI occurs at θ = [ 0.94736842 -1.02476763]
+
+
+Separation Factor Train/Test: 0.378
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+Traceback (most recent call last):
+  File "/scratch365/mcarlozo/Toy_Problem/GPBO_SepFact_SA_All.py", line 89, in <module>
+    results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,ep, Xexp, Yexp,
+  File "/scratch365/mcarlozo/Toy_Problem/bo_functions.py", line 1627, in bo_iter_w_runs
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/util/_decorators.py", line 311, in wrapper
+    return func(*args, **kwargs)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 680, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 575, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 933, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 1217, in _make_engine
+    self.handles = get_handle(  # type: ignore[call-overload]
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/io/common.py", line 789, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: 'Input_CSVs/Train_Data/all_3_data/t=100.csv'
