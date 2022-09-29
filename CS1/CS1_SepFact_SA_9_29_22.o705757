@@ -1,0 +1,13 @@
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 1: import: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 2: import: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 3: import: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 4: import: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 5: import: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 6: from: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 8: from: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 9: from: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 10: from: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 12: import: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 13: mpl.rcParams[figure.dpi]: command not found
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 17: syntax error near unexpected token `('
+/opt/sge/crc/spool/d12chas440/job_scripts/705757: line 17: `dateTimeObj = datetime.now()'
