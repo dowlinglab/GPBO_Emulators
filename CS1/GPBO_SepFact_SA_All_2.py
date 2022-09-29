@@ -1,3 +1,4 @@
+import sys
 import gpytorch
 import numpy as np
 import pandas as pd
@@ -36,7 +37,8 @@ emulator = np.array([True])
 # sparse_grid = np.array([False])
 sparse_grid = np.array([False,True])
 verbose = False
-save_fig = True
+save_fig = False
+# save_fig = True
 
 #Pull Experimental data from CSV
 exp_data_doc = 'Input_CSVs/Exp_Data/n=5.csv'
@@ -55,6 +57,7 @@ print("Runs:", runs)
 print("BO Iterations:",BO_iters)
 print("%%%%%%%%%%%%%%%%%%%%%%%%%%")
 for emul in emulator: 
+    sys.stdout.flush()
     obj_use = obj
     print("-------------------")
     print("Emulator?:", emul)
