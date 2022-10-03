@@ -8,11 +8,10 @@ import os
 import matplotlib.pyplot as plt
 
 
-def save_csv(df, path, ext='csv', verbose=False):
+def save_csv(path, ext='csv', close=True, verbose=True):
     """Save a figure from pyplot.
     Parameters
     ----------
-    df: pd.DataFrame, Dataframe you want to save to a csv
     path : string
         The path (and filename, without the extension) to save the
         figure to.
@@ -39,15 +38,12 @@ def save_csv(df, path, ext='csv', verbose=False):
 
     # The final path to save to
     savepath = os.path.join(directory, filename)
-    
-    df.to_csv(savepath)
 
     if verbose:
-        print("Saving to '%s'..." % savepath),
+        print("Saving figure to '%s'..." % savepath),
 
     if verbose:
         print("Done")
-    return savepath
 
 def save_fig(path, ext='png', close=True, verbose=True):
     """Save a figure from pyplot.
@@ -96,7 +92,7 @@ def save_fig(path, ext='png', close=True, verbose=True):
     if verbose:
         print("Done")
         
-def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter= None, title_save = None, run = None, tot_iter=1, tot_runs=1, DateTime = None, sep_fact = None, is_figure = True, csv_end = None):
+def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter= None, title_save = None, run = None, tot_iter=1, tot_runs=1, DateTime = None, sep_fact = None):
     """
     names a path
     
@@ -159,14 +155,10 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter= 
         else: run_str = "/Run_" + str(run+1).zfill(len(str(tot_runs)))  
         
     if DateTime is not None:
-        path_org = "../"+DateTime #Will send to the Datetime folder outside of CS1
+        path_org = "../"+DateTime+"/Figures" #Will send to the Datetime folder outside of CS1
     else:
-        path_org = "Test_Figs"
+        path_org = "Test_Figs"+"/Figures"
 #         path_org = "Test_Figs"+"/Sep_Analysis2"+"/Figures"
-    if is_figure == True:
-        path_org = path_org + "/Figures"
-    else:
-        path_org = path_org + "/CSV_Data"
         
     path_end = Emulator + method + org_TP_str + obj_str + exp_str + len_scl + sep_fact_str + run_str+ plot + Bo_itr_str   
     
@@ -175,9 +167,6 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter= 
 
     else:
         path = path_org + "/Convergence_Figs" + path_end 
-        
-    if csv_end is not None:
-        path = path + csv_end
        
     return path
 
@@ -205,7 +194,7 @@ def plot_hyperparams(iterations, hyperparam, title):
     plt.grid(True)
     plt.xlabel('Iterations',weight='bold')
     plt.ylabel('Hyperparameter Value',weight='bold')
-#     plt.title("Plot of "+title, weight='bold',fontsize = 16)
+    plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
 def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None):
@@ -272,17 +261,7 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
         plt.ylim((np.amin(yy), np.amax(yy)))
         plt.grid(True)
 #         plt.title("Starting Training Data")
-    
-    df_list_ends = ["test_theta", "train_theta"]
-    df_list = [test_p, train_p]
-    
-    for i in range(len(df_list_ends)):
-        array_df = pd.DataFrame(df_list[i])
-        path_csv = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i])
-    #How to save more efficiently without hardcoding number of columns?
-        save_csv(array_df, path_csv, ext = "csv")
-    
-    
+        
     if save_figure == True:
         path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)  
@@ -380,11 +359,6 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
 #     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
     plt.grid(True)
     
-    #Save CSVs - How to save column names as run #s automatically?
-    obj_abs_min_df = pd.DataFrame(obj_abs_min)
-    path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
-    save_csv(obj_abs_min_df, path_csv, ext = "csv")
-        
     #Save figure path
     if save_figure == True:
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
@@ -434,11 +408,6 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
     plt.ylabel("ln(SSE)")
 #     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
     plt.grid(True)
-    
-    #Save CSVs
-    obj_abs_min_df = pd.DataFrame(obj_abs_min)
-    path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "Min_SSE_Conv_Sep_Fact")
-    save_csv(obj_abs_min_df, path_csv, ext = "csv")
     
     #Save figure path
     if save_figure == True:
@@ -502,9 +471,6 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     plt.grid(True)
     plt.legend(loc = "upper right")
     
-    obj_min_df = pd.DataFrame(obj_array)
-    path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
-    save_csv(obj_min_df, path_csv, ext = "csv")
     
     #Save path and figure
     if save_figure == True:
@@ -576,21 +542,12 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         plt.grid(True)
         plt.legend(loc = "upper left")
         
-        #Save CSVs
-#         print(Theta_array) #Rows = Iterations, columns = runs
-        Theta_array_df = pd.DataFrame(Theta_array.T[j])
-#         print(Theta_array_df)
-        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/Theta_Conv_" +str(j+1))
-        save_csv(Theta_array_df, path_csv, ext = "csv")
-        
         #Save path and figure
         if save_figure == True:
             path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact) + "_" + str(j+1)
             save_fig(path, ext='png', close=True, verbose=False)
             
         plt.show() 
-    #Save CSVs
-
     return
 
 
@@ -665,15 +622,8 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     plt.xlim((np.amin(xx), np.amax(xx)))
     plt.ylim((np.amin(yy),np.amax(yy)))   
     
-    #Back out number of original training points for saving figures and CSVs   
-    df_list = [z, p_GP_opt, p_GP_best]
-    df_list_ends = [str(title_save), "GP_Min_SSE_Pred", "GP_Best_EI_Pred"]
+    #Back out number of original training points for saving figures
     
-    for i in range(len(df_list)):
-        array_df = pd.DataFrame(df_list[i])
-        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i])
-        save_csv(array_df, path_csv, ext = "csv")
-        
     if tot_iter > 1:
 #         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
         
