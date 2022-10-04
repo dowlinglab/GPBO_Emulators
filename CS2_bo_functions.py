@@ -39,9 +39,9 @@ def calc_y_exp(Constants_True, x, noise_std, noise_mean=0,random_seed=9):
     assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
     assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
     
-    try:
-        len_x = x.shape[1]
-    except:
+    if len(x.shape) > 1:
+        len_x = x.shape[0]
+    else:
         len_x = 1
     
 #     print(len_x)
@@ -58,10 +58,10 @@ def calc_y_exp(Constants_True, x, noise_std, noise_mean=0,random_seed=9):
     y_exp = np.zeros(len_x)
     
     for i in range(len_x):
-        X1, X2 = x
-        Term1 = a*(X1[i] - x0)**2
-        Term2 = b*(X1[i] - x0)*(X2[i] - y0)
-        Term3 = c*(X2[i] - y0)**2
+        X1, X2 = x[i]
+        Term1 = a*(X1 - x0)**2
+        Term2 = b*(X1 - x0)*(X2 - y0)
+        Term3 = c*(X2 - y0)**2
         y_exp[i] = np.sum(A*np.exp(Term1 + Term2 + Term3) ) + noise
   
     return y_exp
@@ -88,9 +88,9 @@ def create_sse_data(param_space, x, y_exp, Constants, obj = "obj"):
     #Will need assert statement
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     
-    try:
-        len_x = x.shape[1]
-    except:
+    if len(x.shape) > 1:
+        len_x = x.shape[0]
+    else:
         len_x = 1
         len_a = 1
     
@@ -112,10 +112,10 @@ def create_sse_data(param_space, x, y_exp, Constants, obj = "obj"):
         #Loop over state points (5)
         for j in range(len_x):
             #Calculate y_sim
-            X1, X2 = x
-            Term1 = a*(X1[j] - x0)**2
-            Term2 = b*(X1[j] - x0)*(X2[j] - y0)
-            Term3 = c*(X2[j] - y0)**2
+            X1, X2 = x[j]
+            Term1 = a*(X1 - x0)**2
+            Term2 = b*(X1 - x0)*(X2 - y0)
+            Term3 = c*(X2 - y0)**2
             y_sim[j] = np.sum(A*np.exp(Term1 + Term2 + Term3) )
 #             print(y_sim)
 #             print(y_exp)

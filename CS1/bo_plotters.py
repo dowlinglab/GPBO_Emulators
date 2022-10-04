@@ -338,8 +338,7 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
     if save_figure == False:
 #     if verbose == True and save_figure == False:
         plt.show()
-        
-    plt.close()
+        plt.close()
     
     return 
 
@@ -390,7 +389,9 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison")
     plt.ylabel('Y Value', fontsize=16, fontweight='bold')
 #     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     
-    return plt.show()
+    plt.show()
+    
+    return 
 
 def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None, sep_fact = None):
     '''
@@ -464,7 +465,7 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)
     
-    plt.show()
+#     plt.show()
     
     return 
 
@@ -525,8 +526,6 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
 #     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
 #     plt.grid(True)
     
-    plt.show()
-    
     #Save CSVs
     obj_abs_min_df = pd.DataFrame(obj_abs_min)
     path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "Min_SSE_Conv_Sep_Fact")
@@ -537,6 +536,7 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = None)
         save_fig(path, ext='png', close=True, verbose=False)
     
+#     plt.show()
     return 
 
 def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
@@ -617,7 +617,7 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)
     
-    plt.show()
+#     plt.show()
     
     return 
 
@@ -706,8 +706,7 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
             path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact) + "_" + str(j+1)
             save_fig(path, ext='png', close=True, verbose=False)
             
-        plt.show() 
-    #Save CSVs
+#         plt.show() 
 
     return
 
@@ -842,5 +841,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     #Don't save if there's only 1 BO iteration
 #     else:
 #         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
-           
-    return plt.show()
+    
+#     plt.show()
+    
+    return 

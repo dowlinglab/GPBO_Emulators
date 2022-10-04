@@ -17,7 +17,8 @@ mpl.rcParams['figure.dpi'] = 300
 dateTimeObj = datetime.now()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
-DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
+# DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
+DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 # DateTime = None ##For Testing
 
 #Set Parameters
