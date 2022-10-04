@@ -1,0 +1,10 @@
+Date and Time:  04-Oct-2022 (18:35:30)
+Runs: 15
+BO Iterations: 100
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/gpytorch/lazy/triangular_lazy_tensor.py:130: UserWarning: torch.triangular_solve is deprecated in favor of torch.linalg.solve_triangularand will be removed in a future PyTorch release.
+torch.linalg.solve_triangular has its arguments reversed and does not return a copy of one of the inputs.
+X = torch.triangular_solve(B, A).solution
+should be replaced with
+X = torch.linalg.solve_triangular(A, B). (Triggered internally at  ../aten/src/ATen/native/BatchLinearAlgebra.cpp:1672.)
+  res = torch.triangular_solve(right_tensor, self.evaluate(), upper=self.upper).solution

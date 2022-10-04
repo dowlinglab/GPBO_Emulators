@@ -38,8 +38,8 @@ emulator = np.array([False])
 sparse_grid = np.array([False])
 # sparse_grid = np.array([False,True])
 verbose = False
-save_fig = False
-# save_fig = True
+# save_fig = False
+save_fig = True
 
 #Pull Experimental data from CSV
 exp_data_doc = 'Input_CSVs/Exp_Data/n=5.csv'

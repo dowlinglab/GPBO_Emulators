@@ -18,23 +18,23 @@ dateTimeObj = datetime.now()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
-DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
+DateTime = "Ignore_Me"
 # DateTime = None ##For Testing
 
 #Set Parameters
 Theta_True = np.array([1,-1])
-BO_iters = 100
-runs = 15
+BO_iters = 2
+runs = 2
 train_iter = 300
 noise_std = 0.1
 shuffle_seed = 9
-sep_fact = np.linspace(0.2,1,10)
+sep_fact = np.linspace(0.2,1,2)
 set_lengthscale = None
 
-obj = np.array(["LN_obj"])
+obj = np.array(["obj"])
 # obj = np.array(["obj","LN_obj"])
 # emulator = False
-emulator = np.array([True])
+emulator = np.array([False])
 sparse_grid = np.array([False])
 # sparse_grid = np.array([False,True])
 verbose = False
