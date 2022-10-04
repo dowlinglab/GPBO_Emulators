@@ -10,3 +10,5 @@ X = torch.linalg.solve_triangular(A, B). (Triggered internally at  ../aten/src/A
   res = torch.triangular_solve(right_tensor, self.evaluate(), upper=self.upper).solution
 /afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/numpy/core/fromnumeric.py:86: FutureWarning: The input object of type 'Tensor' is an array-like implementing one of the corresponding protocols (`__array__`, `__array_interface__` or `__array_struct__`); but not a sequence (or 0-D). In the future, this object will be coerced as if it was first converted using `np.array(obj)`. To retain the old behaviour, you have to either modify the type 'Tensor', or assign to an empty array created with `np.empty(correct_shape, dtype=object)`.
   return ufunc.reduce(obj, axis, dtype, out, **passkwargs)
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_plotters.py:755: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`).
+  plt.figure(figsize=(6,6))
