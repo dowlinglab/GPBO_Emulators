@@ -171,6 +171,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter= 
         path_org = "../"+DateTime #Will send to the Datetime folder outside of CS1
     else:
         path_org = "Test_Figs"
+        
 #         path_org = "Test_Figs"+"/Sep_Analysis2"+"/Figures"
     if is_figure == True:
         path_org = path_org + "/Figures"
@@ -187,7 +188,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter= 
         
     if csv_end is not None:
         path = path + csv_end
-       
+#     print(path)   
     return path
 
 def plot_hyperparams(iterations, hyperparam, title):
@@ -465,7 +466,8 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)
     
-#     plt.show()
+    plt.show()
+    plt.close()
     
     return 
 
@@ -536,7 +538,9 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = None)
         save_fig(path, ext='png', close=True, verbose=False)
     
-#     plt.show()
+    plt.show()
+    plt.close()
+    
     return 
 
 def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
@@ -617,7 +621,8 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
         path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
         save_fig(path, ext='png', close=True, verbose=False)
     
-#     plt.show()
+    plt.show()
+    plt.close()
     
     return 
 
@@ -706,7 +711,8 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
             path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact) + "_" + str(j+1)
             save_fig(path, ext='png', close=True, verbose=False)
             
-#         plt.show() 
+        plt.show()
+        plt.close()
 
     return
 
@@ -745,7 +751,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
     assert z.shape==xx.shape, "Array z must be NxN"
     assert len(p_true) ==len(p_GP_opt)==len(p_GP_best)==q, "p_true, p_GP_opt, and p_GP_best must be qx1 for a q input GP"
-    assert isinstance(title, str)==True, "Title must be a string"
+#     assert isinstance(title, str)==True, "Title must be a string"
     assert len(train_p.T) >= q, "Train_p must have at least q columns"
     assert isinstance(Bo_iter,int) == True or Bo_iter == None, "Bo_iter must be an integer or None"
     assert isinstance(obj,str)==True, "Objective function name must be a string" 
@@ -766,6 +772,9 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     else:
         cbar = plt.colorbar(cs, format = '%2.2f')
     
+    if isinstance(title, str)!=True:
+        title = str(title)
+        
     # plot title in color bar
     cbar.ax.set_ylabel(r'$\mathbf{' + title +'}$', fontsize=16, fontweight='bold')
 #     print(p_GP_opt[0],p_GP_opt[1])
@@ -842,6 +851,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
 #     else:
 #         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
     
-#     plt.show()
+    plt.show()
+    plt.close()
     
     return 
