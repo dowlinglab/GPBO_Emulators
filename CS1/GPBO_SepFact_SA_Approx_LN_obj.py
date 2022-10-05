@@ -28,7 +28,7 @@ runs = 15
 train_iter = 300
 noise_std = 0.1
 shuffle_seed = 9
-sep_fact = np.linspace(0.2,1,10)
+sep_fact = np.linspace(0.1,1,10)
 set_lengthscale = None
 
 obj = np.array(["LN_obj"])
