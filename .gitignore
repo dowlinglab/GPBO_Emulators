@@ -1,4 +1,6 @@
 #Ignore pyc files
 
 *.pyc
-*checkpoint.ipnyb
+*checkpoint.ipynb
+2022
+CS1/Test_Figs
