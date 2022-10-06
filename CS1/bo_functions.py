@@ -1388,6 +1388,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     
     #Set arrays to track theta_best, theta_opt, and SSE for every BO iteration
     All_Theta_Best = np.zeros((BO_iters,q)) 
+    All_Theta_abs_Opt = np.zeros((BO_iters,q))
     All_Theta_Opt = np.zeros((BO_iters,q)) 
     All_SSE = np.zeros(BO_iters) #Will save ln(SSE) values
     All_SSE_abs_min = np.zeros(BO_iters) #Will save ln(SSE) values  
@@ -1471,14 +1472,17 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Save best value of SSE for plotting 
         if i == 0:
             All_SSE_abs_min[i] = ln_error_mag
+            All_Theta_abs_Opt[i] = theta_o
             improvement = False
 #             All_SSE_abs_min[i] = sse_opt
         else:
             if All_SSE_abs_min[i-1] >= ln_error_mag:
                 All_SSE_abs_min[i] = ln_error_mag
+                All_Theta_abs_Opt[i] = theta_o
                 improvement = True
             else: 
                 All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
+                All_Theta_abs_Opt[i] = theta_o
                 improvement = False
         
         #Prints certain values at each iteration if verbose is True

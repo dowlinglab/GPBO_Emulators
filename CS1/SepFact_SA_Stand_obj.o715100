@@ -8,3 +8,91 @@ X = torch.triangular_solve(B, A).solution
 should be replaced with
 X = torch.linalg.solve_triangular(A, B). (Triggered internally at  ../aten/src/ATen/native/BatchLinearAlgebra.cpp:1672.)
   res = torch.triangular_solve(right_tensor, self.evaluate(), upper=self.upper).solution
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1516: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1516: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1516: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1516: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1516: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1516: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+-------------------
+Emulator?: False
+______________________________
+Sparse Grid?: False
+Objective Function: obj
+-  -  -  -  -  -  -  -  -  -  -
+Separation Factor Train/Test: 0.1
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.663e-04 occurs at θ = [ 0.99333769 -1.00531307] during run 3 at BO iteration 86
+At this point, the highest EI occurs at θ = [0.9473684  0.10526333]
+
+
+Separation Factor Train/Test: 0.2
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 4.997e-01 occurs at θ = [ 1.13305243 -1.09826763] during run 7 at BO iteration 8
+At this point, the highest EI occurs at θ = [ 0.94736804 -1.15789491]
+
+
+Separation Factor Train/Test: 0.3
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 2.143e-02 occurs at θ = [ 0.94826663 -1.00704819] during run 3 at BO iteration 29
+At this point, the highest EI occurs at θ = [ 0.94736842 -0.94736827]
+
+
+Separation Factor Train/Test: 0.4
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 1 at BO iteration 6
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 0.5
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 1 at BO iteration 22
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 0.6
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 2 at BO iteration 7
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 0.7
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 3 at BO iteration 11
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 0.8
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 3 at BO iteration 9
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 0.9
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.000e+00 occurs at θ = [0. 0.] during run 9 at BO iteration 10
+At this point, the highest EI occurs at θ = [0. 0.]
+
+
+Separation Factor Train/Test: 1.0
+Lengthscale Set To: None
+Explore Bias Multiplier: 0.3
+The GP predicts the lowest SSE of 1.100e+01 occurs at θ = [ 1.04034073 -1.57163903] during run 13 at BO iteration 100
+At this point, the highest EI occurs at θ = [ 0.94736842 -1.57894737]
+
+

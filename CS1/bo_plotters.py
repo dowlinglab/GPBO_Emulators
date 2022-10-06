@@ -148,7 +148,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter= 
         else:
             method = "/Approx"
             
-    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Theta_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis"}
+    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Theta_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis", "plot_Theta_min":"/Theta_Conv_min"}
     plot = fxn_dict[fxn]
     
     if sep_fact is not None:
@@ -704,6 +704,96 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         Theta_array_df = pd.DataFrame(Theta_array.T[j])
 #         print(Theta_array_df)
         path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/Theta_Conv_" +str(j+1))
+        save_csv(Theta_array_df, path_csv, ext = "csv")
+        
+        #Save path and figure
+        if save_figure == True:
+            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact) + "_" + str(j+1)
+            save_fig(path, ext='png', close=True, verbose=False)
+            
+        plt.show()
+        plt.close()
+
+    return
+
+def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure,tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
+    """
+    Plots the objective function and best Theta values so far vs BO iteration
+    
+    Parameters
+    ----------
+        obj_array: ndarry, (nx1): The output array containing objective function values
+        Theta_array: ndarray, (nxq): The output array containing objective function values
+        Theta_True: ndarray, Used for plotting Theta Values
+        t: int, Number of initial training points to use
+        bo_iters: integer, number of BO iterations
+        obj: string, name of objective function. Default "obj"
+        ep: int or float, exploration parameter. Used for naming
+        emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        save_figure: True/False, Determines whether figures will be saved
+        runs: int, The number of times to choose new training points
+    
+    Returns:
+    --------
+        Plots of obj vs BO_iter and Plots of Theta vs BO_iter
+    """
+    assert isinstance(obj,str)==True, "Objective function name must be a string"
+    if not isinstance(Theta_array, np.ndarray):
+        Theta_array = np.array(Theta_array)
+    fxn = "plot_Theta_min"
+    #Find value of q from given information
+    q = len(Theta_True)
+    #Create x axis as # of bo iterations
+#     bo_space = np.linspace(1,bo_iters,bo_iters)
+    #Set a string for exploration parameter and initial number of training points
+    bo_lens = np.zeros(tot_runs)
+    #Make multiple plots for each parameter
+    #Loop over number of parameters
+    for j in range(q):
+        plt.figure(figsize = (6.4,4))
+        
+        #Loop over runs and plot
+        for i in range(tot_runs):
+            Theta_j_df = pd.DataFrame(data = Theta_array[i])
+            #Plot more than 1 line if there are many runs
+            if tot_runs > 1:
+                label = r'$\theta_' +str({j+1})+"$" + " Run: "+str(i+1)         
+            else:
+                label = r'$\theta_' +str({j+1})+"$"
+                
+            Theta_j_df_i = Theta_j_df.loc[(abs(Theta_j_df) > 1e-6).any(axis=1),j]
+            bo_len = len(Theta_j_df_i)
+            bo_lens[i] = bo_len
+            bo_space = np.linspace(1,bo_len,bo_len)
+            plt.step(bo_space, Theta_j_df_i, label = label)
+#             plt.step(bo_space, Theta_array[i,:,j], label = label)
+        
+        #Set plot details
+        
+        bo_len_max = int(np.max(bo_lens))
+        bo_space_long = np.linspace(1,bo_len_max,bo_len_max)
+        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = r'$\theta_{true,'+str(j+1)+'}$')
+        plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
+        plt.tight_layout()
+        plt.xlabel("BO Iterations",fontsize=16,fontweight='bold')
+        plt.ylabel(r'$\mathbf{\theta_' + str({j+1})+"}$",fontsize=16,fontweight='bold')
+#         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
+#         plt.grid(True)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        plt.tick_params(direction="in",top=True, right=True)
+        plt.locator_params(axis='y', nbins=5)
+        plt.locator_params(axis='x', nbins=5)
+        plt.minorticks_on() # turn on minor ticks
+        plt.tick_params(which="minor",direction="in",top=True, right=True)
+        
+        
+        #Save CSVs
+        Theta_array_df = pd.DataFrame(Theta_array.T[j])
+#         print(Theta_array_df)
+        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/Theta_Conv_min" +str(j+1))
         save_csv(Theta_array_df, path_csv, ext = "csv")
         
         #Save path and figure
