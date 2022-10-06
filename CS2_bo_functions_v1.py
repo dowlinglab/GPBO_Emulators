@@ -178,7 +178,6 @@ def create_y_data(param_space, Constants):
    
     return y_sim
 
-
 def set_ep(emulator, obj, sparse):
     '''
     Sets the ep of the method based on results of the ep sensitivity analysis for all 5 methods
@@ -227,97 +226,6 @@ def LHS_Design(csv_file):
     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
     return param_space
 
-def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
-    """
-    Creates y_data for the 2 input GP function
-    
-    Parameters
-    ----------
-        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
-        x: ndarray, The list of xs that will be used to generate y
-        noise_std: float, int: The standard deviation of the noise
-        noise_mean: float, int: The mean of the noise
-        random_seed: int: The random seed
-        
-    Returns:
-        y_exp: ndarray, The expected values of y given x data
-    """   
-    
-    #Asserts that test_T is a tensor with 2 columns
-    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
-    assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
-    assert len(Theta_True) ==2, "This function only has 2 unknowns, Theta_True can only contain 2 values."
-    
-    
-    #Seed Random Noise (For Bug Testing)
-    if random_seed != None:
-        assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
-        np.random.seed(random_seed)
-        
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    if isinstance(x, np.ndarray):
-        noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
-    else:
-        noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #1x n_x
-    # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
-    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
-  
-    return y_exp
-
-def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
-    """
-    Creates y_data for the 2 input GP function
-    
-    Parameters
-    ----------
-        q: int, Number of parameters to be regressed
-        train_T: ndarray, The array containing the training data for Theta1 and Theta2
-        x: ndarray, The list of xs that will be used to generate y
-        y_exp: ndarray, The experimental data for y (the true value)
-        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-        
-    Returns:
-        sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
-    """   
-    
-    #Asserts that test_T is a tensor with 2 columns (May delete this)
-    assert isinstance(q, int), "Number of inputs must be an integer"
-#     print(train_T.T)    
-    if torch.is_tensor(train_T)==True:
-        assert len(train_T.permute(*torch.arange(train_T.ndim -1, -1, -1))) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
-    else:
-        assert len(train_T.T) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
-    assert len(x) == len(y_exp), "Xexp and Yexp must be the same length"
-    assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
-    
-    try: #For the case where more than 1 point is geing generated
-        #Creates an array for train_sse that will be filled with the for loop
-        sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
-
-        #Iterates over evey combination of theta to find the SSE for each combination
-        for i in range(len(train_T)):
-            theta_1 = train_T[i,0] #n_train^2x1 
-            theta_2 = train_T[i,1] #n_train^2x1
-            y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-            if obj == "obj":
-                sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
-            else:
-                sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
-    except:
-         #Creates a value for train_sse that will be filled with the for loop
-        sum_error_sq = 0 #1 x n_train^2
-
-        #Iterates over x to find the SSE for each combination
-        theta_1 = train_T[0] #n_train^2x1 
-        theta_2 = train_T[1] #n_train^2x1
-        y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-        if obj == "obj":
-            sum_error_sq = sum((y_sim - y_exp)**2) #Scaler 
-        else:
-            sum_error_sq = np.log(sum((y_sim - y_exp)**2)) #Scaler 
-    
-    return sum_error_sq
-
 def gen_y_Theta_GP(x_space, Theta):
     """
     Generates an array of Best Theta Value and X to create y data
@@ -350,41 +258,6 @@ def gen_y_Theta_GP(x_space, Theta):
     #Generate y data based on parameters
     y_GP_Opt_data = create_y_data(create_y_data_space)
     return y_GP_Opt_data      
-
-def create_y_data(param_space):
-    """
-    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
-    Parameters
-    ----------
-        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
-    Returns
-    -------
-        y_data: ndarray, The simulated y training data
-    """
-    #Assert statements check that the types defined in the doctring are satisfied
-    assert len(param_space.T) >= 3, "Parameter space must have at least 3 parameters"
-    
-    #Converts parameters to numpy arrays if they are tensors
-    if torch.is_tensor(param_space)==True:
-        param_space = param_space.numpy()
-        
-    #Creates an array for train_data that will be filled with the for loop
-    y_data = np.zeros(len(param_space)) #1 x n (row x col)
-    
-    try: #Used when multiple values of y are being calculated
-        #Iterates over evey combination of theta to find the expected y value for each combination
-        for i in range(len(param_space)):
-            theta_1 = param_space[i,0] #nx1 
-            theta_2 = param_space[i,1] #nx1
-            x = param_space[i,2] #nx1 
-            y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
-            #Returns all_y
-    except:
-        theta_1 = param_space[0] #nx1 
-        theta_2 = param_space[1] #nx1
-        x = param_space[2] #nx1 
-        y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
-    return y_data
 
 def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     """
@@ -1549,7 +1422,6 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     
     #Set arrays to track theta_best, theta_opt, and SSE for every BO iteration
     All_Theta_Best = np.zeros((BO_iters,q)) 
-    All_Theta_abs_Opt = np.zeros((BO_iters,q))
     All_Theta_Opt = np.zeros((BO_iters,q)) 
     All_SSE = np.zeros(BO_iters) #Will save ln(SSE) values
     All_SSE_abs_min = np.zeros(BO_iters) #Will save ln(SSE) values  
@@ -1633,17 +1505,14 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Save best value of SSE for plotting 
         if i == 0:
             All_SSE_abs_min[i] = ln_error_mag
-            All_Theta_abs_Opt[i] = theta_o
             improvement = False
 #             All_SSE_abs_min[i] = sse_opt
         else:
             if All_SSE_abs_min[i-1] >= ln_error_mag:
                 All_SSE_abs_min[i] = ln_error_mag
-                All_Theta_abs_Opt[i] = theta_o
                 improvement = True
             else: 
                 All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
-                All_Theta_abs_Opt[i] = theta_o
                 improvement = False
         
         #Prints certain values at each iteration if verbose is True
@@ -1665,10 +1534,10 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         
         #Prints figures if more than 1 BO iter is happening
         if emulator == False:
-            titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2','\sigma','Best_Error','z','EI_term_1','EI_term_2','CDF','PDF']  
+            titles = ["EI","ln(SSE)","$\sigma^2$","$\sigma$","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"]  
             titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"] 
         else:
-            titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2', '\sigma', 'Best_Error']  
+            titles = ["EI","ln(SSE)","$\sigma^2$","$\sigma$","Best_Error"]  
             titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error"] 
         
         #Plot and save figures for all figrues for EI and SSE
@@ -1781,7 +1650,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     assert isinstance(runs, int) == True, "Number of runs must be an integer"
     
     #Find constants
-#     m = Xexp[0].size #Dimensions of X
+    m = Xexp[0].size #Dimensions of X
     q = len(Theta_True) #Number of parameters to regress
     p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q
     ep0 = explore_bias
@@ -1799,8 +1668,8 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     Total_BO_iters_matrix = np.zeros(runs)
     
     #Set theta mesh grids
-#     theta1_mesh = theta_mesh[0]
-#     theta2_mesh = theta_mesh[1]
+    theta1_mesh = theta_mesh[0]
+    theta2_mesh = theta_mesh[1]
     
     #Loop over # runs
     for i in range(runs):
