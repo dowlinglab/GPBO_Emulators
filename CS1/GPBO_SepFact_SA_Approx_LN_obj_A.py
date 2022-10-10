@@ -28,8 +28,8 @@ runs = 15
 train_iter = 300
 noise_std = 0.1
 shuffle_seed = 9
-sep_fact = np.linspace(0.1,1,10)
-# sep_fact = np.linspace(0.1,0.5,5)
+# sep_fact = np.linspace(0.1,1,10)
+sep_fact = np.linspace(0.1,0.5,5)
 # sep_fact = np.linspace(0.6,1,5)
 
 set_lengthscale = None

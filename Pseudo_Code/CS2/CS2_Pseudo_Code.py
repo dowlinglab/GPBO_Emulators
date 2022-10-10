@@ -24,16 +24,19 @@
             # calc_GP_outputs()
         # Calculate things like EI, SSE, stdev, etcs.
             #Need to modify eval_GP_emulator_tot() and eval_GP_basic_tot() to efficiently enumerate all points,
+                #Itertools.combinations()
             #Need to save SSE reults in an pxp array , otherwise, it's the same
             #Not sure how to do this well
             
 
     # 6) Use grid search to find initial guesses for parameters
         #Same except not sure how to expand to multiple dimensions efficiently
+            #Option 1: Grid Search w/ #Itertools.combinations()
+            #Option 2: LHS
         # Need to Modify find_opt_and_best_arg() & argmax_multiple()
 
     # 7) Use Scipy to find the true values of max(EI) and min(SSE) parameter sets
-        #Need to modify eval_GP_scipy() to multiple dimensions
+        #Need to modify eval_GP_scipy() to multiple dimensions #Itertools.combinations()
         #point = [theta_guess]
         #OR for emulator versions
         #point = [theta_guess]
