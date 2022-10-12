@@ -25,7 +25,7 @@
         # Calculate things like EI, SSE, stdev, etcs.
             #Need to modify eval_GP_emulator_tot() and eval_GP_basic_tot() to efficiently enumerate all points,
                 #Itertools.combinations()
-            #Need to save SSE reults in an pxp array , otherwise, it's the same
+            #Need to save SSE reults in an 8d pxp array , otherwise, it's the same
             #Not sure how to do this well
             
 

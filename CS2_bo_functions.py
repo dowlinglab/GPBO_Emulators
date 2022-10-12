@@ -71,7 +71,6 @@ def create_sse_data(param_space, x, y_exp, Constants, obj = "obj"):
     
     Parameters
     ----------
-        #WILL NEED CONSTANTS
         param_space: ndarray, The array containing the data for Theta1 and Theta2
         x: ndarray, The list of xs that will be used to generate y
         y_exp: ndarray, The experimental data for y (the true value)
@@ -179,6 +178,7 @@ def create_y_data(param_space, Constants):
     return y_sim
 
 
+#This will need to change eventually
 def set_ep(emulator, obj, sparse):
     '''
     Sets the ep of the method based on results of the ep sensitivity analysis for all 5 methods
@@ -227,96 +227,6 @@ def LHS_Design(csv_file):
     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
     return param_space
 
-# def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
-#     """
-#     Creates y_data for the 2 input GP function
-    
-#     Parameters
-#     ----------
-#         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
-#         x: ndarray, The list of xs that will be used to generate y
-#         noise_std: float, int: The standard deviation of the noise
-#         noise_mean: float, int: The mean of the noise
-#         random_seed: int: The random seed
-        
-#     Returns:
-#         y_exp: ndarray, The expected values of y given x data
-#     """   
-    
-#     #Asserts that test_T is a tensor with 2 columns
-#     assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
-#     assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
-#     assert len(Theta_True) ==2, "This function only has 2 unknowns, Theta_True can only contain 2 values."
-    
-    
-#     #Seed Random Noise (For Bug Testing)
-#     if random_seed != None:
-#         assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
-#         np.random.seed(random_seed)
-        
-#     #Creates noise values with a certain stdev and mean from a normal distribution
-#     if isinstance(x, np.ndarray):
-#         noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
-#     else:
-#         noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #1x n_x
-#     # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
-#     y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
-  
-#     return y_exp
-
-# def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
-#     """
-#     Creates y_data for the 2 input GP function
-    
-#     Parameters
-#     ----------
-#         q: int, Number of parameters to be regressed
-#         train_T: ndarray, The array containing the training data for Theta1 and Theta2
-#         x: ndarray, The list of xs that will be used to generate y
-#         y_exp: ndarray, The experimental data for y (the true value)
-#         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-        
-#     Returns:
-#         sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
-#     """   
-    
-#     #Asserts that test_T is a tensor with 2 columns (May delete this)
-#     assert isinstance(q, int), "Number of inputs must be an integer"
-# #     print(train_T.T)    
-#     if torch.is_tensor(train_T)==True:
-#         assert len(train_T.permute(*torch.arange(train_T.ndim -1, -1, -1))) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
-#     else:
-#         assert len(train_T.T) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
-#     assert len(x) == len(y_exp), "Xexp and Yexp must be the same length"
-#     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
-    
-#     try: #For the case where more than 1 point is geing generated
-#         #Creates an array for train_sse that will be filled with the for loop
-#         sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
-
-#         #Iterates over evey combination of theta to find the SSE for each combination
-#         for i in range(len(train_T)):
-#             theta_1 = train_T[i,0] #n_train^2x1 
-#             theta_2 = train_T[i,1] #n_train^2x1
-#             y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-#             if obj == "obj":
-#                 sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
-#             else:
-#                 sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
-#     except:
-#          #Creates a value for train_sse that will be filled with the for loop
-#         sum_error_sq = 0 #1 x n_train^2
-
-#         #Iterates over x to find the SSE for each combination
-#         theta_1 = train_T[0] #n_train^2x1 
-#         theta_2 = train_T[1] #n_train^2x1
-#         y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-#         if obj == "obj":
-#             sum_error_sq = sum((y_sim - y_exp)**2) #Scaler 
-#         else:
-#             sum_error_sq = np.log(sum((y_sim - y_exp)**2)) #Scaler 
-    
-#     return sum_error_sq
 
 def gen_y_Theta_GP(x_space, Theta):
     """
@@ -350,41 +260,6 @@ def gen_y_Theta_GP(x_space, Theta):
     #Generate y data based on parameters
     y_GP_Opt_data = create_y_data(create_y_data_space)
     return y_GP_Opt_data      
-
-# def create_y_data(param_space):
-#     """
-#     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
-#     Parameters
-#     ----------
-#         param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
-#     Returns
-#     -------
-#         y_data: ndarray, The simulated y training data
-#     """
-#     #Assert statements check that the types defined in the doctring are satisfied
-#     assert len(param_space.T) >= 3, "Parameter space must have at least 3 parameters"
-    
-#     #Converts parameters to numpy arrays if they are tensors
-#     if torch.is_tensor(param_space)==True:
-#         param_space = param_space.numpy()
-        
-#     #Creates an array for train_data that will be filled with the for loop
-#     y_data = np.zeros(len(param_space)) #1 x n (row x col)
-    
-#     try: #Used when multiple values of y are being calculated
-#         #Iterates over evey combination of theta to find the expected y value for each combination
-#         for i in range(len(param_space)):
-#             theta_1 = param_space[i,0] #nx1 
-#             theta_2 = param_space[i,1] #nx1
-#             x = param_space[i,2] #nx1 
-#             y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
-#             #Returns all_y
-#     except:
-#         theta_1 = param_space[0] #nx1 
-#         theta_2 = param_space[1] #nx1
-#         x = param_space[2] #nx1 
-#         y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
-#     return y_data
 
 def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     """
@@ -849,7 +724,8 @@ def eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2, obj = "obj"):
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     SSE = np.zeros(t_train)
     for i in range(t_train):
-        SSE[i] = create_sse_data(q,train_p[i], Xexp, Yexp, obj= obj)     
+        SSE[i] = create_sse_data(q,train_p[i], Xexp, Yexp, obj= obj) 
+        #SSE[i] = create_sse_data(train_p[i], Xexp, Yexp, Constants, obj = obj)
 
     #Define best_error as the minimum SSE or ln(SSE) value
     best_error = np.amin(SSE)
@@ -895,7 +771,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, e
     ----------
         Xexp: ndarray, experimental x value
         Yexp: ndarray, experimental y values
-        theta_mesh:  ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        theta_mesh:  ndarray (d, p x p), meshgrid of Theta1 and Theta2 (GET RID OF THIS)
         GP_mean: ndarray, Array of GP mean values at each experimental data point
         GP_stdev: ndarray, Array of GP standard deviation values at each experimental data point
         best_error: float, the best error of the 3-Input GP model
@@ -928,7 +804,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, e
         EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error*ep),0]))
     return EI_Temp
 
-# def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False):
+
 def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False, train_p = None, obj = "obj"):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
@@ -962,22 +838,41 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     #Create theta1 and theta2 mesh grids
+    
+    #The next 3 lines won't be needed
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
     assert len(theta2_mesh)==len(theta1_mesh), "theta_mesh must be dim, pxp arrays"
     
     #Create an array in which to store expected improvement values
-    EI = np.zeros((p,p)) #(p1 x p2)
+    
+    #These will need to be 8 dimensional and will be redefined - See below
+    EI = np.zeros((p,p)) #(p1 x p2) 
     SSE_var_GP = np.zeros((p,p))
     SSE_stdev_GP = np.zeros((p,p))
     SSE = np.zeros((p,p))
     
     ##Calculate Best Error
     # Loop over theta 1
-    best_error = eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2, obj = obj)
+    best_error = eval_GP_emulator_BE(Xexp,Yexp, train_p, q=2, obj = obj) #Need to take q as an argument now
     
+    #Create all iteration permulations - Takes a very long time for 8 dimensions
+    #Theta = np.linspace(-2,2,10) (insert this instead of a a theta mesh (everything will be scaled from 0-1 in Muller problem)
+    #df = pd.DataFrame(list(itertools.product(Theta, repeat=8)))
+    #df2 = df.drop_duplicates()
+    #theta_list = df2.to_numpy()
+    
+    #Alternatively can we just do an LHS here too?
+    
+    #Save as an array of length(theta_list) and reshape at the end
+    #EI = np.zeros(len(theta_list)))
+    #SSE_var_GP = np.zeros(len(theta_list)))
+    #SSE_stdev_GP = np.zeros(len(theta_list)))
+    #SSE = np.zeros(len(theta_list)))
+
     # Loop over theta 1
-    for i in range(p):
+    for i in range(p): #Loop over number of combinations instead
+    #For i in range(theta_list.shape[0])
         #Loop over theta2
         for j in range(p):
             #Loop over Xexp
@@ -988,7 +883,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
             ##Calculate EI
             for k in range(n):
                 #Caclulate EI for each value n given the best error
-                point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]]
+                point = [theta1_mesh[i,j],theta2_mesh[i,j],Xexp[k]] #point = [theta_list[i],Xexp[k]]
                 eval_point = np.array([point])
                 GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
                 model_mean = GP_Outputs[3].numpy()[0] #1xn
@@ -998,20 +893,25 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                               
                 #Compute SSE and SSE variance for that point
                 SSE[i,j] += (model_mean - Yexp[k])**2
+                #Replace with SSE[i] = ....
                 
                 error_point = (model_mean - Yexp[k]) #This SSE_variance CAN be negative
                 SSE_var_GP[i,j] += 2*error_point*model_variance #Error Propogation approach
+                #Replace with SSE_var_GP[i] = ....
                 
                 if SSE_var_GP[i,j] > 0:
                     SSE_stdev_GP[i,j] = np.sqrt(SSE_var_GP[i,j])
+                    #Replace with SSE_stdev_GP[i] = ....
                 else:
                     SSE_stdev_GP[i,j] = np.sqrt(np.abs(SSE_var_GP[i,j]))
+                    #Replace with SSE_stdev_GP[i] = ....
                     
                 if sparse_grid == False:
                     #Compute EI w/ approximation
                     EI_temp = calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias, obj)
 #                     print(EI_temp)
                     EI[i,j] += EI_temp
+                    #Replace with EI[i] = ....
                 
             GP_stdev = np.sqrt(GP_var)
             
@@ -1024,12 +924,19 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
 #                 print("y_target", Yexp)
                 
             if sparse_grid == True:
-                #Compute EI using eparse grid
+                #Compute EI using eparse grid (Note theta_mesh not actually needed here)
                 EI[i,j] = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, explore_bias, verbose)
+                #Replace with EI[i] = ....
         
 #     SSE_stdev_GP = np.sqrt(SSE_var_GP)
 #     if verbose == True:
 #         print(EI)
+
+    #Reshape to correct dimensions
+    #EI.reshape((20, 20,2)).T
+    #SSE.reshape(...
+    #SSE_var_GP.reshape(...
+    #SSE_stdev_GP.reshape(...
     return EI, SSE, SSE_var_GP, SSE_stdev_GP, best_error
 
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
@@ -1129,6 +1036,8 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
 #     best_error = max(-train_sse).numpy()
 
     p = theta_mesh.shape[1]
+    
+    #These will be redone
     #Initalize matricies to save GP outputs and calculations using GP outputs
     ei = np.zeros((p,p))
     sse = np.zeros((p,p))
@@ -1141,16 +1050,39 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
         ei_term_2 = np.zeros((p,p))
         CDF = np.zeros((p,p))
         PDF = np.zeros((p,p))
+        
+        
+    #Create all iteration permulations - Takes a very long time for 8 dimensions
+    #Theta = np.linspace(-2,2,10) (insert this instead of a a theta mesh (everything will be scaled from 0-1 in Muller problem)
+    #df = pd.DataFrame(list(itertools.product(Theta, repeat=8)))
+    #df2 = df.drop_duplicates()
+    #theta_list = df2.to_numpy()
     
-    #Separate Theta_mesh
+    #Alternatively can we just do an LHS here too?
+    
+    #Save as an array of length(theta_list) and reshape at the end
+    #ei = np.zeros(len(theta_list)))
+    #sse = np.zeros(len(theta_list)))
+    #var = np.zeros(len(theta_list)))
+    #stdev = np.zeros(len(theta_list)))
+#     if verbose == True:
+#         z_term = np.zeros(len(theta_list))
+#         ei_term_1 = np.zeros(len(theta_list))
+#         ei_term_2 = np.zeros(len(theta_list))
+#         CDF = np.zeros(len(theta_list))
+#         PDF = np.zeros(len(theta_list))
+    
+    #Separate Theta_mesh (We will delete these)
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
     
     for i in range(p):
+    #For i in range(theta_list.shape[0]) (Loop over just combos instead)
         #Loop over Theta_2
         for j in range(p):
             #Choose and evaluate point
             point = [theta1_mesh[i,j],theta2_mesh[i,j]]
+            #point = [theta_list[i]]
             eval_point = np.array([point])
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
             model_sse = GP_Outputs[3].numpy()[0] #1xn
@@ -1161,8 +1093,11 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
 #                 print("Model Var", model_variance)
             #Save GP outputs
             sse[i,j] = model_sse
+            #sse[i] = ...
             var[i,j] = model_variance
-            stdev[i,j] = np.sqrt(model_variance)      
+            #var[i] = ...
+            stdev[i,j] = np.sqrt(model_variance)  
+            #stdev[i] = ...
 
             #Negative sign because -max(-train_sse) = min(train_sse)
             #Print and save certain values based on verboseness
@@ -1170,21 +1105,31 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
                 out1, out2, out3, out4, out5, out6 = calc_ei_basic(best_error,model_sse,model_variance,explore_bias,verbose)
 #                 out1, out2, out3, out4, out5, out6 = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
                 ei[i,j] = out1
+                #ei[i] = ...
                 z_term[i,j] = out2
+                #z_term[i] = ...
                 ei_term_1[i,j] = out3
+                #ei_term_1[i] = ...
                 ei_term_2[i,j] = out4
+                #ei_term_2[i] = ...
                 CDF[i,j] = out5
+                #CDF[i] = ...
                 PDF[i,j] = out6
+                #PDF[i] = ...
             else:
                 ei[i,j] = calc_ei_basic(best_error,model_sse,model_variance,explore_bias,verbose)
+                #ei[i] = ...
 #                 ei[i,j] = calc_ei_basic(best_error,-model_sse,model_variance,explore_bias,verbose)
+    #Reshape Variables
+    #ei.reshape((20, 20,2)).T (and others)
+    
     if verbose == True:
         return ei, sse, var, stdev, best_error, z_term, ei_term_1, ei_term_2, CDF, PDF
     else:
         return ei, sse, var, stdev, best_error #Prints just the value
 #         return ei, sse, var, stdev, f_best
 
-def find_opt_and_best_arg(theta_mesh, sse, ei, train_p):
+def find_opt_and_best_arg(theta_mesh, sse, ei, train_p): #Not quite sure how to fix setting of points yet
     """
     Finds the Theta value where min(sse) or min(-ei) is true using argmax and argmin
     
@@ -1234,7 +1179,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei, train_p):
     
     return Theta_Best, Theta_Opt_GP
 
-def argmax_multiple(argmax, train_p, theta_mesh):
+def argmax_multiple(argmax, train_p, theta_mesh): #not sure how to fix setting of points here either
     """
     Finds the best ei point argument when more than one point has the maximum ei
     
@@ -1317,7 +1262,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
     
     #Separates meshgrid
     q = len(theta_guess)
-    p = theta_mesh.shape[1]
+    p = theta_mesh.shape[1] #Infer from something else
     n = len(Xexp)
     
     theta1_guess = theta_guess[0]
@@ -1326,6 +1271,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
     #Evaluate a point with the GP and save values for GP mean and var
     if emulator == False:
         point = [theta1_guess,theta2_guess]
+        #point = [theta_guess]
         eval_point = np.array([point])
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         model_sse = GP_Outputs[3].numpy()[0] #1xn 
@@ -1367,7 +1313,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
                 ei += calc_ei_emulator(best_error, model_mean, model_variance, Yexp[k], explore_bias, obj)
            
         if sparse_grid == True:
-            #Compute EI using sparse grid
+            #Compute EI using sparse grid #Note theta_mesh not actually needed here
             ei = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, explore_bias)
                 
             
@@ -1415,6 +1361,10 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,train_p, theta0_b,theta0
     #Set theta meshes and bounds
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
+    
+    # bound = np.array([0,1])
+    # bounds = (np.repeat(x,8))
+    # bnds = bounds.reshape(-1,8).T
     bnds = [[np.amin(theta1_mesh), np.amax(theta1_mesh)], [np.amin(theta2_mesh), np.amax(theta2_mesh)]]
     
     #Use L-BFGS Method with scipy.minimize to find theta_opt and theta_best
@@ -1422,6 +1372,7 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,train_p, theta0_b,theta0
     ei_sse_choice2 = "sse"
     
     #Set arguments and calculate best and optimal solutions
+    #remove theta_mesh from these eventually
     argmts_best = ((train_y, train_p, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice1))
     argmts_opt = ((train_y, train_p, Xexp, Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice2))
     Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds,method = "L-BFGS-B",args=argmts_best)
@@ -1432,6 +1383,8 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,train_p, theta0_b,theta0
     theta_o = Opt_Solution.x  
     
     return theta_b, theta_o
+
+#STOPPED COMMENTING HERE
 
 # def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale):  
 def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, obj = "obj"):
