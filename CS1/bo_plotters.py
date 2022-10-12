@@ -258,10 +258,11 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
         
         #plot training data and true values
         plt.scatter(train_p[:,0],train_p[:,1], color="green",s=50, label = "Training Data", marker = "x")
-        try:
-            plt.scatter(test_p[:,0],test_p[:,1], color="red",s=25, label = "Testing Data", marker = "x")
-        except:
-            plt.scatter(test_p[0],test_p[1], color="red",s=25, label = "Testing Data", marker = "x")
+        if len(test_p) > 0:
+            try:
+                plt.scatter(test_p[:,0],test_p[:,1], color="red",s=25, label = "Testing Data", marker = "x")
+            except:
+                plt.scatter(test_p[0],test_p[1], color="red",s=25, label = "Testing Data", marker = "x")
         plt.scatter(p_true[0],p_true[1], color="blue", label = "True argmin" + r'$(e(\theta))$', s=100, marker = (5,1))
         #Set plot details
         plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
@@ -300,10 +301,11 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
     
         # Plot the values
         ax.scatter(train_p[:,0], train_p[:,1], train_p[:,2], color = "green", s=50, label = "Training Data", marker='o')
-        try:
-            ax.scatter(test_p[:,0],test_p[:,1], test_p[:,2], color="red", s=25, label = "Testing Data", marker = "x")
-        except:
-            ax.scatter(test_p[0],test_p[1], test_p[2], color="red",s=25, label = "Testing Data", marker = "x")
+        if len(test_p) > 0:
+            try:
+                ax.scatter(test_p[:,0],test_p[:,1], test_p[:,2], color="red", s=25, label = "Testing Data", marker = "x")
+            except:
+                ax.scatter(test_p[0],test_p[1], test_p[2], color="red",s=25, label = "Testing Data", marker = "x")
             
         ax.scatter(p_true_3D_full[:,0], p_true_3D_full[:,1], p_true_3D_full[:,2], color="blue", label = "True argmin" + r'$(e(\theta))$', 
                     s=100, marker = (5,1))
