@@ -19,6 +19,28 @@ from CS2_bo_plotters import plot_obj_abs_min
 from CS2_bo_plotters import plot_3GP_performance
 from CS2_bo_plotters import plot_sep_fact_min
 
+def LHS_Design(num_points, dimensions, seed = None, bounds = None):
+    """
+    Design LHS Samples
+    
+    Parameters
+    ----------
+        num_points: int, number of points in LHS, should be greater than # of dimensions
+        dimensions: int, number of parameters to be regressed
+        bounds (optional): ndarray, array containing upper and lower bounds of elements in LHS sample. Defaults of 0 and 1
+        seed (optional): int, seed of random generation
+    Returns
+    -------
+        LHS: ndarray, Array of LHS sampling points
+    """
+    sampler = qmc.LatinHypercube(d=dimensions, seed = seed)
+    LHS = sampler.random(n=num_points)
+    
+    if bounds is not None:
+        LHS = qmc.scale(LHS, bounds[0], bounds[1])
+
+    return LHS
+
 def calc_y_exp(Constants_True, x, noise_std, noise_mean=0,random_seed=9):
     """
     Creates y_data (Muller Potential) for the 2 input GP function
@@ -209,23 +231,23 @@ def set_ep(emulator, obj, sparse):
                 ep = 1
     return ep
 
-def LHS_Design(csv_file):
-    """
-    Creates LHS Design based on a CSV
-    Parameters
-    ----------
-        csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
-    Returns
-    -------
-        param_space: ndarray , the parameter space that will be used with the GP
-    """
-    #Asserts that the csv filename is a string
-    assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
+# def LHS_Design(csv_file):
+#     """
+#     Creates LHS Design based on a CSV
+#     Parameters
+#     ----------
+#         csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
+#     Returns
+#     -------
+#         param_space: ndarray , the parameter space that will be used with the GP
+#     """
+#     #Asserts that the csv filename is a string
+#     assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
     
-    reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
-    lhs_design = list(reader) #Creates list from CSV
-    param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
-    return param_space
+#     reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
+#     lhs_design = list(reader) #Creates list from CSV
+#     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
+#     return param_space
 
 
 def gen_y_Theta_GP(x_space, Theta):
@@ -861,7 +883,12 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     #df2 = df.drop_duplicates()
     #theta_list = df2.to_numpy()
     
-    #Alternatively can we just do an LHS here too?
+    #Alternatively can we just do an LHS here too? IF SO:
+    #Set bounds and seed
+    #theta_list = LHS_Design(num_points, dimensions, seed = 9, bounds = bounds)
+    #dim_list = np.linspace(0,q-1,q)
+    #mesh_combos = np.array(list(combinations_with_replacement(a, 2)))
+    #For LHS version initialize as shape (len(mesh_combos), p1, p2) and use same method as what is here already.
     
     #Save as an array of length(theta_list) and reshape at the end
     #EI = np.zeros(len(theta_list)))
@@ -869,9 +896,15 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     #SSE_stdev_GP = np.zeros(len(theta_list)))
     #SSE = np.zeros(len(theta_list)))
 
+    #Commented code for next few lines is for LHS method only
+    #For LHS, Loop over number of theta combinations
+    #for i in range(len(mesh_combos)):
+    #Create meshgrid
+        #theta1_mesh, theta2_mesh = np.meshgrid(LHS_reshape[int(l[i,0])],LHS_reshape[int(l[i,1])])
+    #
     # Loop over theta 1
-    for i in range(p): #Loop over number of combinations instead
-    #For i in range(theta_list.shape[0])
+    for i in range(p): #Loop over number of combinations instead (for itertools version)
+    #For i in range(theta_list.shape[0]):    
         #Loop over theta2
         for j in range(p):
             #Loop over Xexp
@@ -932,7 +965,9 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
 #         print(EI)
 
     #Reshape to correct dimensions
-    #EI.reshape((20, 20,2)).T
+    #For itertools combos method
+    #EI.reshape((20, 20,2)).T #(final shape should be (q,20,20)
+    #For LHS method, final shape for lists will be (num_combos, 20,20)
     #SSE.reshape(...
     #SSE_var_GP.reshape(...
     #SSE_stdev_GP.reshape(...
@@ -1057,7 +1092,18 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
     #df2 = df.drop_duplicates()
     #theta_list = df2.to_numpy()
     
-    #Alternatively can we just do an LHS here too?
+    #Alternatively can we just do an LHS here too? IF SO:
+    #Set bounds and seed
+    #theta_list = LHS_Design(num_points, dimensions, seed = 9, bounds = bounds)
+    #dim_list = np.linspace(0,q-1,q)
+    #mesh_combos = np.array(list(combinations_with_replacement(a, 2)))
+    #For LHS version initialize as shape (len(mesh_combos), p1, p2) and use same method as what is here already.
+    
+    #Commented code for next few lines is for LHS method only
+    #For LHS, Loop over number of theta combinations
+    #for i in range(len(mesh_combos)):
+    #Create meshgrid
+        #theta1_mesh, theta2_mesh = np.meshgrid(LHS_reshape[int(l[i,0])],LHS_reshape[int(l[i,1])])
     
     #Save as an array of length(theta_list) and reshape at the end
     #ei = np.zeros(len(theta_list)))
