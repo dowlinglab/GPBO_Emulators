@@ -1155,11 +1155,19 @@ def find_opt_and_best_arg(theta_mesh, sse, ei, train_p): #Not quite sure how to 
     #ensures that only one point is used if multiple points yield a minimum
     
     if len(argmin[0]) > 1:
-#         rand_ind = np.random.randint(np.max(argmin[0]))
-#         argmin = np.array([[argmin[0,rand_ind]],[argmin[1,rand_ind]]])
-        argmin = np.array([[argmin[0,1]],[argmin[1,1]]])
+#         rand_ind = np.random.randint(np.max(argmin[0])) #Chooses a random point with the minimum value
+#         argmin = argmin[:,rand_ind]
+        argmin = np.array([[argmin[0,1]],[argmin[1,1]]]) #Replace with above
     
     #Find theta value corresponding to argmin(SSE)
+    
+    #Initialize Theta_Opt_GP
+    #Theta_Opt_GP = np.zeros(sse.shape[0]) #2,4,8,12,etc...
+    #Loop over number of thetas
+    #for i in range(sse.shape[0]
+        #Theta_Opt_GP[i] = theta_mesh[i,argmin]
+        #Will this syntax actually work?
+        #How to actually back out thetas? Should I still be using a mesh at all?
     Theta_1_Opt = float(theta1_mesh[argmin[0],argmin[1]])
     Theta_2_Opt = float(theta2_mesh[argmin[0],argmin[1]])
     Theta_Opt_GP = np.array((Theta_1_Opt,Theta_2_Opt))
@@ -1173,6 +1181,13 @@ def find_opt_and_best_arg(theta_mesh, sse, ei, train_p): #Not quite sure how to 
         argmax = argmax_multiple(argmax, train_p, theta_mesh)
             
     #Find theta value corresponding to argmax(EI)
+    #Initialize Theta_Best
+    #Theta_Best = np.zeros(sse.shape[0]) #2,4,8,12,etc...
+    #Loop over number of thetas
+    #for i in range(sse.shape[0]
+        #Theta_Best[i] = theta_mesh[i,argmax]
+        #Will this syntax actually work?
+        #How to actually back out thetas? Should I still be using a mesh at all?
     Theta_1_Best = float(theta1_mesh[argmax[0],argmax[1]])
     Theta_2_Best = float(theta2_mesh[argmax[0],argmax[1]])
     Theta_Best = np.array((Theta_1_Best,Theta_2_Best))
@@ -1196,26 +1211,38 @@ def argmax_multiple(argmax, train_p, theta_mesh): #not sure how to fix setting o
     #Initialize max distance and theta arrays
     max_distance_sq = 0
     q = len(argmax)
+    
+    #Initialize 
     theta1_mesh = theta_mesh[0]
     theta2_mesh = theta_mesh[1]
+    #argmax_best = np.zeros(len(argmin[:,0]))
     argmax_best = np.array([[0],[0]])
     #Only use this algorithm when >1 points have the max ei
     #Create avg x y pt for training data
+    #train_T12_avg = np.average(train_p, axis =0)
     train_T12_avg = np.array([np.average(train_p[:,0]), np.average(train_p[:,1])])
-    assert len(argmax[0]) == len(argmax[1]), "Ensure argmax arrays are the same length"
+#     assert len(argmax[0]) == len(argmax[1]), "Ensure argmax arrays are the same length"
 
     #Check each point in argmax with all training points and find max distance
     #Loop over all coord points
     for i in range(len(argmax[0])):
         #Create the corresponding argmax point that maps to theta 1 and theta 2 values
+        # point= np.array(argmin[:,i])
         point = np.array([[argmax[0,i]],[argmax[1,i]]])
 
         #Find theta value corresponding to argmax(EI)
+        
+        #Initialize Theta_Arr
+        #Theta_Arr = np.zeros(len(point))
+        #Loop over # of thetas and add best thetas to the list
+        #for i in range(len(point)):
+            #Theta_Arr[i] = float(theta_mesh[point])
         Theta_1 = float(theta1_mesh[point[0],point[1]])
         Theta_2 = float(theta2_mesh[point[0],point[1]])
         Theta_Arr = np.array((Theta_1,Theta_2))
 
         #Calculate Distance
+        #distance_sq = np.sum((train_T12_avg - Theta_Arr)**2)
         distance_sq = (train_T12_avg[0] - Theta_Arr[0])**2 + (train_T12_avg[1] - Theta_Arr[1])**2
 
         #Set distance to max distance if it is applicable. At the end of the loop, argmax will be the point with the greatest distance.
@@ -1383,8 +1410,6 @@ def find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y,train_p, theta0_b,theta0
     theta_o = Opt_Solution.x  
     
     return theta_b, theta_o
-
-#STOPPED COMMENTING HERE
 
 # def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale):  
 def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, obj = "obj"):
@@ -1805,6 +1830,8 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     
     #Find point corresponding to absolute minimum SSE and max(-ei) at that point
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
+    
+    #Not sure how to generalize this last part
     if len(argmin) != q: #How to generalize next line?
         argmin = np.array([[argmin[0]],[argmin[1]]])
 #     print(argmin)

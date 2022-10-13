@@ -16,3 +16,85 @@ BO Iterations: 100
   return ufunc.reduce(obj, axis, dtype, out, **passkwargs)
 /afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/numpy/core/fromnumeric.py:86: FutureWarning: The input object of type 'Tensor' is an array-like implementing one of the corresponding protocols (`__array__`, `__array_interface__` or `__array_struct__`); but not a sequence (or 0-D). In the future, this object will be coerced as if it was first converted using `np.array(obj)`. To retain the old behaviour, you have to either modify the type 'Tensor', or assign to an empty array created with `np.empty(correct_shape, dtype=object)`.
   return ufunc.reduce(obj, axis, dtype, out, **passkwargs)
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/numpy/core/fromnumeric.py:86: FutureWarning: The input object of type 'Tensor' is an array-like implementing one of the corresponding protocols (`__array__`, `__array_interface__` or `__array_struct__`); but not a sequence (or 0-D). In the future, this object will be coerced as if it was first converted using `np.array(obj)`. To retain the old behaviour, you have to either modify the type 'Tensor', or assign to an empty array created with `np.empty(correct_shape, dtype=object)`.
+  return ufunc.reduce(obj, axis, dtype, out, **passkwargs)
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/numpy/core/fromnumeric.py:86: FutureWarning: The input object of type 'Tensor' is an array-like implementing one of the corresponding protocols (`__array__`, `__array_interface__` or `__array_struct__`); but not a sequence (or 0-D). In the future, this object will be coerced as if it was first converted using `np.array(obj)`. To retain the old behaviour, you have to either modify the type 'Tensor', or assign to an empty array created with `np.empty(correct_shape, dtype=object)`.
+  return ufunc.reduce(obj, axis, dtype, out, **passkwargs)
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/numpy/core/fromnumeric.py:86: FutureWarning: The input object of type 'Tensor' is an array-like implementing one of the corresponding protocols (`__array__`, `__array_interface__` or `__array_struct__`); but not a sequence (or 0-D). In the future, this object will be coerced as if it was first converted using `np.array(obj)`. To retain the old behaviour, you have to either modify the type 'Tensor', or assign to an empty array created with `np.empty(correct_shape, dtype=object)`.
+  return ufunc.reduce(obj, axis, dtype, out, **passkwargs)
+-------------------
+Emulator?: True
+______________________________
+Sparse Grid?: True
+Objective Function: obj
+-  -  -  -  -  -  -  -  -  -  -
+Separation Factor Train/Test: 0.1
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 7.912e-01 occurs at θ = [ 1.19204873 -0.89500599] during run 2 at BO iteration 2
+At this point, the highest EI occurs at θ = [ 2. -2.]
+
+
+Separation Factor Train/Test: 0.2
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 9.490e-01 occurs at θ = [ 0.7608077  -0.89418591] during run 5 at BO iteration 1
+At this point, the highest EI occurs at θ = [2. 2.]
+
+
+Separation Factor Train/Test: 0.3
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 5.071e-01 occurs at θ = [ 0.77076789 -1.0193174 ] during run 5 at BO iteration 1
+At this point, the highest EI occurs at θ = [2. 2.]
+
+
+Separation Factor Train/Test: 0.4
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 1.545e-01 occurs at θ = [ 0.89446011 -1.04369145] during run 7 at BO iteration 2
+At this point, the highest EI occurs at θ = [ 2. -2.]
+
+
+Separation Factor Train/Test: 0.5
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 2.269e-03 occurs at θ = [ 0.99179447 -0.99531665] during run 4 at BO iteration 10
+At this point, the highest EI occurs at θ = [ 1.00051478 -0.9944792 ]
+
+
+Separation Factor Train/Test: 0.6
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 1.828e-03 occurs at θ = [ 0.99384819 -0.99607024] during run 15 at BO iteration 10
+At this point, the highest EI occurs at θ = [-2.  2.]
+
+
+Separation Factor Train/Test: 0.7
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 4.913e-04 occurs at θ = [ 0.99502016 -0.99969762] during run 12 at BO iteration 6
+At this point, the highest EI occurs at θ = [ 0.94405385 -0.9685708 ]
+
+
+Separation Factor Train/Test: 0.8
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 2.701e-03 occurs at θ = [ 0.9927136  -0.99450618] during run 1 at BO iteration 6
+At this point, the highest EI occurs at θ = [-2.  2.]
+
+
+Separation Factor Train/Test: 0.9
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 3.107e-03 occurs at θ = [ 0.99193723 -0.9938964 ] during run 13 at BO iteration 9
+At this point, the highest EI occurs at θ = [-2.  2.]
+
+
+Separation Factor Train/Test: 1.0
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 2.225e-03 occurs at θ = [ 0.99111488 -0.99546377] during run 8 at BO iteration 4
+At this point, the highest EI occurs at θ = [ 0.99594102 -0.99350069]
+
+
