@@ -764,14 +764,13 @@ def get_sparse_grids(dim,output=0,depth=3, rule="gauss-hermite", verbose = False
         plt.show()
     return points_p, weights_p
 
-def eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, ep, verbose = False):
+def eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, ep, verbose = False):
     """Evaluate GP using the spare grid instead of an approximation.
     
     Parameters
     ----------
         Xexp: ndarray, experimental x value
         Yexp: ndarray, experimental y values
-        theta_mesh:  ndarray (d, p x p), meshgrid of Theta1 and Theta2 (GET RID OF THIS)
         GP_mean: ndarray, Array of GP mean values at each experimental data point
         GP_stdev: ndarray, Array of GP standard deviation values at each experimental data point
         best_error: float, the best error of the 3-Input GP model
@@ -925,7 +924,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
                 
             if sparse_grid == True:
                 #Compute EI using eparse grid (Note theta_mesh not actually needed here)
-                EI[i,j] = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, explore_bias, verbose)
+                EI[i,j] = eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, explore_bias, verbose)
                 #Replace with EI[i] = ....
         
 #     SSE_stdev_GP = np.sqrt(SSE_var_GP)
@@ -1341,7 +1340,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_mesh, model,
            
         if sparse_grid == True:
             #Compute EI using sparse grid #Note theta_mesh not actually needed here
-            ei = eval_GP_sparse_grid(Xexp, Yexp, theta_mesh, GP_mean, GP_stdev, best_error, explore_bias)
+            ei = eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, explore_bias)
                 
             
     #Return either -ei or sse as a minimize objective function
@@ -1686,6 +1685,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+            #create_sse_data(theta_b, Xexp, Yexp, Constants, obj)
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
             train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
@@ -1697,6 +1697,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
                 Best_Point = np.append(Best_Point, Xexp[k])
                 #Create y-value/ experimental data ---- #Should use calc_y_exp correct?
                 y_Best = calc_y_exp(theta_b, Xexp[k], noise_std, noise_mean=0,random_seed=6)
+                #y_Best = calc_y_exp(Constants_True, Xexp[k], noise_std)
                 train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
                 train_y = np.append(train_y, [y_Best]) #(1 x t)
         
@@ -1708,6 +1709,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Plot X vs Y for Yexp and Y_GP
         X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
         y_true = calc_y_exp(Theta_True, X_line, noise_std = noise_std, noise_mean=0)
+        #y_true = calc_y_exp(Constants_True, X_line, noise_std)
         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true)
               
