@@ -181,7 +181,7 @@ def create_y_data(param_space, Constants):
     #Initialize y_sim
     y_sim = np.zeros(len_data) #1 x n_train^2
 
-    #Iterates over evey combination of theta to find the SSE for each combination
+    #Iterates over evey data point to find the y for each combination
     for i in range(len_data):
         #Set dig out values of a from train_p
         #Set constants to change the a row to the index of the first loop
