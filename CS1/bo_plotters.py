@@ -809,7 +809,7 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
     return
 
 
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None, levels = 25):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -875,7 +875,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     cbar.ax.tick_params(labelsize=16)
     
     # Plot equipotential line
-    cs2 = plt.contour(cs, levels=cs.levels[::20], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+    cs2 = plt.contour(cs, levels=cs.levels[::levels], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
     
     #Plot heatmap label
     

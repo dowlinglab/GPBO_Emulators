@@ -1666,7 +1666,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
                 improvement = True
             else: 
                 All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
-                All_Theta_abs_Opt[i] = theta_o
+                All_Theta_abs_Opt[i] = All_Theta_abs_Opt[i-1]
                 improvement = False
         
         #Prints certain values at each iteration if verbose is True

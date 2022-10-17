@@ -811,7 +811,7 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
     return
 
 #Will need to have a loop run this for each combination of theta values
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None, levels = 20):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -877,7 +877,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     cbar.ax.tick_params(labelsize=16)
     
     # Plot equipotential line
-    cs2 = plt.contour(cs, levels=cs.levels[::20], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+    cs2 = plt.contour(cs, levels=cs.levels[::levels], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
     
     #Plot heatmap label
     
@@ -898,7 +898,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         
     plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
     
-    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="white", s=50, label = "GP argmin" + r'$(e(\theta))$', marker = ".", edgecolors= "k", linewidth=0.3)
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="white", s=90, label = "GP argmin" + r'$(e(\theta))$', marker = ".", edgecolors= "k", linewidth=0.3)
     
     plt.scatter(p_GP_best[0],p_GP_best[1], color="black", s=25, label = "GP argmax" + r'$(E(I(\theta)))$', marker = ".")
     
