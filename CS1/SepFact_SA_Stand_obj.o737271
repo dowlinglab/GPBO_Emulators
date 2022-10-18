@@ -2,3 +2,11 @@ Date and Time:  17-Oct-2022 (16:10:17)
 Runs: 15
 BO Iterations: 100
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1521: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1521: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1521: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)
+/scratch365/mcarlozo/Toy_Problem/CS1/bo_functions.py:1521: RuntimeWarning: invalid value encountered in log
+  ln_sse = np.log(sse)

@@ -630,7 +630,7 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     
     return 
 
-def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure,tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
+def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure,tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 5):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -698,8 +698,8 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         plt.xticks(fontsize=16)
         plt.yticks(fontsize=16)
         plt.tick_params(direction="in",top=True, right=True)
-        plt.locator_params(axis='y', nbins=5)
-        plt.locator_params(axis='x', nbins=5)
+        plt.locator_params(axis='y', nbins=nbins)
+        plt.locator_params(axis='x', nbins=nbins)
         plt.minorticks_on() # turn on minor ticks
         plt.tick_params(which="minor",direction="in",top=True, right=True)
         
@@ -720,7 +720,7 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
 
     return
 
-def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure,tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
+def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure,tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 5):
     """
     Plots the objective function and best Theta values so far vs BO iteration
     
@@ -788,8 +788,8 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
         plt.xticks(fontsize=16)
         plt.yticks(fontsize=16)
         plt.tick_params(direction="in",top=True, right=True)
-        plt.locator_params(axis='y', nbins=5)
-        plt.locator_params(axis='x', nbins=5)
+        plt.locator_params(axis='y', nbins=nbins)
+        plt.locator_params(axis='x', nbins=nbins)
         plt.minorticks_on() # turn on minor ticks
         plt.tick_params(which="minor",direction="in",top=True, right=True)
         
@@ -803,6 +803,7 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
         #Save path and figure
         if save_figure == True:
             path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact) + "_" + str(j+1)
+#             print(path)
             save_fig(path, ext='png', close=True, verbose=False)
             
         plt.show()
