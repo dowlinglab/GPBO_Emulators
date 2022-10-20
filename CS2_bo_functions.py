@@ -885,9 +885,9 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     
     #Alternatively can we just do an LHS here too? IF SO:
     #Set bounds and seed
-    #theta_list = LHS_Design(num_points, dimensions, seed = 9, bounds = bounds)
+    #theta_list = LHS_Design(num_points, dimensions, seed = 9, bounds = bounds) #only need bounds if not between 0 and 1
     #dim_list = np.linspace(0,q-1,q)
-    #mesh_combos = np.array(list(combinations_with_replacement(a, 2)))
+    #mesh_combos = np.array(list(combinations_with_replacement(dim_list, 2)))
     #For LHS version initialize as shape (len(mesh_combos), p1, p2) and use same method as what is here already.
     
     #Save as an array of length(theta_list) and reshape at the end
@@ -900,7 +900,7 @@ def eval_GP_emulator_tot(Xexp, Yexp, theta_mesh, model, likelihood, sparse_grid,
     #For LHS, Loop over number of theta combinations
     #for i in range(len(mesh_combos)):
     #Create meshgrid
-        #theta1_mesh, theta2_mesh = np.meshgrid(LHS_reshape[int(l[i,0])],LHS_reshape[int(l[i,1])])
+        #theta1_mesh, theta2_mesh = np.meshgrid(mesh_combos[int(l[i,0])],mesh_combos[int(l[i,1])])
     #
     # Loop over theta 1
     for i in range(p): #Loop over number of combinations instead (for itertools version)
@@ -1096,14 +1096,14 @@ def eval_GP_basic_tot(theta_mesh, train_sse, model, likelihood, explore_bias=0.0
     #Set bounds and seed
     #theta_list = LHS_Design(num_points, dimensions, seed = 9, bounds = bounds)
     #dim_list = np.linspace(0,q-1,q)
-    #mesh_combos = np.array(list(combinations_with_replacement(a, 2)))
+    #mesh_combos = np.array(list(combinations_with_replacement(dim_list, 2)))
     #For LHS version initialize as shape (len(mesh_combos), p1, p2) and use same method as what is here already.
     
     #Commented code for next few lines is for LHS method only
     #For LHS, Loop over number of theta combinations
     #for i in range(len(mesh_combos)):
     #Create meshgrid
-        #theta1_mesh, theta2_mesh = np.meshgrid(LHS_reshape[int(l[i,0])],LHS_reshape[int(l[i,1])])
+        #theta1_mesh, theta2_mesh = np.meshgrid(mesh_combos[int(l[i,0])],mesh_combos[int(l[i,1])])
     
     #Save as an array of length(theta_list) and reshape at the end
     #ei = np.zeros(len(theta_list)))
@@ -1229,7 +1229,7 @@ def find_opt_and_best_arg(theta_mesh, sse, ei, train_p): #Not quite sure how to 
     #Initialize Theta_Best
     #Theta_Best = np.zeros(sse.shape[0]) #2,4,8,12,etc...
     #Loop over number of thetas
-    #for i in range(sse.shape[0]
+    #for i in range(sse.shape[0]):
         #Theta_Best[i] = theta_mesh[i,argmax]
         #Will this syntax actually work?
         #How to actually back out thetas? Should I still be using a mesh at all?
