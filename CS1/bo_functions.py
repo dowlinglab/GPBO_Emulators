@@ -18,6 +18,8 @@ from bo_plotters import plot_Theta_min
 from bo_plotters import plot_obj
 from bo_plotters import plot_obj_abs_min
 from bo_plotters import plot_sep_fact_min
+from bo_plotters import path_name
+from bo_plotters import save_csv
 
 def set_ep(emulator, obj, sparse):
     '''
@@ -1539,6 +1541,18 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         train_p = train_p.numpy() #(q x t)
         train_y = train_y.numpy() #(1 x t)
         
+        #Save Training data in CSV
+        df_list = [train_p, test_p]
+        df_list_ends = ["Train_p", "Test_p"]
+        fxn = "value_plotter"
+        title_save_TT = "Train_Test_Data"
+
+        for j in range(len(df_list)):
+            array_df = pd.DataFrame(df_list[j])
+            path_csv = path_name(emulator, explore_bias, sparse_grid, fxn, set_lengthscale, t, obj, i, title_save_TT, run, tot_iter=Total_BO_iters, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[j])
+#             print(path_csv)
+            save_csv(array_df, path_csv, ext = "csv") #Note: Iter 3 means the training points used in calculation of iter 3
+        
         if  i > 0:
             #Change to 1e-7
             if abs(All_Max_EI[i-1]) <= 1e-10 and abs(All_Max_EI[i]) <= 1e-10:
@@ -1561,7 +1575,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
                 y_Best = calc_y_exp(theta_b, Xexp[k], noise_std, noise_mean=0,random_seed=6)
                 train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
                 train_y = np.append(train_y, [y_Best]) #(1 x t)
-        
+            
         if verbose == True:
             print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o, "is", "{:.4e}".format(ln_error_mag))
     
