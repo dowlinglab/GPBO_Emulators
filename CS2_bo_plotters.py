@@ -219,12 +219,12 @@ def plot_hyperparams(iterations, hyperparam, title):
 #     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None, save_CSV = True):
+def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None, save_CSV = True):
     '''
     Plots original training data with true value
     Parameters
     ----------
-        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        test_set: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid() or LHS samples
         train_p: tensor or ndarray, The training parameter space data
         test_p: tensor or ndarray, The training parameter space data
         p_true: ndarray, A 2x1 containing the true input parameters
@@ -244,7 +244,7 @@ def plot_org_train(test_mesh,train_p, test_p, p_true, emulator, sparse_grid, obj
 #     t = int(len(train_p))
     t = int(len(train_p)) + int(len(test_p))
     #xx and yy are the values of the parameter sets
-    xx,yy = test_mesh
+    xx,yy = test_set[:,0], test_set[:,1]
     if emulator == False:
         plt.figure(figsize = (6.4,4))
         plt.xticks(fontsize=16)

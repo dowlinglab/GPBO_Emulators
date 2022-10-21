@@ -6,6 +6,7 @@ import torch
 import csv
 import gpytorch
 import scipy.optimize as optimize
+import itertools
 import pandas as pd
 import os
 import Tasmanian
@@ -20,8 +21,38 @@ from CS2_bo_plotters import plot_obj
 from CS2_bo_plotters import plot_obj_abs_min
 from CS2_bo_plotters import plot_3GP_performance
 from CS2_bo_plotters import plot_sep_fact_min
+from CS2_bo_plotters import save_fig, save_csv
 
-def eval_GP_emulator_set(Xexp, Yexp, theta_set, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False, train_p = None, obj = "obj", optimize = True):
+def optimize_theta_set(Xexp, Yexp, theta_set, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, obj)
+    """
+    Finds the lowest sse and highest EI parameter sets using scipy
+    
+    Parameters:
+    -----------
+        Xexp: ndarray, experimental x values
+        Yexp: ndarray, experimental y values
+        theta_set: ndarray (n x p), sets of Theta values
+        train_y: ndarray, The output training data
+        train_p: tensor or ndarray, The training parameter space data
+        sse: ndarray, The SSE of the model 
+        ei: ndarray, the expected improvement of the GP model
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        explore_bias: float, the numerical bias towards exploration, zero is the default
+        emulator: True/False: Determines whether the GP is a property emulator of error emulator
+        sparse_grid: True/False: Determines whether an assumption or sparse grid method is used
+        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
+   Returns:
+   --------
+       theta_b: ndarray, The point where the objective function is minimized in theta space
+       theta_o: ndarray, The point where the ei is maximized in theta space   
+    """
+    #Could modify to chec every point
+    theta0_b, theta0_o = find_opt_and_best_arg(theta_set, sse, ei, train_p)
+    theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_set, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,obj)
+    return theta_b, theta_o
+
+def eval_GP_emulator_set(Xexp, Yexp, theta_set, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False, train_p = None, obj = "obj"):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -109,34 +140,10 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, model, likelihood, sparse_grid, 
             if sparse_grid == True:
                 #Compute EI using eparse grid (Note theta_mesh not actually needed here)
                 EI[i] = eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, explore_bias, verbose)
-    
+                              
     if verbose == True:
         print(EI)
     
-    #Create all iteration permulations - Takes a very long time for 8 dimensions
-    #Theta = np.linspace(-2,2,10) (insert this instead of a a theta mesh (everything will be scaled from 0-1 in Muller problem)
-    #df = pd.DataFrame(list(itertools.product(Theta, repeat=8)))
-    #df2 = df.drop_duplicates()
-    #theta_list = df2.to_numpy()
-    
-    #Alternatively can we just do an LHS here too? IF SO:
-    #Set bounds and seed
-    #theta_list = LHS_Design(num_points, dimensions, seed = 9, bounds = bounds) #only need bounds if not between 0 and 1
-    #dim_list = np.linspace(0,q-1,q)
-    #mesh_combos = np.array(list(combinations_with_replacement(dim_list, 2)))
-    #For LHS version initialize as shape (len(mesh_combos), p1, p2) and use same method as what is here already.
-    
-    #Save as an array of length(theta_list) and reshape at the end
-    #EI = np.zeros(len(theta_list)))
-    #SSE_var_GP = np.zeros(len(theta_list)))
-    #SSE_stdev_GP = np.zeros(len(theta_list)))
-    #SSE = np.zeros(len(theta_list)))
-
-    #Commented code for next few lines is for LHS method only
-    #For LHS, Loop over number of theta combinations
-    #for i in range(len(mesh_combos)):
-    #Create meshgrid
-        #theta1_mesh, theta2_mesh = np.meshgrid(mesh_combos[int(l[i,0])],mesh_combos[int(l[i,1])])
     return EI, SSE, SSE_var_GP, SSE_stdev_GP, best_error
 
 def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0, verbose = False):
@@ -192,20 +199,6 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
     #df = pd.DataFrame(list(itertools.product(Theta, repeat=8)))
     #df2 = df.drop_duplicates()
     #theta_list = df2.to_numpy()
-    
-    #Alternatively can we just do an LHS here too? IF SO:
-    #Set bounds and seed
-    #theta_list = LHS_Design(num_points, dimensions, seed = 9, bounds = bounds)
-    #dim_list = np.linspace(0,q-1,q)
-    #mesh_combos = np.array(list(combinations_with_replacement(dim_list, 2)))
-    #For LHS version initialize as shape (len(mesh_combos), p1, p2) and use same method as what is here already.
-    
-    #Commented code for next few lines is for LHS method only
-    #For LHS, Loop over number of theta combinations
-    #for i in range(len(mesh_combos)):
-    #Create meshgrid
-        #theta1_mesh, theta2_mesh = np.meshgrid(mesh_combos[int(l[i,0])],mesh_combos[int(l[i,1])])
-    
     
     for i in range(len_set):
         #Choose and evaluate point
@@ -486,13 +479,13 @@ def find_opt_best_scipy(Xexp, Yexp, theta_set, train_y,train_p, theta0_b,theta0_
     return theta_b, theta_o
 
 # def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale):  
-def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, obj = "obj"):
+def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, obj = "obj"):
     """
     Evaluates GP
     
     Parameters:
     -----------
-        theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
+        theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
         train_y: tensor or ndarray, The training y data
         explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
         Xexp: ndarray, experimental x values
@@ -546,7 +539,156 @@ def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, ve
     
     return eval_components
 
-def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 0.8):
+def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
+    """
+    Generates theta_set from either a meshgrid search or and LHS
+    
+    Parameters:
+    -----------
+        LHS: bool, Determines whether a meshgrid or LHS sample is generated, default True
+        n_points:, int, number of meshgrid points/ parameter or number of LHS samples
+        dimensions: int, Number of parameters to regress
+        bounds: None or ndarray, contains bounds for LHS generation if necessary
+    """
+    if LHS == False:
+        Theta = np.linspace(0,1,n_points)
+        df = pd.DataFrame(list(itertools.product(Theta, repeat=dimensions)))
+        df2 = df.drop_duplicates()
+        theta_set = df2.to_numpy()
+    else:
+        theta_set = LHS_Design(n_points, dimensions, seed = 9, bounds = bounds)
+    return theta_set
+
+def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, theta_o, theta_b, train_p, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
+    """
+    Evaluates all combinations of theta pairs to make heat maps
+    
+    Parameters:
+    -----------
+        dimensions: int, Number of parameters to regress
+        theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
+        theta_opt: The optimal set of theta_parameters
+        n_points:, int, number of meshgrid points/ parameter or number of LHS samples
+        Theta_True: ndarray, A 2x1 containing the true input parameters
+        theta_o: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+        theta_b: ndarray, A 2x1 containing the input parameters predicted by the GP to have the best EI
+        train_p: tensor or ndarray, The training parameter space data
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        ep0: float, float,int,tensor,ndarray (1 value) The initial exploration bias parameter
+        emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        save_fig: True/False, Determines whether figures will be saved
+        bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
+        run: int or None, The iteration of the number of times new training points have been picked
+        BO_iters: int, total number of BO iterations
+        tot_runs: int, total number of runs
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        t: int, Number of total data points to use
+        sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
+    Returns:
+    --------
+        None - Saves graphs and CSVs     
+        
+    """
+    dim_list = np.linspace(0,dimensions-1,dimensions)
+    mesh_combos = np.array(list(combinations(dim_list, 2)), dtype = int)
+    for i in range(len(mesh_combos)):
+        indecies = mesh_combos[i]
+        eval_GP_over_grid(theta_set, indecies, n_points, Theta_True, theta_o, theta_b, train_p, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
+    return
+    
+def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, theta_o, theta_b, train_p, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact):
+        """
+    Evaluates all combinations of theta pairs to make heat maps. Makes heat maps and saves them
+    
+    Parameters:
+    -----------
+        dimensions: int, Number of parameters to regress
+        indecies: indecies of theta_set that will be changed to create meshgrids and heat maps
+        theta_set_org: ndarray (num_LHS_points x dimensions), list of theta combinations
+        n_points:, int, number of meshgrid points/ parameter or number of LHS samples
+        Theta_True: ndarray, A 2x1 containing the true input parameters
+        theta_o: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+        theta_b: ndarray, A 2x1 containing the input parameters predicted by the GP to have the best EI
+        train_p: tensor or ndarray, The training parameter space data
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        ep0: float, float,int,tensor,ndarray (1 value) The initial exploration bias parameter
+        emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        save_fig: True/False, Determines whether figures will be saved
+        bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
+        run: int or None, The iteration of the number of times new training points have been picked
+        BO_iters: int, total number of BO iterations
+        tot_runs: int, total number of runs
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        t: int, Number of total data points to use
+        sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
+    Returns:
+    --------
+        None - Saves graphs and CSVs     
+        
+    """
+    
+    #Generate meshgrid and theta_set from meshgrid
+    Theta1_lin = np.linspace(np.min(theta_set_org[:,indecies[0]]),np.max(theta_set_org[:,indecies[0]]), n_points)
+    Theta2_lin = np.linspace(np.min(theta_set_org[:,indecies[1]]),np.max(theta_set_org[:,indecies[1]]), n_points)
+    theta_mesh = np.array(np.meshgrid(Theta1_lin, Theta2_lin)) 
+    
+    #Not sure if this is right
+    theta_set = theta_mesh.T.reshape((-1,2))
+
+    eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj)     
+
+    for i in eval_components:
+        try:
+            eval_components[i].reshape(n_points,-1)
+        except:
+            eval_components[i] = eval_components[i]
+
+    #Determines whether debugging parameters are saved for 2 Input GP       
+    if verbose == True and emulator == False:
+        ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
+    else:
+        ei,sse,var,stdev,best_error = eval_components
+
+            #Prints figures if more than 1 BO iter is happening
+    if emulator == False:
+        titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2','\sigma','Best_Error','z','EI_term_1','EI_term_2','CDF','PDF']  
+        titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"] 
+    else:
+        titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2', '\sigma', 'Best_Error']  
+        titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error"] 
+
+    #Plot and save figures for all figrues for EI and SSE
+    value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
+
+    #Ensure that a plot of SSE (and never ln(SSE)) is drawn
+    if obj == "LN_obj" and emulator == False:
+        plot_sse = sse
+    else:
+        plot_sse = np.log(sse)
+
+    value_plotter(theta_mesh, plot_sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
+
+    #Save other figures
+    for j in range(len(eval_components)-2):
+        component = eval_components[j+2]
+        title = titles[j+2]
+        title_save = titles_save[j+2]
+        try:
+            value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
+        except:
+            Best_Error_Found = np.round(eval_components[j+2],4)
+            if verbose == True:
+                print("Best Error is:", Best_Error_Found)
+
+    return
+        
+        
+
+def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 0.8):
     """
     Performs BO iterations
     
@@ -595,8 +737,9 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
     m = Xexp[0].size #Dimensions of X
     n = len(Xexp) #Length of experimental data
     q = len(Theta_True) #Number of parameters to regress
-    p = theta_mesh.shape[1] #Number of points to evaluate the GP at in any dimension of q
+#     p = theta_mesh.shape[1] #Number of points to evaluate the GP at in any dimension of q
     t = int(len(train_p)) + int(len(test_p)) #Original length of all data
+    data_points = len(theta_set)
     ep0 = explore_bias
     
     #Set arrays to track theta_best, theta_opt, and SSE for every BO iteration
@@ -637,37 +780,41 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         #Train GP
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         
-        #Evaluate GP
-#         eval_components = eval_GP(theta_mesh, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
-
         #Set Exploration parameter
 #         explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
-        explore_bias = ep_init #Sets ep to the multiplicative scaler between 0.1 and 1 
+        explore_bias = ep_init #Sets ep to the multiplicative scaler between 0.1 and 1
         
-        eval_components = eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj)
+        #Evaluate GP to find sse and ei for optimization step
+        eval_components = eval_GP(theta_set, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
+
+        #Determines whether debugging parameters are saved for 2 Input GP       
+        if verbose == True and emulator == False:
+            ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
+        else:
+            ei,sse,var,stdev,best_error = eval_components
+
+        #solve for opt and best based on theta_set
+        theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, obj)
         
+        #Evaluate GP for best EI theta set
+        eval_components = eval_GP(theta_b, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
+
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
             ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
         else:
             ei,sse,var,stdev,best_error = eval_components
         
+        #Save Figures
+        if save_fig == True:
+            eval_all_theta_pairs(q, theta_set, data_points, Theta_True, theta_o, theta_b, train_p, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, i, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
+        
         All_Max_EI[i] = np.max(ei)
         
-        mean_of_var = np.average(var)
-#         print("MOV",mean_of_var)
-        best_error_num = best_error
-        
-        #Use argmax(EI) and argmin(SSE) to find values for Theta_best and theta_opt
-        Theta_Best, Theta_Opt_GP = find_opt_and_best_arg(theta_mesh, sse, ei, train_p)
-        theta0_b = Theta_Best
-        theta0_o = Theta_Opt_GP
-#         theta0_b = np.array([0.95,-0.95])
-#         theta0_o = np.array([0.95,-0.95])
-
-        #Use argmax/argmin method as initial guesses for use with scipy.minimize
-        theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_mesh, train_y, train_p, theta0_b,theta0_o,sse,ei, model,likelihood,explore_bias, emulator,sparse_grid,obj)
-        
+#         mean_of_var = np.average(var)
+# #         print("MOV",mean_of_var)
+#         best_error_num = best_error
+           
         #Save theta_best and theta_opt values for iteration
         All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
         
@@ -715,37 +862,6 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
             print("Argmin Theta_Opt_GP = ",Theta_Opt_GP)
             print("EI_max =", np.amax(ei), "\n")
         
-        #Prints figures if more than 1 BO iter is happening
-        if emulator == False:
-            titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2','\sigma','Best_Error','z','EI_term_1','EI_term_2','CDF','PDF']  
-            titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"] 
-        else:
-            titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2', '\sigma', 'Best_Error']  
-            titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error"] 
-        
-        #Plot and save figures for all figrues for EI and SSE
-        value_plotter(theta_mesh, ei, Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, i, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
-        
-        #Ensure that a plot of SSE (and never ln(SSE)) is drawn
-        if obj == "LN_obj" and emulator == False:
-            ln_sse = sse
-        else:
-            ln_sse = np.log(sse)
-            
-        value_plotter(theta_mesh, ln_sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, i, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
-        
-        #Save other figures
-        for j in range(len(eval_components)-2):
-            component = eval_components[j+2]
-            title = titles[j+2]
-            title_save = titles_save[j+2]
-            try:
-                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, i, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
-            except:
-                Best_Error_Found = np.round(eval_components[j+2],4)
-                if verbose == True:
-                    print("Best Error is:", Best_Error_Found)
-
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
         train_p = train_p.numpy() #(q x t)
@@ -771,8 +887,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
         
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
-            sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
-            #create_sse_data(theta_b, Xexp, Yexp, Constants, obj)
+#             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+            sse_Best = create_sse_data(theta_b, Xexp, Yexp, Constants, obj)
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
             train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
@@ -802,7 +918,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bi
               
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters
 
-def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, verbose = True,save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1):
+def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, verbose = True,save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1):
     """
     Performs BO iterations with runs. A run contains of choosing different initial training data.
     
@@ -850,7 +966,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     #Find constants
 #     m = Xexp[0].size #Dimensions of X
     q = len(Theta_True) #Number of parameters to regress
-    p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q
+#     p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q
     ep0 = explore_bias
     
     dim = m+q #dimensions in a CSV
@@ -864,10 +980,6 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
     EI_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     SSE_matrix_abs_min = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     Total_BO_iters_matrix = np.zeros(runs)
-    
-    #Set theta mesh grids
-#     theta1_mesh = theta_mesh[0]
-#     theta2_mesh = theta_mesh[1]
     
     #Loop over # runs
     for i in range(runs):
@@ -898,10 +1010,19 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
 #         print("test_p",test_p)
 #         print("train_p",train_p)
 #         plot_org_train(theta_mesh,train_p,Theta_True)
-        plot_org_train(theta_mesh,train_p, test_p, Theta_True, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, sep_fact = sep_fact)
+        #Plot all training data
+        if save_fig == True:
+            dim_list = np.linspace(0,dimensions-1,dimensions)
+            mesh_combos = np.array(list(combinations(dim_list, 2)), dtype = int)
+            for i in range(len(mesh_combos)):
+                indecies = mesh_combos[i]
+                test_data_piece = np.array(test_p[:,indecies[0]],test_p[:,indecies[1]])
+                train_data_piece = np.array(train_p[:,indecies[0]],train_p[:,indecies[1]])
+                theta_set_piece = np.array(theta_set[:,indecies[0]],theta_set[:,indecies[1]])
+                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, Theta_True, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, sep_fact = sep_fact)
 
         #Run BO iteration
-        BO_results = bo_iter(BO_iters,train_p,train_y,theta_mesh,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact)
+        BO_results = bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact)
         
         #Add all SSE/theta results at each BO iteration for that run
         Theta_Best_matrix[i,:,:] = BO_results[0]
@@ -925,8 +1046,8 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,Theta_True,train_iter,expl
         argmin = np.array([[argmin[0]],[argmin[1]]])
 #     print(argmin)
     #Find theta value corresponding to argmin(SSE) and corresponding argmax(ei) at which run and theta value they occur
-    Theta_Best_all = np.array(Theta_Best_matrix[argmin[0],argmin[1]])
-    Theta_Opt_all = np.array(Theta_Opt_matrix[argmin[0],argmin[1]])
+    Theta_Best_all = np.array(Theta_Best_matrix[argmin])
+    Theta_Opt_all = np.array(Theta_Opt_matrix[argmin])
     SSE_abs_min = np.amin(SSE_matrix)
     run_opt = int(argmin[0,0]+1)
     bo_opt = int(argmin[1,0]+1)
