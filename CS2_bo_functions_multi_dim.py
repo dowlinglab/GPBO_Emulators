@@ -21,7 +21,7 @@ from CS2_bo_plotters import plot_obj
 from CS2_bo_plotters import plot_obj_abs_min
 from CS2_bo_plotters import plot_3GP_performance
 from CS2_bo_plotters import plot_sep_fact_min
-from CS2_bo_plotters import save_fig, save_csv
+from CS2_bo_plotters import save_fig, save_csv, path_name
 
 def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj):
     """
@@ -103,7 +103,9 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, model, likelihood, sparse_grid, 
         for k in range(n):
             #Caclulate EI for each value n given the best error
             point = [theta_set[i], Xexp[k]]
-            eval_point = np.array([point])
+#             eval_point = np.array([point])
+            eval_point = np.array([point])[0]
+#             print(eval_point)
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
             model_mean = GP_Outputs[3].numpy()[0] #1xn
             model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
@@ -206,7 +208,8 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
     
     for i in range(len_set):
         #Choose and evaluate point
-        point = [theta_set[i]]
+        point = theta_set[i]
+#         point = [theta_set[i]]
         eval_point = np.array([point])
 #         print(eval_point)
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
@@ -371,7 +374,8 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
 
     #Evaluate a point with the GP and save values for GP mean and var
     if emulator == False:
-        point = [theta_guess]
+#         point = [theta_guess]
+        point = theta_guess
         eval_point = np.array([point])
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         model_sse = GP_Outputs[3].numpy()[0] #1xn 
@@ -395,7 +399,8 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
         GP_stdev = np.zeros(n)
         for k in range(n):
             #Caclulate EI for each value n given the best error
-            point = [theta_guess,Xexp[k]]
+#             point = [theta_guess,Xexp[k]]
+            point = theta_guess,Xexp[k]
             eval_point = np.array([point])
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
             model_mean = GP_Outputs[3].numpy()[0] #1xn
@@ -781,7 +786,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, Theta_True, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj)
         
         #Evaluate GP for best EI theta set
-        eval_components = eval_GP(theta_b, train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
+        eval_components = eval_GP(np.array([theta_b]), train_y, explore_bias,Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale)
 
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
@@ -891,7 +896,6 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         if verbose == True:
             print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o, "is", "{:.4e}".format(ln_error_mag))
     
-        print("ITERATION COMPLETE")
     #Plots a single line of objective/theta values vs BO iteration if there are no runs
     if tot_runs == 1 and verbose == True:
         #Plot X vs Y for Yexp and Y_GP
@@ -1028,17 +1032,28 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         plot_obj_abs_min(SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
     
     #Find point corresponding to absolute minimum SSE and max(-ei) at that point
+#     print(SSE_matrix)
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),atol=np.amin(SSE_matrix)*1e-6)==True))
-    
+    print("Argmin 1", argmin)
     #Not sure how to generalize this last part
-    if len(argmin) != q: #How to generalize next line?
-        argmin = np.array([[argmin[0]],[argmin[1]]])
-#     print(argmin)
+    
+    if len(argmin) > 1:
+        rand_ind = np.random.randint(argmin.shape[1]) #Chooses a random point with the minimum value
+        argmin = argmin[rand_ind]
+#     if len(argmin) != q: #How to generalize next line?
+#         argmin = np.array([[argmin[0]],[argmin[1]]])
+    print("Argmin 2", argmin)
+    argmin = argmin.reshape(1,-1)[0]
+    print("Argmin 3", argmin)
+    print(Theta_Opt_matrix)
     #Find theta value corresponding to argmin(SSE) and corresponding argmax(ei) at which run and theta value they occur
     Theta_Best_all = np.array(Theta_Best_matrix[argmin])
     Theta_Opt_all = np.array(Theta_Opt_matrix[argmin])
+    print(Theta_Opt_all)
+#     Theta_Best_all = np.array(Theta_Best_matrix[tuple(argmin)+(Ellipsis,)])
+#     Theta_Opt_all = np.array(Theta_Opt_matrix[tuple(argmin)+(Ellipsis,)])
     SSE_abs_min = np.amin(SSE_matrix)
-    run_opt = int(argmin[0,0]+1)
-    bo_opt = int(argmin[1,0]+1)
+    run_opt = int(argmin[1]+1)
+    bo_opt = int(argmin[0]+1)
     
     return bo_opt, run_opt, Theta_Opt_all, SSE_abs_min, Theta_Best_all, SSE_matrix
