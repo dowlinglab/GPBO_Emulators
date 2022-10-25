@@ -888,7 +888,14 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj
     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
     
     n = len(Xexp)
+    q = len(true_model_coefficients)
+    
     t_train = len(train_p)
+#     try:
+#         t_train = len(train_p)
+#     except:
+#         print("train_p",train_p)
+#         t_train = 1
     
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     SSE = np.zeros(t_train)
