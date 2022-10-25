@@ -7,6 +7,9 @@ import csv
 import gpytorch
 import scipy.optimize as optimize
 import itertools
+from itertools import combinations_with_replacement
+from itertools import combinations
+from itertools import permutations
 import pandas as pd
 import os
 import Tasmanian
@@ -1022,15 +1025,16 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
 #         print("train_p",train_p)
 #         plot_org_train(theta_mesh,train_p,Theta_True)
         #Plot all training data
-        if save_fig == True:
-            dim_list = np.linspace(0,dimensions-1,dimensions)
-            mesh_combos = np.array(list(combinations(dim_list, 2)), dtype = int)
-            for i in range(len(mesh_combos)):
-                indecies = mesh_combos[i]
-                test_data_piece = np.array(test_p[:,indecies[0]],test_p[:,indecies[1]])
-                train_data_piece = np.array(train_p[:,indecies[0]],train_p[:,indecies[1]])
-                theta_set_piece = np.array(theta_set[:,indecies[0]],theta_set[:,indecies[1]])
-                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, Theta_True, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, sep_fact = sep_fact)
+#         if save_fig == True:
+        dim_list = np.linspace(0,q-1,q)
+        mesh_combos = np.array(list(combinations(dim_list, 2)), dtype = int)
+        for i in range(len(mesh_combos)):
+            indecies = mesh_combos[i]
+            test_data_piece = np.array((test_p[:,indecies[0]],test_p[:,indecies[1]]))
+            train_data_piece = np.array((train_p[:,indecies[0]],train_p[:,indecies[1]]))
+#             print(train_data_piece)
+            theta_set_piece = np.array((theta_set[:,indecies[0]],theta_set[:,indecies[1]]))
+            plot_org_train(theta_set_piece,train_data_piece, test_data_piece, Theta_True, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, sep_fact = sep_fact)
 
         #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact)

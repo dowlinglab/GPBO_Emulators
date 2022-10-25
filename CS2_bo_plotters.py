@@ -244,7 +244,8 @@ def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj,
 #     t = int(len(train_p))
     t = int(len(train_p)) + int(len(test_p))
     #xx and yy are the values of the parameter sets
-    xx,yy = test_set[:,0], test_set[:,1]
+#     xx,yy = test_set[:,0], test_set[:,1]
+    xx,yy = test_set[0], test_set[1]
     if emulator == False:
         plt.figure(figsize = (6.4,4))
         plt.xticks(fontsize=16)
@@ -258,7 +259,7 @@ def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj,
 #         plt.gca().axes.yaxis.set_ticklabels([])
         
         #plot training data and true values
-        plt.scatter(train_p[:,0],train_p[:,1], color="green",s=50, label = "Training Data", marker = "x")
+        plt.scatter(train_p[0],train_p[1], color="green",s=50, label = "Training Data", marker = "x")
         
         if len(test_p) > 0:
             try:
@@ -335,7 +336,6 @@ def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj,
             path_csv = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i])
         #How to save more efficiently without hardcoding number of columns?
             save_csv(array_df, path_csv, ext = "csv")
-    
     
     if save_figure == True:
         path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
