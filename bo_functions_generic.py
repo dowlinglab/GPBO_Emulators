@@ -345,6 +345,52 @@ def calc_muller(x, model_coefficients):
    
 #     return y_sim
 
+def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, test_p, p_True, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = 1):  
+    """
+    Puts training data into a for loop to print all possible 3D angles of the training data
+    
+    Parameters:
+    -----------
+        test_set: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid() or LHS samples
+        train_p: tensor or ndarray, The training parameter space data
+        test_p: tensor or ndarray, The training parameter space data
+        p_true: ndarray, A 2x1 containing the true input parameters
+        emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        ep0: float, float,int,tensor,ndarray (1 value) The initial exploration bias parameter
+        len_scl: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        run, int or None, The iteration of the number of times new training points have been picked
+        save_fig: True/False, Determines whether figures will be saved
+        tot_iters: int or None, Total number of BO Iters
+        tot_runs, int or None, The total number of times new training points have been picked
+        verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
+    Returns:
+    --------
+        Prints or saves plots of starting training data for any set of dimensions
+        
+    """
+    dim_param_list = np.linspace(0,param_dim-1,param_dim) #Note - Need to figure this out when plotting w/ multidimensional x
+    mesh_combos = np.array(list(combinations(dim_param_list, 2)), dtype = int)
+
+    for i in range(len(mesh_combos)):
+        indecies = mesh_combos[i]
+        test_data_piece = np.array((test_p[:,indecies[0]],test_p[:,indecies[1]]))
+        train_data_piece = np.array((train_p[:,indecies[0]],train_p[:,indecies[1]]))
+#             print(train_data_piece)
+        theta_set_piece = np.array((theta_set[:,indecies[0]],theta_set[:,indecies[1]]))
+
+        if emulator == True:
+            for i in range(len(Xexp)):
+                test_data_piece = np.array((test_data_piece, test_p[:,indecies[param_dim+i]]))
+                train_data_piece = np.array((train_data_piece, train_p[:,indecies[param_dim+i]]))
+                theta_set_piece = np.array((theta_set_piece, theta_set[:,indecies[param_dim+i]]))
+                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+        else:
+            plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+    return 
 
 #This will need to change eventually
 def set_ep(emulator, obj, sparse):

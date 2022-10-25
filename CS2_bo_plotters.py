@@ -303,7 +303,7 @@ def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj,
 
     
         # Plot the values
-        ax.scatter(train_p[:,0], train_p[:,1], train_p[:,2], color = "green", s=50, label = "Training Data", marker='o')
+        ax.scatter(train_p[0], train_p[1], train_p[2], color = "green", s=50, label = "Training Data", marker='o')
         if len(test_p) > 0:
             try:
                 ax.scatter(test_p[:,0],test_p[:,1], test_p[:,2], color="red", s=25, label = "Testing Data", marker = "x")
@@ -954,7 +954,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
 #         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
     
     plt.show()
-    plt.close()
+#     plt.close()
     
     return 
 
