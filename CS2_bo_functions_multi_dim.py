@@ -265,22 +265,24 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
     """    
     #Point that the GP thinks is best has the lowest SSE
     #Find point in sse matrix where sse is lowest (argmin(SSE))
-    argmin = np.array(np.where(np.isclose(sse, np.amin(sse),rtol=np.amin(sse)*1e-6)==True))[0]
+    len_set, q = theta_set.shape
+    argmin = np.array(np.where(np.isclose(sse, np.amin(sse),rtol=abs(np.amin(sse)*1e-6))==True))[0]
     
     #ensures that only one point is used if multiple points yield a minimum
     
     if len(argmin) > 1:
-        rand_ind = np.random.randint(np.max(argmin)) #Chooses a random point with the minimum value
-        argmin = argmin[rand_ind]
+        rand_ind = np.random.randint(argmin.shape[1]) #Chooses a random point with the minimum value
+        argmin = argmin[:,rand_ind]
     
     #Find theta value corresponding to argmin(SSE)
     
     #Initialize Theta_Opt_GP
     Theta_Opt_GP = theta_set[argmin]
+    Theta_Opt_GP = Theta_Opt_GP[0:q]
     
     #calculates best theta value
     #Find point in ei matrix where ei is highest (argmax(EI))
-    argmax = np.array(np.where(np.isclose(ei, np.amax(ei),rtol=np.amax(ei)*1e-6)==True))[0]
+    argmax = np.array(np.where(np.isclose(ei, np.amax(ei),rtol=abs(np.amax(ei)*1e-6))==True))[0]
 
     #ensures that only one point is used if multiple points yield a maximum
     if len(argmax) > 1:
@@ -288,7 +290,11 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
             
     #Find theta value corresponding to argmax(EI)
     #Initialize Theta_Best
-    Theta_Best = theta_set[argmax]    
+    Theta_Best = theta_set[argmax]
+    Theta_Best = Theta_Best[0:q]
+    
+#     print(Theta_Best)
+#     print(Theta_Opt_GP)
     return Theta_Best, Theta_Opt_GP
 
 def argmax_multiple(argmax, train_p, theta_set): #not sure how to fix setting of points here either
@@ -312,8 +318,13 @@ def argmax_multiple(argmax, train_p, theta_set): #not sure how to fix setting of
     #Initialize 
     argmax_best = np.zeros(1)
     #Only use this algorithm when >1 points have the max ei
-    #Create avg x y pt for training data
+    #Create avg x y pt for training data for only values of parameters to be regressed
+#     train_T12_avg = np.average(train_p, axis =0)
     train_T12_avg = np.average(train_p, axis =0)
+    train_T12_avg = train_T12_avg[0:q] #Only save the values corresponding to parameters
+#     print(q)
+#     print(train_T12_avg)
+#     print(theta_set[0])
 
     #Check each point in argmax with all training points and find max distance
     #Loop over all coord points
@@ -330,7 +341,7 @@ def argmax_multiple(argmax, train_p, theta_set): #not sure how to fix setting of
         #Set distance to max distance if it is applicable. At the end of the loop, argmax will be the point with the greatest distance.
         if distance_sq > max_distance_sq:
             max_distance_sq = distance_sq
-            argmax_best = point
+            argmax_best = np.array([point])
             
     return argmax_best
              
@@ -1040,7 +1051,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     
     #Find point corresponding to absolute minimum SSE and max(-ei) at that point
 #     print(SSE_matrix)
-    argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),rtol=np.amin(SSE_matrix)*1e-6)==True)) #Use rtol so that graphs match data in matricies
+    argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),rtol=abs(np.amin(SSE_matrix)*1e-6))==True)) #Use rtol so that graphs match data in matricies
 #     print("Argmin 1", argmin)
     #Not sure how to generalize this last part
     
