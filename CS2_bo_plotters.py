@@ -219,7 +219,7 @@ def plot_hyperparams(iterations, hyperparam, title):
 #     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
-def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None, save_CSV = True):
+def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None, save_CSV = True):
     '''
     Plots original training data with true value
     Parameters
@@ -240,12 +240,15 @@ def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj,
     -------
         plt.show(), A plot of the original training data points and the true value
     '''
+
+    if torch.is_tensor(train_p) == True:
+        train_p = train_p.numpy()
+    if torch.is_tensor(test_p) == True:
+        test_p = test_p.numpy()
+      
     fxn = "plot_org_train"
-#     t = int(len(train_p))
-    t = int(len(train_p)) + int(len(test_p))
-    #xx and yy are the values of the parameter sets
-#     xx,yy = test_set[:,0], test_set[:,1]
-    xx,yy = test_set[0], test_set[1]
+    t = int(len(train_p[:,0])) + int(len(test_p[:,0]))
+    
     if emulator == False:
         plt.figure(figsize = (6.4,4))
         plt.xticks(fontsize=16)
@@ -259,7 +262,7 @@ def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj,
 #         plt.gca().axes.yaxis.set_ticklabels([])
         
         #plot training data and true values
-        plt.scatter(train_p[0],train_p[1], color="green",s=50, label = "Training Data", marker = "x")
+        plt.scatter(train_p[:,0],train_p[:,1], color="green",s=50, label = "Training Data", marker = "x")
         
         if len(test_p) > 0:
             try:
@@ -273,14 +276,19 @@ def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj,
         plt.xlabel(r'$\mathbf{\theta_1}$', fontsize=16, fontweight='bold')
         plt.ylabel(r'$\mathbf{\theta_2}$', fontsize=16, fontweight='bold')
         #Set axis limits based on the maximum and minimum of the parameter search space
-        plt.xlim((np.amin(xx), np.amax(xx)))
-        plt.ylim((np.amin(yy), np.amax(yy)))
+        x_lim_l = np.amin(train_p[:,0])
+        y_lim_l = np.amin(train_p[:,1])
+        x_lim_u = np.amax(train_p[:,0])
+        y_lim_u = np.amax(train_p[:,1])
+        plt.xlim((x_lim_l,x_lim_u))
+        plt.ylim((y_lim_l,y_lim_u))
 #         plt.title("Starting Training Data")
 #         plt.grid(True)
         
     else:
-        x_space = np.array([-2,-1,0,1,2])
+        x_space = Xexp
         len_x = len(x_space)
+
         p_true_3D = np.repeat(p_true,len_x).reshape(-1,len_x).T
         p_true_3D_full = np.hstack((p_true_3D, x_space.reshape(len_x,-1)))
 #         print(p_true_3D_full)
@@ -303,7 +311,7 @@ def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj,
 
     
         # Plot the values
-        ax.scatter(train_p[0], train_p[1], train_p[2], color = "green", s=50, label = "Training Data", marker='o')
+        ax.scatter(train_p[:,0], train_p[:,1], train_p[:,2], color = "green", s=50, label = "Training Data", marker='o')
         if len(test_p) > 0:
             try:
                 ax.scatter(test_p[:,0],test_p[:,1], test_p[:,2], color="red", s=25, label = "Testing Data", marker = "x")
@@ -320,8 +328,12 @@ def plot_org_train(test_set,train_p, test_p, p_true, emulator, sparse_grid, obj,
 #         ax.legend(loc = "best")
 #         plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
 #         ax.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
-        ax.set_xlim((np.amin(xx), np.amax(xx)))
-        ax.set_ylim((np.amin(yy), np.amax(yy)))
+        x_lim_l = np.amin(train_p[:,0])
+        y_lim_l = np.amin(train_p[:,1])
+        x_lim_u = np.amax(train_p[:,0])
+        y_lim_u = np.amax(train_p[:,1])
+        plt.xlim((x_lim_l,x_lim_u))
+        plt.ylim((y_lim_l,y_lim_u))
         ax.grid(False)
 #         ax.set_zlim((np.amin(z), np.amax(zz)))
 #         plt.grid(True)

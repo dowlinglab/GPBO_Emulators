@@ -10,6 +10,11 @@ import pandas as pd
 import os
 import Tasmanian
 import itertools
+from itertools import combinations_with_replacement
+from itertools import combinations
+from itertools import permutations
+
+from CS2_bo_plotters import plot_org_train
 
 def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
     """
@@ -345,7 +350,7 @@ def calc_muller(x, model_coefficients):
    
 #     return y_sim
 
-def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, test_p, p_True, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = 1):  
+def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, test_p, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = 1):  
     """
     Puts training data into a for loop to print all possible 3D angles of the training data
     
@@ -377,19 +382,32 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
 
     for i in range(len(mesh_combos)):
         indecies = mesh_combos[i]
-        test_data_piece = np.array((test_p[:,indecies[0]],test_p[:,indecies[1]]))
-        train_data_piece = np.array((train_p[:,indecies[0]],train_p[:,indecies[1]]))
-#             print(train_data_piece)
+        #Concatenate test data and train data from indecie combination
+        if len(test_p) > 0:
+            test_data_piece = torch.cat((torch.reshape(test_p[:,indecies[0]],(-1,1)),torch.reshape(test_p[:,indecies[1]],(-1,1))),axis= 1)
+        else:
+            test_data_piece = test_p
+#         print(train_p[:,indecies[0]].shape)
+        train_data_piece = torch.cat((torch.reshape(train_p[:,indecies[0]],(-1,1)),torch.reshape(train_p[:,indecies[1]],(-1,1))),axis = 1)
+#         print(train_data_piece)
+
         theta_set_piece = np.array((theta_set[:,indecies[0]],theta_set[:,indecies[1]]))
 
         if emulator == True:
-            for i in range(len(Xexp)):
-                test_data_piece = np.array((test_data_piece, test_p[:,indecies[param_dim+i]]))
-                train_data_piece = np.array((train_data_piece, train_p[:,indecies[param_dim+i]]))
-                theta_set_piece = np.array((theta_set_piece, theta_set[:,indecies[param_dim+i]]))
-                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+            #Loop over each X dimension
+            for i in range(exp_data_dim):
+#                 print(indecies)
+#                 print(param_dim)
+                #Concatenate array corresponding to x values (looped) to training data to plot
+                train_data_piece = torch.cat( (train_data_piece, torch.reshape(train_p[:,indecies[param_dim-1]+(i+1)],(-1,1))), axis = 1 )
+#                 print(train_data_piece.shape)
+                if len(test_p) > 0:
+                    test_data_piece = torch.cat( (test_data_piece, torch.reshape(test_p[:,indecies[param_dim-1]+(i+1)],(-1,1))), axis = 1 )
+                else:
+                    test_data_piece = test_p
+                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
         else:
-            plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+            plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
     return 
 
 #This will need to change eventually

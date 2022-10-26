@@ -17,7 +17,7 @@ import Tasmanian
 from bo_functions_generic import LHS_Design, calc_y_exp, calc_muller, create_sse_data, create_y_data, set_ep, gen_y_Theta_GP, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, eval_GP_emulator_BE, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation
 
 from CS2_bo_plotters import value_plotter
-from CS2_bo_plotters import plot_org_train
+# from CS2_bo_plotters import plot_org_train
 from CS2_bo_plotters import plot_xy
 from CS2_bo_plotters import plot_Theta
 from CS2_bo_plotters import plot_obj
@@ -984,8 +984,10 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     #Find constants
     if len(Xexp.shape) >1:
         m = Xexp.shape[0]
+        n = Xexp.shape[1]
     else:
         m = 1
+        n = Xexp.shape[0]
 #     m = Xexp[0].size #Dimensions of X
     q = len(Theta_True) #Number of parameters to regress
 #     p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q
@@ -1017,6 +1019,9 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
             train_p = train_data[:,1:(q+1)]
             test_p = test_data[:,1:(q+1)]
             
+#         print(len(test_p))
+#         print(test_p.shape)
+#         print(train_p.shape)
         train_y = train_data[:,-1]
         assert len(train_p) == len(train_y), "Training data must be the same length"
         
@@ -1027,7 +1032,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         
         #Plot all training data
         #Test this
-        train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, sep_fact)
+        train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, sep_fact)
 
         #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact)
