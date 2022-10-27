@@ -6,6 +6,7 @@ import torch
 import csv
 import gpytorch
 import scipy.optimize as optimize
+from scipy.stats import qmc
 import pandas as pd
 import os
 import Tasmanian
@@ -16,6 +17,19 @@ from itertools import permutations
 
 from CS2_bo_plotters import plot_org_train
 
+def clean_1D_arrays(array):
+    """
+    Turns arrays that are shape (n,) into (n,1) arrays
+    
+    Parameters:
+        array: ndarray, 1D array
+    Returns:
+        array: ndarray, 2D array with shape (n,1)
+    """
+    if not len(array.shape) > 1:
+        array = array.reshape(-1,1)
+    return array
+
 def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
     """
     Generates theta_set from either a meshgrid search or and LHS
@@ -23,7 +37,7 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
     Parameters:
     -----------
         LHS: bool, Determines whether a meshgrid or LHS sample is generated, default True
-        n_points:, int, number of meshgrid points/ parameter or number of LHS samples
+        n_points:, int, number of meshgrid points/ parameter or the square root of the number of LHS samples
         dimensions: int, Number of parameters to regress
         bounds: None or ndarray, contains bounds for LHS generation if necessary
     """
@@ -36,7 +50,7 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
         df2 = df.drop_duplicates()
         theta_set = df2.to_numpy()
     else:
-        theta_set = LHS_Design(n_points, dimensions, seed = 9, bounds = bounds)
+        theta_set = LHS_Design(n_points**2, dimensions, seed = 9, bounds = bounds)
     return theta_set
 
 def LHS_Design(num_points, dimensions, seed = None, bounds = None):
@@ -124,7 +138,10 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     assert len(x) == len(y_exp), "Xexp and Yexp must be the same length"
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     
-    try: #For the case where more than 1 point is geing generated
+    train_T = clean_1D_arrays(train_T)
+    y_exp = clean_1D_arrays(y_exp)
+#     try: 
+    if train_T.shape[1] > 1: #For the case where more than 1 point is geing generated
         #Creates an array for train_sse that will be filled with the for loop
         sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
 
@@ -137,7 +154,8 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
                 sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
             else:
                 sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
-    except:
+#     except:
+    else:
          #Creates a value for train_sse that will be filled with the for loop
         sum_error_sq = 0 #1 x n_train^2
 
@@ -554,11 +572,11 @@ def find_train_doc_path(emulator, obj, d, t):
     """
     if emulator == False:
         if obj == "obj":
-            all_data_doc = "Input_CSVs/Train_Data/d="+str(d)+"/all_2_data/t="+str(t)+".csv"   
+            all_data_doc = "Input_CSVs/Train_Data/d="+str(d)+"/all_st_data/t="+str(t)+".csv"   
         else:
-            all_data_doc = "Input_CSVs/Train_Data/d="+str(d)+"/all_2_ln_obj_data/t="+str(t)+".csv" 
+            all_data_doc = "Input_CSVs/Train_Data/d="+str(d)+"/all_st_ln_obj_data/t="+str(t)+".csv" 
     else:    
-        all_data_doc = "Input_CSVs/Train_Data/d="+str(d)+"/all_3_data/t="+str(t)+".csv" 
+        all_data_doc = "Input_CSVs/Train_Data/d="+str(d)+"/all_emul_data/t="+str(t)+".csv" 
             
     return all_data_doc
 
@@ -865,7 +883,9 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
     
     #Coverts any tensors given as inputs to ndarrays         
     #Checks for equal lengths
-    assert isinstance(y_target, float)==True, "y_target, pred_mean, and pred_var must be floats"
+    
+    if not isinstance(y_target, float)==True:
+        y_target = float(y_target)
     assert isinstance(pred_mean, float)==True, "y_target, pred_mean, and pred_var must be floats"
     assert isinstance(pred_var, float)==True, "y_target, pred_mean, and pred_var must be floats"
     

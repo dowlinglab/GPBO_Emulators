@@ -237,7 +237,7 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
         for k in range(n):
             #Caclulate EI for each value n given the best error
             point = list(theta_set[i])
-            point.append(Xexp[k])
+            point.append(float(Xexp[k]))
             point = np.array(point)
             eval_point = np.array([point])
 #             eval_point = np.array([point])[0]
@@ -549,7 +549,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
             #Caclulate EI for each value n given the best error
 #             point = [theta_guess,Xexp[k]]
             point = list(theta_guess)
-            point.append(Xexp[k])
+            point.append(float(Xexp[k]))
             point = np.array(point)
             eval_point = np.array([point])
 #             point = theta_guess,Xexp[k]
@@ -796,6 +796,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         model = ExactGPModel(train_p, train_y, likelihood)
         
         #Train GP
+#         print(train_p.shape, train_y.shape)
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         
         #Set Exploration parameter
@@ -905,11 +906,14 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         #Make this a new function
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
+#             print(theta_b.shape)
             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+#             print(sse_Best)
 #             sse_Best = create_sse_data(theta_b, Xexp, Yexp, Constants, obj)
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
-            train_y = np.concatenate((train_y, [sse_Best]),axis=0) #(1 x t)
+#             print(train_y.shape, sse_Best.shape)
+            train_y = np.concatenate((train_y, sse_Best),axis=0) #(1 x t)
             
         else:
             #Loop over experimental data
@@ -982,12 +986,8 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     assert isinstance(runs, int) == True, "Number of runs must be an integer"
     
     #Find constants
-    if len(Xexp.shape) >1:
-        m = Xexp.shape[0]
-        n = Xexp.shape[1]
-    else:
-        m = 1
-        n = Xexp.shape[0]
+    m = Xexp.shape[1]
+    n = Xexp.shape[0]
 #     m = Xexp[0].size #Dimensions of X
     q = len(Theta_True) #Number of parameters to regress
 #     p = theta_mesh.shape[1] #Number of training points to evaluate in each dimension of q

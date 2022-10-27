@@ -219,6 +219,7 @@ def plot_hyperparams(iterations, hyperparam, title):
 #     plt.title("Plot of "+title, weight='bold',fontsize = 16)
     return plt.show()
 
+#This needs to take indecies as an argument and link indecies to a list of parameters
 def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None, save_CSV = True):
     '''
     Plots original training data with true value
