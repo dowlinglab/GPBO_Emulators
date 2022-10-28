@@ -293,15 +293,15 @@ def create_sse_data(param_space, x, y_exp, true_model_coefficients, obj = "obj",
     param_space = clean_1D_arrays(param_space)
     len_x, dim_x = x.shape[0], x.shape[1]
     
-    len_data, dim_data = param_space.shape[0], param_space.shape[1] 
+    len_data, dim_data = param_space.shape[1], param_space.shape[0] 
+#     len_data, dim_data = param_space.shape[0], param_space.shape[1]
     dim_param = dim_data
     num_constant_type, len_constants = true_model_coefficients.shape[0], true_model_coefficients.shape[1] # 6,4
     num_param_type_guess = int(dim_param/len_constants)
         
     #For the case where more than 1 point is geing generated
     #Creates an array for train_sse that will be filled with the for loop
-    sum_error_sq = torch.tensor(np.zeros(len_data)) #1 x n_train^2
-    
+    sum_error_sq = torch.tensor(np.zeros(len_data)) #1 x n_train^2 
     model_coefficients = true_model_coefficients.copy()
     
     #Iterates over evey combination of theta to find the SSE for each combination
@@ -332,7 +332,7 @@ def create_y_data(param_space, true_model_coefficients, x, skip_param_types = 0)
     Parameters
     ----------
         param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
-        Constants: ndarray, The array containing the true values of Muller constants
+        true_model_coefficients: ndarray, The array containing the true values of Muller constants
         x: ndarray, Array containing x data
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed
     Returns
@@ -354,6 +354,7 @@ def create_y_data(param_space, true_model_coefficients, x, skip_param_types = 0)
 #     print(len_data, dim_data)
     dim_x = x.shape[1] # 2
     dim_param = dim_data - dim_x
+    
     num_constant_type, len_constants = true_model_coefficients.shape[0], true_model_coefficients.shape[1] # 6,4
     num_param_type_guess = int(dim_param/len_constants)
         
@@ -491,7 +492,8 @@ def set_ep(emulator, obj, sparse):
 #     return param_space
 
 ##LEFT OFF DEBUGGING THIS FUNCTION
-def gen_y_Theta_GP(x_space, Theta):
+def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0):
+# def gen_y_Theta_GP(x_space, Theta):
     """
     Generates an array of Best Theta Value and X to create y data
     
@@ -499,14 +501,19 @@ def gen_y_Theta_GP(x_space, Theta):
     ----------
         x_space: ndarray, array of x value
         Theta: ndarray, Array of theta values
+        true_model_coefficients: ndarray, The array containing the true values of Muller constants
+        x: ndarray, Array containing x data
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
            
     Returns
     -------
         create_y_data_space: ndarray, array of parameters [Theta, x] to be used to generate y data
         
     """
-    m = x_space[0].size
-    q = len(Theta)
+    x_space = clean_1D_arrays(x_space)
+    
+    m = x_space.shape[1]
+    q = Theta.shape[0]
     
     #Define dimensions and initialize parameter matricies
     dim = q+m
@@ -519,10 +526,49 @@ def gen_y_Theta_GP(x_space, Theta):
         for j in range(q):
             #Fill matrix to include all Theta and x parameters
             create_y_data_space[i,j] = Theta[j]
-        create_y_data_space[i,q] = x_space[i]
+#         print(create_y_data_space)
+        create_y_data_space[i,q:] = x_space[i,:]
+#     print(create_y_data_space)
     #Generate y data based on parameters
-    y_GP_Opt_data = create_y_data(create_y_data_space)
-    return y_GP_Opt_data      
+#     y_GP_Opt_data = create_y_data(create_y_data_space)
+    y_GP_Opt_data = create_y_data(create_y_data_space, true_model_coefficients, x_space, skip_param_types = skip_param_types)
+    return y_GP_Opt_data   
+
+# def gen_y_Theta_GP(x_space, Theta):
+#     """
+#     Generates an array of Best Theta Value and X to create y data
+    
+#     Parameters
+#     ----------
+#         x_space: ndarray, array of x value
+#         Theta: ndarray, Array of theta values
+           
+#     Returns
+#     -------
+#         create_y_data_space: ndarray, array of parameters [Theta, x] to be used to generate y data
+        
+#     """
+#     x_space = clean_1D_arrays(x_space)
+#     Theta = clean_1D_arrays(Theta)
+#     m = x_space.shape[1]
+#     q = Theta.shape[1]
+    
+#     #Define dimensions and initialize parameter matricies
+#     dim = q+m
+#     lenX = len(x_space)
+#     create_y_data_space = np.zeros((lenX,dim))
+    
+#     #Loop over # of x values
+#     for i in range(lenX):
+#         #Loop over number of theta values
+#         for j in range(q):
+#             #Fill matrix to include all Theta and x parameters
+#             create_y_data_space[i,j] = Theta[j]
+#         create_y_data_space[i,q] = x_space[i]
+#     #Generate y data based on parameters
+#     y_GP_Opt_data = create_y_data(create_y_data_space)
+#     y_GP_Opt_data = create_y_data(create_y_data_space)
+#     return y_GP_Opt_data      
 
 def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     """

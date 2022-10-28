@@ -702,7 +702,7 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
     
     return eval_components
 
-def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 0.8, LHS = False):
+def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, true_model_coefficients, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 0.8, LHS = False, skip_param_types = 0):
     """
     Performs BO iterations
     
@@ -723,12 +723,14 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         sparse_grid: True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         emulator: True/False, Determines if GP will model the function or the function error
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        true_model_coefficients: ndarray, The array containing the true values of Muller constants
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: True/False, Determines whether figures will be saved
         tot_runs: The total number of runs to perform
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         test_p: None, tensor, or ndarray, The testing parameter space data. Default None
         sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
         
         
     Returns:
@@ -838,7 +840,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
         
         #Calculate values of y given the GP optimal theta values
-        y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o)
+        y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o, true_model_coefficients, skip_param_types = skip_param_types)
         
         #Calculate GP SSE and save value
         ln_error_mag = np.log(np.sum((y_GP_Opt-Yexp)**2)) #Should SSE be calculated like this or should we use the GP approximation?
@@ -907,13 +909,15 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
 #             print(theta_b.shape)
-            sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+#             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
 #             print(sse_Best)
-#             sse_Best = create_sse_data(theta_b, Xexp, Yexp, Constants, obj)
+            sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
-#             print(train_y.shape, sse_Best.shape)
+            print(train_y.shape, sse_Best)
             train_y = np.concatenate((train_y, sse_Best),axis=0) #(1 x t)
+            print(train_y.shape, sse_Best.shape)
+        
             
         else:
             #Loop over experimental data
@@ -940,7 +944,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
               
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters
 
-def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, verbose = True,save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False):
+def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, true_model_coefficients, verbose = True,save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False, skip_param_types = 0):
     """
     Performs BO iterations with runs. A run contains of choosing different initial training data.
     
@@ -950,7 +954,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         all_data_doc: csv name as a string, contains all training data for GP
         t: int, Number of total points to use
         theta_mesh: ndarray (d, p x p), meshgrid of Theta1 and Theta2
-        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
+        Theta_True: ndarray, The array containing the true values of theta parameters to regress- flattened array
         train_iter: int, number of training iterations to run. Default is 300
         explore_bias: float,int,tensor,ndarray (1 value) The initial exploration bias parameter
         Xexp: ndarray, The list of xs that will be used to generate y
@@ -961,11 +965,13 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         sparse_grid: Determines whether a sparse grid or approximation is used for the GP emulator
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         emulator: True/False, Determines if GP will model the function or the function error
+        true_model_coefficients: ndarray, The array containing the true values of Muller constants
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: True/False, Determines whether figures will be saved
         shuffle_seed, int, number of seed for shuffling training data. Default is None. 
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
         
     Returns:
     --------
@@ -1035,7 +1041,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
 #         train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, sep_fact)
 
         #Run BO iteration
-        BO_results = bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact)
+        BO_results = bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact,  LHS = LHS, skip_param_types = skip_param_types)
         
         #Add all SSE/theta results at each BO iteration for that run
         Theta_Best_matrix[i,:,:] = BO_results[0]
