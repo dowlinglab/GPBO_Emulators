@@ -75,143 +75,13 @@ def LHS_Design(num_points, dimensions, seed = None, bounds = None):
 
     return LHS
 
-def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
-    """
-    Creates y_data for the 2 input GP function
-    
-    Parameters
-    ----------
-        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
-        x: ndarray, The list of xs that will be used to generate y
-        noise_std: float, int: The standard deviation of the noise
-        noise_mean: float, int: The mean of the noise
-        random_seed: int: The random seed
-        
-    Returns:
-        y_exp: ndarray, The expected values of y given x data
-    """   
-    
-    #Asserts that test_T is a tensor with 2 columns
-    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
-    assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
-    assert len(Theta_True) ==2, "This function only has 2 unknowns, Theta_True can only contain 2 values."
-    
-    
-    #Seed Random Noise (For Bug Testing)
-    if random_seed != None:
-        assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
-        np.random.seed(random_seed)
-        
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    if isinstance(x, np.ndarray):
-        noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
-    else:
-        noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #1x n_x
-    # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
-    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
-  
-    return y_exp
-
-def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
-    """
-    Creates y_data for the 2 input GP function
-    
-    Parameters
-    ----------
-        q: int, Number of parameters to be regressed
-        train_T: ndarray, The array containing the training data for Theta1 and Theta2
-        x: ndarray, The list of xs that will be used to generate y
-        y_exp: ndarray, The experimental data for y (the true value)
-        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-        
-    Returns:
-        sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
-    """   
-    
-    #Asserts that test_T is a tensor with 2 columns (May delete this)
-    assert isinstance(q, int), "Number of inputs must be an integer"
-#     print(train_T.T)    
-    if torch.is_tensor(train_T)==True:
-        assert len(train_T.permute(*torch.arange(train_T.ndim -1, -1, -1))) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
-    else:
-        assert len(train_T.T) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
-    assert len(x) == len(y_exp), "Xexp and Yexp must be the same length"
-    assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
-    
-    train_T = clean_1D_arrays(train_T)
-    y_exp = clean_1D_arrays(y_exp)
-#     try: 
-    if train_T.shape[1] > 1: #For the case where more than 1 point is geing generated
-        #Creates an array for train_sse that will be filled with the for loop
-        sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
-
-        #Iterates over evey combination of theta to find the SSE for each combination
-        for i in range(len(train_T)):
-            theta_1 = train_T[i,0] #n_train^2x1 
-            theta_2 = train_T[i,1] #n_train^2x1
-            y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-            if obj == "obj":
-                sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
-            else:
-                sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
-#     except:
-    else:
-         #Creates a value for train_sse that will be filled with the for loop
-        sum_error_sq = 0 #1 x n_train^2
-
-        #Iterates over x to find the SSE for each combination
-        theta_1 = train_T[0] #n_train^2x1 
-        theta_2 = train_T[1] #n_train^2x1
-        y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
-        if obj == "obj":
-            sum_error_sq = sum((y_sim - y_exp)**2) #Scaler 
-        else:
-            sum_error_sq = np.log(sum((y_sim - y_exp)**2)) #Scaler 
-    
-    return sum_error_sq    
-
-def create_y_data(param_space):
-    """
-    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
-    Parameters
-    ----------
-        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
-    Returns
-    -------
-        y_data: ndarray, The simulated y training data
-    """
-    #Assert statements check that the types defined in the doctring are satisfied
-    assert len(param_space.T) >= 3, "Parameter space must have at least 3 parameters"
-    
-    #Converts parameters to numpy arrays if they are tensors
-    if torch.is_tensor(param_space)==True:
-        param_space = param_space.numpy()
-        
-    #Creates an array for train_data that will be filled with the for loop
-    y_data = np.zeros(len(param_space)) #1 x n (row x col)
-    
-    try: #Used when multiple values of y are being calculated
-        #Iterates over evey combination of theta to find the expected y value for each combination
-        for i in range(len(param_space)):
-            theta_1 = param_space[i,0] #nx1 
-            theta_2 = param_space[i,1] #nx1
-            x = param_space[i,2] #nx1 
-            y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
-            #Returns all_y
-    except:
-        theta_1 = param_space[0] #nx1 
-        theta_2 = param_space[1] #nx1
-        x = param_space[2] #nx1 
-        y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
-    return y_data
-
-# def calc_y_exp(true_model_coefficients, x, noise_std, noise_mean=0,random_seed=9):
+# def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
 #     """
-#     Creates y_data (Muller Potential) for the 2 input GP function
+#     Creates y_data for the 2 input GP function
     
 #     Parameters
 #     ----------
-#         true_model_coefficients: ndarray, The array containing the true values of Muller constants
+#         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
 #         x: ndarray, The list of xs that will be used to generate y
 #         noise_std: float, int: The standard deviation of the noise
 #         noise_mean: float, int: The mean of the noise
@@ -220,34 +90,162 @@ def create_y_data(param_space):
 #     Returns:
 #         y_exp: ndarray, The expected values of y given x data
 #     """   
-#    #Asserts that test_T is a tensor with 2 columns
+    
+#     #Asserts that test_T is a tensor with 2 columns
 #     assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
 #     assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
+#     assert len(Theta_True) ==2, "This function only has 2 unknowns, Theta_True can only contain 2 values."
     
-#     if len(x.shape) > 1:
-#         len_x = x.shape[0]
-#     else:
-#         len_x = 1
     
-# #     print(len_x)
 #     #Seed Random Noise (For Bug Testing)
 #     if random_seed != None:
 #         assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
 #         np.random.seed(random_seed)
         
 #     #Creates noise values with a certain stdev and mean from a normal distribution
-#     noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
-    
-#     # True function is Muller Potential
-    
-#     y_exp = np.zeros(len_x)
-    
-#     for i in range(len_x):
-#         y_exp[i] = calc_muller(x[i], true_model_coefficients)
+#     if isinstance(x, np.ndarray):
+#         noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
+#     else:
+#         noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #1x n_x
+#     # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
+#     y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
   
 #     return y_exp
 
-def calc_muller(x, model_coefficients):
+# def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
+#     """
+#     Creates y_data for the 2 input GP function
+    
+#     Parameters
+#     ----------
+#         q: int, Number of parameters to be regressed
+#         train_T: ndarray, The array containing the training data for Theta1 and Theta2
+#         x: ndarray, The list of xs that will be used to generate y
+#         y_exp: ndarray, The experimental data for y (the true value)
+#         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        
+#     Returns:
+#         sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
+#     """   
+    
+#     #Asserts that test_T is a tensor with 2 columns (May delete this)
+#     assert isinstance(q, int), "Number of inputs must be an integer"
+# #     print(train_T.T)    
+#     if torch.is_tensor(train_T)==True:
+#         assert len(train_T.permute(*torch.arange(train_T.ndim -1, -1, -1))) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
+#     else:
+#         assert len(train_T.T) >=q, str("This is a "+str(q)+" input GP, train_T must have at least q columns of values.")
+#     assert len(x) == len(y_exp), "Xexp and Yexp must be the same length"
+#     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
+    
+#     train_T = clean_1D_arrays(train_T)
+#     y_exp = clean_1D_arrays(y_exp)
+# #     try: 
+#     if train_T.shape[1] > 1: #For the case where more than 1 point is geing generated
+#         #Creates an array for train_sse that will be filled with the for loop
+#         sum_error_sq = torch.tensor(np.zeros(len(train_T))) #1 x n_train^2
+
+#         #Iterates over evey combination of theta to find the SSE for each combination
+#         for i in range(len(train_T)):
+#             theta_1 = train_T[i,0] #n_train^2x1 
+#             theta_2 = train_T[i,1] #n_train^2x1
+#             y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
+#             if obj == "obj":
+#                 sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
+#             else:
+#                 sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
+# #     except:
+#     else:
+#          #Creates a value for train_sse that will be filled with the for loop
+#         sum_error_sq = 0 #1 x n_train^2
+
+#         #Iterates over x to find the SSE for each combination
+#         theta_1 = train_T[0] #n_train^2x1 
+#         theta_2 = train_T[1] #n_train^2x1
+#         y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
+#         if obj == "obj":
+#             sum_error_sq = sum((y_sim - y_exp)**2) #Scaler 
+#         else:
+#             sum_error_sq = np.log(sum((y_sim - y_exp)**2)) #Scaler 
+    
+#     return sum_error_sq    
+
+# def create_y_data(param_space):
+#     """
+#     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
+#     Parameters
+#     ----------
+#         param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
+#     Returns
+#     -------
+#         y_data: ndarray, The simulated y training data
+#     """
+#     #Assert statements check that the types defined in the doctring are satisfied
+#     assert len(param_space.T) >= 3, "Parameter space must have at least 3 parameters"
+    
+#     #Converts parameters to numpy arrays if they are tensors
+#     if torch.is_tensor(param_space)==True:
+#         param_space = param_space.numpy()
+        
+#     #Creates an array for train_data that will be filled with the for loop
+#     y_data = np.zeros(len(param_space)) #1 x n (row x col)
+    
+#     try: #Used when multiple values of y are being calculated
+#         #Iterates over evey combination of theta to find the expected y value for each combination
+#         for i in range(len(param_space)):
+#             theta_1 = param_space[i,0] #nx1 
+#             theta_2 = param_space[i,1] #nx1
+#             x = param_space[i,2] #nx1 
+#             y_data[i] = theta_1*x + theta_2*x**2 +x**3 #Scaler
+#             #Returns all_y
+#     except:
+#         theta_1 = param_space[0] #nx1 
+#         theta_2 = param_space[1] #nx1
+#         x = param_space[2] #nx1 
+#         y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
+#     return y_data
+
+def calc_y_exp(true_model_coefficients, x, noise_std, noise_mean=0,random_seed=9):
+    """
+    Creates y_data (Muller Potential) for the 2 input GP function
+    
+    Parameters
+    ----------
+        true_model_coefficients: ndarray, The array containing the true values of Muller constants
+        x: ndarray, The list of xs that will be used to generate y
+        noise_std: float, int: The standard deviation of the noise
+        noise_mean: float, int: The mean of the noise
+        random_seed: int: The random seed
+        
+    Returns:
+        y_exp: ndarray, The expected values of y given x data
+    """   
+   #Asserts that test_T is a tensor with 2 columns
+    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
+    assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
+    
+    x = clean_1D_arrays(x)
+    len_x = x.shape[0]
+    
+#     print(len_x)
+    #Seed Random Noise (For Bug Testing)
+    if random_seed != None:
+        assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
+        np.random.seed(random_seed)
+        
+    #Creates noise values with a certain stdev and mean from a normal distribution
+    noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
+    
+    # True function is Muller Potential
+    
+    y_exp = np.zeros(len_x)
+    
+    for i in range(len_x):
+        y_exp[i] = calc_muller(x[i], true_model_coefficients, noise)
+  
+    return y_exp
+
+def calc_muller(x, model_coefficients, noise = 0):
     """
     Caclulates the Muller Potential
     
@@ -255,6 +253,7 @@ def calc_muller(x, model_coefficients):
     ----------
         x: ndarray, Values of X
         model_coefficients: ndarray, The array containing the values of Muller constants
+        noise: ndarray, Any noise associated with the model calculation
     
     Returns:
     --------
@@ -268,105 +267,119 @@ def calc_muller(x, model_coefficients):
     y_mul = np.sum(A*np.exp(Term1 + Term2 + Term3) ) + noise
     return y_mul
 
-# def create_sse_data(param_space, x, y_exp, true_model_coefficients, obj = "obj"):
-#     """
-#     Creates y_data for the 2 input GP function
+def create_sse_data(param_space, x, y_exp, true_model_coefficients, obj = "obj", skip_param_types = 0):
+    """
+    Creates y_data for the 2 input GP function
     
-#     Parameters
-#     ----------
-#         param_space: ndarray, The array containing the data for Theta1 and Theta2
-#         x: ndarray, The list of xs that will be used to generate y
-#         y_exp: ndarray, The experimental data for y (the true value)
-#         true_model_coefficients: ndarray, The array containing the true values of Muller constants
-#         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+    Parameters
+    ----------
+        param_space: ndarray, The array containing the data for Theta1 and Theta2
+        x: ndarray, The list of xs that will be used to generate y
+        y_exp: ndarray, The experimental data for y (the true value)
+        true_model_coefficients: ndarray, The array containing the true values of Muller constants
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
         
-#     Returns:
-#         sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
-#     """   
-#     if isinstance(param_space, pd.DataFrame):
-#         param_space = param_space.to_numpy()
+    Returns:
+        sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
+    """   
+    if isinstance(param_space, pd.DataFrame):
+        param_space = param_space.to_numpy()
 
-#     #Will need assert statement
-#     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
+    #Will need assert statement
+    assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     
-#     if len(x.shape) > 1:
-#         len_x = x.shape[0]
-#     else:
-#         len_x = 1
-#         len_a = 1
+    x = clean_1D_arrays(x)
+    param_space = clean_1D_arrays(param_space)
+    len_x, dim_x = x.shape[0], x.shape[1]
     
-#     len_data = len(param_space)
+    len_data, dim_data = param_space.shape[0], param_space.shape[1] 
+    dim_param = dim_data
+    num_constant_type, len_constants = true_model_coefficients.shape[0], true_model_coefficients.shape[1] # 6,4
+    num_param_type_guess = int(dim_param/len_constants)
         
-#     #For the case where more than 1 point is geing generated
-#     #Creates an array for train_sse that will be filled with the for loop
-#     sum_error_sq = torch.tensor(np.zeros(len_data)) #1 x n_train^2
+    #For the case where more than 1 point is geing generated
+    #Creates an array for train_sse that will be filled with the for loop
+    sum_error_sq = torch.tensor(np.zeros(len_data)) #1 x n_train^2
     
-#     model_coefficients = true_model_coefficients.copy()
+    model_coefficients = true_model_coefficients.copy()
     
-#     #Iterates over evey combination of theta to find the SSE for each combination
-#     for i in range(len_data):
-#         #Set dig out values of a from train_p
-#         #Set constants to change the a row to the index of the first loop
-#         model_coefficients[1] = param_space[i] #Sets a parameters to whatever they should be
-# #         print(a)
-#         y_sim = np.zeros(len_x)
-#         #Loop over state points (5)
-#         for j in range(len_x):
-#             y_sim[j] = calc_muller(x[j], model_coefficients)
+    #Iterates over evey combination of theta to find the SSE for each combination
+    for i in range(len_data):
+        #Set dig out values of a from train_p
+        #Set constants to change the a row to the index of the first loop
+        for j in range(num_param_type_guess):
+            j_model = skip_param_types + j
+            model_coefficients[j_model] = param_space[i][len_constants*j: len_constants*(j+1)]
+        
+        y_sim = np.zeros(len_x)
+        #Loop over state points (5)
+        for k in range(len_x):
+            y_sim[k] = calc_muller(x[k], model_coefficients)
+                
+        if obj == "obj":
+            sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
+#                 print(sum_error_sq[i])
+        else:
+            sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
+    
+    return sum_error_sq
 
-#         if obj == "obj":
-#             sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
-# #                 print(sum_error_sq[i])
-#         else:
-#             sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
-    
-#     return sum_error_sq
 
-# def create_y_data(param_space, true_model_coefficients):
-#     """
-#     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
-#     Parameters
-#     ----------
-#         param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
-#         true_model_coefficients: ndarray, The array containing the true values of Muller constants
-#     Returns
-#     -------
-#         y_sim: ndarray, The simulated y training data
-#     """
-#     #Assert statements check that the types defined in the doctring are satisfied
+def create_y_data(param_space, true_model_coefficients, x, skip_param_types = 0):
+    """
+    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
+    Parameters
+    ----------
+        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
+        Constants: ndarray, The array containing the true values of Muller constants
+        x: ndarray, Array containing x data
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
+    Returns
+    -------
+        y_sim: ndarray, The simulated y training data
+    """
+    #Assert statements check that the types defined in the doctring are satisfied
     
-#     #Converts parameters to numpy arrays if they are tensors
-#     if torch.is_tensor(param_space)==True:
-#         param_space = param_space.numpy()
+    #Converts parameters to numpy arrays if they are tensors
+    if torch.is_tensor(param_space)==True:
+        param_space = param_space.numpy()
         
-#     if isinstance(param_space, pd.DataFrame):
-#         param_space = param_space.to_numpy()
+    if isinstance(param_space, pd.DataFrame):
+        param_space = param_space.to_numpy()
     
-#     try:
-#         len_x = x.shape[1]
-#     except:
-#         len_x = 1
-    
-#     len_data = len(param_space)
-#     num_params = len(param_space.T)
+    param_space = clean_1D_arrays(param_space) 
+    x = clean_1D_arrays(x) 
+    len_data, dim_data = param_space.shape[0], param_space.shape[1] #300, 10
+#     print(len_data, dim_data)
+    dim_x = x.shape[1] # 2
+    dim_param = dim_data - dim_x
+    num_constant_type, len_constants = true_model_coefficients.shape[0], true_model_coefficients.shape[1] # 6,4
+    num_param_type_guess = int(dim_param/len_constants)
         
-#     #For the case where more than 1 point is geing generated
-#     #Creates an array for train_sse that will be filled with the for loop
-#     #Initialize y_sim
-#     y_sim = np.zeros(len_data) #1 x n_train^2
-#     model_coefficients = true_model_coefficients.copy()
+    #For the case where more than 1 point is geing generated
+    #Creates an array for train_sse that will be filled with the for loop
+    #Initialize y_sim
+    y_sim = np.zeros(len_data) #1 x n_train^2
+    model_coefficients = true_model_coefficients.copy()
 
-#     #Iterates over evey data point to find the y for each combination
-#     for i in range(len_data):
-#         #Set constants to change the a row to the index of the first loop
-#         len_a = model_coefficients[1].shape[0]
-#         model_coefficients[1] = param_space[i][0:(len_a)]
-        
-#         #Calculate y_sim
-#         x = param_space[i][(len_a):num_params]
-#         y_sim[i] = calc_muller(x[j], model_coefficients)
+    
+    #Iterates over evey data point to find the y for each combination
+    for i in range(len_data):
+        #Set dig out values of a from train_p
+        #Set constants to change the a row to the index of the first loop
+
+        #loop over number of param types (A, a, b c, x0, y0)
+        for j in range(num_param_type_guess):
+            j_model = skip_param_types + j
+            model_coefficients[j_model] = param_space[i][len_constants*j: len_constants*(j+1)]
+#         print(model_coefficients)
+        A, a, b, c, x0, y0 = model_coefficients         
+        #Calculate y_sim
+        x = param_space[i][dim_param:dim_data]
+        y_sim[i] = calc_muller(x, model_coefficients)
    
-#     return y_sim
+    return y_sim
 
 def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, test_p, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = 1):  
     """
