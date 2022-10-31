@@ -14,7 +14,9 @@ import pandas as pd
 import os
 import Tasmanian
 
-from bo_functions_generic import LHS_Design, calc_y_exp, calc_muller, create_sse_data, create_y_data, set_ep, gen_y_Theta_GP, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, eval_GP_emulator_BE, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays, create_y_sim_exp
+#Notes: Change Lines 926 and 945 when moving test problems
+
+from bo_functions_generic import LHS_Design, calc_y_exp, calc_muller, create_sse_data, create_y_data, set_ep, gen_y_Theta_GP, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, eval_GP_emulator_BE, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays
 
 from CS2_bo_plotters import value_plotter
 # from CS2_bo_plotters import plot_org_train
@@ -921,9 +923,9 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
 #             print(theta_b.shape)
-#             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+            sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+#             sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
 #             print(sse_Best)
-            sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
 #             print(train_y.shape, sse_Best)
@@ -932,17 +934,19 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             
         else:
             #Loop over experimental data
+#             print(Xexp)
             for k in range(n):
                 Best_Point = theta_b
+#                 print(theta_b, Theta_True)
                 Best_Point = np.append(Best_Point, Xexp[k])
                 #Create y-value/ experimental data ---- #Should use calc_y_exp correct? create_y_sim_exp
-                print(Xexp[k], Xexp[k].reshape((1,-1)))
-                y_Best = create_y_sim_exp(true_model_coefficients, Xexp[k].reshape((1,-1)), theta_b, skip_param_types, noise_std)
-                print(y_Best.shape)
 #                 y_Best = calc_y_exp(theta_b, Xexp[k].reshape((1,-1)), noise_std, noise_mean=0,random_seed=6)
-                #y_Best = calc_y_exp(Constants_True, Xexp[k], noise_std)
+                #Adding the noise creates experimental data at theta_b using create_y_data
+#                 y_Best = create_y_data(Best_Point, true_model_coefficients, Xexp[k].reshape((1,-1)), skip_param_types, noise_std)         
+                y_Best = calc_y_exp(theta_b, Xexp[k], noise_std)
                 train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
                 train_y = np.append(train_y, [y_Best]) #(1 x t)
+#                 print(train_p.shape, train_y.shape)
         
         if verbose == True:
             print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o, "is", "{:.4e}".format(ln_error_mag))
