@@ -207,6 +207,79 @@ def LHS_Design(num_points, dimensions, seed = None, bounds = None):
 #         y_data = theta_1*x + theta_2*x**2 +x**3 #Scaler
 #     return y_data
 
+def create_y_sim_exp(true_model_coefficients, x, param_space = None, skip_param_types = 0, noise_std=None, noise_mean=0,random_seed=9):
+    """
+    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
+    Parameters
+    ----------
+        param_space: (nx3) ndarray or tensor, parameter space over which the GP will be run
+        true_model_coefficients: ndarray, The array containing the true values of Muller constants
+        x: ndarray, Array containing x data
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
+    Returns
+    -------
+        y_sim: ndarray, The simulated y training data
+    """
+    #Assert statements check that the types defined in the doctring are satisfied
+    
+    #Converts parameters to numpy arrays if they are tensors
+    if torch.is_tensor(param_space)==True:
+        param_space = param_space.numpy()
+        
+    if isinstance(param_space, pd.DataFrame):
+        param_space = param_space.to_numpy()
+          
+    x = clean_1D_arrays(x) 
+    len_x, dim_x = x.shape[0], x.shape[1] # 2
+    
+    num_constant_type, len_constants = true_model_coefficients.shape[0], true_model_coefficients.shape[1] # 6,4
+    
+    if random_seed != None:
+        assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
+        np.random.seed(random_seed)
+        
+    if noise_std != None:
+        noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
+    else:
+        noise = 0
+       
+    #For the case where more than 1 point is geing generated
+    #Creates an array for train_sse that will be filled with the for loop
+    #Initialize y_sim 
+        
+    if param_space is not None:       
+        param_space = clean_1D_arrays(param_space) 
+        len_data, dim_data = param_space.shape[0], param_space.shape[1] #300, 10
+        dim_param = dim_data - dim_x
+        num_param_type_guess = int(dim_param/len_constants)
+    
+        model_coefficients = true_model_coefficients.copy()
+        y_create = np.zeros(len_data) #1 x n_train^2
+    
+        #Iterates over evey data point to find the y for each combination
+        for i in range(len_data):
+            #Set dig out values of a from train_p
+            #Set constants to change the a row to the index of the first loop
+
+            #loop over number of param types (A, a, b c, x0, y0)
+            for j in range(num_param_type_guess):
+                j_model = skip_param_types + j
+                model_coefficients[j_model] = param_space[i][len_constants*j: len_constants*(j+1)]
+    #         print(model_coefficients)
+            A, a, b, c, x0, y0 = model_coefficients         
+            #Calculate y_sim
+            x = param_space[i][dim_param:dim_data]
+            y_create[i] = calc_muller(x, model_coefficients, noise)
+    
+    else:      
+        y_create = np.zeros(len_x) #1 x n_train^2
+            
+        for i in range(len_x):
+            #Creates noise values with a certain stdev and mean from a normal distribution
+            y_create[i] = calc_muller(x[i], true_model_coefficients, noise)
+   
+    return y_create
+
 def calc_y_exp(true_model_coefficients, x, noise_std, noise_mean=0,random_seed=9):
     """
     Creates y_data (Muller Potential) for the 2 input GP function
@@ -243,6 +316,7 @@ def calc_y_exp(true_model_coefficients, x, noise_std, noise_mean=0,random_seed=9
     y_exp = np.zeros(len_x)
     
     for i in range(len_x):
+#         print(true_model_coefficients.shape)
         y_exp[i] = calc_muller(x[i], true_model_coefficients, noise)
   
     return y_exp
