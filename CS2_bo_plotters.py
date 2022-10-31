@@ -220,7 +220,7 @@ def plot_hyperparams(iterations, hyperparam, title):
     return plt.show()
 
 #This needs to take indecies as an argument and link indecies to a list of parameters
-def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None, save_CSV = True):
+def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, param_names_list, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None, save_CSV = True):
     '''
     Plots original training data with true value
     Parameters
@@ -236,6 +236,7 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
         len_scl: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         run, int or None, The iteration of the number of times new training points have been picked
         save_figure: True/False, Determines whether figures will be saved
+        param_names_list: list, list of names of each parameter that will be plotted
      
     Returns
     -------
@@ -274,8 +275,11 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
         #Set plot details
         plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
 #         plt.legend(loc = "best")
-        plt.xlabel(r'$\mathbf{\theta_1}$', fontsize=16, fontweight='bold')
-        plt.ylabel(r'$\mathbf{\theta_2}$', fontsize=16, fontweight='bold')
+        x_label = param_names_list[0]
+        y_label = param_names_list[1]
+#         plt.xlabel(r'$\mathbf{\theta_1}$', fontsize=16, fontweight='bold')
+        plt.xlabel(x_label, fontsize=16, fontweight='bold')
+        plt.ylabel(y_label, fontsize=16, fontweight='bold')
         #Set axis limits based on the maximum and minimum of the parameter search space
         x_lim_l = np.amin(train_p[:,0])
         y_lim_l = np.amin(train_p[:,1])
@@ -647,7 +651,7 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     
     return 
 
-def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure,tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 5, save_CSV = True):
+def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 5, save_CSV = True):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -664,6 +668,7 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_figure: True/False, Determines whether figures will be saved
+        param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         runs: int, The number of times to choose new training points
     
     Returns:
@@ -690,9 +695,11 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
             Theta_j_df = pd.DataFrame(data = Theta_array[i])
             #Plot more than 1 line if there are many runs
             if tot_runs > 1:
-                label = r'$\theta_' +str({j+1})+"$" + " Run: "+str(i+1)         
+                label = param_dict[j] + " Run: "+str(i+1) 
+#                 label = r'$\theta_' +str({j+1})+"$" + " Run: "+str(i+1)         
             else:
-                label = r'$\theta_' +str({j+1})+"$"
+                label = param_dict[j]
+#                 label = r'$\theta_' +str({j+1})+"$"
                 
             Theta_j_df_i = Theta_j_df.loc[(abs(Theta_j_df) > 1e-6).any(axis=1),j]
             bo_len = len(Theta_j_df_i)
@@ -709,7 +716,7 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
         plt.tight_layout()
         plt.xlabel("BO Iterations",fontsize=16,fontweight='bold')
-        plt.ylabel(r'$\mathbf{\theta_' + str({j+1})+"}$",fontsize=16,fontweight='bold')
+        plt.ylabel(param_dict[j],fontsize=16,fontweight='bold')
 #         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
 #         plt.grid(True)
         plt.xticks(fontsize=16)
@@ -738,7 +745,7 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
 
     return
 
-def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure,tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 5, save_CSV = True):
+def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 5, save_CSV = True):
     """
     Plots the objective function and best Theta values so far vs BO iteration
     
@@ -755,6 +762,7 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
         sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_figure: True/False, Determines whether figures will be saved
+        param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         runs: int, The number of times to choose new training points
     
     Returns:
@@ -781,9 +789,11 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
             Theta_j_df = pd.DataFrame(data = Theta_array[i])
             #Plot more than 1 line if there are many runs
             if tot_runs > 1:
-                label = r'$\theta_' +str({j+1})+"$" + " Run: "+str(i+1)         
+                label = param_dict[j] + " Run: "+str(i+1)  
+#                 label = r'$\theta_' +str({j+1})+"$" + " Run: "+str(i+1)         
             else:
-                label = r'$\theta_' +str({j+1})+"$"
+                label = param_dict[j]
+#                 label = r'$\theta_' +str({j+1})+"$"
                 
             Theta_j_df_i = Theta_j_df.loc[(abs(Theta_j_df) > 1e-6).any(axis=1),j]
             bo_len = len(Theta_j_df_i)
@@ -800,7 +810,8 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
         plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
         plt.tight_layout()
         plt.xlabel("BO Iterations",fontsize=16,fontweight='bold')
-        plt.ylabel(r'$\mathbf{\theta_' + str({j+1})+"}$",fontsize=16,fontweight='bold')
+        plt.ylabel(param_dict[j],fontsize=16,fontweight='bold')
+#         plt.ylabel(r'$\mathbf{\theta_' + str({j+1})+"}$",fontsize=16,fontweight='bold')
 #         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
 #         plt.grid(True)
         plt.xticks(fontsize=16)
@@ -831,7 +842,7 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
     return
 
 #Will need to have a loop run this for each combination of theta values
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None, levels = 20, save_CSV = True ):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, param_names_list, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None, levels = 20, save_CSV = True ):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -849,6 +860,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_figure: True/False, Determines whether figures will be saved
+        param_names_list: list, list of names of each parameter that will be plotted
         Bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
         run, int or None, The iteration of the number of times new training points have been picked
      
@@ -928,8 +940,10 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
 
     #Creates axis labels and title
-    plt.xlabel(r'$\mathbf{\theta_1}$',fontsize=16,fontweight='bold')
-    plt.ylabel(r'$\mathbf{\theta_2}$',fontsize=16,fontweight='bold')
+    plt.xlabel(param_names_list[0],fontsize=16,fontweight='bold')
+#     plt.xlabel(r'$\mathbf{\theta_1}$',fontsize=16,fontweight='bold')
+    plt.ylabel(param_names_list[1],fontsize=16,fontweight='bold')
+#     plt.ylabel(r'$\mathbf{\theta_2}$',fontsize=16,fontweight='bold')
     plt.xlim((np.amin(xx), np.amax(xx)))
     plt.ylim((np.amin(yy),np.amax(yy)))   
     plt.locator_params(axis='y', nbins=5)

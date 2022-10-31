@@ -411,7 +411,7 @@ def calc_muller(x, model_coefficients, noise = 0):
    
 #     return y_sim
 
-def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, test_p, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = 1):  
+def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, test_p, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, param_dict, sep_fact = 1):  
     """
     Puts training data into a for loop to print all possible 3D angles of the training data
     
@@ -439,10 +439,12 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
         
     """
     dim_param_list = np.linspace(0,param_dim-1,param_dim) #Note - Need to figure this out when plotting w/ multidimensional x
-    mesh_combos = np.array(list(combinations(dim_param_list, 2)), dtype = int)
+    mesh_combos = np.array(list(combinations(dim_param_list, 2)), dtype = int)  
 
     for i in range(len(mesh_combos)):
         indecies = mesh_combos[i]
+        #Find the names of the parameter space associated with each index
+        param_names_list = [param_dict[0], param_dict[1]]
         #Concatenate test data and train data from indecie combination
         if len(test_p) > 0:
             test_data_piece = torch.cat((torch.reshape(test_p[:,indecies[0]],(-1,1)),torch.reshape(test_p[:,indecies[1]],(-1,1))),axis= 1)
@@ -466,9 +468,9 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
                     test_data_piece = torch.cat( (test_data_piece, torch.reshape(test_p[:,indecies[param_dim-1]+(i+1)],(-1,1))), axis = 1 )
                 else:
                     test_data_piece = test_p
-                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
         else:
-            plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+            plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
     return 
 
 #This will need to change eventually
