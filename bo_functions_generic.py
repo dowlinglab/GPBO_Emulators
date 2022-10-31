@@ -17,7 +17,7 @@ from itertools import permutations
 
 from CS2_bo_plotters import plot_org_train
 
-def clean_1D_arrays(array):
+def clean_1D_arrays(array, param_clean = False):
     """
     Turns arrays that are shape (n,) into (n,1) arrays
     
@@ -28,6 +28,8 @@ def clean_1D_arrays(array):
     """
     if not len(array.shape) > 1:
         array = array.reshape(-1,1)
+        if param_clean == True:
+            array = array.reshape(1,-1)
     return array
 
 def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
@@ -290,13 +292,20 @@ def create_sse_data(param_space, x, y_exp, true_model_coefficients, obj = "obj",
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     
     x = clean_1D_arrays(x)
-    param_space = clean_1D_arrays(param_space)
+    param_space = clean_1D_arrays(param_space, param_clean = True)
     len_x, dim_x = x.shape[0], x.shape[1]
     
-    len_data, dim_data = param_space.shape[1], param_space.shape[0] 
-#     len_data, dim_data = param_space.shape[0], param_space.shape[1]
+#     len_data, dim_data = param_space.shape[1], param_space.shape[0] 
+#     print(len_data, dim_data)
+#     print(param_space.shape)
+    len_data, dim_data = param_space.shape[0], param_space.shape[1]
+#     print(len_data, dim_data)
     dim_param = dim_data
-    num_constant_type, len_constants = true_model_coefficients.shape[0], true_model_coefficients.shape[1] # 6,4
+#     print(true_model_coefficients)
+    try:
+        num_constant_type, len_constants = true_model_coefficients.shape[0], true_model_coefficients.shape[1] # 6,4
+    except:
+        print(true_model_coefficients)
     num_param_type_guess = int(dim_param/len_constants)
         
     #For the case where more than 1 point is geing generated
@@ -1013,7 +1022,7 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
     ei = EI         
     return ei
 
-def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj"):
+def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj", skip_param_types = 0):
     """ 
     Calculates the best error of the 3 input parameter GP
     Parameters
@@ -1039,12 +1048,13 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj
 #     except:
 #         print("train_p",train_p)
 #         t_train = 1
-    
+#     print(true_model_coefficients)
+#     print(true_model_coefficients.shape)
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     SSE = np.zeros(t_train)
     for i in range(t_train):
-        SSE[i] = create_sse_data(q,train_p[i], Xexp, Yexp, obj= obj) 
-#         SSE[i] = create_sse_data(train_p[i], Xexp, Yexp, true_model_coefficients, obj = obj)
+#         SSE[i] = create_sse_data(q,train_p[i], Xexp, Yexp, obj= obj) 
+        SSE[i] = create_sse_data(train_p[i], Xexp, Yexp, true_model_coefficients, obj = obj, skip_param_types = skip_param_types)
 
     #Define best_error as the minimum SSE or ln(SSE) value
     best_error = np.amin(SSE)

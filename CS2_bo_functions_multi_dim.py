@@ -26,7 +26,7 @@ from CS2_bo_plotters import plot_3GP_performance
 from CS2_bo_plotters import plot_sep_fact_min
 from CS2_bo_plotters import save_fig, save_csv, path_name
 
-def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj):
+def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, skip_param_types = 0):
     """
     Finds the lowest sse and highest EI parameter sets using scipy
     
@@ -52,7 +52,9 @@ def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, 
     """
     #Could modify to chec every point
     theta0_b, theta0_o = find_opt_and_best_arg(theta_set, sse, ei, train_p)
-    theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj)
+#     print(theta0_b, theta0_o)
+    theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj, skip_param_types)
+#     print(theta_b, theta_o)
     return theta_b, theta_o
 
 def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = 1):
@@ -94,7 +96,7 @@ def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp
         eval_GP_over_grid(theta_set, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
     return
     
-def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact):
+def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact, skip_param_types = 0):
     """
     Evaluates all combinations of theta pairs to make heat maps. Makes heat maps and saves them
     
@@ -136,7 +138,7 @@ def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp,
     #Not sure if this is right
     theta_set = theta_mesh.T.reshape((-1,2))
 
-    eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, Theta_True, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj)
+    eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, Theta_True, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
 #     print(eval_components)
 
     #Determines whether debugging parameters are saved for 2 Input GP       
@@ -186,7 +188,7 @@ def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp,
 
     return
 
-def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False, train_p = None, obj = "obj"):
+def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False, train_p = None, obj = "obj", skip_param_types = 0):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -229,7 +231,7 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
     ##Calculate Best Error
     # Loop over theta 1
     for i in range(len_set):
-        best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj")
+        best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj", skip_param_types = skip_param_types)
         GP_mean = np.zeros(n)
         GP_var = np.zeros(n)
         
@@ -237,8 +239,12 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
         for k in range(n):
             #Caclulate EI for each value n given the best error
             point = list(theta_set[i])
-            point.append(float(Xexp[k]))
-            point = np.array(point)
+#             point.append(float(Xexp[k]))
+            x_point_data = list(Xexp[k]) #astype(np.float)
+            point = point + x_point_data
+#             print(point)
+#             point.append(x_point_data) 
+            point = np.array(point)  
             eval_point = np.array([point])
 #             eval_point = np.array([point])[0]
 #             print(eval_point)
@@ -405,8 +411,9 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
     #ensures that only one point is used if multiple points yield a minimum
     
     if len(argmin) > 1:
+#         print("Multiple Argmin")
         rand_ind = np.random.randint(np.max(argmin.shape)) #Chooses a random point with the minimum value
-        argmin = argmin[rand_ind]
+        argmin = np.array([argmin[rand_ind]])
 #     print(argmin)
     #Find theta value corresponding to argmin(SSE)
     
@@ -421,6 +428,7 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
 
     #ensures that only one point is used if multiple points yield a maximum
     if len(argmax) > 1:
+#         print("Multiple Argmax")
         argmax = argmax_multiple(argmax, train_p, theta_set)
             
     #Find theta value corresponding to argmax(EI)
@@ -481,7 +489,7 @@ def argmax_multiple(argmax, train_p, theta_set): #not sure how to fix setting of
     return argmax_best
              
 ##FOR USE WITH SCIPY##################################################################
-def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias=0.0, ei_sse_choice = "ei", verbose = False, obj = "obj"):
+def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias=0.0, ei_sse_choice = "ei", verbose = False, obj = "obj", skip_param_types = 0):
     """ 
     Calculates either -ei or sse (a function to be minimized). To be used in calculating best and optimal parameter sets.
     Parameters
@@ -542,7 +550,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
     else:
         ei = 0
         sse = 0
-        best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj")
+        best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj", skip_param_types = skip_param_types)
         GP_mean = np.zeros(n)
         GP_stdev = np.zeros(n)
         for k in range(n):
@@ -579,7 +587,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
 #         print("sse chosen")
         return sse #We want to minimize sse or ln(sse)
 
-def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj):
+def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj, skip_param_types = 0):
     """
     Finds the Theta value where min(sse) or min(-ei) is true using scipy.minimize and the L-BFGS-B method
     
@@ -631,8 +639,8 @@ def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,
     
     #Set arguments and calculate best and optimal solutions
     #remove theta_mesh from these eventually
-    argmts_best = ((train_y, train_p, Xexp, Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias, ei_sse_choice1, verbose, obj))
-    argmts_opt =  ((train_y, train_p, Xexp, Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias, ei_sse_choice2, verbose, obj))
+    argmts_best = ((train_y, train_p, Xexp, Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias, ei_sse_choice1, verbose, obj, skip_param_types))
+    argmts_opt =  ((train_y, train_p, Xexp, Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias, ei_sse_choice2, verbose, obj, skip_param_types))
 
 #     print(argmts_best)
     Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds, method = "L-BFGS-B", args=argmts_best)
@@ -645,7 +653,7 @@ def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,
     return theta_b, theta_o
 
 # def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale):  
-def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, obj = "obj"):
+def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, obj = "obj", skip_param_types = 0):
     """
     Evaluates GP
     
@@ -698,7 +706,7 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
         eval_components = eval_GP_basic_set(theta_set, train_y, model, likelihood, explore_bias, verbose)
     else:
 #         eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose)
-        eval_components = eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, sparse_grid, explore_bias, verbose, train_p, obj)
+        eval_components = eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, sparse_grid, explore_bias, verbose, train_p, obj, skip_param_types = skip_param_types)
     
     return eval_components
 
@@ -806,7 +814,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         explore_bias = ep_init #Sets ep to the multiplicative scaler between 0.1 and 1
         
         #Evaluate GP to find sse and ei for optimization step
-        eval_components = eval_GP(theta_set, train_y, explore_bias,Xexp, Yexp, Theta_True, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj)
+        eval_components = eval_GP(theta_set, train_y, explore_bias,Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
 
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
@@ -815,10 +823,11 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             ei,sse,var,stdev,best_error = eval_components
 
         #solve for opt and best based on theta_set
-        theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, Theta_True, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj)
+        theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, skip_param_types)
+#         print(theta_b, theta_o)
         
         #Evaluate GP for best EI theta set
-        eval_components = eval_GP(np.array([theta_b]), train_y, explore_bias,Xexp, Yexp, Theta_True, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj)
+        eval_components = eval_GP(np.array([theta_b]), train_y, explore_bias,Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
 
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
@@ -914,9 +923,9 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
-            print(train_y.shape, sse_Best)
+#             print(train_y.shape, sse_Best)
             train_y = np.concatenate((train_y, sse_Best),axis=0) #(1 x t)
-            print(train_y.shape, sse_Best.shape)
+#             print(train_y.shape, sse_Best.shape)
         
             
         else:
