@@ -59,7 +59,7 @@ def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, 
 #     print(theta_b, theta_o)
     return theta_b, theta_o
 
-def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = 1):
+def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, sep_fact = 1, skip_param_types = 0, train_iter = 300):
     """
     Evaluates all combinations of theta pairs to make heat maps
     
@@ -96,11 +96,11 @@ def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp
     mesh_combos = np.array(list(combinations(dim_list, 2)), dtype = int)
     for i in range(len(mesh_combos)):
         indecies = mesh_combos[i]
-        param_names_list = [param_dict[0], param_dict[1]]
-        eval_GP_over_grid(theta_set, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
+        param_names_list = [param_dict[indecies[0]], param_dict[indecies[1]]]
+        eval_GP_over_grid(theta_set, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, sep_fact = sep_fact, skip_param_types = skip_param_types, train_iter = train_iter)
     return
     
-def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact, skip_param_types = 0):
+def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, sep_fact, skip_param_types = 0, train_iter = 300):
     """
     Evaluates all combinations of theta pairs to make heat maps. Makes heat maps and saves them
     
@@ -138,12 +138,32 @@ def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp,
     Theta1_lin = np.linspace(np.min(theta_set_org[:,indecies[0]]),np.max(theta_set_org[:,indecies[0]]), n_points)
     Theta2_lin = np.linspace(np.min(theta_set_org[:,indecies[1]]),np.max(theta_set_org[:,indecies[1]]), n_points)
     theta_mesh = np.array(np.meshgrid(Theta1_lin, Theta2_lin)) 
+    
+    train_p_2D = np.concatenate(( clean_1D_arrays(train_p[:,indecies[0]]) , clean_1D_arrays(train_p[:,indecies[1]]) ), axis = 1)
+    train_p_2D = torch.tensor(train_p_2D)
     xx,yy = theta_mesh
 #     print(xx.shape)
     #Not sure if this is right
     theta_set = theta_mesh.T.reshape((-1,2))
+#     print(theta_set.shape, train_y.shape)
 
-    eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, Theta_True, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
+    if train_p_2D.shape != train_p.shape:
+        #Retrain a new model meant to take 2 Inputs and not the true number
+
+        #Redefine likelihood and model based on new training data
+        likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        model = ExactGPModel(train_p_2D, train_y, likelihood)
+
+        #Train GP
+        train_GP = train_GP_model(model, likelihood, train_p_2D, train_y, train_iter, verbose=False)
+        
+        #Redefine where GP_SSE_min, EI_max, training points, and true values are
+        theta_o = np.array([theta_o[indecies[0]], theta_o[indecies[1]]])
+        theta_b = np.array([theta_b[indecies[0]], theta_b[indecies[1]]])
+        train_p = train_p_2D
+        Theta_True = np.array([Theta_True[indecies[0]], Theta_True[indecies[1]]])
+
+    eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
 #     print(eval_components)
 
     #Determines whether debugging parameters are saved for 2 Input GP       
@@ -846,7 +866,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         
         #Save Figures
 #         if save_fig == True:
-        eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact)
+        eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, sep_fact = sep_fact, skip_param_types = skip_param_types, train_iter = train_iter)
         
         All_Max_EI[i] = np.max(ei)
         
@@ -927,14 +947,14 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
 #             print(theta_b.shape)
-            sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
-#             sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
+#             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+            sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
 #             print(sse_Best)
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
 #             print(train_y.shape, sse_Best)
             train_y = np.concatenate((train_y, sse_Best),axis=0) #(1 x t)
-#             print(train_y.shape, sse_Best.shape)      
+            print(train_y.shape, sse_Best.shape)      
             
         else:
             #Loop over experimental data
@@ -946,8 +966,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
                 #Create y-value/ experimental data ---- #Should use calc_y_exp correct? create_y_sim_exp
 #                 y_Best = calc_y_exp(theta_b, Xexp[k].reshape((1,-1)), noise_std, noise_mean=0,random_seed=6)
                 #Adding the noise creates experimental data at theta_b using create_y_data
-#                 y_Best = create_y_data(Best_Point, true_model_coefficients, Xexp[k].reshape((1,-1)), skip_param_types, noise_std)         
-                y_Best = calc_y_exp(theta_b, Xexp[k], noise_std)
+                y_Best = create_y_data(Best_Point, true_model_coefficients, Xexp[k].reshape((1,-1)), skip_param_types, noise_std)         
+#                 y_Best = calc_y_exp(theta_b, Xexp[k], noise_std)
                 train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
                 train_y = np.append(train_y, [y_Best]) #(1 x t)
 #                 print(train_p.shape, train_y.shape)
@@ -1061,8 +1081,8 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
             assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
         
         #Plot all training data
-        #This works, put it back when we need it (10/28/22)
-        train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, param_dict, sep_fact)
+        #This works, put it back when we need it (11/1/22)
+#         train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, param_dict, sep_fact)
 
         #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients, param_dict, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types)

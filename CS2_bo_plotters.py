@@ -275,8 +275,8 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
         #Set plot details
         plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
 #         plt.legend(loc = "best")
-        x_label = param_names_list[0]
-        y_label = param_names_list[1]
+        x_label = r'$\mathbf{'+ param_names_list[0] +'}$'
+        y_label = r'$\mathbf{'+ param_names_list[1] +'}$'
 #         plt.xlabel(r'$\mathbf{\theta_1}$', fontsize=16, fontweight='bold')
         plt.xlabel(x_label, fontsize=16, fontweight='bold')
         plt.ylabel(y_label, fontsize=16, fontweight='bold')
@@ -327,8 +327,11 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
                     s=100, marker = (5,1))
         
         plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
-        ax.set_xlabel(r'$\mathbf{\theta_1}$', fontsize=16, fontweight='bold')
-        ax.set_ylabel(r'$\mathbf{\theta_2}$', fontsize=16, fontweight='bold')
+        x_label = r'$\mathbf{'+ param_names_list[0] +'}$'
+        y_label = r'$\mathbf{'+ param_names_list[1] +'}$'
+#         plt.xlabel(r'$\mathbf{\theta_1}$', fontsize=16, fontweight='bold')
+        ax.set_xlabel(x_label, fontsize=16, fontweight='bold')
+        ax.set_ylabel(y_label, fontsize=16, fontweight='bold')
         ax.set_zlabel('X-Value', fontsize=16, fontweight='bold')
 #         ax.legend(loc = "best")
 #         plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
@@ -695,10 +698,10 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
             Theta_j_df = pd.DataFrame(data = Theta_array[i])
             #Plot more than 1 line if there are many runs
             if tot_runs > 1:
-                label = param_dict[j] + " Run: "+str(i+1) 
+                label = r'$' + param_dict[j] +'$'+ " Run: "+str(i+1)  
 #                 label = r'$\theta_' +str({j+1})+"$" + " Run: "+str(i+1)         
             else:
-                label = param_dict[j]
+                label = r'$' + param_dict[j] +'$'
 #                 label = r'$\theta_' +str({j+1})+"$"
                 
             Theta_j_df_i = Theta_j_df.loc[(abs(Theta_j_df) > 1e-6).any(axis=1),j]
@@ -712,11 +715,11 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         
         bo_len_max = int(np.max(bo_lens))
         bo_space_long = np.linspace(1,bo_len_max,bo_len_max)
-        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = r'$\theta_{true,'+str(j+1)+'}$')
+        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = r'$' + param_dict[j] + '_{true}$')
         plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
         plt.tight_layout()
         plt.xlabel("BO Iterations",fontsize=16,fontweight='bold')
-        plt.ylabel(param_dict[j],fontsize=16,fontweight='bold')
+        plt.ylabel(r'$\mathbf{'+ param_dict[j]+ '}$',fontsize=16,fontweight='bold')
 #         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
 #         plt.grid(True)
         plt.xticks(fontsize=16)
@@ -789,10 +792,10 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
             Theta_j_df = pd.DataFrame(data = Theta_array[i])
             #Plot more than 1 line if there are many runs
             if tot_runs > 1:
-                label = param_dict[j] + " Run: "+str(i+1)  
+                label = r'$' + param_dict[j] +'$' + " Run: "+str(i+1)  
 #                 label = r'$\theta_' +str({j+1})+"$" + " Run: "+str(i+1)         
             else:
-                label = param_dict[j]
+                label = r'$' + param_dict[j] +'$'
 #                 label = r'$\theta_' +str({j+1})+"$"
                 
             Theta_j_df_i = Theta_j_df.loc[(abs(Theta_j_df) > 1e-6).any(axis=1),j]
@@ -806,11 +809,11 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
         
         bo_len_max = int(np.max(bo_lens))
         bo_space_long = np.linspace(1,bo_len_max,bo_len_max)
-        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = r'$\theta_{true,'+str(j+1)+'}$')
+        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = r'$' + param_dict[j] + '_{true}$')
         plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
         plt.tight_layout()
         plt.xlabel("BO Iterations",fontsize=16,fontweight='bold')
-        plt.ylabel(param_dict[j],fontsize=16,fontweight='bold')
+        plt.ylabel(r'$\mathbf{'+ param_dict[j]+ '}$',fontsize=16,fontweight='bold')
 #         plt.ylabel(r'$\mathbf{\theta_' + str({j+1})+"}$",fontsize=16,fontweight='bold')
 #         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
 #         plt.grid(True)
@@ -883,7 +886,8 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     assert isinstance(obj,str)==True, "Objective function name must be a string" 
     
     #Set plot details
-    plt.figure(figsize=(6,6))
+    fig = plt.figure(figsize=(6,6))
+    ax = fig.add_subplot()
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tick_params(direction="in",top=True, right=True)
@@ -891,9 +895,9 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     #   cmap defines the overall color within the heatmap 
     #   levels: determines the number and positions of the contour lines / regions.
     cs = plt.contourf(xx, yy,z, levels = 100, cmap = "autumn")
-    
+    ax.set_box_aspect(1)
     # plot color bar
-    if np.amax(z) < 1e-1:
+    if np.amax(z) < 1e-1 or np.amax(z) > 1000:
         cbar = plt.colorbar(cs, format='%.2e')
     else:
         cbar = plt.colorbar(cs, format = '%2.2f')
@@ -907,23 +911,20 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
 
     # set font size in color bar
     cbar.ax.tick_params(labelsize=16)
-    
+#     cbar.ax.set_aspect('equal')
     # Plot equipotential line
     cs2 = plt.contour(cs, levels=cs.levels[::levels], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
     
     #Plot heatmap label
     
-    if np.amax(z) < 1e-1:
+    if np.amax(z) < 1e-1 or np.amax(z) > 1000:
         plt.clabel(cs2, fmt='%.2e', colors='k', fontsize=16)
     else:
         plt.clabel(cs2, fmt='%2.2f', colors='k', fontsize=16)
     
     #Can only plot np arrays
     if torch.is_tensor(train_p) == True:
-        train_p = train_p.numpy()
-        
-    #Plots axes such that they are scaled the same way (eg. circles look like circles)
-    plt.axis('square')    
+        train_p = train_p.numpy() 
     
     #Plots the true optimal value, the best EI value, the GP value, and all training points
     plt.scatter(p_true[0],p_true[1], color="blue", label = "True argmin" + r'$(e(\theta))$', s=100, marker = (5,1))
@@ -945,13 +946,18 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     plt.ylabel(param_names_list[1],fontsize=16,fontweight='bold')
 #     plt.ylabel(r'$\mathbf{\theta_2}$',fontsize=16,fontweight='bold')
     plt.xlim((np.amin(xx), np.amax(xx)))
+#     print((np.amin(xx), np.amax(xx)))
     plt.ylim((np.amin(yy),np.amax(yy)))   
     plt.locator_params(axis='y', nbins=5)
     plt.locator_params(axis='x', nbins=5)
     plt.minorticks_on() # turn on minor ticks
     plt.tick_params(which="minor",direction="in",top=True, right=True)
+#     ax = plt.gca() #you first need to get the axis handle
+#     ax.set_aspect('box') #sets the height to width ratio to 1
 #     plt.gca().axes.xaxis.set_ticklabels([]) # remove tick labels
 #     plt.gca().axes.yaxis.set_ticklabels([])
+    fig.tight_layout()
+    #Plots axes such that they are scaled the same way (eg. circles look like circles) 
     
     #Back out number of original training points for saving figures and CSVs   
     df_list = [z, p_GP_opt, p_GP_best]
