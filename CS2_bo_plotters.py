@@ -698,10 +698,10 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
             Theta_j_df = pd.DataFrame(data = Theta_array[i])
             #Plot more than 1 line if there are many runs
             if tot_runs > 1:
-                label = r'$' + param_dict[j] +'$'+ " Run: "+str(i+1)  
+                label = r'$' + str(param_dict[j]) +'$'+ " Run: "+str(i+1)  
 #                 label = r'$\theta_' +str({j+1})+"$" + " Run: "+str(i+1)         
             else:
-                label = r'$' + param_dict[j] +'$'
+                label = r'$' + str(param_dict[j]) +'$'
 #                 label = r'$\theta_' +str({j+1})+"$"
                 
             Theta_j_df_i = Theta_j_df.loc[(abs(Theta_j_df) > 1e-6).any(axis=1),j]
@@ -715,11 +715,11 @@ def plot_Theta(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, sparse_g
         
         bo_len_max = int(np.max(bo_lens))
         bo_space_long = np.linspace(1,bo_len_max,bo_len_max)
-        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = r'$' + param_dict[j] + '_{true}$')
+        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = r'$' + str(param_dict[j]) + '$ True')
         plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
         plt.tight_layout()
         plt.xlabel("BO Iterations",fontsize=16,fontweight='bold')
-        plt.ylabel(r'$\mathbf{'+ param_dict[j]+ '}$',fontsize=16,fontweight='bold')
+        plt.ylabel(r'$\mathbf{'+ str(param_dict[j])+ '}$',fontsize=16,fontweight='bold')
 #         plt.title("BO Iteration Results: "+"$\Theta_"+str({j+1})+"$")
 #         plt.grid(True)
         plt.xticks(fontsize=16)
@@ -809,7 +809,7 @@ def plot_Theta_min(Theta_array, Theta_True, t, bo_iters, obj, ep, emulator, spar
         
         bo_len_max = int(np.max(bo_lens))
         bo_space_long = np.linspace(1,bo_len_max,bo_len_max)
-        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = r'$' + param_dict[j] + '_{true}$')
+        plt.step(bo_space_long, np.repeat(Theta_True[j], bo_len_max), label = r'$' + param_dict[j] + '$ True')
         plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
         plt.tight_layout()
         plt.xlabel("BO Iterations",fontsize=16,fontweight='bold')
@@ -941,9 +941,9 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
 
     #Creates axis labels and title
-    plt.xlabel(param_names_list[0],fontsize=16,fontweight='bold')
+    plt.xlabel(r'$\mathbf{'+ param_names_list[0]+ '}$',fontsize=16,fontweight='bold')
 #     plt.xlabel(r'$\mathbf{\theta_1}$',fontsize=16,fontweight='bold')
-    plt.ylabel(param_names_list[1],fontsize=16,fontweight='bold')
+    plt.ylabel(r'$\mathbf{'+ param_names_list[1]+ '}$',fontsize=16,fontweight='bold')
 #     plt.ylabel(r'$\mathbf{\theta_2}$',fontsize=16,fontweight='bold')
     plt.xlim((np.amin(xx), np.amax(xx)))
 #     print((np.amin(xx), np.amax(xx)))

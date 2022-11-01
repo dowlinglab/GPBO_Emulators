@@ -53,6 +53,7 @@ def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, 
        theta_o: ndarray, The point where the ei is maximized in theta space   
     """
     #Could modify to chec every point
+#     print(skip_param_types)
     theta0_b, theta0_o = find_opt_and_best_arg(theta_set, sse, ei, train_p)
 #     print(theta0_b, theta0_o)
     theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj, skip_param_types)
@@ -146,37 +147,26 @@ def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp,
     theta_mesh = np.array(np.meshgrid(Theta1_lin, Theta2_lin)) 
     
     #Build training data for new model
-    train_p_2D = np.concatenate(( clean_1D_arrays(train_p[:,indecies[0]]) , clean_1D_arrays(train_p[:,indecies[1]]) ), axis = 1)
+#     train_p_2D = np.concatenate(( clean_1D_arrays(train_p[:,indecies[0]]) , clean_1D_arrays(train_p[:,indecies[1]]) ), axis = 1)
     
     xx,yy = theta_mesh
 #     print(xx.shape)
     #Not sure if this is right
-    theta_set = theta_mesh.T.reshape((-1,2))
-#     print(theta_set.shape, train_y.shape)
-
-    if train_p_2D.shape != train_p.shape:
-        #Redefine train_p if necessary
-        if emulator == True:
-            state_point_index = dim_data - dim_x
-            train_p_x = train_p[:,state_point_index+1:-1]
-            train_p =  np.concatenate(( train_p_2D , train_p_x ), axis = 1)
+    #Create a set that has the 2 columns changing, but eveything else is based on theta_opt value
+    theta_set = theta_set_org.copy()
+    for i in range(theta_set_org.shape[1]):
+        if i == indecies[0]:
+            theta_set[:,i] = theta_set_org[:,i]
+        elif i == indecies[1]:
+            theta_set[:,i] = theta_set_org[:,i]
         else:
-            train_p = train_p_2D
-        train_p = torch.tensor(train_p)
-        #Retrain a new model meant to take 2 Inputs and not the true number
-
-        #Redefine likelihood and model based on new training data
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        model = ExactGPModel(train_p, train_y, likelihood)
-
-        #Train GP
-        train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
+            theta_set[:,i] = theta_o[i]
         
-        #Redefine where GP_SSE_min, EI_max, and true values are
-        theta_o = np.array([theta_o[indecies[0]], theta_o[indecies[1]]])
-        theta_b = np.array([theta_b[indecies[0]], theta_b[indecies[1]]])
-#         print(Theta_True)
-        Theta_True = np.array([Theta_True[indecies[0]], Theta_True[indecies[1]]])
+    #Redefine where GP_SSE_min, EI_max, and true values are
+    theta_o = np.array([theta_o[indecies[0]], theta_o[indecies[1]]])
+    theta_b = np.array([theta_b[indecies[0]], theta_b[indecies[1]]])
+    train_p = np.concatenate(( clean_1D_arrays(train_p[:,indecies[0]]) , clean_1D_arrays(train_p[:,indecies[1]]) ), axis = 1)
+    Theta_True = np.array([Theta_True[indecies[0]], Theta_True[indecies[1]]])
         
 #     print(train_p.shape, train_y.shape)
     eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
@@ -192,11 +182,12 @@ def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp,
     
     for i in range(len(list_of_plot_variables)):
         try:
-            list_of_plot_variables[i] = list_of_plot_variables[i].reshape((n_points,-1)).T
+            list_of_plot_variables[i] = list_of_plot_variables[i].reshape((n_points, -1)).T
+#             print(list_of_plot_variables[i].shape)
         except:
             list_of_plot_variables[i] = list_of_plot_variables[i]
-
-            #Prints figures if more than 1 BO iter is happening
+            
+    #Prints figures if more than 1 BO iter is happening
     if emulator == False:
         titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2','\sigma','Best_Error','z','EI_term_1','EI_term_2','CDF','PDF']  
         titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"] 
@@ -446,7 +437,9 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
     """    
     #Point that the GP thinks is best has the lowest SSE
     #Find point in sse matrix where sse is lowest (argmin(SSE))
+#     print(np.amin(sse))
     len_set, q = theta_set.shape
+#     argmin = np.array(np.where(sse==np.amin(sse)))[0]
     argmin = np.array(np.where(np.isclose(sse, np.amin(sse),rtol=abs(np.amin(sse)*1e-6))==True))[0]
     
     #ensures that only one point is used if multiple points yield a minimum
@@ -476,6 +469,8 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
     #Initialize Theta_Best
     Theta_Best = theta_set[argmax]
     Theta_Best = Theta_Best[0:q]
+    
+#     print(sse[argmin])
     
 #     print(Theta_Best)
 #     print(Theta_Opt_GP)
@@ -726,6 +721,7 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     ##Set Hyperparameters to 1
+#     print(skip_param_types)
     if isinstance(train_y, np.ndarray)==True:
         train_y = torch.tensor(train_y) #1xn
     
@@ -808,10 +804,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     q = len(Theta_True) #Number of parameters to regress
 #     p = theta_mesh.shape[1] #Number of points to evaluate the GP at in any dimension of q
     t = int(len(train_p)) + int(len(test_p)) #Original length of all data
-    if LHS == True:
-        data_points = len(theta_set)
-    else:
-        data_points = int(np.sqrt(len(theta_set)))
+
+    data_points = int(np.sqrt(len(theta_set)))
 #     print(data_points)
     ep0 = explore_bias
     
@@ -869,20 +863,20 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
 
         #solve for opt and best based on theta_set
         theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, skip_param_types)
-#         print(theta_b, theta_o)
+#         print(Theta_True, theta_o)
         
         #Evaluate GP for best EI theta set
         eval_components = eval_GP(np.array([theta_b]), train_y, explore_bias,Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
 
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
-            ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components
+            ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components  
         else:
             ei,sse,var,stdev,best_error = eval_components
         
         #Save Figures
 #         if save_fig == True:
-        eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, sep_fact = sep_fact, skip_param_types = skip_param_types, train_iter = train_iter)
+#         eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, sep_fact = sep_fact, skip_param_types = skip_param_types, train_iter = train_iter)
         
         All_Max_EI[i] = np.max(ei)
         
@@ -970,7 +964,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
 #             print(train_y.shape, sse_Best)
             train_y = np.concatenate((train_y, sse_Best),axis=0) #(1 x t)
-            print(train_y.shape, sse_Best.shape)      
+#             print(train_y.shape, sse_Best.shape)      
             
         else:
             #Loop over experimental data
