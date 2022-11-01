@@ -133,14 +133,21 @@ def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp,
         None - Saves graphs and CSVs     
         
     """
+    #Pull out constants
+    Xexp = clean_1D_arrays(Xexp)
+    Theta_True_clean = clean_1D_arrays(Theta_True, param_clean = True)
     
-    #Generate meshgrid and theta_set from meshgrid
+    len_x, dim_x = Xexp.shape[0], Xexp.shape[1]
+    len_data, dim_data = Theta_True_clean.shape[0], Theta_True_clean.shape[1]
+    
+    #Generate meshgrid and theta_set from meshgrid   
     Theta1_lin = np.linspace(np.min(theta_set_org[:,indecies[0]]),np.max(theta_set_org[:,indecies[0]]), n_points)
     Theta2_lin = np.linspace(np.min(theta_set_org[:,indecies[1]]),np.max(theta_set_org[:,indecies[1]]), n_points)
     theta_mesh = np.array(np.meshgrid(Theta1_lin, Theta2_lin)) 
     
+    #Build training data for new model
     train_p_2D = np.concatenate(( clean_1D_arrays(train_p[:,indecies[0]]) , clean_1D_arrays(train_p[:,indecies[1]]) ), axis = 1)
-    train_p_2D = torch.tensor(train_p_2D)
+    
     xx,yy = theta_mesh
 #     print(xx.shape)
     #Not sure if this is right
@@ -148,21 +155,30 @@ def eval_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp,
 #     print(theta_set.shape, train_y.shape)
 
     if train_p_2D.shape != train_p.shape:
+        #Redefine train_p if necessary
+        if emulator == True:
+            state_point_index = dim_data - dim_x
+            train_p_x = train_p[:,state_point_index+1:-1]
+            train_p =  np.concatenate(( train_p_2D , train_p_x ), axis = 1)
+        else:
+            train_p = train_p_2D
+        train_p = torch.tensor(train_p)
         #Retrain a new model meant to take 2 Inputs and not the true number
 
         #Redefine likelihood and model based on new training data
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        model = ExactGPModel(train_p_2D, train_y, likelihood)
+        model = ExactGPModel(train_p, train_y, likelihood)
 
         #Train GP
-        train_GP = train_GP_model(model, likelihood, train_p_2D, train_y, train_iter, verbose=False)
+        train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         
-        #Redefine where GP_SSE_min, EI_max, training points, and true values are
+        #Redefine where GP_SSE_min, EI_max, and true values are
         theta_o = np.array([theta_o[indecies[0]], theta_o[indecies[1]]])
         theta_b = np.array([theta_b[indecies[0]], theta_b[indecies[1]]])
-        train_p = train_p_2D
+#         print(Theta_True)
         Theta_True = np.array([Theta_True[indecies[0]], Theta_True[indecies[1]]])
-
+        
+#     print(train_p.shape, train_y.shape)
     eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
 #     print(eval_components)
 
