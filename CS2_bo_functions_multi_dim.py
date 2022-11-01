@@ -876,7 +876,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         
         #Save Figures
 #         if save_fig == True:
-#         eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, sep_fact = sep_fact, skip_param_types = skip_param_types, train_iter = train_iter)
+        eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, sep_fact = sep_fact, skip_param_types = skip_param_types, train_iter = train_iter)
         
         All_Max_EI[i] = np.max(ei)
         
@@ -986,13 +986,13 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o, "is", "{:.4e}".format(ln_error_mag))
     
     #Plots a single line of objective/theta values vs BO iteration if there are no runs
-    if tot_runs == 1 and verbose == True:
-        #Plot X vs Y for Yexp and Y_GP
-        X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
-        y_true = calc_y_exp(Theta_True, X_line, noise_std = noise_std, noise_mean=0)
-        #y_true = calc_y_exp(Constants_True, X_line, noise_std)
-        y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
-        plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true)
+#     if tot_runs == 1 and verbose == True:
+#         #Plot X vs Y for Yexp and Y_GP
+#         X_line = np.linspace(np.min(Xexp),np.max(Xexp),100)
+#         y_true = calc_y_exp(Theta_True, X_line, noise_std = noise_std, noise_mean=0)
+#         #y_true = calc_y_exp(Constants_True, X_line, noise_std)
+#         y_GP_Opt_100 = gen_y_Theta_GP(X_line, theta_o)   
+#         plot_xy(X_line,Xexp, Yexp, y_GP_Opt,y_GP_Opt_100,y_true)
               
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt
 

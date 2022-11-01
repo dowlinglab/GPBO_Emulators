@@ -358,7 +358,7 @@ def create_y_data(param_space, true_model_coefficients, x, skip_param_types = 0,
         y_sim: ndarray, The simulated y training data
     """
     #Assert statements check that the types defined in the doctring are satisfied
-#     print(skip_param_types)
+    
     #Converts parameters to numpy arrays if they are tensors
     if torch.is_tensor(param_space)==True:
         param_space = param_space.numpy()
@@ -1062,7 +1062,6 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj
         best_error: float, the best error of the 3-Input GP model
     """
     #Asserts that inputs are correct
-#     print(skip_param_types)
     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
     
     n = len(Xexp)

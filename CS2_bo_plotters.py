@@ -366,6 +366,7 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
         plt.show()
         plt.close()
     
+#     print(fxn)
     return 
 
 def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison"):
@@ -982,13 +983,15 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         if save_figure == True:
             path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
             save_fig(path, ext='png', close=True, verbose=False)
+        else:
+            plt.show()
     #Don't save if there's only 1 BO iteration
 #     else:
 #         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
+
+    plt.close()
     
-    plt.show()
-#     plt.close()
-    
+#     print(fxn)
     return 
 
 
