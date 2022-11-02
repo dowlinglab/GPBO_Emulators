@@ -117,9 +117,16 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_comb
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         t: int, int, Number of initial training points to use
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        mesh_combo: str, the name of the combination of parameters - Used to make a folder name
         bo_iter: int, integer, number of the specific BO iterations
         title_save: str or None,  A string containing the title of the file of the plot
         run, int or None, The iteration of the number of times new training points have been picked
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
+        is_figure: bool, used for saving CSVs as part of this function and for calling the data from a CSV to make a plot
+        csv_end: str, the name of the csv file
     Returns:
         path: str, The path to which the file is saved
     
@@ -229,10 +236,11 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
     Plots original training data with true value
     Parameters
     ----------
-        test_set: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid() or LHS samples
+        test_set: ndarray (len_set x dim_param), array of Theta values. Created with np.meshgrid() or LHS samples
         train_p: tensor or ndarray, The training parameter space data
         test_p: tensor or ndarray, The training parameter space data
         p_true: ndarray, A 2x1 containing the true input parameters
+        Xexp: ndarray, The list of Xs that will be used to generate Y
         emulator: True/False, Determines if GP will model the function or the function error
         sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
@@ -241,6 +249,12 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
         run, int or None, The iteration of the number of times new training points have been picked
         save_figure: True/False, Determines whether figures will be saved
         param_names_list: list, list of names of each parameter that will be plotted
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        verbose: bool, Determines whether extra information about file saving is printed, Default = False
+        sep_fact: float, in (0,1]. Determines fraction of all data that will be used to train the GP. Default is 1.
+        save_CSV: bool, determines whether a CSV is saved when this function is called. Prevents accidental overwrite of CSVs
      
     Returns
     -------
@@ -439,6 +453,11 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
         t: int, int, Number of initial training points to use
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         save_figure: True/False, Determines whether figures will be saved
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_fact: float, in (0,1]. Determines fraction of all data that will be used to train the GP. Default is 1.
+        save_CSV: bool, determines whether a CSV is saved when this function is called. Prevents accidental overwrite of CSVs
      
     Returns
     -------
@@ -518,7 +537,10 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
         t: int, int, Number of initial training points to use
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         save_figure: True/False, Determines whether figures will be saved
-     
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_list: list/ndarray, elements in (0,1]. Array of fractions of all data that will be used to train the GP. Default is 1.
+        save_CSV: bool, determines whether a CSV is saved when this function is called. Prevents accidental overwrite of CSVs     
     Returns
     -------
         plt.show(), A plot of the minimum ln(SSE) vs BO iteration for each run
@@ -583,8 +605,6 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     Parameters
     ----------
         obj_array: ndarry, (nx1): The output array containing objective function values
-        Theta_array: ndarray, (nxq): The output array containing objective function values
-        Theta_True: ndarray, Used for plotting Theta Values
         t: int, Number of initial training points to use
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
@@ -592,7 +612,11 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
         sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_figure: True/False, Determines whether figures will be saved
-        runs: int, The number of times to choose new training points
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_fact: float, in (0,1]. Determines fraction of all data that will be used to train the GP. Default is 1.
+        save_CSV: bool, determines whether a CSV is saved when this function is called. Prevents accidental overwrite of CSVs
     
     Returns:
     --------
@@ -660,17 +684,15 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     
     return 
 
-def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 5, save_CSV = True):
+def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 6, save_CSV = True):
     """
     Plots the objective function and Theta values vs BO iteration
     
     Parameters
     ----------
-        obj_array: ndarry, (nx1): The output array containing objective function values
         Theta_array: ndarray, (nxq): The output array containing objective function values
         Theta_True: ndarray, Used for plotting Theta Values
         t: int, Number of initial training points to use
-        bo_iters: integer, number of BO iterations
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
         emulator: True/False, Determines if GP will model the function or the function error
@@ -678,7 +700,12 @@ def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_l
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_figure: True/False, Determines whether figures will be saved
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
-        runs: int, The number of times to choose new training points
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_fact: float, in (0,1]. Determines fraction of all data that will be used to train the GP. Default is 1.
+        n_bins: int, number of bins with which to plot axes. Default is 6
+        save_CSV: bool, determines whether a CSV is saved when this function is called. Prevents accidental overwrite of CSVs
     
     Returns:
     --------
@@ -761,11 +788,9 @@ def plot_Theta_min(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, s
     
     Parameters
     ----------
-        obj_array: ndarry, (nx1): The output array containing objective function values
         Theta_array: ndarray, (nxq): The output array containing objective function values
         Theta_True: ndarray, Used for plotting Theta Values
         t: int, Number of initial training points to use
-        bo_iters: integer, number of BO iterations
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
         emulator: True/False, Determines if GP will model the function or the function error
@@ -773,7 +798,12 @@ def plot_Theta_min(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, s
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_figure: True/False, Determines whether figures will be saved
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
-        runs: int, The number of times to choose new training points
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_fact: float, in (0,1]. Determines fraction of all data that will be used to train the GP. Default is 1.
+        n_bins: int, number of bins with which to plot axes. Default is 6
+        save_CSV: bool, determines whether a CSV is saved when this function is called. Prevents accidental overwrite of CSVs
     
     Returns:
     --------
@@ -873,7 +903,13 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         param_names_list: list, list of names of each parameter that will be plotted
         Bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
         run, int or None, The iteration of the number of times new training points have been picked
-     
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        t: int, Number of total data points to use (from LHS or meshgrid)
+        sep_fact: float, in (0,1]. Determines fraction of all data that will be used to train the GP. Default is 1.
+        levels: int, Number of levels to skip when drawing contour lines. Default is 20
+        save_CSV: bool, determines whether a CSV is saved when this function is called. Prevents accidental overwrite of CSVs     
     Returns
     -------
         plt.show(), A heat map of test_mesh and z
