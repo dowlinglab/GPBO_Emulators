@@ -957,8 +957,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
 #             print(theta_b.shape)
-            sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
-#             sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
+#             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+            sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
 #             print(sse_Best)
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
@@ -976,8 +976,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
                 #Create y-value/ experimental data ---- #Should use calc_y_exp correct? create_y_sim_exp
 #                 y_Best = calc_y_exp(theta_b, Xexp[k].reshape((1,-1)), noise_std, noise_mean=0,random_seed=6)
                 #Adding the noise creates experimental data at theta_b using create_y_data
-#                 y_Best = create_y_data(Best_Point, true_model_coefficients, Xexp[k].reshape((1,-1)), skip_param_types, noise_std)         
-                y_Best = calc_y_exp(theta_b, Xexp[k], noise_std)
+                y_Best = create_y_data(Best_Point, true_model_coefficients, Xexp[k].reshape((1,-1)), skip_param_types, noise_std)         
+#                 y_Best = calc_y_exp(theta_b, Xexp[k], noise_std)
                 train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
                 train_y = np.append(train_y, [y_Best]) #(1 x t)
 #                 print(train_p.shape, train_y.shape)
