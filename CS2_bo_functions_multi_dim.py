@@ -14,7 +14,7 @@ import pandas as pd
 import os
 import Tasmanian
 
-#Notes: Change Lines 926 and 945 when moving test problems
+#Notes: Change Lines 960 and 980 when moving test problems
 
 from bo_functions_generic import LHS_Design, calc_y_exp, calc_muller, create_sse_data, create_y_data, set_ep, gen_y_Theta_GP, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, eval_GP_emulator_BE, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays
 
@@ -943,9 +943,9 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
 
         for j in range(len(df_list)):
             array_df = pd.DataFrame(df_list[j])
-            path_csv = path_name(emulator, explore_bias, sparse_grid, fxn, set_lengthscale, t, obj, i, title_save_TT, run, tot_iter=Total_BO_iters, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[j])
+            path_csv = path_name(emulator, explore_bias, sparse_grid, fxn, set_lengthscale, t, obj, None, i, title_save_TT, run, tot_iter=Total_BO_iters, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[j])
 #             print(path_csv)
-            save_csv(array_df, path_csv, ext = "csv") #Note: Iter 3 means the training points used in calculation of iter 3
+            save_csv(array_df, path_csv, ext = "csv") #Note: Iter 3 means the TPs used in calculations for iter 3 to determine iter 4
         
         if  i > 0:
             #Change to 1e-7
@@ -957,8 +957,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         if emulator == False:   
             #Call the expensive function and evaluate at Theta_Best
 #             print(theta_b.shape)
-#             sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
-            sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
+            sse_Best = create_sse_data(q,theta_b, Xexp, Yexp, obj) #(1 x 1)
+#             sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
 #             print(sse_Best)
             #Add Theta_Best to train_p and y_best to train_y
             train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
@@ -976,8 +976,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
                 #Create y-value/ experimental data ---- #Should use calc_y_exp correct? create_y_sim_exp
 #                 y_Best = calc_y_exp(theta_b, Xexp[k].reshape((1,-1)), noise_std, noise_mean=0,random_seed=6)
                 #Adding the noise creates experimental data at theta_b using create_y_data
-                y_Best = create_y_data(Best_Point, true_model_coefficients, Xexp[k].reshape((1,-1)), skip_param_types, noise_std)         
-#                 y_Best = calc_y_exp(theta_b, Xexp[k], noise_std)
+#                 y_Best = create_y_data(Best_Point, true_model_coefficients, Xexp[k].reshape((1,-1)), skip_param_types, noise_std)         
+                y_Best = calc_y_exp(theta_b, Xexp[k], noise_std)
                 train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
                 train_y = np.append(train_y, [y_Best]) #(1 x t)
 #                 print(train_p.shape, train_y.shape)
@@ -1092,7 +1092,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         
         #Plot all training data
         #This works, put it back when we need it (11/1/22)
-#         train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, param_dict, sep_fact)
+        train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, param_dict, sep_fact)
 
         #Run BO iteration
         BO_results = bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients, param_dict, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types)
@@ -1109,9 +1109,9 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     #Plot all SSE/theta results for each BO iteration for all runs
     if runs >= 1:
         plot_obj(SSE_matrix, t, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
-        plot_Theta(Theta_Opt_matrix, Theta_True, t, BO_iters, obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, param_dict, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        plot_Theta(Theta_Opt_matrix, Theta_True, t, obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, param_dict, BO_iters, runs, DateTime, sep_fact = sep_fact)
         plot_obj_abs_min(SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
-        plot_Theta_min(Theta_Opt_abs_matrix, Theta_True, t, BO_iters, obj,ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        plot_Theta_min(Theta_Opt_abs_matrix, Theta_True, t, obj,ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, BO_iters, runs, DateTime, sep_fact = sep_fact)
     
     
     #Find point corresponding to absolute minimum SSE and max(-ei) at that point
