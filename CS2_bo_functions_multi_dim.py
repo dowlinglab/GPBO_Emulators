@@ -1121,6 +1121,9 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     
     #Find point corresponding to absolute minimum SSE and max(-ei) at that point
 #     print(SSE_matrix)
+    #We've been getting lucky here, we need to avoid the zeros!!!
+#     np.min(SSE_matrix[np.nonzero(SSE_matrix)])
+#     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix[np.nonzero(SSE_matrix)]),rtol=abs(np.amin(SSE_matrix)*1e-6))==True))
     argmin = np.array(np.where(np.isclose(SSE_matrix, np.amin(SSE_matrix),rtol=abs(np.amin(SSE_matrix)*1e-6))==True)) #Use rtol so that graphs match data in matricies
 #     print("Argmin 1", argmin)
     #Not sure how to generalize this last part
@@ -1140,6 +1143,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     Theta_Best_all = np.array(Theta_Best_matrix[tuple(argmin)+(Ellipsis,)])
     Theta_Opt_all = np.array(Theta_Opt_matrix[tuple(argmin)+(Ellipsis,)])
 #     print(Theta_Opt_all)
+#     SSE_abs_min = = np.amin(SSE_matrix[np.nonzero(SSE_matrix)])
     SSE_abs_min = np.amin(SSE_matrix)
     run_opt = int(argmin[0]+1)
     bo_opt = int(argmin[1]+1)
