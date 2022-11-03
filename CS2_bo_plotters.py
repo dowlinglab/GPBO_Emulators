@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 # }
 # matplotlib.rcParams.update(rc_fonts)
 
-
-def save_csv(df, path, ext='csv', verbose=False):
+# def save_csv(df, path, ext='csv', verbose=False):
+def save_csv(df, path, ext='npy', verbose=False):
     """Save a figure from pyplot.
     Parameters
     ----------
@@ -48,7 +48,8 @@ def save_csv(df, path, ext='csv', verbose=False):
     # The final path to save to
     savepath = os.path.join(directory, filename)
     
-    df.to_csv(savepath)
+#     df.to_csv(savepath)
+    np.save(savepath, df.to_numpy())
 
     if verbose:
         print("Saving to '%s'..." % savepath),
@@ -374,7 +375,7 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
             array_df = pd.DataFrame(df_list[i])
             path_csv = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, mesh_combo, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i])
         #How to save more efficiently without hardcoding number of columns?
-            save_csv(array_df, path_csv, ext = "csv")
+            save_csv(array_df, path_csv, ext = "npy")
     
     if save_figure == True:
         path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, mesh_combo, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
@@ -510,7 +511,7 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
     obj_abs_min_df = pd.DataFrame(obj_abs_min)
     if save_CSV == True:
         path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
-        save_csv(obj_abs_min_df, path_csv, ext = "csv")
+        save_csv(obj_abs_min_df, path_csv, ext = "npy")
         
     #Save figure path
     if save_figure == True:
@@ -586,7 +587,7 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
     obj_abs_min_df = pd.DataFrame(obj_abs_min)
     if save_CSV == True:
         path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "Min_SSE_Conv_Sep_Fact")
-        save_csv(obj_abs_min_df, path_csv, ext = "csv")
+        save_csv(obj_abs_min_df, path_csv, ext = "npy")
     
     #Save figure path
     if save_figure == True:
@@ -672,7 +673,7 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     obj_min_df = pd.DataFrame(obj_array)
     if save_CSV == True:
         path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
-        save_csv(obj_min_df, path_csv, ext = "csv")
+        save_csv(obj_min_df, path_csv, ext = "npy")
     
     #Save path and figure
     if save_figure == True:
@@ -770,7 +771,7 @@ def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_l
         if save_CSV == True:
 #         print(Theta_array_df)
             path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + str(param_dict[j]))
-            save_csv(Theta_array_df, path_csv, ext = "csv")
+            save_csv(Theta_array_df, path_csv, ext = "npy")
         
         #Save path and figure
         if save_figure == True:
@@ -868,7 +869,7 @@ def plot_Theta_min(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, s
 #         print(Theta_array_df)
         if save_CSV == True:
             path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + param_dict[j])
-            save_csv(Theta_array_df, path_csv, ext = "csv")
+            save_csv(Theta_array_df, path_csv, ext = "npy")
         
         #Save path and figure
         if save_figure == True:
@@ -1012,7 +1013,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         for i in range(len(df_list)):
             array_df = pd.DataFrame(df_list[i])
             path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i])
-            save_csv(array_df, path_csv, ext = "csv")
+            save_csv(array_df, path_csv, ext = "npy")
     
     if tot_iter > 1:
 #         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)

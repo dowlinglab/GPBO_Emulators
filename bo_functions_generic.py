@@ -45,7 +45,7 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
         bounds: None or ndarray, contains bounds for LHS generation if necessary
     """
     if LHS == False:
-        if bounds is not None:
+        if bounds is not None: #Note, only works if bounds are the same
             Theta = np.linspace(bounds[0,0],bounds[1,0],n_points)
         else:
             Theta = np.linspace(0,1,n_points)
