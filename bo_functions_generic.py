@@ -126,26 +126,28 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
 #             test_data_piece = test_p
 #         print(train_p[:,indecies[0]].shape)
         train_data_piece = torch.cat((torch.reshape(train_p[:,indecies[0]],(-1,1)),torch.reshape(train_p[:,indecies[1]],(-1,1))),axis = 1)
-#         print(train_data_piece)
+#         print(train_data_piece.shape)
 
         theta_set_piece = np.array((theta_set[:,indecies[0]],theta_set[:,indecies[1]]))
 
         if emulator == True:
             #Loop over each X dimension
-            for i in range(exp_data_dim):
+            for j in range(exp_data_dim):
 #                 print(indecies)
 #                 print(param_dim)
                 #Concatenate array corresponding to x values (looped) to training data to plot
-                train_data_piece = torch.cat( (train_data_piece, torch.reshape(train_p[:,indecies[param_dim-1]+(i+1)],(-1,1))), axis = 1 )
-#                 print(train_data_piece.shape)
+                train_data_piece_j = torch.cat( (train_data_piece, torch.reshape(train_p[:,(param_dim-1) +(j+1)],(-1,1))), axis = 1 )       
+#                 print(train_p[-1], train_data_piece_j[-1])
 #                 if len(test_p) > 0:
-                test_data_piece = torch.cat( (test_data_piece, torch.reshape(test_p[:,indecies[param_dim-1]+(i+1)],(-1,1))), axis = 1 )
+                test_data_piece_j = torch.cat( (test_data_piece, torch.reshape(test_p[:,(param_dim-1)+(j+1)],(-1,1))), axis = 1 )
 #                 else:
 #                     test_data_piece = test_p
-                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+                plot_org_train(theta_set_piece,train_data_piece_j, test_data_piece_j, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
         else:
+            #Loop over each X dimension
+            for j in range(exp_data_dim):
 #             print(test_data_piece)
-            plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
     return 
 
 #This will need to change eventually
