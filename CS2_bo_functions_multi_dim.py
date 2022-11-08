@@ -993,7 +993,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
 #             print("iter", i+1, "complete")
             print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o, "is", "{:.4e}".format(ln_error_mag))
               
-    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt
+    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt, All_Max_EI
 
 def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, true_model_coefficients, param_dict, verbose = True, save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False, skip_param_types = 0):
     """
@@ -1062,6 +1062,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     Theta_Best_matrix = np.zeros((runs,BO_iters,q))
     SSE_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     EI_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
+    EI_matrix_abs_max = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     SSE_matrix_abs_min = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     Total_BO_iters_matrix = np.zeros(runs)
     
@@ -1104,6 +1105,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         SSE_matrix_abs_min[i] = BO_results[3]
         Total_BO_iters_matrix[i] = BO_results[4]
         Theta_Opt_abs_matrix[i,:,:] = BO_results[5]
+        EI_matrix_abs_max[i] = BO_results[6]
         
 #         print(Theta_Best_matrix)
 #     print(Theta_Best_matrix)
@@ -1117,7 +1119,9 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         plot_obj(SSE_matrix, t, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
         plot_Theta(Theta_Opt_matrix, Theta_True, t, obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, param_dict, BO_iters, runs, DateTime, sep_fact = sep_fact)
         plot_obj_abs_min(SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        plot_EI_abs_max(EI_matrix_abs_max, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
         plot_Theta_min(Theta_Opt_abs_matrix, Theta_True, t, obj,ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, BO_iters, runs, DateTime, sep_fact = sep_fact)
+        
     
     
     #Find point corresponding to absolute minimum SSE and max(-ei) at that point
