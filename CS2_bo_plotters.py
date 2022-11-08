@@ -155,7 +155,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_comb
         else:
             method = "/Approx"
             
-    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Param_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis", "plot_Theta_min":"/Param_Conv_min"}
+    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Param_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis", "plot_Theta_min":"/Param_Conv_min", "plot_EI_abs_max":"/Max_EI_Conv"}
     plot = fxn_dict[fxn]
     
     if mesh_combo is not None:
@@ -512,6 +512,93 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
     if save_CSV == True:
         path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
         save_csv(obj_abs_min_df, path_csv, ext = "npy")
+        
+    #Save figure path
+    if save_figure == True:
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
+        save_fig(path, ext='png', close=True, verbose=False)
+    
+    plt.show()
+    plt.close()
+    
+    return 
+
+def plot_EI_abs_max(EI_abs_max, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None, sep_fact = None, save_CSV = True):
+    '''
+    Plots the absolute minimum of the objective over BO iterations
+    Parameters
+    ----------
+        obj_abs_min: ndarray, An array containing the absolute minimum of SSE found so far at each iteration
+        runs: int, The number of times to choose new training points
+        emulator: True/False, Determines if GP will model the function or the function error
+        ep: float, float,int,tensor,ndarray (1 value) The exploration bias parameter
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        t: int, int, Number of initial training points to use
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        save_figure: True/False, Determines whether figures will be saved
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_fact: float, in (0,1]. Determines fraction of all data that will be used to train the GP. Default is 1.
+        save_CSV: bool, determines whether a CSV is saved when this function is called. Prevents accidental overwrite of CSVs
+     
+    Returns
+    -------
+        plt.show(), A plot of the minimum ln(SSE) vs BO iteration for each run
+    '''
+    fxn = "plot_EI_abs_max"
+    #Make Data Frames
+#     obj_mins_df = pd.DataFrame(data = obj_abs_min)
+#     obj_mins_df_T = obj_mins_df.T
+#     print("Obj mins", obj_mins_df)
+    #Create bo_iters as an axis
+#     bo_space = np.linspace(1,bo_iters,bo_iters)
+    
+    #Plot Minimum SSE value at each run
+    plt.figure(figsize = (6.4,4))
+  
+    for i in range(tot_runs):
+#         bo_space = np.linspace(1,bo_iters[i],bo_iters[i])
+        if tot_runs == 1:
+            label = "Minimum "+ "r'$log(e(\theta))$" +" Value Found"
+        else:  
+            label = "Run: "+str(i+1) 
+        EI_max_df_run = pd.DataFrame(data = EI_abs_max[i])
+        EI_max_df_bo_axis = EI_max_df_run.loc[(abs(EI_max_df_run) > 1e-6).any(axis=1),0]
+        EI_max_df_i = EI_max_df_run.loc[:,0]
+        if len(EI_max_df_bo_axis) != len(EI_max_df_i):
+            EI_max_df_i = EI_max_df_i[0:int(len(EI_max_df_bo_axis)+3)] #+2 for stopping criteria + 1 to include last point
+        bo_len = len(EI_max_df_i)
+        bo_space = np.linspace(1,bo_len,bo_len)
+        plt.step(bo_space, EI_max_df_i, label = label)
+        
+    #Set plot details        
+#     plt.legend(loc = "best")
+    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
+    plt.tight_layout()
+#     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
+    plt.xlabel("BO Iterations", fontsize=16, fontweight='bold')
+    plt.ylabel(r'$\mathbf{E(I(\theta))}$', fontsize=16, fontweight='bold')
+    
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.tick_params(direction="in",top=True, right=True)
+    plt.locator_params(axis='y', nbins=5)
+    plt.locator_params(axis='x', nbins=5)
+    plt.minorticks_on() # turn on minor ticks
+    plt.tick_params(which="minor",direction="in",top=True, right=True)
+#     plt.gca().axes.xaxis.set_ticklabels([]) # remove tick labels
+#     plt.gca().axes.yaxis.set_ticklabels([])
+#     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
+#     plt.grid(True)
+    
+    #Save CSVs - How to save column names as run #s automatically?
+    EI_abs_max_df = pd.DataFrame(EI_abs_max)
+    if save_CSV == True:
+        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
+#         print(path_csv)
+        save_csv(EI_abs_max_df, path_csv, ext = "npy")
         
     #Save figure path
     if save_figure == True:
@@ -1028,6 +1115,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         if save_figure == True:
             path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
             save_fig(path, ext='png', close=True, verbose=False)
+#             print(path)
         else:
             plt.show()
     #Don't save if there's only 1 BO iteration
