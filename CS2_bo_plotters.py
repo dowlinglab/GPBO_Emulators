@@ -49,7 +49,10 @@ def save_csv(df, path, ext='npy', verbose=False):
     savepath = os.path.join(directory, filename)
     
 #     df.to_csv(savepath)
-    np.save(savepath, df.to_numpy())
+    if isinstance(df, pd.DataFrame):
+        np.save(savepath, df.to_numpy())
+    else:
+        np.save(savepath, df)
 
     if verbose:
         print("Saving to '%s'..." % savepath),
@@ -155,7 +158,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_comb
         else:
             method = "/Approx"
             
-    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Param_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis", "plot_Theta_min":"/Param_Conv_min", "plot_EI_abs_max":"/Max_EI_Conv"}
+    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Param_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis", "plot_Theta_min":"/Param_Conv_min", "plot_EI_abs_max":"/Max_EI_Conv", "GP_mean_vals":"/GP_mean_vals", "GP_var_vals":"/GP_var_vals"}
     plot = fxn_dict[fxn]
     
     if mesh_combo is not None:
@@ -772,6 +775,37 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     
     return 
 
+def save_GP_mean_var(GP_stat, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, GP_mean = True):
+    """
+    Creates .npy files to save best theta GP mean and GP variance
+    Parameters
+    ----------
+        GP_stat: ndarray, array containing values of the best theta GP mean or GP variance for each iteration of all runs
+        t: int, Number of initial training points to use
+        obj: string, name of objective function. Default "obj"
+        ep: int or float, exploration parameter. Used for naming
+        emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        save_figure: True/False, Determines whether figures will be saved
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        sep_fact: float, in (0,1]. Determines fraction of all data that will be used to train the GP. Default is 1.
+        GP_mean: bool, determines whether the GP mean or GP variance is being saved
+    Returns
+    -------
+        Creates npy file storing the data
+    """
+    if GP_mean == True:
+        fxn = "GP_mean_vals"
+    else:
+        fxn = "GP_var_vals"
+#         print(Theta_array_df)
+    path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
+    save_csv(GP_stat, path_csv, ext = "npy")
+    return
+
 def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 6, save_CSV = True):
     """
     Plots the objective function and Theta values vs BO iteration
@@ -924,6 +958,7 @@ def plot_Theta_min(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, s
 #                 label = r'$\theta_' +str({j+1})+"$"
                 
             Theta_j_df_i = Theta_j_df.loc[(abs(Theta_j_df) > 1e-6).any(axis=1),j]
+#             Theta_j_df_i = Theta_j_df.loc[:,j] #Use this if I want to show all the zeros
             bo_len = len(Theta_j_df_i)
             bo_lens[i] = bo_len
             bo_space = np.linspace(1,bo_len,bo_len)

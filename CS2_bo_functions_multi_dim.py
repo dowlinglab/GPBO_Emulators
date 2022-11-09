@@ -22,7 +22,7 @@ from CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_
 
 from bo_functions_generic import LHS_Design, set_ep, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays
 
-from CS2_bo_plotters import value_plotter, plot_xy, plot_Theta, plot_Theta_min, plot_obj, plot_obj_abs_min, plot_3GP_performance, plot_sep_fact_min, save_fig, save_csv, path_name, plot_EI_abs_max
+from CS2_bo_plotters import value_plotter, plot_xy, plot_Theta, plot_Theta_min, plot_obj, plot_obj_abs_min, plot_3GP_performance, plot_sep_fact_min, save_fig, save_csv, path_name, plot_EI_abs_max, save_GP_mean_var
 # from CS2_bo_plotters import plot_org_train
 
 def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, skip_param_types = 0):
@@ -1144,8 +1144,12 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         GP_var_matrix[i,:,:] = BO_results[8]
         
     #Save GP mean and Var here
-    print( GP_mean_matrix)
-    print( GP_var_matrix)
+    GP_mean_bool_list = [True, False]
+    GP_stat_list = [GP_mean_matrix, GP_var_matrix]
+    for i in range(len(GP_mean_bool_list)):
+        save_GP_mean_var(GP_stat_list[i], t, obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, tot_iter=BO_iters, tot_runs=runs, DateTime=DateTime, sep_fact = sep_fact, GP_mean = GP_mean_bool_list[i])
+
+#     print( GP_var_matrix)
     #Plot all SSE/theta results for each BO iteration for all runs
     if runs >= 1:
         plot_obj(SSE_matrix, t, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact)
