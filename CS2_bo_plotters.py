@@ -158,7 +158,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_comb
         else:
             method = "/Approx"
             
-    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Param_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis", "plot_Theta_min":"/Param_Conv_min", "plot_EI_abs_max":"/Max_EI_Conv", "GP_mean_vals":"/GP_mean_vals", "GP_var_vals":"/GP_var_vals"}
+    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Param_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis", "plot_Theta_min":"/Param_Conv_min", "plot_EI_abs_max":"/Max_EI_Conv", "GP_mean_vals":"/GP_mean_vals", "GP_var_vals":"/GP_var_vals", "time_per_iter":"/time_per_iter"}
     plot = fxn_dict[fxn]
     
     if mesh_combo is not None:
@@ -775,12 +775,13 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     
     return 
 
-def save_GP_mean_var(GP_stat, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, GP_mean = True):
+def save_misc_data(data_array, fxn, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
     """
-    Creates .npy files to save best theta GP mean and GP variance
+    Creates .npy files to save best theta GP mean and GP variance, or iter times
     Parameters
     ----------
-        GP_stat: ndarray, array containing values of the best theta GP mean or GP variance for each iteration of all runs
+        data_array: ndarray, array containing values of the best theta GP mean or GP variance for each iteration of all runs
+        fxn: fxn associated with data array being saved
         t: int, Number of initial training points to use
         obj: string, name of objective function. Default "obj"
         ep: int or float, exploration parameter. Used for naming
@@ -797,13 +798,9 @@ def save_GP_mean_var(GP_stat, t, obj, ep, emulator, sparse_grid, set_lengthscale
     -------
         Creates npy file storing the data
     """
-    if GP_mean == True:
-        fxn = "GP_mean_vals"
-    else:
-        fxn = "GP_var_vals"
 #         print(Theta_array_df)
     path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
-    save_csv(GP_stat, path_csv, ext = "npy")
+    save_csv(data_array, path_csv, ext = "npy")
     return
 
 def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 6, save_CSV = True):

@@ -12,17 +12,18 @@ from itertools import combinations
 from itertools import permutations
 import pandas as pd
 import os
+import time
 import Tasmanian
 
 #Notes: Change line below when changing test problems
-from CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
-# from CS1_create_data import create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
+# from CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
+from CS1_create_data import create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
 
 # from bo_functions_generic import LHS_Design, calc_y_exp, calc_muller, create_sse_data, create_y_data, set_ep, gen_y_Theta_GP, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, eval_GP_emulator_BE, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays
 
 from bo_functions_generic import LHS_Design, set_ep, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays
 
-from CS2_bo_plotters import value_plotter, plot_xy, plot_Theta, plot_Theta_min, plot_obj, plot_obj_abs_min, plot_3GP_performance, plot_sep_fact_min, save_fig, save_csv, path_name, plot_EI_abs_max, save_GP_mean_var
+from CS2_bo_plotters import value_plotter, plot_xy, plot_Theta, plot_Theta_min, plot_obj, plot_obj_abs_min, plot_3GP_performance, plot_sep_fact_min, save_fig, save_csv, path_name, plot_EI_abs_max, save_misc_data
 # from CS2_bo_plotters import plot_org_train
 
 def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, skip_param_types = 0):
@@ -832,6 +833,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         All_Theta_abs_Opt: ndarray, Array of all minimum Optimal Theta values (as determined by min(sse)) for each iteration
         
     """
+    
     #Assert Statments
     assert all(isinstance(i, int) for i in [BO_iters, train_iter]), "BO_iters and train_iter must be integers"
     assert len(train_p) == len(train_y), "Training data must be the same length"
@@ -861,6 +863,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     Total_BO_iters = BO_iters
     gp_mean_all_mat = np.zeros((BO_iters, n))
     gp_var_all_mat = np.zeros((BO_iters, n))
+    time_per_iter = np.zeros(BO_iters)
 
     
     #Ensures GP will take correct # of inputs
@@ -875,8 +878,11 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     best_error_num = 0
     ep_init = explore_bias
     
+    timestart = time.time()
+    
     #Loop over # of BO iterations
     for i in range(BO_iters):
+        timestart = time.time()
         #Converts numpy arrays to tensors
         if torch.is_tensor(train_p) != True:
             train_p = torch.from_numpy(train_p)
@@ -938,9 +944,13 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         
         #Save Figures
 #         if save_fig == True:
+        timeend = time.time()
+        time_per_iter[i] +=  (timeend - timestart)
+        
         if eval_all_pairs == True:
             eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, sep_fact = sep_fact, skip_param_types = skip_param_types)
         
+        timestart = time.time()
 #         All_Max_EI[i] = np.max(ei)
         All_Max_EI[i] = ei_best
         
@@ -1004,12 +1014,17 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         df_list_ends = ["Train_p", "Test_p"]
         fxn = "value_plotter"
         title_save_TT = "Train_Test_Data"
+        
+        timeend = time.time()
+        time_per_iter[i] +=  (timeend - timestart)
 
         for j in range(len(df_list)):
             array_df = pd.DataFrame(df_list[j])
             path_csv = path_name(emulator, explore_bias, sparse_grid, fxn, set_lengthscale, t, obj, None, i, title_save_TT, run, tot_iter=Total_BO_iters, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[j])
 #             print(path_csv)
             save_csv(array_df, path_csv, ext = "npy") #Note: Iter 3 means the TPs used in calculations for iter 3 to determine iter 4
+        
+        timestart = time.time()
         
         if  i > 0:
             #Change to 1e-7
@@ -1022,8 +1037,11 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         if verbose == True:
 #             print("iter", i+1, "complete")
             print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o, "is", "{:.4e}".format(ln_error_mag))
+    
+        timeend = time.time()
+        time_per_iter[i] +=  (timeend - timestart)
               
-    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt, All_Max_EI, gp_mean_all_mat, gp_var_all_mat
+    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt, All_Max_EI, gp_mean_all_mat, gp_var_all_mat, time_per_iter
 
 def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, true_model_coefficients, param_dict, verbose = True, save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False):
     """
@@ -1096,6 +1114,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     EI_matrix_abs_max = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     SSE_matrix_abs_min = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     Total_BO_iters_matrix = np.zeros(runs)
+    time_per_iter_matrix = np.zeros((runs,BO_iters))
     
     GP_mean_matrix = np.zeros((runs,BO_iters,n)) #Saves ln(SSE) values
     GP_var_matrix = np.zeros((runs,BO_iters,n)) #Saves ln(SSE) values
@@ -1142,13 +1161,19 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         EI_matrix_abs_max[i] = BO_results[6]
         GP_mean_matrix[i,:,:] = BO_results[7]
         GP_var_matrix[i,:,:] = BO_results[8]
+        time_per_iter_matrix[i,:] = BO_results[9]
+#         print(time_per_iter_matrix)
         
-    #Save GP mean and Var here
-    GP_mean_bool_list = [True, False]
-    GP_stat_list = [GP_mean_matrix, GP_var_matrix]
-    for i in range(len(GP_mean_bool_list)):
-        save_GP_mean_var(GP_stat_list[i], t, obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, tot_iter=BO_iters, tot_runs=runs, DateTime=DateTime, sep_fact = sep_fact, GP_mean = GP_mean_bool_list[i])
-
+    #Save GP mean and Var and time/iter here
+    fxn_name_list = ["GP_mean_vals", "GP_var_vals", "time_per_iter"]
+    fxn_data_list = [GP_mean_matrix, GP_var_matrix, time_per_iter_matrix]
+    for i in range(len(fxn_name_list)):
+        save_misc_data(fxn_data_list[i], fxn_name_list[i], t, obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, tot_iter=BO_iters, tot_runs=runs, DateTime=DateTime, sep_fact = sep_fact)
+    
+    #Calculate median time
+    median_time_per_iter = np.median(time_per_iter_matrix[np.nonzero(time_per_iter_matrix)])
+    if verbose == True:
+        print(median_time_per_iter)
 #     print( GP_var_matrix)
     #Plot all SSE/theta results for each BO iteration for all runs
     if runs >= 1:
