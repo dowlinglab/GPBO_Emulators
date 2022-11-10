@@ -7,30 +7,45 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
-def LOO_Plots_3_Input(X_space, Y_sim, GP_mean, GP_stdev, Theta, Xexp, train_p = None, train_y = None, test_p = None, test_y = None, verbose = True):
-#     if verbose == True:
-#         print("GP Mean",GP_mean)
-#         print("GP Stdev",GP_stdev)
-#         print("SSE",sum(GP_mean-Y_sim)**2)
-#         plt.close()
-    fig, ax = plt.subplots()
+def LOO_Plots(X_space, Y_space, Xexp, Yexp, GP_mean, GP_stdev, Theta):
+    X1, X2 = X_space[:,0], X_space[:,1]
+    # Compare the experiments to the true model
+    fig = plt.figure(figsize = (6.4,4))
+    ax = plt.axes(projection='3d')
+    ax.contour3D(X1, X2, GP_mean, 100, cmap='Blues') #Ysim
+    ax.contour3D(X1, X2, Y, 100, cmap='Reds') #Yexp
+    ax.scatter3D(Xexp[:,0], Xexp[:,1], Yexp, c=Yexp, cmap='Greens', edgecolors = "k") #Yexp
+    ax.plot(1000,1000,1000, label = "$y_{sim}$", color = 'blue')
+    ax.plot(1000,1000,1000, label = "$y_{exp}$", color = 'red')
+    ax.scatter(1000,1000,1000, label = "Exp Data", color = 'green', edgecolors = "k")
+    plt.legend(fontsize=10,bbox_to_anchor=(0, 1.0, 1, 0.2),borderaxespad=0, loc = "lower right")
     
-    ax.plot(X_space, GP_mean, lw=2, label="GP_mean")
-    ax.plot(X_space, Y_sim, color = "green", label = "Y_sim")
-#     if train_p != None:
-#         ax.scatter(train_p[:,-1], train_y, color = "black", label = "Training")
-    if test_p != None:
-        ax.scatter(Xexp, test_y, color = "red", label = "Testing")
-    
-    ax.fill_between(
-        X_space,
-        GP_mean - 1.96 * GP_stdev,
-        GP_mean + 1.96 * GP_stdev,
-        alpha=0.3
-    )
+#     ax.fill_between(
+#         X_space,
+#         GP_mean - 1.96 * GP_stdev,
+#         GP_mean + 1.96 * GP_stdev,
+#         alpha=0.3)
+        
+    ax.minorticks_on() # turn on minor ticks
+    ax.tick_params(direction="in",top=True, right=True) 
+    ax.tick_params(which="minor",direction="in",top=True, right=True)
+
+
+    ax.zaxis.set_tick_params(labelsize=12)
+    ax.yaxis.set_tick_params(labelsize=12)
+    ax.xaxis.set_tick_params(labelsize=12)
+    ax.grid(False)
+
+
+    ax.set_xlim((np.amin(X1),np.amax(X1)))
+    ax.set_ylim((np.amin(X2),np.amax(X2)))
+
+    ax.set_xlabel('X1', fontsize=16,fontweight='bold')
+    ax.set_ylabel('X2', fontsize=16,fontweight='bold')
+    ax.set_zlabel('Muller Potential',fontsize=16,fontweight='bold');
+
+    ax.locator_params(axis='y', nbins=5)
+    ax.locator_params(axis='x', nbins=5)
+    # ax.locator_params(axis='z', nbins=5)
 #     ax.set_title("GP Mean + confidence interval at"+ str(Theta))
-    ax.set_xlabel("Xexp")
-    ax.set_ylabel("Function Value")
-    ax.legend()
-    
     return plt.show()

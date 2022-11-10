@@ -1,23 +1,29 @@
 ##https://towardsdatascience.com/model-validation-in-python-95e2f041f78c
 ##Load modules
 import sys
+from matplotlib import pyplot as plt
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+from pylab import *
+import torch
+import os
 import gpytorch
 import numpy as np
 import pandas as pd
-import torch
 from datetime import datetime
 from scipy.stats import qmc
 from sklearn.model_selection import LeaveOneOut
 
-from bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs, eval_GP
-
-import matplotlib as mpl
+from bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
+from CS2_create_data import gen_y_Theta_GP, eval_GP_emulator_BE
 
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, emulator, sparse_grid, obj, skip_param_types = 0, set_lengthscale = None, train_iter = 300,verbose = False):
+def LOO_Analysis(all_data, ep, X_space, Y_space, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, skip_param_types = 0, set_lengthscale = None, train_iter = 300,verbose = False):
     ep_init = ep
+    p = int(np.sqrt(X_space.shape[0]))
+    m = Xexp.shape[1]
     loo = LeaveOneOut()
     loo.get_n_splits(all_data)
     #Loop over all test indecies & #Shuffle and split into training and testing data where 1 point is testing data
@@ -26,11 +32,18 @@ def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, emulator, sp
         data_test = all_data[test_index]
         
         #separate into y data and parameter data
-        train_p = data_train[:,0:-1]
-        test_p = data_test[:,0:-1]
+        if emulator == True:
+            train_p = torch.tensor(data_train[:,0:])
+            test_p = torch.tensor(data_test[:,0:])
+        else:
+            train_p = torch.tensor(data_train[:,0:-m])
+            test_p = torch.tensor(data_test[:,0:-m])
+            
+        train_y = torch.tensor(data_train[:,-1])
+        test_y = torch.tensor(data_test[:,-1])
         
-        train_y = data_train[:,-1]
-        test_y = data_test[:,-1]
+#         print(train_y.shape)
+#         print(train_p.shape)
          
         #Set likelihood and model
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
@@ -43,7 +56,8 @@ def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, emulator, sp
         # QUESTION: What do I actually want to evaluate? The test theta at all values of X1 and X2?
         #Create new functions to do the LOO GP analysis
         #Theta_set will be be only the correct value
-        eval_components = LOO_eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types)
+        true_p_reshape = np.array([true_p])
+        eval_components = LOO_eval_GP(true_p_reshape, train_y, explore_bias, X_space, Y_space, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types)
         if emulator == False:
             GP_mean,GP_var,GP_stdev = eval_components
         else:
@@ -61,14 +75,16 @@ def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, emulator, sp
         #Plot GP_mean test vs train for X1 and X2 vs Muller Potential
         #Fix these plotters to be what I want
         if emulator == True:
-            LOO_Plots_3_Input(model, likelihood, Xexp, noise_std, emulator, set_lengthscale, t, obj, sep_fact, verbose = verbose, runs = runs, DateTime = DateTime, test_p = test_p, LOO = LOO, LSO = LSO, save_figure = save_fig)
+            Muller_Pot = GP_mean
         else:
-            LOO_Plots_2_Input(model, likelihood, Xexp, noise_std, emulator, set_lengthscale, t, obj, sep_fact, verbose = verbose, runs = runs, DateTime = DateTime, test_p = test_p, LOO = LOO, LSO = LSO, save_figure = save_fig)
-            
-        #Calculate SSE
-        #Make residual plots
+            Muller_Pot = gen_y_Theta_GP(X_space, true_p, true_model_coefficients, skip_param_types = skip_param_types)
+        Muller_Pot = Muller_Pot.T.reshape((-1,p))
+        LOO_Plots(X_space, Y_space, Xexp, Yexp, Muller_Pot, GP_stdev, true_p)            
+        #Calculate SSE (maybe)
+        #Make residual plots (maybe)
+    return
 
-def LOO_eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, obj = "obj", skip_param_types = 0):
+def LOO_eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = None, obj = "obj", skip_param_types = 0):
     """
     Evaluates GP
     
@@ -124,7 +140,7 @@ def LOO_eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coeffic
         eval_components = LOO_eval_GP_basic_set(theta_set, train_y, model, likelihood, explore_bias, verbose)
     else:
 #         eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose)
-        eval_components = LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, sparse_grid, explore_bias, verbose, train_p, obj, skip_param_types = skip_param_types)
+        eval_components = LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, explore_bias, verbose, train_p, obj, skip_param_types = skip_param_types)
     
     return eval_components
 
@@ -183,7 +199,7 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=
         point = theta_set[i]
 #         point = [theta_set[i]]
         eval_point = np.array([point])
-#         print(eval_point)
+#         print(eval_point, train_sse)
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         model_sse = GP_Outputs[3].numpy()[0] #1xn
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
@@ -200,7 +216,7 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=
 
     return sse, var, stdev #Prints just the value
     
-def LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, sparse_grid, explore_bias = 0.0, verbose = False, train_p = None, obj = "obj", skip_param_types = 0):
+def LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, explore_bias = 0.0, verbose = False, train_p = None, obj = "obj", skip_param_types = 0):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
     Parameters
@@ -211,7 +227,6 @@ def LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, mod
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        sparse_grid: True/False: Determines whether an assumption or sparse grid method is used
         explore_bias: float, the numerical bias towards exploration, zero is the default
         verbose: bool, Determines whether output is verbose
         obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
@@ -220,7 +235,6 @@ def LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, mod
     
     Returns
     -------
-        EI: ndarray, the expected improvement of the GP model
         SSE: ndarray, The SSE of the model 
         SSE_var_GP: ndarray, The varaince of the SSE pf the GP model
         SSE_stdev_GP: ndarray, The satndard deviation of the SSE of the GP model
@@ -286,3 +300,50 @@ def LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, mod
         GP_stdev = np.sqrt(GP_var)
     
     return GP_mean_all, GP_var_all, GP_stdev, SSE, SSE_var_GP, SSE_stdev_GP
+
+def LOO_Plots(X_space, Y_space, Xexp, Yexp, GP_mean, GP_stdev, Theta):
+    p = GP_mean.shape[0]
+    X_mesh = X_space.T.reshape((-1,p,p))
+    Y_space = Y_space.T.reshape((p,p))
+    X1, X2 = X_mesh
+#     print(X1.shape, X2.shape, GP_mean.shape)
+    # Compare the experiments to the true model
+    fig = plt.figure(figsize = (6.4,4))
+    ax = plt.axes(projection='3d')
+    ax.contour3D(X1, X2, GP_mean, 100, cmap='Blues') #Ysim
+    ax.contour3D(X1, X2, Y_space, 100, cmap='Reds') #Yexp
+    ax.scatter3D(Xexp[:,0], Xexp[:,1], Yexp, c=Yexp, cmap='Greens', edgecolors = "k") #Yexp
+    ax.plot(1000,1000,1000, label = "$y_{sim}$", color = 'blue')
+    ax.plot(1000,1000,1000, label = "$y_{exp}$", color = 'red')
+    ax.scatter(1000,1000,1000, label = "Exp Data", color = 'green', edgecolors = "k")
+    plt.legend(fontsize=10,bbox_to_anchor=(0, 1.0, 1, 0.2),borderaxespad=0, loc = "lower right")
+    
+#     ax.fill_between(
+#         X_space,
+#         GP_mean - 1.96 * GP_stdev,
+#         GP_mean + 1.96 * GP_stdev,
+#         alpha=0.3)
+        
+    ax.minorticks_on() # turn on minor ticks
+    ax.tick_params(direction="in",top=True, right=True) 
+    ax.tick_params(which="minor",direction="in",top=True, right=True)
+
+
+    ax.zaxis.set_tick_params(labelsize=12)
+    ax.yaxis.set_tick_params(labelsize=12)
+    ax.xaxis.set_tick_params(labelsize=12)
+    ax.grid(False)
+
+
+    ax.set_xlim((np.amin(X1),np.amax(X1)))
+    ax.set_ylim((np.amin(X2),np.amax(X2)))
+
+    ax.set_xlabel('X1', fontsize=16,fontweight='bold')
+    ax.set_ylabel('X2', fontsize=16,fontweight='bold')
+    ax.set_zlabel('Muller Potential',fontsize=16,fontweight='bold');
+
+    ax.locator_params(axis='y', nbins=5)
+    ax.locator_params(axis='x', nbins=5)
+    # ax.locator_params(axis='z', nbins=5)
+#     ax.set_title("GP Mean + confidence interval at"+ str(Theta))
+    return plt.show()
