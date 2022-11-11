@@ -8,7 +8,7 @@ Normalize training and testing data (To avoid data leakage)
     scaler = MinMaxScaler()
     scaler.fit(X_train, ....,..., y_test)
     #Set values to the scaled values
-    X_train, X_test, y_train, y_test = scaler.transform(...) #Do for all 4
+    X_train, X_test, y_train, y_test = scaler.transform(...) #Do for all 4 and for Xexp and yexp
 
 Train GP,
 
@@ -17,14 +17,12 @@ QUESTION: How does normalizing the data effect the SSE, EI, stdev, etc. heat map
 
 Optimize for theta_b and theta_opt
 Make heat maps (if we want)
-    Need to unscale data:
-    #For all x and y training and testing data, fit a different scaler
+    Need to unscale data: (unscale for X values and y values)
     data = scaler.inverse_transform(data)
     plot on heat maps?
     
 Calculate values of y given the GP optimal theta values and calculate sse
     Use unscaled values, since calculating SSE
-QUESTION: Could I scale the experimental data using the same scaler for the training data to make life easier?
 
 Augment Data
     Use scaled values
