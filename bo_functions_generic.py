@@ -33,6 +33,17 @@ def clean_1D_arrays(array, param_clean = False):
             array = array.reshape(1,-1)
     return array
 
+def normalize(x, newRange=np.array([0, 1])): #x is an array. Default range is between zero and one
+#     print(newRange)
+    xmin, xmax = np.min(x), np.max(x) #get max and min from input array
+    norm = (x - xmin)/(xmax - xmin) # scale between zero and one
+    
+    if newRange.all() == np.array([0, 1]).all():
+        return(norm) # wanted range is the same as norm
+    elif newRange.all() != np.array([0, 1]).all():
+        return norm * (newRange[1] - newRange[0]) + newRange[0] #scale to a different range.    
+    #add other conditions here. For example, an error message
+    
 def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
     """
     Generates theta_set from either a meshgrid search or and LHS
@@ -45,13 +56,13 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
         bounds: None or ndarray, contains bounds for LHS generation if necessary
     """
     if LHS == False:
-        if bounds is not None: #Note, only works if bounds are the same
-            Theta = np.linspace(bounds[0,0],bounds[1,0],n_points)
-        else:
-            Theta = np.linspace(0,1,n_points)
+        Theta = np.linspace(0,1,n_points)        
         df = pd.DataFrame(list(itertools.product(Theta, repeat=dimensions)))
         df2 = df.drop_duplicates()
         theta_set = df2.to_numpy()
+        if bounds is not None:
+            for i in range(theta_set.shape[1]):
+                theta_set[:,i] = normalize(theta_set[:,i], newRange = (bounds[:,i]))       
     else:
         theta_set = LHS_Design(n_points**2, dimensions, seed = 9, bounds = bounds)
     return theta_set

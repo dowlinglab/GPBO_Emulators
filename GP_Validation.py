@@ -29,21 +29,23 @@ def LOO_Analysis(all_data, ep, X_space, Y_space, Xexp, Yexp, true_model_coeffici
     #Loop over all test indecies & #Shuffle and split into training and testing data where 1 point is testing data
     for train_index, test_index in loo.split(all_data):
         data_train = all_data[train_index]
+#         print(data_train[0:5])
         data_test = all_data[test_index]
-        
+#         print(data_train.shape)
         #separate into y data and parameter data
-        if emulator == True:
-            train_p = torch.tensor(data_train[:,0:])
-            test_p = torch.tensor(data_test[:,0:])
-        else:
-            train_p = torch.tensor(data_train[:,0:-m])
-            test_p = torch.tensor(data_test[:,0:-m])
+#         if emulator == True:
+#             train_p = torch.tensor(data_train[:,0:])
+#             test_p = torch.tensor(data_test[:,0:])
+#             print(train_p.shape,train_p)
+#         else:
+        train_p = torch.tensor(data_train[:,1:-m+1]) #8 or 10 (emulator) parameters 
+        test_p = torch.tensor(data_test[:,1:-m+1])
             
         train_y = torch.tensor(data_train[:,-1])
         test_y = torch.tensor(data_test[:,-1])
         
 #         print(train_y.shape)
-#         print(train_p.shape)
+#         print(train_p.shape, train_p)
          
         #Set likelihood and model
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
@@ -78,7 +80,7 @@ def LOO_Analysis(all_data, ep, X_space, Y_space, Xexp, Yexp, true_model_coeffici
             Muller_Pot = GP_mean
         else:
             Muller_Pot = gen_y_Theta_GP(X_space, true_p, true_model_coefficients, skip_param_types = skip_param_types)
-        Muller_Pot = Muller_Pot.T.reshape((-1,p))
+        Muller_Pot = Muller_Pot.reshape((-1,p))
         LOO_Plots(X_space, Y_space, Xexp, Yexp, Muller_Pot, GP_stdev, true_p)            
         #Calculate SSE (maybe)
         #Make residual plots (maybe)
@@ -158,29 +160,22 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=
     
     Returns
     -------
-        ei: ndarray, the expected improvement of the GP model
         sse: ndarray, the sse/ln(sse) of the GP model
         var: ndarray, the variance of the GP model
         stdev: ndarray, the standard deviation of the GP model
-        f_best: ndarray, the best value so far
     """
         #Asserts that inputs are correct
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert verbose==True or verbose==False, "Verbose must be True/False"
-    
-    #Calculate and save best error
-    #Negative sign because -max(-train_sse) = min(train_sse)
-    best_error = -max(-train_sse).numpy() 
-#     best_error = max(-train_sse).numpy()
 
 #     print(theta_set.shape)
     if len(theta_set.shape) > 1:
         len_set, q = theta_set.shape[0], theta_set.shape[1]
     else:
         len_set, q = 1, theta_set.shape[0]
-    
+#     print(theta_set.shape)
     #These will be redone
     #Initalize matricies to save GP outputs and calculations using GP outputs
     sse = np.zeros(len_set)
@@ -208,12 +203,16 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=
 #                 print("Model Mean",model_sse)
 #                 print("Model Var", model_variance)
         #Save GP outputs
-        sse[i] = model_sse
+        
+        if obj == "obj":
+            sse[i] = model_sse
+        else:
+            sse[i] = np.exp(model_sse)
         var[i] = model_variance
         stdev[i] = np.sqrt(model_variance)  
 
         
-
+#     print(sse)
     return sse, var, stdev #Prints just the value
     
 def LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, explore_bias = 0.0, verbose = False, train_p = None, obj = "obj", skip_param_types = 0):
@@ -238,14 +237,17 @@ def LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, mod
         SSE: ndarray, The SSE of the model 
         SSE_var_GP: ndarray, The varaince of the SSE pf the GP model
         SSE_stdev_GP: ndarray, The satndard deviation of the SSE of the GP model
-        best_error: ndarray, The best_error of the GP model
     """
     #Asserts that inputs are correct
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
     n = len(Xexp)
-    len_set , q = theta_set.shape
+    if len(theta_set.shape) > 1:
+        len_set, q = theta_set.shape[0], theta_set.shape[1]
+    else:
+        len_set, q = 1, theta_set.shape[0]
+#     print(theta_set.shape)
     
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     
@@ -259,24 +261,28 @@ def LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, mod
     ##Calculate Best Error
     # Loop over theta 1
     for i in range(len_set):
-        best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj", skip_param_types = skip_param_types)
+#         print(i)
         GP_mean = np.zeros(n)
         GP_var = np.zeros(n)
         
         ##Calculate Values
         for k in range(n):
+#             print(k)
             #Caclulate EI for each value n given the best error
             point = list(theta_set[i])
 #             point.append(float(Xexp[k]))
             x_point_data = list(Xexp[k]) #astype(np.float)
+#             print("x_point_data",x_point_data)
             point = point + x_point_data
-#             print(point)
+#             print("point",point)
 #             point.append(x_point_data) 
-            point = np.array(point)  
             eval_point = np.array([point])
+#             print("eval_point", eval_point)
+#             eval_point = np.array([point])
 #             eval_point = np.array([point])[0]
-#             print(eval_point)
+#             print(eval_point[0:1])
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+            #3-Input GP not well trained
             model_mean = GP_Outputs[3].numpy()[0] #1xn
             model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
             
@@ -298,7 +304,7 @@ def LOO_eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, mod
         GP_mean_all[i] = GP_mean
         GP_var_all[i] = GP_var
         GP_stdev = np.sqrt(GP_var)
-    
+#     print(GP_mean_all)
     return GP_mean_all, GP_var_all, GP_stdev, SSE, SSE_var_GP, SSE_stdev_GP
 
 def LOO_Plots(X_space, Y_space, Xexp, Yexp, GP_mean, GP_stdev, Theta):
