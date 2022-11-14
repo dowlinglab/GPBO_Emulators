@@ -45,10 +45,11 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
         np.random.seed(random_seed)
         
     #Creates noise values with a certain stdev and mean from a normal distribution
-    if isinstance(x, np.ndarray):
-        noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
-    else:
-        noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #1x n_x
+    noise = np.random.normal(size=x.shape[1],loc = noise_mean, scale = noise_std) #1x n_x
+    #     if isinstance(x, np.ndarray):
+#         noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
+#     else:
+#         noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #1x n_x
     # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
     y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
   

@@ -15,14 +15,15 @@ from scipy.stats import qmc
 from sklearn.model_selection import LeaveOneOut
 
 from bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
-from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
-
+# from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
 def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False):
     ep_init = ep
     m = Xexp.shape[1]
+#     print(m)
     loo = LeaveOneOut()
     loo.get_n_splits(all_data)
     
@@ -35,10 +36,14 @@ def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, true_p, emul
         data_train = all_data[train_index]
 #         print(data_train[0:5])
         data_test = all_data[test_index]
-#         print(data_train.shape)
+#         print(data_test)
         #separate into y data and parameter data
-        train_p = torch.tensor(data_train[:,1:-m+1]) #8 or 10 (emulator) parameters 
-        test_p = torch.tensor(data_test[:,1:-m+1])
+        if m > 1:
+            train_p = torch.tensor(data_train[:,1:-m+1]) #8 or 10 (emulator) parameters 
+            test_p = torch.tensor(data_test[:,1:-m+1])
+        else:
+            train_p = torch.tensor(data_train[:,1:-m]) #8 or 10 (emulator) parameters 
+            test_p = torch.tensor(data_test[:,1:-m])
 #         print(test_p, test_p.shape)
 #         print(train_p[:,-m:])
             
@@ -54,13 +59,17 @@ def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, true_p, emul
         explore_bias = ep_init #Sets ep to the multiplicative scaler between 0.1 and 1
         #Evaluate GP on test set
         #Theta_set will be be only the test value
+#         print(test_p)
         test_p_reshape = test_p.numpy()
+#         print(test_p_reshape, test_p_reshape.shape)
         eval_components = LOO_eval_GP(test_p_reshape, Xexp, train_y, explore_bias, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std)
 #         print("Evaluated")
         if emulator == False:
             GP_mean,GP_var,GP_stdev = eval_components
+
         else:
             GP_mean,GP_var,GP_stdev, sse, sse_GP_var, sse_GP_stdev  = eval_components
+#             print(sse.shape, sse)
             sse_model_list.append(sse)
             
         if test_index%50 == 0:
@@ -72,14 +81,20 @@ def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, true_p, emul
     model_list = np.array(model_list)
     sse_model_list = np.array(sse_model_list)
     if emulator == False:
-        LOO_Plots_2_Input(index_list, model_list, GP_stdev, true_p, emulator)  
+        LOO_Plots_2_Input(index_list, model_list, GP_stdev, true_p)  
     else:
-        Y_space = calc_y_exp(true_model_coefficients, all_data[:,-m:], noise_std = noise_std)
+        if m > 1:
+            Y_space = calc_y_exp(true_model_coefficients, all_data[:,-m:], noise_std = noise_std)
+        else:
+            calc_point = clean_1D_arrays(all_data[:,-m])
+            Y_space = calc_y_exp(true_model_coefficients, calc_point, noise_std = noise_std)
+            Y_space = Y_space.reshape((index_list.shape))
+        ##NEED TO ADD WHAT THE SSE SHOULD BE GIVEN THE TEST POINT WHEN PLOTTING ERROR!!!
         LOO_Plots_3_Input(index_list, Y_space, model_list, GP_stdev, true_p)
         LOO_Plots_2_Input(index_list, sse_model_list, GP_stdev, true_p)
         #Calculate SSE (maybe)
         #Make residual plots (maybe)
-    return Y_space, index_list, model_list
+    return
 
 def LOO_eval_GP(theta_set, Xexp, train_y, explore_bias, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = None, obj = "obj", skip_param_types = 0, noise_std = 0.1):
     """
@@ -236,6 +251,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     #Asserts that inputs are correct
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+    
     if len(theta_set.shape) > 1:
         len_set, q = theta_set.shape[0], theta_set.shape[1]
     else:
@@ -262,8 +278,10 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
         #3-Input GP not well trained
         model_mean = GP_Outputs[3].numpy()[0] #1xn
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
-        Yexp = calc_y_exp(true_model_coefficients, theta_set[:,-m:], noise_std)
-           
+        calc_exp_point = clean_1D_arrays(theta_set[:,-m:])
+        
+        Yexp = calc_y_exp(true_model_coefficients, calc_exp_point, noise_std)
+#         print(Yexp)   
 
         #Compute SSE and SSE variance for that point
         SSE += (model_mean - Yexp)**2
