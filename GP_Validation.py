@@ -15,14 +15,15 @@ from scipy.stats import qmc
 from sklearn.model_selection import LeaveOneOut
 
 from bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
-# from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
-from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data
+# from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data, create_sse_data_GP_val
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
 def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False):
     ep_init = ep
     m = Xexp.shape[1]
+    q = true_p.shape[0]
 #     print(m)
     loo = LeaveOneOut()
     loo.get_n_splits(all_data)
@@ -72,7 +73,7 @@ def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, true_p, emul
 #             print(sse.shape, sse)
             sse_model_list.append(sse)
             
-        if test_index%50 == 0:
+        if test_index%50 ==0:
             print("Loop")
         model_list.append(GP_mean)
         #Plot GP_mean test vs train for X1 and X2 vs Muller Potential
@@ -81,17 +82,20 @@ def LOO_Analysis(all_data, ep, Xexp, Yexp, true_model_coefficients, true_p, emul
     model_list = np.array(model_list)
     sse_model_list = np.array(sse_model_list)
     if emulator == False:
-        LOO_Plots_2_Input(index_list, model_list, GP_stdev, true_p)  
-    else:
-        if m > 1:
-            Y_space = calc_y_exp(true_model_coefficients, all_data[:,-m:], noise_std = noise_std)
+        if obj == "LN_obj":
+            sse_sim = np.exp(all_data[:,-1])
         else:
-            calc_point = clean_1D_arrays(all_data[:,-m])
-            Y_space = calc_y_exp(true_model_coefficients, calc_point, noise_std = noise_std)
-            Y_space = Y_space.reshape((index_list.shape))
-        ##NEED TO ADD WHAT THE SSE SHOULD BE GIVEN THE TEST POINT WHEN PLOTTING ERROR!!!
-        LOO_Plots_3_Input(index_list, Y_space, model_list, GP_stdev, true_p)
-        LOO_Plots_2_Input(index_list, sse_model_list, GP_stdev, true_p)
+            sse_sim = all_data[:,-1]
+        LOO_Plots_2_Input(index_list, model_list, sse_sim, GP_stdev, true_p)  
+    else:
+#         all_theta = all_data[:,1:-m-1]
+#         print(all_theta.shape)
+#         X_sim = all_data[:,-m-1:-1]
+#         Y_exp = calc_y_exp(true_p, X_sim, noise_std)
+#         sse_data = create_sse_data_GP_val(q,all_theta, X_sim, Y_exp, obj = "obj")  #Not working correctly
+        LOO_Plots_3_Input(index_list, all_data[:,-1], model_list, GP_stdev, true_p)
+        print("SSE Total = ", sum( (all_data[:,-1] - model_list)**2 ) )
+#         LOO_Plots_2_Input(index_list, sse_model_list, sse_data, GP_stdev, true_p)
         #Calculate SSE (maybe)
         #Make residual plots (maybe)
     return
@@ -301,7 +305,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
 #     print(GP_mean_all)
     return GP_mean_all, GP_var_all, GP_stdev, SSE, SSE_var_GP, SSE_stdev_GP
 
-def LOO_Plots_2_Input(iter_space, GP_mean, GP_stdev, Theta):
+def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta):
     p = GP_mean.shape[0]
 #     print(X1.shape, X2.shape, GP_mean.shape)
     # Compare the experiments to the true model
@@ -309,8 +313,9 @@ def LOO_Plots_2_Input(iter_space, GP_mean, GP_stdev, Theta):
     #Plot Minimum SSE value at each run
     plt.figure(figsize = (6.4,4))
 #     plt.scatter(iter_space,Y_space, label = "$y_{exp}$")
-    label = "$log(SSE_{sim})$"
-    plt.scatter(iter_space,np.log(GP_mean), label = label )
+    label = "$log(SSE_{model})$"
+    plt.scatter(iter_space,np.log(GP_mean), label = label, s=100 )
+    plt.scatter(iter_space,np.log(sse_sim), label = "$log(SSE_{sim})$" , s=50)
     
 #     ax.fill_between(iter_space,
 #     GP_mean - 1.96 * GP_stdev,
@@ -344,9 +349,8 @@ def LOO_Plots_3_Input(iter_space, Y_space, GP_mean, GP_stdev, Theta):
     
     #Plot Minimum SSE value at each run
     plt.figure(figsize = (6.4,4))
-    plt.scatter(iter_space,Y_space, label = "$y_{exp}$")
-    label = "Muller Potential"
-    plt.scatter(iter_space,np.log(GP_mean), label = label )
+    plt.scatter(iter_space,GP_mean, label = "$y_{model}$", s=100 )
+    plt.scatter(iter_space,Y_space, label = "$y_{sim}$" , s=50)
     
 #     ax.fill_between(iter_space,
 #     GP_mean - 1.96 * GP_stdev,
@@ -358,7 +362,7 @@ def LOO_Plots_3_Input(iter_space, Y_space, GP_mean, GP_stdev, Theta):
     plt.tight_layout()
 #     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
     plt.xlabel("Index", fontsize=16, fontweight='bold')
-    plt.ylabel(label, fontsize=16, fontweight='bold')
+    plt.ylabel("y value", fontsize=16, fontweight='bold')
     
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)

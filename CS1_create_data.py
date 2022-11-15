@@ -55,6 +55,40 @@ def calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
   
     return y_exp
 
+def create_sse_data_GP_val(q,train_T, x, y_exp, obj = "obj"): #Note - Broken
+    """
+    Creates y_data for the 2 input GP function
+    
+    Parameters
+    ----------
+        q: int, Number of parameters to be regressed
+        train_T: ndarray, The array containing the training data for Theta1 and Theta2
+        x: ndarray, The list of xs that will be used to generate y
+        y_exp: ndarray, The experimental data for y (the true value)
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        
+    Returns:
+        sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
+    """   
+    train_T = clean_1D_arrays(train_T)
+    y_exp = clean_1D_arrays(y_exp)
+    
+    sum_error_sq = np.zeros(train_T.shape[0]) #1 x n_train^2
+
+    #Iterates over evey combination of theta to find the SSE for each combination
+    for i in range(train_T.shape[0]):
+        theta_1 = train_T[i,0] #n_train^2x1 
+        theta_2 = train_T[i,1] #n_train^2x1
+        y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
+#         y_sim = clean_1D_arrays(y_sim)
+        if obj == "obj":
+            sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
+        else:
+            sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
+            
+    sum_error_sq = torch.tensor(sum_error_sq)
+    return sum_error_sq   
+
 def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     """
     Creates y_data for the 2 input GP function
@@ -83,6 +117,7 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     
     train_T = clean_1D_arrays(train_T)
     y_exp = clean_1D_arrays(y_exp)
+    
 #     try: 
     if train_T.shape[1] > 1: #For the case where more than 1 point is geing generated
         #Creates an array for train_sse that will be filled with the for loop
@@ -93,6 +128,7 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
             theta_1 = train_T[i,0] #n_train^2x1 
             theta_2 = train_T[i,1] #n_train^2x1
             y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
+            y_sim = clean_1D_arrays(y_sim)
             if obj == "obj":
                 sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
             else:
