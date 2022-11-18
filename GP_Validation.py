@@ -16,8 +16,8 @@ from sklearn.model_selection import LeaveOneOut
 
 from bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
 from CS2_bo_plotters import save_csv, save_fig
-from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data
-# from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data, create_sse_data_GP_val
+# from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data
+from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data, create_sse_data_GP_val
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
@@ -317,9 +317,9 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study,
     #Plot Minimum SSE value at each run
     plt.figure(figsize = (6.4,4))
 #     plt.scatter(iter_space,Y_space, label = "$y_{exp}$")
-    label = "$log(SSE_{model})$"
-    plt.scatter(iter_space,np.log(GP_mean), label = label, s=100 )
-    plt.scatter(iter_space,np.log(sse_sim), label = "$log(SSE_{sim})$" , s=50)
+#     label = "$log(SSE_{model})$"
+    plt.scatter(iter_space,np.log(GP_mean), label = r'$\mathbf{log(e(\theta))_{model}}$', s=100 )
+    plt.scatter(iter_space,np.log(sse_sim), label = r'$\mathbf{log(e(\theta))_{sim}}$' , s=50)
     
 #     ax.fill_between(iter_space,
 #     GP_mean - 1.96 * GP_stdev,
@@ -331,7 +331,7 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study,
     plt.tight_layout()
 #     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
     plt.xlabel("Index", fontsize=16, fontweight='bold')
-    plt.ylabel(label, fontsize=16, fontweight='bold')
+    plt.ylabel(r'$\mathbf{log(e(\theta))}$', fontsize=16, fontweight='bold')
     
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
