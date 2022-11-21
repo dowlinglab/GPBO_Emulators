@@ -9,20 +9,24 @@ Normalize training and testing data (To avoid data leakage)
     scaler.fit(X_train, ....,..., y_test)
     #Set values to the scaled values
     X_train, X_test, y_train, y_test = scaler.transform(...) #Do for all 4 and for Xexp and yexp
+    Also set true_model_coefficients using train_p scaler somehow (not sure how to do this yet)
 
-Train GP,
+Is scaling the y_data a good idea? Is it even necessary?
 
-QUESTION: Do I unscale to evaluate the GP? I guess not but I'm not sure
+Train GP using scaled values,
+
+QUESTION: Do I unscale my values to evaluate the GP? I guess not but I'm not sure
 QUESTION: How does normalizing the data effect the SSE, EI, stdev, etc. heat maps?
 
 Optimize for theta_b and theta_opt
 Make heat maps (if we want)
-    Need to unscale data: (unscale for X values and y values)
+    Unscale data: (unscale for X values and y values)
     data = scaler.inverse_transform(data)
-    plot on heat maps?
+    plot on heat maps
     
 Calculate values of y given the GP optimal theta values and calculate sse
-    Use unscaled values, since calculating SSE
+    Don't need to unscale data if GP is evaluated w/ scaled values, otherwise, unscale data
+    calculate SSE
 
 Augment Data
     Use scaled values
