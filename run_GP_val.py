@@ -61,7 +61,7 @@ explore_bias = 1
 obj = np.array(["obj", "LN_obj"])
 # obj = np.array(["obj"])
 
-emulator = np.array([True, False])
+emulator = np.array([False, True])
 #     emulator = np.array([True])
 # emulator =  np.array([False])
 save_figure = True
