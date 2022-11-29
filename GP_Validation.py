@@ -16,8 +16,8 @@ from sklearn.model_selection import LeaveOneOut
 
 from bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
 from CS2_bo_plotters import save_csv, save_fig
-# from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data
-from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data, create_sse_data_GP_val
+from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data
+# from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data, create_sse_data_GP_val
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
@@ -32,6 +32,8 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     index_list = []
     model_list = []
     y_sim_list = []
+    y_sim_sse_list = []
+    GP_SSE_model_list = []
     sse_model_list = []
     #Loop over all test indecies & #Shuffle and split into training and testing data where 1 point is testing data
     for train_index, test_index in loo.split(all_data):
@@ -71,7 +73,11 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
 
         else:
             GP_mean,GP_var,GP_stdev, sse, sse_GP_var, sse_GP_stdev  = eval_components
-#             print(sse.shape, sse)
+            GP_SSE, Y_sim_SSE = LOO_eval_GP_emulator_sse(test_p_reshape, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose, skip_param_types, Case_Study)
+            
+            GP_SSE_model_list.append(GP_SSE)
+            y_sim_sse_list.append(Y_sim_SSE)
+            
             sse_model_list.append(sse)
             y_sim_list.append(data_test[:,-1])
             
@@ -91,9 +97,14 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
             sse_sim = all_data[:,-1]
         LOO_Plots_2_Input(index_list, model_list, sse_sim, GP_stdev, true_p, Case_Study, DateTime, obj, set_lengthscale, save_figure)
         
-    else:        
-        LOO_Plots_3_Input(index_list, model_list, all_data[:,-1], GP_stdev, true_p, Case_Study, DateTime, set_lengthscale, save_figure)
+    else:
         y_sim_list = np.array(y_sim_list)
+        y_sim_sse_list = np.array(y_sim_sse_list)
+        GP_SSE_model_list = np.array(GP_SSE_model_list)
+        
+        LOO_Plots_3_Input(index_list, model_list, all_data[:,-1], GP_stdev, true_p, Case_Study, DateTime, set_lengthscale, save_figure)
+        LOO_Plots_2_Input(index_list, GP_SSE_model_list, y_sim_sse_list, GP_stdev, true_p, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
+        
         fxn = "LOO_Plots_3_Input"
         SSE_Total =  sum( (y_sim_list - model_list)**2 ) 
         sse_tot_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/sse_tot")
@@ -229,7 +240,7 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
         
 #     print(sse)
     return sse, var, stdev #Prints just the value
-    
+
 def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, likelihood, verbose = False, train_p = None, obj = "obj", skip_param_types = 0, noise_std = 0.1):
     """ 
     Calculates the expected improvement of the 3 input parameter GP
@@ -305,10 +316,83 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
         GP_stdev = np.sqrt(GP_var_all)
 #     print(GP_mean_all)
     return GP_mean_all, GP_var_all, GP_stdev, SSE, SSE_var_GP, SSE_stdev_GP
+    
+def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose=False, skip_param_types=0, CS = 1):
+    """ 
+    Calculates the expected improvement of the 3 input parameter GP
+    Parameters
+    ----------
+        Xexp: ndarray, "experimental" x values
+        Yexp: ndarray, "experimental" y values
+        theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
+        true_model_coefficients: ndarray, The array containing the true values of problem constants
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
+        explore_bias: float, the numerical bias towards exploration, zero is the default
+        verbose: bool, Determines whether output is verbose
+        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
+        (NOT USED NOW) optimize: bool, Determines whether scipy will be used to find the best point for 
+    
+    Returns
+    -------
+        SSE: ndarray, The SSE of the model 
+        SSE_var_GP: ndarray, The varaince of the SSE pf the GP model
+        SSE_stdev_GP: ndarray, The satndard deviation of the SSE of the GP model
+    """
+    #Asserts that inputs are correct
+    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+#     print(theta_set.shape)
+    
+    m = Xexp.shape[1]
+    theta_set = theta_set[:, 0:-m]
+#     print(theta_set)
+    
+    if len(theta_set.shape) > 1:
+        len_set, q = theta_set.shape[0], theta_set.shape[1]
+    else:
+        len_set, q = 1, theta_set.shape[0]
+    
+    #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
+    
+    #Initialize values
+    SSE_model = np.zeros((len_set))
+    SSE_sim = np.zeros((len_set))
+    ##Calculate Best Error
+    # Loop over theta 1
+    for i in range(len_set): 
+    #Loop over experimental data  
+        GP_mean = np.zeros((Xexp.shape[0]))
+        y_sim = np.zeros((Xexp.shape[0]))
+        SSE = 0
+        for k in range(Xexp.shape[0]):
+    ##Calculate Values
+        #Caclulate EI for each value n given the best error
+            point = list(theta_set[i])
+            x_point_data = list(Xexp[k]) #astype(np.float)
+            point = point + x_point_data
+#             print(point, type(point))
+            eval_point = np.array([point])
+            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+            model_mean = GP_Outputs[3].numpy()[0] #1xn
+            GP_mean[i] = model_mean
+            #Calculate y_sim  & sse_sim
+            if CS == 1:
+                y_sim[k] = create_y_data(eval_point)
+            else:
+                y_sim[k] = create_y_data(eval_point, true_model_coefficients, Xexp, skip_param_types)
+        
+        #Compute GP SSE and SSE_sim for that point
+#         print((GP_mean - Yexp)**2)
+        SSE_model[i] = np.sum((GP_mean - Yexp)**2)
+        SSE_sim[i] = np.sum((y_sim - Yexp)**2)
+    return SSE_model, SSE_sim
 
-def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True):
+def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False):
+#     print(sse_sim.shape, GP_mean.shape, iter_space.shape)
+    
     p = GP_mean.shape[0]
-    emulator = False
     fxn = "LOO_Plots_2_Input"
     t = len(iter_space)
 #     print(X1.shape, X2.shape, GP_mean.shape)
