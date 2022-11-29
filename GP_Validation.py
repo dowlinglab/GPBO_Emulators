@@ -16,12 +16,16 @@ from sklearn.model_selection import LeaveOneOut
 
 from bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
 from CS2_bo_plotters import save_csv, save_fig
-from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data
 # from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data, create_sse_data_GP_val
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
 def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True):
+    if Case_Study ==1:
+        from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data, create_sse_data_GP_val
+    else:
+        from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data, create_sse_data
+        
     m = Xexp.shape[1]
     q = true_p.shape[0]
     t = len(all_data)
@@ -103,7 +107,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         GP_SSE_model_list = np.array(GP_SSE_model_list)
         
         LOO_Plots_3_Input(index_list, model_list, all_data[:,-1], GP_stdev, true_p, Case_Study, DateTime, set_lengthscale, save_figure)
-        LOO_Plots_2_Input(index_list, GP_SSE_model_list, y_sim_sse_list, GP_stdev, true_p, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
+        LOO_Plots_2_Input(index_list, GP_SSE_model_list, y_sim_sse_list, None, true_p, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
         
         fxn = "LOO_Plots_3_Input"
         SSE_Total =  sum( (y_sim_list - model_list)**2 ) 
