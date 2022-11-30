@@ -14,8 +14,32 @@ import itertools
 from itertools import combinations_with_replacement
 from itertools import combinations
 from itertools import permutations
+from sklearn.preprocessing import MinMaxScaler
 
 from CS2_bo_plotters import plot_org_train
+
+def norm_unnorm(X, norm = True, scaler = None):
+    """
+    Normalizes and unnormalizes data
+    
+    Parameters:
+    -----------
+        X: ndarray, The array containing the data to be normalized or unnormalized
+        norm: bool, default True: Determines whether the data is normalized to 0 and 1 or from 0 and 1 (False)
+        scaler: MinMaxScaler(), default None, Must be provided when moving from normalized to unnormalized values
+    Returns:
+    --------
+        X: ndarray, New scaled (norm = True) or unscaled (norm = False) values
+        scaler: MinMaxScaler(), The scaler used in the normalization
+    """
+    if norm == True:
+        if scaler == None:
+            scaler =  MinMaxScaler()
+            scaler.fit(X)
+        X = scaler.transform(X)
+    elif norm == False and scaler != None:
+        X = scaler.inverse_transform(X)
+    return X, scaler
 
 def clean_1D_arrays(array, param_clean = False):
     """
