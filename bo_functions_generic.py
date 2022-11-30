@@ -32,6 +32,10 @@ def norm_unnorm(X, norm = True, scaler = None):
         X: ndarray, New scaled (norm = True) or unscaled (norm = False) values
         scaler: MinMaxScaler(), The scaler used in the normalization
     """
+    tensor_val = False
+    if torch.is_tensor(X) == True:
+        tensor_val = True
+        
     if norm == True:
         if scaler == None:
             scaler =  MinMaxScaler()
@@ -39,6 +43,10 @@ def norm_unnorm(X, norm = True, scaler = None):
         X = scaler.transform(X)
     elif norm == False and scaler != None:
         X = scaler.inverse_transform(X)
+    
+    if tensor_val == True:
+        X = torch.tensor(X)
+#     print(torch.is_tensor(X))    
     return X, scaler
 
 def clean_1D_arrays(array, param_clean = False):
