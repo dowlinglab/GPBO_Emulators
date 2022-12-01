@@ -44,8 +44,8 @@ def norm_unnorm(X, norm = True, scaler = None):
     elif norm == False and scaler != None:
         X = scaler.inverse_transform(X)
     
-    if tensor_val == True:
-        X = torch.tensor(X)
+    if tensor_val == True and torch.is_tensor(X) == False:
+        X = torch.from_numpy(X)
 #     print(torch.is_tensor(X))    
     return X, scaler
 
@@ -736,7 +736,9 @@ def eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, ep, verbose =
     """
     #Back out important parameters from inputs
     n = len(Yexp) #Number of experimental data points
-    
+#     print(ep)
+    ep = ep.numpy()[0]
+#     print(ep)
     #Obtain Sparse Grid points and weights
     points_p, weights_p = get_sparse_grids(n,output=0,depth=3, rule='gauss-hermite', verbose = False)
     
@@ -753,7 +755,11 @@ def eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, ep, verbose =
         #Apply max operator  
 #         EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Leades to negative EIs
 #         EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error-ep),0])) #Leads to zero EIs: #Min values is never negative, so EI is always 0
-        EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error*ep),0]))
+#         print(type(best_error), type(ep), type(SSE_Temp))
+#         min_list = np.array([SSE_Temp - (best_error*ep),0], dtype=object)
+        min_list = [SSE_Temp - (best_error*ep),0]
+        EI_Temp += weights_p[i]*(-np.min(min_list))
+#         EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error*ep),0]))
     return EI_Temp
 
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):

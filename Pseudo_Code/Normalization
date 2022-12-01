@@ -29,5 +29,5 @@ Calculate values of y given the GP optimal theta values and calculate sse
     calculate SSE
 
 Augment Data
-    Use scaled values
+    Use unscaled values
 

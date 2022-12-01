@@ -6,20 +6,29 @@ from bo_functions_generic import clean_1D_arrays, norm_unnorm
 def normalize_general(train_p, test_p, Xexp, theta_set, Theta_True, true_model_coefficients, emulator, skip_param_types, case_study):
     norm = True
     m = Xexp.shape[1]
-    train_p_scl = train_p.detach().clone()
+#     print(type(test_p), type(train_p))
+    if torch.is_tensor(train_p) == True or torch.is_tensor(test_p):
+        train_p_scl = train_p.detach().clone()
+        test_p_scl = test_p.detach().clone()
+    else:
+        train_p_scl = train_p.copy()
+        test_p_scl = test_p.copy()
     
     if emulator == True:
     #Overwrite x_data in train_p w/ normalized values
+#         print(type(test_p[:,-m:]), type(train_p[:,-m:]))
         train_p_scl[:,-m:], scaler_x = normalize_x(train_p[:,-m:], m, Xexp, emulator, norm)
-        test_p_scl[:,-m:], scaler_x = normalize_x(test_p[:,-m:], m, Xexp, emulator, norm)
         Xexp_scl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
         #Normalize train_p data
         train_p_scl[:,0:-m], scaler_theta = normalize_p_data(train_p, m, emulator, norm)
-        test_p_scl[:,0:-m], scaler_theta = normalize_p_data(test_p, m, emulator, norm)
+        if test_p.shape[0] >= 1:
+            test_p_scl[:,-m:] = normalize_x(test_p[:,-m:], m, Xexp, emulator, norm, scaler_x)[0]
+            test_p_scl[:,0:-m] = normalize_p_data(test_p, m, emulator, norm, scaler_theta)[0]
     else:
         Xexp_scl, scaler_x = normalize_x(Xexp, m, Xexp, emulator, norm)
         train_p_scl, scaler_theta = normalize_p_data(train_p, m, emulator, norm)
-        test_p_scl = normalize_p_data(test_p, m, emulator, norm)
+        if test_p.shape[0] >= 1:
+            test_p_scl = normalize_p_data(test_p, m, emulator, norm)
 
     #Overwrite theta values with normalized values in theta_set, p_true, and constants
     theta_set_scl = normalize_p_set(theta_set, scaler_theta, norm)
@@ -29,9 +38,12 @@ def normalize_general(train_p, test_p, Xexp, theta_set, Theta_True, true_model_c
                                                                                     case_study, norm)
 #     print(true_model_coefficients_scl)
 #     print(Theta_True_scl)
-    norm_vals_and_scalers = [train_p_scl, test_p_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl, scaler_x,
-                             scaler_theta, scaler_C_before, scaler_C_after]
-    norm_vals, norm_scalers = np.split(norm_vals_and_scalers, [6])
+#     norm_vals_and_scalers = np.array([train_p_scl, test_p_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl, scaler_x, scaler_theta, scaler_C_before, scaler_C_after], dtype=object)
+    norm_vals_and_scalers = [train_p_scl, test_p_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl, scaler_x, scaler_theta, scaler_C_before, scaler_C_after]
+    norm_vals = norm_vals_and_scalers[:6]
+    norm_scalers = norm_vals_and_scalers[6:]
+    
+    #norm_vals, norm_scalers = np.split(norm_vals_and_scalers, [6])
     
     return  norm_vals, norm_scalers
 
