@@ -65,7 +65,7 @@ def clean_1D_arrays(array, param_clean = False):
             array = array.reshape(1,-1)
     return array
 
-def normalize(x, newRange=np.array([0, 1])): #x is an array. Default range is between zero and one
+def normalize_bounds(x, newRange=np.array([0, 1])): #x is an array. Default range is between zero and one
 #     print(newRange)
     xmin, xmax = np.min(x), np.max(x) #get max and min from input array
     norm = (x - xmin)/(xmax - xmin) # scale between zero and one
@@ -94,7 +94,7 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
         theta_set = df2.to_numpy()
         if bounds is not None:
             for i in range(theta_set.shape[1]):
-                theta_set[:,i] = normalize(theta_set[:,i], newRange = (bounds[:,i]))       
+                theta_set[:,i] = normalize_bounds(theta_set[:,i], newRange = (bounds[:,i]))       
     else:
         theta_set = LHS_Design(n_points**2, dimensions, seed = 9, bounds = bounds)
     return theta_set
@@ -250,7 +250,7 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     ----------
         all_data: ndarray or tensor, The simulated parameter space and y data
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        runs: int, # of runs for bo iterations. default is 0
+        runs: int, # of run for bo iterations. default is 0
         shuffle_seed, int, number of seed for shuffling training data. Default is None.
     Returns:
         train_data: ndarray, The training data
@@ -265,10 +265,10 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
 #     if sep_fact 
     if shuffle_seed is not None:
         if runs > 1:
-            np.random.seed(runs-1)
+            np.random.seed(runs)
 #             for i in range(runs):
 #                 np.random.seed(i+1)
-#             print(i)
+            print(i)
         else:
             np.random.seed(shuffle_seed)
     

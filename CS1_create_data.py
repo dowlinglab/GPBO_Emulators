@@ -243,7 +243,7 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
 #     y_GP_Opt_data = create_y_data(create_y_data_space, true_model_coefficients, x_space, skip_param_types = skip_param_types)
     return y_GP_Opt_data   
 
-def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator, obj = "obj", skip_param_types = 0, norm_scalers=None):
+def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator=True, obj = "obj", skip_param_types = 0, norm_scalers=None):
     """ 
     Calculates the best error of the 3 input parameter GP
     Parameters
@@ -277,6 +277,7 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator, 
     
     #Unscale Data for data generation
     if norm_scalers is not None:
+        print(norm_scalers)
         norm = False
         m = Xexp.shape[0]
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
@@ -322,6 +323,7 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
     """
     #Unscale for Data Generation
     if norm_scalers is not None:
+        print(norm_scalers)
         norm = False
         m = Xexp.shape[0]
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers

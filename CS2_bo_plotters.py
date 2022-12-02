@@ -484,7 +484,7 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
     for i in range(tot_runs):
 #         bo_space = np.linspace(1,bo_iters[i],bo_iters[i])
         if tot_runs == 1:
-            label = "Minimum "+ "r'$log(e(\theta))$" +" Value Found"
+            label = "Minimum "+ r'$log(e(\theta))$'
         else:  
             label = "Run: "+str(i+1) 
         obj_mins_df_run = pd.DataFrame(data = obj_abs_min[i])
@@ -567,7 +567,7 @@ def plot_EI_abs_max(EI_abs_max, emulator, ep, sparse_grid, set_lengthscale, t, o
     for i in range(tot_runs):
 #         bo_space = np.linspace(1,bo_iters[i],bo_iters[i])
         if tot_runs == 1:
-            label = "Minimum "+ "r'$log(e(\theta))$" +" Value Found"
+            label = "Minimum "+ r'$log(e(\theta))$'
         else:  
             label = "Run: "+str(i+1) 
         EI_max_df_run = pd.DataFrame(data = EI_abs_max[i])
@@ -649,7 +649,7 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
     tot_runs = int(len(sep_list))
     for i in range(tot_runs):
         if tot_runs == 1:
-            label = "Minimum " + "r'$log(e(\theta))$'" +" Value Found"
+            label = "Minimum " + "r'$log(e(\theta))$'"
         else:  
             label = "Sep: "+str(np.round(sep_list[i],3))
         plt.step(bo_space, obj_abs_min[i], label = label)
