@@ -268,7 +268,7 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
             np.random.seed(runs)
 #             for i in range(runs):
 #                 np.random.seed(i+1)
-            print(i)
+#             print(i)
         else:
             np.random.seed(shuffle_seed)
     

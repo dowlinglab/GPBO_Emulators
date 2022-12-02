@@ -277,7 +277,7 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator=T
     
     #Unscale Data for data generation
     if norm_scalers is not None:
-        print(norm_scalers)
+#         print(norm_scalers)
         norm = False
         m = Xexp.shape[0]
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
@@ -323,7 +323,7 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
     """
     #Unscale for Data Generation
     if norm_scalers is not None:
-        print(norm_scalers)
+#         print(norm_scalers)
         norm = False
         m = Xexp.shape[0]
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
