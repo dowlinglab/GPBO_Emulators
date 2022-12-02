@@ -122,7 +122,7 @@ def LHS_Design(num_points, dimensions, seed = None, bounds = None):
 
     return LHS
 
-def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, test_p, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, param_dict, sep_fact = 1):  
+def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, test_p, p_True, Xexp, emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, tot_iters, tot_runs, DateTime, verbose, param_dict, sep_fact = 1, normalize = False):  
     """
     Puts training data into a for loop to print all possible 3D angles of the training data
     
@@ -265,8 +265,10 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
 #     if sep_fact 
     if shuffle_seed is not None:
         if runs > 1:
-             for i in range(runs):
-                np.random.seed(i)
+            np.random.seed(runs-1)
+#             for i in range(runs):
+#                 np.random.seed(i+1)
+#             print(i)
         else:
             np.random.seed(shuffle_seed)
     

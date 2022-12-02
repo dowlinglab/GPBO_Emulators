@@ -108,7 +108,7 @@ def save_fig(path, ext='png', close=True, verbose=True):
     if verbose:
         print("Done")
         
-def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter= None, title_save = None, run = None, tot_iter=1, tot_runs=1, DateTime = None, sep_fact = None, is_figure = True, csv_end = None):
+def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter= None, title_save = None, run = None, tot_iter=1, tot_runs=1, DateTime = None, sep_fact = None, is_figure = True, csv_end = None, normalize = False):
     """
     names a path
     
@@ -188,6 +188,9 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_comb
     else:
         path_org = "Test_Figs"
         
+    if normalize == True:
+        path_org = path_org + "/Norm_Data"
+        
 #         path_org = "Test_Figs"+"/Sep_Analysis2"+"/Figures"
     if is_figure == True:
         path_org = path_org + "/Figures"
@@ -235,7 +238,7 @@ def plot_hyperparams(iterations, hyperparam, title):
     return plt.show()
 
 #This needs to take indecies as an argument and link indecies to a list of parameters
-def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, param_names_list, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None, save_CSV = True):
+def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid, obj, ep, len_scl, run, save_figure, param_names_list, tot_iter=1, tot_runs=1, DateTime=None, verbose = True, sep_fact = None, save_CSV = True, normalize = False):
     '''
     Plots original training data with true value
     Parameters
@@ -376,12 +379,12 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
     if save_CSV == True:
         for i in range(len(df_list_ends)):
             array_df = pd.DataFrame(df_list[i])
-            path_csv = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, mesh_combo, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i])
+            path_csv = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, mesh_combo, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i], normalize = normalize)
         #How to save more efficiently without hardcoding number of columns?
             save_csv(array_df, path_csv, ext = "npy")
     
     if save_figure == True:
-        path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, mesh_combo, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
+        path = path_name(emulator, ep, sparse_grid, fxn, len_scl, t, obj, mesh_combo, bo_iter=None, title_save = None, run = run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, normalize = normalize)
         save_fig(path, ext='png', close=True, verbose=False)  
     
     if save_figure == False:
@@ -443,7 +446,7 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison")
     
     return 
 
-def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None, sep_fact = None, save_CSV = True):
+def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None, sep_fact = None, save_CSV = True, normalize = False):
     '''
     Plots the absolute minimum of the objective over BO iterations
     Parameters
@@ -513,12 +516,12 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
     #Save CSVs - How to save column names as run #s automatically?
     obj_abs_min_df = pd.DataFrame(obj_abs_min)
     if save_CSV == True:
-        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
+        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, normalize = normalize)
         save_csv(obj_abs_min_df, path_csv, ext = "npy")
         
     #Save figure path
     if save_figure == True:
-        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, normalize = normalize)
         save_fig(path, ext='png', close=True, verbose=False)
     
     plt.show()
@@ -526,7 +529,7 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
     
     return 
 
-def plot_EI_abs_max(EI_abs_max, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None, sep_fact = None, save_CSV = True):
+def plot_EI_abs_max(EI_abs_max, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1, tot_runs=1,DateTime=None, sep_fact = None, save_CSV = True, normalize = False):
     '''
     Plots the absolute minimum of the objective over BO iterations
     Parameters
@@ -599,13 +602,13 @@ def plot_EI_abs_max(EI_abs_max, emulator, ep, sparse_grid, set_lengthscale, t, o
     #Save CSVs - How to save column names as run #s automatically?
     EI_abs_max_df = pd.DataFrame(EI_abs_max)
     if save_CSV == True:
-        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
+        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, normalize = normalize)
 #         print(path_csv)
         save_csv(EI_abs_max_df, path_csv, ext = "npy")
         
     #Save figure path
     if save_figure == True:
-        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, normalize = normalize)
         save_fig(path, ext='png', close=True, verbose=False)
     
     plt.show()
@@ -613,7 +616,7 @@ def plot_EI_abs_max(EI_abs_max, emulator, ep, sparse_grid, set_lengthscale, t, o
     
     return 
 
-def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1 ,DateTime=None, sep_list = None, save_CSV = True):
+def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t, obj, save_figure, tot_iter=1 ,DateTime=None, sep_list = None, save_CSV = True, normalize = False):
     '''
     Plots the absolute minimum of the objective over BO iterations
     Parameters
@@ -676,12 +679,12 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
     #Save CSVs
     obj_abs_min_df = pd.DataFrame(obj_abs_min)
     if save_CSV == True:
-        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "Min_SSE_Conv_Sep_Fact")
+        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "Min_SSE_Conv_Sep_Fact", normalize = normalize)
         save_csv(obj_abs_min_df, path_csv, ext = "npy")
     
     #Save figure path
     if save_figure == True:
-        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = None)
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = None, normalize = normalize)
         save_fig(path, ext='png', close=True, verbose=False)
     
     plt.show()
@@ -689,7 +692,7 @@ def plot_sep_fact_min(bo_iters, obj_abs_min, emulator, ep, sparse_grid, set_leng
     
     return 
 
-def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, save_CSV = True):
+def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, save_CSV = True, normalize = False):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -762,12 +765,12 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     #Save Data to CSV
     obj_min_df = pd.DataFrame(obj_array)
     if save_CSV == True:
-        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
+        path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, normalize = normalize)
         save_csv(obj_min_df, path_csv, ext = "npy")
     
     #Save path and figure
     if save_figure == True:
-        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact)
+        path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, normalize = normalize)
         save_fig(path, ext='png', close=True, verbose=False)
     
     plt.show()
@@ -775,7 +778,7 @@ def plot_obj(obj_array, t, obj, ep, emulator, sparse_grid, set_lengthscale, save
     
     return 
 
-def save_misc_data(data_array, fxn, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None):
+def save_misc_data(data_array, fxn, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, normalize = False):
     """
     Creates .npy files to save best theta GP mean and GP variance, or iter times
     Parameters
@@ -799,11 +802,11 @@ def save_misc_data(data_array, fxn, t, obj, ep, emulator, sparse_grid, set_lengt
         Creates npy file storing the data
     """
 #         print(Theta_array_df)
-    path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False)
+    path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, normalize = normalize)
     save_csv(data_array, path_csv, ext = "npy")
     return
 
-def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 6, save_CSV = True):
+def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 6, save_CSV = True, normalize = False):
     """
     Plots the objective function and Theta values vs BO iteration
     
@@ -888,12 +891,12 @@ def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_l
         Theta_array_df = pd.DataFrame(Theta_array.T[j])
         if save_CSV == True:
 #         print(Theta_array_df)
-            path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + str(param_dict[j]))
+            path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + str(param_dict[j]), normalize = normalize)
             save_csv(Theta_array_df, path_csv, ext = "npy")
         
         #Save path and figure
         if save_figure == True:
-            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact) + "/" + str(param_dict[j])
+            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, normalize = normalize) + "/" + str(param_dict[j])
             save_fig(path, ext='png', close=True, verbose=False)
             
         plt.show()
@@ -901,7 +904,7 @@ def plot_Theta(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_l
 
     return
 
-def plot_Theta_min(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 5, save_CSV = True):
+def plot_Theta_min(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, set_lengthscale, save_figure, param_dict, tot_iter=1, tot_runs=1, DateTime=None, sep_fact = None, nbins = 5, save_CSV = True, normalize = False):
     """
     Plots the objective function and best Theta values so far vs BO iteration
     
@@ -987,12 +990,12 @@ def plot_Theta_min(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, s
         Theta_array_df = pd.DataFrame(Theta_array.T[j])
 #         print(Theta_array_df)
         if save_CSV == True:
-            path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + param_dict[j])
+            path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + param_dict[j], normalize = normalize)
             save_csv(Theta_array_df, path_csv, ext = "npy")
         
         #Save path and figure
         if save_figure == True:
-            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact) + "/" + param_dict[j]
+            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo = None, bo_iter=None, title_save = None, run = None, tot_iter=tot_iter, tot_runs=tot_runs,DateTime=DateTime, sep_fact = sep_fact, normalize = normalize) + "/" + param_dict[j]
 #             print(path)
             save_fig(path, ext='png', close=True, verbose=False)
             
@@ -1002,7 +1005,7 @@ def plot_Theta_min(Theta_array, Theta_True, t, obj, ep, emulator, sparse_grid, s
     return
 
 #Will need to have a loop run this for each combination of theta values
-def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, param_names_list, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None, levels = 20, save_CSV = True ):
+def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, param_names_list, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None, levels = 20, save_CSV = True, normalize = False):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -1131,7 +1134,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
     if save_CSV == True:
         for i in range(len(df_list)):
             array_df = pd.DataFrame(df_list[i])
-            path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i])
+            path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i], normalize = normalize)
             save_csv(array_df, path_csv, ext = "npy")
     
     if tot_iter > 1:
@@ -1145,7 +1148,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
         
         #Generate path and save figures     
         if save_figure == True:
-            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact)
+            path = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, normalize = normalize)
             save_fig(path, ext='png', close=True, verbose=False)
 #             print(path)
         else:
