@@ -1,0 +1,4 @@
+  File "/scratch365/mcarlozo/Toy_Problem/run_norm_reg_comparison.py", line 1
+    %%time
+    ^
+SyntaxError: invalid syntax

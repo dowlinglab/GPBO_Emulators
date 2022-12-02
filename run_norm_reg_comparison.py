@@ -1,5 +1,3 @@
-%%time
-
 import sys
 import gpytorch
 import numpy as np
