@@ -850,7 +850,8 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     assert emulator==True or emulator==False, "Verbose must be True/False"
-    
+#     print(norm_scalers)
+#     print(normalize)
     #Find parameters
     m = Xexp[0].size #Dimensions of X
     n = len(Xexp) #Length of experimental data
@@ -991,13 +992,19 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         #Make its own function         
         if i == 0:
             All_SSE_abs_min[i] = ln_error_mag
-            All_Theta_abs_Opt[i] = theta_o
+            if normalize == False:
+                All_Theta_abs_Opt[i] = theta_o
+            else:
+                All_Theta_abs_Opt[i] = theta_o_unscl
             improvement = False
 #             All_SSE_abs_min[i] = sse_opt
         else:
             if All_SSE_abs_min[i-1] >= ln_error_mag:
                 All_SSE_abs_min[i] = ln_error_mag
-                All_Theta_abs_Opt[i] = theta_o
+                if normalize == False:
+                    All_Theta_abs_Opt[i] = theta_o
+                else:
+                    All_Theta_abs_Opt[i] = theta_o_unscl
                 improvement = True
             else: 
                 All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
