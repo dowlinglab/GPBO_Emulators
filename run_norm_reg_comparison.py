@@ -53,7 +53,6 @@ normalize = [False, True]
 # sparse_grid = np.array([False,True])
 verbose = False
 save_fig = True
-save_fig = False
 
 #Pull Experimental data from CSV
 exp_data_doc = 'Input_CSVs/Exp_Data/d=2/n=5.csv'
