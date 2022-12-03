@@ -929,7 +929,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
 #         print(Theta_True, theta_o)
         
         #Evaluate GP for best EI theta set
-        eval_components_best = eval_GP(np.array([theta_b]), train_y, explore_bias,Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
+        eval_components_best = eval_GP(np.array([theta_b]), train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
 
         #Determines whether debugging parameters are saved for 2 Input GP       
         if verbose == True and emulator == False:
@@ -971,11 +971,22 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         #Save theta_best and theta_opt values for iteration
         if normalize == False:
             All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
+            if verbose == True:
+                print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o_unscl, "is", "{:.4e}".format(ln_error_mag))
+                print("Scipy Theta Best = ",theta_b)
+                print("Scipy Theta Opt = ",theta_o)
         else:
             scaler_theta = norm_scalers[1]
             theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm= False)
             theta_o_unscl = normalize_p_true(theta_o, scaler_theta, norm= False)
             All_Theta_Best[i], All_Theta_Opt[i] = theta_b_unscl, theta_o_unscl
+            if verbose == True:
+                scaler_theta = norm_scalers[1]
+                theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm= False)
+                theta_o_unscl = normalize_p_true(theta_o, scaler_theta, norm= False)
+                print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o_unscl, "is", "{:.4e}".format(ln_error_mag))
+                print("Scipy Theta Best = ",theta_b_unscl)
+                print("Scipy Theta Opt = ",theta_o_unscl)
         
         #Calculate values of y given the GP optimal theta values
         y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o, true_model_coefficients, skip_param_types, norm_scalers, emulator)
@@ -1023,23 +1034,21 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
 #             print("Exploration Bias = ",explore_bias)
             print("Exploration Bias Factor = ",explore_bias)
             print("EI_max =", ei_best, "\n")
-            if normalize == False:
-                print("Scipy Theta Best = ",theta_b)
-                print("Scipy Theta Opt = ",theta_o)
-            else:
-                scaler_theta = norm_scalers[1]
-                theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm= False)
-                theta_o_unscl = normalize_p_true(theta_o, scaler_theta, norm= False)
-                print("Scipy Theta Best = ",theta_b_unscl)
-                print("Scipy Theta Opt = ",theta_o_unscl)
-        
+                    
         ##Append best values to training data 
         #Convert training data to numpy arrays to allow concatenation to work
         train_p = train_p.numpy() #(q x t)
         train_y = train_y.numpy() #(1 x t)
         
-        #Save Training data for this iteration in CSV
-        df_list = [train_p, test_p]
+        #Save Training data for this iteration in CSV          
+        if normalize == True:
+            train_p_unscl = normalize_p_data(train_p, m, emulator, norm, scaler_theta)[0]
+            test_p_unscl = normalize_p_data(train_p, m, emulator, norm, scaler_theta)[0]
+        else:
+            train_p_unscl = train_p
+            test_p_unscl = test_p
+            
+        df_list = [train_p_unscl, test_p_unscl]
         df_list_ends = ["Train_p", "Test_p"]
         fxn = "value_plotter"
         title_save_TT = "Train_Test_Data"
@@ -1049,7 +1058,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
 
         for j in range(len(df_list)):
             array_df = pd.DataFrame(df_list[j])
-            path_csv = path_name(emulator, explore_bias, sparse_grid, fxn, set_lengthscale, t, obj, None, i, title_save_TT, run, tot_iter=Total_BO_iters, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[j])
+            path_csv = path_name(emulator, explore_bias, sparse_grid, fxn, set_lengthscale, t, obj, None, i, title_save_TT, run, tot_iter=Total_BO_iters, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[j], normalize = normalize)
 #             print(path_csv)
             save_csv(array_df, path_csv, ext = "npy") #Note: Iter 3 means the TPs used in calculations for iter 3 to determine iter 4
         
@@ -1063,13 +1072,6 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
 
         train_p, train_y = make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_coefficients, obj, q, skip_param_types, noise_std, norm_scalers)
         
-        if verbose == True:
-            if normalize == True:
-                theta_o_unscl = normalize_p_true(theta_o, scaler_theta, norm= False)
-            else:
-                theta_o_unscl = theta_o
-#             print("iter", i+1, "complete")
-            print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o_unscl, "is", "{:.4e}".format(ln_error_mag))
     
         timeend = time.time()
         time_per_iter[i] +=  (timeend - timestart)
@@ -1188,7 +1190,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
             scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
             
             #Run BO Iteration
-            BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients_scl, param_dict, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers)
+            BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients_scl, param_dict, verbose, save_fig, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers)
         else:
             BO_results = bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients, param_dict, verbose, save_fig, runs, DateTime, test_p, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = None)
         

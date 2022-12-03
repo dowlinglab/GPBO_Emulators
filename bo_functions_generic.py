@@ -185,12 +185,12 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
                 test_data_piece_j = torch.cat( (test_data_piece, torch.reshape(test_p[:,(param_dim-1)+(j+1)],(-1,1))), axis = 1 )
 #                 else:
 #                     test_data_piece = test_p
-                plot_org_train(theta_set_piece,train_data_piece_j, test_data_piece_j, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+                plot_org_train(theta_set_piece,train_data_piece_j, test_data_piece_j, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact, normalize = normalize)
         else:
             #Loop over each X dimension
             for j in range(exp_data_dim):
 #             print(test_data_piece)
-                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact)
+                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact, normalize = normalize)
     return 
 
 #This will need to change eventually
