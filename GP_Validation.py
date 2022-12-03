@@ -17,8 +17,8 @@ from sklearn.model_selection import LeaveOneOut
 from bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
 from CS2_bo_plotters import save_csv, save_fig
     
-# from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
-from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+# from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 
 ###Load data
 ###Get constants
@@ -74,8 +74,8 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
             GP_mean,GP_var,GP_stdev = eval_components
 
         else:
-            GP_mean,GP_var,GP_stdev, sse, sse_GP_var, sse_GP_stdev  = eval_components
-            GP_SSE, Y_sim_SSE = LOO_eval_GP_emulator_sse(test_p_reshape, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose, skip_param_types, Case_Study)
+            GP_mean,GP_var,GP_stdev, sse, sse_GP_var, sse_GP_stdev  = eval_components #sse here is w/ theta_j x_j
+            GP_SSE, Y_sim_SSE = LOO_eval_GP_emulator_sse(test_p_reshape, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose, skip_param_types, Case_Study) #sse here is w/ theta_j, Xexp
             
             GP_SSE_model_list.append(GP_SSE)
             y_sim_sse_list.append(Y_sim_SSE)
@@ -289,7 +289,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     # Loop over theta 1
     for i in range(len_set):        
     ##Calculate Values
-        #Caclulate EI for each value n given the best error
+        #Caclulate GP vals for each value given theta_j and x_j
         point = list(theta_set[i])
         eval_point = np.array([point])
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
@@ -311,7 +311,6 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
             SSE_stdev_GP += np.sqrt(SSE_var_GP)
         else:
             SSE_stdev_GP += np.sqrt(np.abs(SSE_var_GP))
-
 
         GP_mean_all[i] = model_mean
         GP_var_all[i] = model_variance
@@ -370,7 +369,7 @@ def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, mode
         SSE = 0
         for k in range(Xexp.shape[0]):
     ##Calculate Values
-        #Caclulate EI for each value n given the best error
+        #Caclulate sse for each value j
             point = list(theta_set[i])
             x_point_data = list(Xexp[k]) #astype(np.float)
             point = point + x_point_data
@@ -510,7 +509,6 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Theta, Case_Study, D
         plt.show()
         plt.close()
         
-    
     return
 
 def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime = None, is_figure = True, csv_end = None):

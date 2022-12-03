@@ -205,7 +205,6 @@ def create_y_data(param_space, true_model_coefficients, x, skip_param_types = 0,
     y_sim = np.zeros(len_data) #1 x n_train^2
     model_coefficients = true_model_coefficients.copy()
 
-    
     #Iterates over evey data point to find the y for each combination
     for i in range(len_data):
         #Set dig out values of a from train_p
