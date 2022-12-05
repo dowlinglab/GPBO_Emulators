@@ -17,3 +17,16 @@ At this point, the highest EI occurs at θ = [-2.  2.]
 
 
 Normalizing?: True
+-------------------
+Emulator?: True
+______________________________
+Sparse Grid?: True
+Objective Function: obj
+-  -  -  -  -  -  -  -  -  -  -
+Separation Factor Train/Test: 0.7
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 2.842e-03 occurs at θ = [ 0.9939522  -0.99424772] during run 1 at BO iteration 100
+At this point, the highest EI occurs at θ = [ 0.9939492  -0.99424766]
+
+
