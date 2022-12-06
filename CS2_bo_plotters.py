@@ -504,7 +504,7 @@ def plot_obj_abs_min(obj_abs_min, emulator, ep, sparse_grid, set_lengthscale, t,
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tick_params(direction="in",top=True, right=True)
-    plt.locator_params(axis='y', nbins=5)
+    plt.locator_params(axis='y', nbins=7)
     plt.locator_params(axis='x', nbins=5)
     plt.minorticks_on() # turn on minor ticks
     plt.tick_params(which="minor",direction="in",top=True, right=True)
@@ -590,8 +590,8 @@ def plot_EI_abs_max(EI_abs_max, emulator, ep, sparse_grid, set_lengthscale, t, o
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tick_params(direction="in",top=True, right=True)
-    plt.locator_params(axis='y', nbins=5)
-    plt.locator_params(axis='x', nbins=5)
+    plt.locator_params(axis='y', nbins=7)
+    plt.locator_params(axis='x', nbins=7)
     plt.minorticks_on() # turn on minor ticks
     plt.tick_params(which="minor",direction="in",top=True, right=True)
 #     plt.gca().axes.xaxis.set_ticklabels([]) # remove tick labels
