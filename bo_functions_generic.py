@@ -159,17 +159,17 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
         test_p: tensor or ndarray, The training parameter space data
         p_true: ndarray, A 2x1 containing the true input parameters
         Xexp: ndarray, experimental x values
-        emulator: True/False, Determines if GP will model the function or the function error
-        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        emulator: bool, Determines if GP will model the function or the function error
+        sparse_grid: bool, bool: Determines whether a sparse grid or approximation is used for the GP emulator
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         ep0: float, float,int,tensor,ndarray (1 value) The initial exploration bias parameter
         len_scl: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         run, int or None, The iteration of the number of times new training points have been picked
-        save_fig: True/False, Determines whether figures will be saved
+        save_fig: bool, Determines whether figures will be saved
         tot_iters: int or None, Total number of BO Iters
         tot_runs, int or None, The total number of times new training points have been picked
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
-        verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
+        verbose: bool, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
         normalize: bool, determines whether data is normalized. Default False
@@ -178,44 +178,44 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
         Prints or saves plots of starting training data for any set of dimensions
         
     """
+    #Create a linspace of dimension indecies
     dim_param_list = np.linspace(0,param_dim-1,param_dim) #Note - Need to figure this out when plotting w/ multidimensional x
+    #Create a list of all combinations (without repeats e.g no (1,1), (2,2)) of dimensions of theta
     mesh_combos = np.array(list(combinations(dim_param_list, 2)), dtype = int)  
     
+    #Clean 1D arrays to shape (1, len(test/train_p))
     test_p = clean_1D_arrays(test_p, True)
     train_p = clean_1D_arrays(train_p, True)
 
+    #Loop over all mesh combinations
     for i in range(len(mesh_combos)):
+        #Set the indecies of theta_set to evaluate and plot as each row of mesh_combos
         indecies = mesh_combos[i]
-        #Find the names of the parameter space associated with each index
+        #Finds the name of the parameters that correspond to each index. There will only ever be 2 here since the purpose of the function called here is to plot in 2D
         param_names_list = [param_dict[indecies[0]], param_dict[indecies[1]]]
         #Concatenate test data and train data from indecie combination
-#         if len(test_p) > 0:
         test_data_piece = torch.cat((torch.reshape(test_p[:,indecies[0]],(-1,1)),torch.reshape(test_p[:,indecies[1]],(-1,1))),axis= 1)
 #         else:
 #             test_data_piece = test_p
 #         print(train_p[:,indecies[0]].shape)
         train_data_piece = torch.cat((torch.reshape(train_p[:,indecies[0]],(-1,1)),torch.reshape(train_p[:,indecies[1]],(-1,1))),axis = 1)
 #         print(train_data_piece.shape)
-
+        
+        #theta_set columns based on indecies
         theta_set_piece = np.array((theta_set[:,indecies[0]],theta_set[:,indecies[1]]))
 
         if emulator == True:
             #Loop over each X dimension
             for j in range(exp_data_dim):
-#                 print(indecies)
-#                 print(param_dim)
                 #Concatenate array corresponding to x values (looped) to training data to plot
                 train_data_piece_j = torch.cat( (train_data_piece, torch.reshape(train_p[:,(param_dim-1) +(j+1)],(-1,1))), axis = 1 )       
-#                 print(train_p[-1], train_data_piece_j[-1])
-#                 if len(test_p) > 0:
                 test_data_piece_j = torch.cat( (test_data_piece, torch.reshape(test_p[:,(param_dim-1)+(j+1)],(-1,1))), axis = 1 )
-#                 else:
-#                     test_data_piece = test_p
+                #Plot training and testing data
                 plot_org_train(theta_set_piece,train_data_piece_j, test_data_piece_j, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact, normalize = normalize)
         else:
             #Loop over each X dimension
             for j in range(exp_data_dim):
-#             print(test_data_piece)
+#            #Plot training and testing data
                 plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact, normalize = normalize)
     return 
 
@@ -226,7 +226,7 @@ def set_ep(emulator, obj, sparse):
     
     Parameters:
     -----------
-        emulator: True/False, Determines if GP will model the function or the function error
+        emulator: bool, Determines if GP will model the function or the function error
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         sparse_grid: Determines whether a sparse grid or approximation is used for the GP emulator
     Returns:
@@ -291,13 +291,16 @@ def test_train_split(all_data, sep_fact=1, runs = 1, shuffle_seed = None):
 #     if sep_fact 
     if shuffle_seed is not None:
         if runs > 1:
+            #Set seed to run number
             np.random.seed(runs)
 #             for i in range(runs):
 #                 np.random.seed(i+1)
 #             print(i)
         else:
+            #Set seed to number specified by shuffle seed
             np.random.seed(shuffle_seed)
     
+    #Shuffle data
     np.random.shuffle(all_data) 
         
     #Creates the index on which to split data
@@ -309,6 +312,7 @@ def test_train_split(all_data, sep_fact=1, runs = 1, shuffle_seed = None):
     train_param = all_data[:train_enteries,:-1] #1x(n*sep_fact)
     test_param = all_data[train_enteries:,:-1] #1x(n-n*sep_fact)
     
+    #Stack training and testing x and y data
     train_data = np.column_stack((train_param, train_y))
     test_data = np.column_stack((test_param, test_y))
     return torch.tensor(train_data),torch.tensor(test_data)
@@ -320,7 +324,7 @@ def find_train_doc_path(emulator, obj, d, t):
     Parameters
     ----------
     obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-    emulator: True/False, Determines if GP will model the function or the function error
+    emulator: bool, Determines if GP will model the function or the function error
     d: The number of dimensions of the problem (number of parameters to be regressed)
     t: int, The number of total data points
     
@@ -734,11 +738,13 @@ def get_sparse_grids(dim,output=0,depth=3, rule="gauss-hermite", verbose = False
     ------
         A figure shows 2D sparse grids (if verbose = True)
     '''
+    #Get grid points and weights
     grid_p = Tasmanian.SparseGrid()
     grid_p.makeGlobalGrid(dim,output,depth,"level",rule)
     points_p = grid_p.getPoints()
     weights_p = grid_p.getQuadratureWeights()
     if verbose == True:
+        #If verbose is true print the sparse grid
         for i in range(len(points_p)):
             plt.scatter(points_p[i,0], points_p[i,1])
             plt.title('Sparse Grid of'+rule)
@@ -762,7 +768,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, ep, verbose =
     ----------
         EI_Temp: float: The expected improvement of a given point 
     """
-    #Back out important parameters from inputs
+    #Infer number of experimental data (n) from data
     n = len(Yexp) #Number of experimental data points
 #     print(ep)
     ep = ep.numpy()[0]
@@ -781,10 +787,6 @@ def eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, ep, verbose =
             SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
 #             SSE_Temp += (Yexp[j] - GP_mean[j] - ep - GP_stdev[j]*points_p[i,j])**2 #If there is an ep, need to add
         #Apply max operator  
-#         EI_Temp += weights_p[i]*(-np.min(SSE_Temp - best_error,0)) #Leades to negative EIs
-#         EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error-ep),0])) #Leads to zero EIs: #Min values is never negative, so EI is always 0
-#         print(type(best_error), type(ep), type(SSE_Temp))
-#         min_list = np.array([SSE_Temp - (best_error*ep),0], dtype=object)
         min_list = [SSE_Temp - (best_error*ep),0]
         EI_Temp += weights_p[i]*(-np.min(min_list))
 #         EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error*ep),0]))
@@ -799,7 +801,7 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=1, verbose=False):
         pred_mean: tensor, model mean
         pred_var, tensor, model variance
         explore_bias: float, the numerical bias towards exploration, 1 is the default
-        verbose: True/False: Determines whether z and ei terms are printed. Default False
+        verbose: bool: Determines whether z and ei terms are printed. Default False
     
     Returns
     -------
