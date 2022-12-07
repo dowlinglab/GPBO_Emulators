@@ -23,14 +23,45 @@ from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True):         
+def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True):  
+    """
+    Run GP Validation using a leave one out scheme
+    
+    Parameters:
+    -----------
+        all_data: ndarray, contains all data for GP
+        Xexp: ndarray, The list of Xs that will be used to generate Y
+        Yexp: ndarray, The experimental data for y (the true value)
+        true_model_coefficients: ndarray, The array containing the true values of the problem (may be the same as true_p)
+        true_p: ndarray, The array containing the true values of theta parameters to regress- flattened array
+        emulator: bool, Determines if GP will model the function or the function error
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
+        skip_param_types: int, The offset of which parameter types (A - y0) that are being guessed. Default 0
+        set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        train_iter: int, number of training iterations to run for GP. Default is 300
+        noise_std: float, int: The standard deviation of the noise. Default 0,1
+        verbose: bool, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        save_figure: bool, Determines whether figures will be saved. Default True
+    
+    Returns:
+    --------
+        None, prints/saves graphs and sse numbers 
+        
+    """
+    
+    #Define constants for dimensions of x (m), number of parameters to be regressed (q), and data length (t)
     m = Xexp.shape[1]
     q = true_p.shape[0]
     t = len(all_data)
 #     print(m)
+
+    #Define LOO splits
     loo = LeaveOneOut()
     loo.get_n_splits(all_data)
     
+    #Create empy lists to store index, GP model val, y_sim vals, sse's from emulator vals, SSE from emulator val, and sse from GP vals
     index_list = []
     model_list = []
     y_sim_list = []
@@ -51,8 +82,6 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         else:
             train_p = torch.tensor(data_train[:,1:-m]) #8 or 10 (emulator) parameters 
             test_p = torch.tensor(data_test[:,1:-m])
-#         print(test_p, test_p.shape)
-#         print(train_p[:,-m:])
             
         train_y = torch.tensor(data_train[:,-1])
         test_y = torch.tensor(data_test[:,-1])
@@ -62,21 +91,23 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         model = ExactGPModel(train_p, train_y, likelihood)
         #Train GP
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose)
-        #Set exploration parameter (in thic case, 1)
-        #Evaluate GP on test set
         #Theta_set will be be only the test value
-#         print(test_p)
+        #Make theta_set a numpy array
         test_p_reshape = test_p.numpy()
 #         print(test_p_reshape, test_p_reshape.shape)
+        #Evaluate GP on test set
         eval_components = LOO_eval_GP(test_p_reshape, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std)
 #         print("Evaluated")
+        #If emulator is false, eval_components is the GP mean, StDev, and variance
         if emulator == False:
             GP_mean,GP_var,GP_stdev = eval_components
-
+        #If emulator is true, eval_components is the GP mean, StDev, and variance, and the corresponding sse value, variance, and stdev
         else:
             GP_mean,GP_var,GP_stdev, sse, sse_GP_var, sse_GP_stdev  = eval_components #sse here is w/ theta_j x_j
-            GP_SSE, Y_sim_SSE = LOO_eval_GP_emulator_sse(test_p_reshape, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose, skip_param_types, Case_Study) #sse here is w/ theta_j, Xexp
+            #Calculate the SSE value from Y_sim and GP_SSE using theta_j and Xexp 
+            GP_SSE, Y_sim_SSE = LOO_eval_GP_emulator_sse(test_p_reshape, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose, skip_param_types, Case_Study)
             
+            #Append data to lists as appropriate
             GP_SSE_model_list.append(GP_SSE)
             y_sim_sse_list.append(Y_sim_SSE)
             
@@ -86,27 +117,33 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
 #         if test_index%50 ==0:
 #             print("Loop")
         model_list.append(GP_mean)
-        #Plot GP_mean test vs train for X1 and X2 vs Muller Potential
-        #Fix these plotters to be what I want
+    
+    #Turn lists into arrays
     index_list = np.array(index_list)
     model_list = np.array(model_list)
     sse_model_list = np.array(sse_model_list)
     
     if emulator == False:
+        #Depending on obj, ensure sse is sse and not log(sse)
         if obj == "LN_obj":
             sse_sim = np.exp(all_data[:,-1])
         else:
             sse_sim = all_data[:,-1]
+        #Plot model vs sim sse
         LOO_Plots_2_Input(index_list, model_list, sse_sim, GP_stdev, true_p, Case_Study, DateTime, obj, set_lengthscale, save_figure)
         
     else:
+        #turn lists into arrays
         y_sim_list = np.array(y_sim_list)
         y_sim_sse_list = np.array(y_sim_sse_list)
         GP_SSE_model_list = np.array(GP_SSE_model_list)
         
+        #Plot GP vs y_sim
         LOO_Plots_3_Input(index_list, model_list, all_data[:,-1], GP_stdev, true_p, Case_Study, DateTime, set_lengthscale, save_figure)
+        #Plot log(SSE) from GP(theta_j,Xexp) and y_sim(theta_j,Xexp)
         LOO_Plots_2_Input(index_list, GP_SSE_model_list, y_sim_sse_list, None, true_p, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
         
+        #Print and save total sse value to CSV
         fxn = "LOO_Plots_3_Input"
         SSE_Total =  sum( (y_sim_list - model_list)**2 ) 
         sse_tot_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/sse_tot")
@@ -135,6 +172,8 @@ def LOO_eval_GP(theta_set, Xexp, train_y, true_model_coefficients, model, likeli
         train_p: tensor or ndarray, The training parameter space data
         obj: ob or LN_obj: Determines which objective function is used for the 2 input GP
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed
+        noise_std: float, int: The standard deviation of the noise. Default 0,1
+        
     
     Returns:
     --------
@@ -210,12 +249,6 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
     var = np.zeros(len_set)
     stdev = np.zeros(len_set)
         
-        
-    #Create all iteration permulations - Takes a very long time for 8 dimensions
-    #Theta = np.linspace(-2,2,10) (insert this instead of a a theta mesh (everything will be scaled from 0-1 in Muller problem)
-    #df = pd.DataFrame(list(itertools.product(Theta, repeat=8)))
-    #df2 = df.drop_duplicates()
-    #theta_list = df2.to_numpy()
     
     for i in range(len_set):
         #Choose and evaluate point
@@ -223,15 +256,17 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
 #         point = [theta_set[i]]
         eval_point = np.array([point])
 #         print(eval_point, train_sse)
+        #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+        #Save GP outputs
         model_sse = GP_Outputs[3].numpy()[0] #1xn
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
 #             if verbose == True:
 #                 print("Point",eval_point)
 #                 print("Model Mean",model_sse)
 #                 print("Model Var", model_variance)
-        #Save GP outputs
         
+        #Ensures sse is saved instead of ln(sse)
         if obj == "obj":
             sse[i] = model_sse
         else:
@@ -239,13 +274,11 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
         var[i] = model_variance
         stdev[i] = np.sqrt(model_variance)  
 
-        
-#     print(sse)
     return sse, var, stdev #Prints just the value
 
 def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, likelihood, verbose = False, train_p = None, obj = "obj", skip_param_types = 0, noise_std = 0.1):
     """ 
-    Calculates the expected improvement of the 3 input parameter GP
+    Calculates the expected improvement of the emulator approach
     Parameters
     ----------
         Xexp: ndarray, "experimental" x values
@@ -270,6 +303,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     
+    #Define length and dimsenionality of theta_set
     if len(theta_set.shape) > 1:
         len_set, q = theta_set.shape[0], theta_set.shape[1]
     else:
@@ -285,17 +319,19 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     GP_mean_all = np.zeros((len_set))
     GP_var_all = np.zeros((len_set))
     
-    ##Calculate Best Error
     # Loop over theta 1
     for i in range(len_set):        
     ##Calculate Values
         #Caclulate GP vals for each value given theta_j and x_j
         point = list(theta_set[i])
         eval_point = np.array([point])
+        #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-        #3-Input GP not well trained
+        #Save GP Valuez
         model_mean = GP_Outputs[3].numpy()[0] #1xn
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+        
+        #Calculate corresponding experimental data from theta_set value
         calc_exp_point = clean_1D_arrays(theta_set[:,-m:])
         
         Yexp = calc_y_exp(true_model_coefficients, calc_exp_point, noise_std)
@@ -312,6 +348,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
         else:
             SSE_stdev_GP += np.sqrt(np.abs(SSE_var_GP))
 
+        #Save values for each value in theta_set (in this case only 1 value)
         GP_mean_all[i] = model_mean
         GP_var_all[i] = model_variance
         GP_stdev = np.sqrt(GP_var_all)
@@ -320,7 +357,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     
 def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose=False, skip_param_types=0, CS = 1):
     """ 
-    Calculates the expected improvement of the 3 input parameter GP
+    Calculates the expected improvement of the emulator approach
     Parameters
     ----------
         Xexp: ndarray, "experimental" x values
@@ -333,7 +370,7 @@ def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, mode
         verbose: bool, Determines whether output is verbose
         obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed
-        (NOT USED NOW) optimize: bool, Determines whether scipy will be used to find the best point for 
+        CS: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
     
     Returns
     -------
@@ -344,16 +381,18 @@ def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, mode
     #Asserts that inputs are correct
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-#     print(theta_set.shape)
-    
+
+    #Define dimensionality of X
     m = Xexp.shape[1]
-    theta_set = theta_set[:, 0:-m]
-#     print(theta_set)
     
-    if len(theta_set.shape) > 1:
-        len_set, q = theta_set.shape[0], theta_set.shape[1]
+    #Set theta_set to only be parameter values instead of theta_j, x_j
+    theta_set_params = theta_set[:, 0:-m]
+    
+    #Define the length of theta_set and the number of parameters that will be regressed (q)
+    if len(theta_set_params.shape) > 1:
+        len_set, q = theta_set_params.shape[0], theta_set_params.shape[1]
     else:
-        len_set, q = 1, theta_set.shape[0]
+        len_set, q = 1, theta_set_params.shape[0]
     
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     
@@ -363,31 +402,37 @@ def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, mode
     ##Calculate Best Error
     # Loop over theta 1
     for i in range(len_set): 
-    #Loop over experimental data  
+    #Initialize values for saving data
         GP_mean = np.zeros((Xexp.shape[0]))
         y_sim = np.zeros((Xexp.shape[0]))
         SSE = 0
+        #Loop over experimental data 
         for k in range(Xexp.shape[0]):
-    ##Calculate Values
-        #Caclulate sse for each value j
-            point = list(theta_set[i])
+            ##Calculate Values
+            #Caclulate sse for each value theta_j, xexp_k
+            point = list(theta_set_params[i])
+            #Append Xexk_k to theta_set to evaluate at theta_j, xexp_k
             x_point_data = list(Xexp[k]) #astype(np.float)
+            #Create point to be evaluated
             point = point + x_point_data
 #             print(point, type(point))
             eval_point = np.array([point])
+            #Evaluate GP model
+            #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
             model_mean = GP_Outputs[3].numpy()[0] #1xn
             GP_mean[i] = model_mean
-            #Calculate y_sim  & sse_sim
+            #Calculate y_sim & sse_sim
             if CS == 1:
+                #Case study 1, the 2D problem takes different arguments for its function create_y_data than 2.2
                 y_sim[k] = create_y_data(eval_point)
             else:
                 y_sim[k] = create_y_data(eval_point, true_model_coefficients, Xexp, skip_param_types)
         
         #Compute GP SSE and SSE_sim for that point
-#         print((GP_mean - Yexp)**2)
         SSE_model[i] = np.sum((GP_mean - Yexp)**2)
         SSE_sim[i] = np.sum((y_sim - Yexp)**2)
+        
     return SSE_model, SSE_sim
 
 def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False):

@@ -32,10 +32,13 @@ def norm_unnorm(X, norm = True, scaler = None):
         X: ndarray, New scaled (norm = True) or unscaled (norm = False) values
         scaler: MinMaxScaler(), The scaler used in the normalization
     """
+    
+    #Determines whether the original data is a tensor or ndarray
     tensor_val = False
     if torch.is_tensor(X) == True:
         tensor_val = True
-        
+    
+    #Normalize or unnormalize data
     if norm == True:
         if scaler == None:
             scaler =  MinMaxScaler()
@@ -44,6 +47,7 @@ def norm_unnorm(X, norm = True, scaler = None):
     elif norm == False and scaler != None:
         X = scaler.inverse_transform(X)
     
+    #Make scaled data a tensor if it went into the function as a tensor
     if tensor_val == True and torch.is_tensor(X) == False:
         X = torch.from_numpy(X)
 #     print(torch.is_tensor(X))    
@@ -59,6 +63,7 @@ def clean_1D_arrays(array, param_clean = False):
     Returns:
         array: ndarray, 2D array with shape (n,1)
     """
+    #If array is not 2D, if it is a parameter 1D array, give it shape (1, len(array)) otherwise give it shape (len(array),1)
     if not len(array.shape) > 1:
         array = array.reshape(-1,1)
         if param_clean == True:
@@ -66,6 +71,17 @@ def clean_1D_arrays(array, param_clean = False):
     return array
 
 def normalize_bounds(x, newRange=np.array([0, 1])): #x is an array. Default range is between zero and one
+    """
+    Normalize values between a set of bounds
+    
+    Parameters:
+    -----------
+        x: ndarray, array you want to normalize in bounds
+        newRange, ndarray, the bounds you want to normalize to. default [0,1]
+        
+    Returns:
+        norm or norm_new: the normalized values of x
+    """
 #     print(newRange)
     xmin, xmax = np.min(x), np.max(x) #get max and min from input array
     norm = (x - xmin)/(xmax - xmin) # scale between zero and one
@@ -73,8 +89,8 @@ def normalize_bounds(x, newRange=np.array([0, 1])): #x is an array. Default rang
     if newRange.all() == np.array([0, 1]).all():
         return(norm) # wanted range is the same as norm
     elif newRange.all() != np.array([0, 1]).all():
-        return norm * (newRange[1] - newRange[0]) + newRange[0] #scale to a different range.    
-    #add other conditions here. For example, an error message
+        norm_new = norm * (newRange[1] - newRange[0]) + newRange[0] #scale to a different range. 
+        return norm_new  
     
 def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
     """
@@ -88,14 +104,19 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
         bounds: None or ndarray, contains bounds for LHS generation if necessary
     """
     if LHS == False:
-        Theta = np.linspace(0,1,n_points)        
+        #Generate mesh_grid data for theta_set in 2D
+        #Define linspace for theta
+        Theta = np.linspace(0,1,n_points)
+        #Generate the equivalent of all meshgrid points
         df = pd.DataFrame(list(itertools.product(Theta, repeat=dimensions)))
         df2 = df.drop_duplicates()
         theta_set = df2.to_numpy()
+        #Normalize to bounds 
         if bounds is not None:
             for i in range(theta_set.shape[1]):
                 theta_set[:,i] = normalize_bounds(theta_set[:,i], newRange = (bounds[:,i]))       
     else:
+        #Generate LHS sample
         theta_set = LHS_Design(n_points**2, dimensions, seed = 9, bounds = bounds)
     return theta_set
 
@@ -571,7 +592,7 @@ def explore_parameter(Bo_iter, ep, mean_of_var, best_error, ep_o = 1, ep_inc = 1
 #Approximation
 def ei_approx_ln_term(epsilon, error_best, pred_mean, pred_stdev, y_target, ep): 
     """ 
-    Calculates the integrand of expected improvement of the 3 input parameter GP using the log version
+    Calculates the integrand of expected improvement of the emulator approach using the log version
     Parameters
     ----------
         epsilon: The random variable. This is the variable that is integrated w.r.t
@@ -593,7 +614,7 @@ def ei_approx_ln_term(epsilon, error_best, pred_mean, pred_stdev, y_target, ep):
     
 def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, obj = "obj"): #Will need obj toggle soon
     """ 
-    Calculates the expected improvement of the 3 input parameter GP
+    Calculates the expected improvement of the emulator approach
     Parameters
     ----------
         error_best: float, the best predicted error encountered

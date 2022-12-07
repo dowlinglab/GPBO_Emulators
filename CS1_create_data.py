@@ -245,7 +245,7 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
 
 def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator=True, obj = "obj", skip_param_types = 0, norm_scalers=None):
     """ 
-    Calculates the best error of the 3 input parameter GP
+    Calculates the best error of the emulator approach
     Parameters
     ----------
         Xexp: ndarray, experimental x values
