@@ -16,6 +16,7 @@ from itertools import combinations
 from itertools import permutations
 
 from bo_functions_generic import clean_1D_arrays
+from normalize import normalize_p_true, normalize_x, normalize_p_set, normalize_p_data, normalize_constants
 
 def calc_muller(x, model_coefficients, noise = 0):
     """
@@ -31,6 +32,7 @@ def calc_muller(x, model_coefficients, noise = 0):
     --------
         y_mul: float, value of Muller potential
     """
+    x = clean_1D_arrays(x)
     if len(x.shape) > 1:
         X1, X2 = x
     else:
@@ -99,6 +101,7 @@ def create_sse_data(param_space, x, y_exp, true_model_coefficients, obj = "obj",
     Returns:
         sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
     """  
+#     print(x)
 #     print(skip_param_types)
     if isinstance(param_space, pd.DataFrame):
         param_space = param_space.to_numpy()
@@ -122,7 +125,7 @@ def create_sse_data(param_space, x, y_exp, true_model_coefficients, obj = "obj",
     except:
         true_model_coefficients = clean_1D_arrays(true_model_coefficients)
         num_constant_type, len_constants = true_model_coefficients.shape[0], true_model_coefficients.shape[1]
-        print(true_model_coefficients, true_model_coefficients.shape)
+#         print(true_model_coefficients, true_model_coefficients.shape)
     num_param_type_guess = int(dim_param/len_constants)
         
     #For the case where more than 1 point is geing generated
@@ -141,6 +144,7 @@ def create_sse_data(param_space, x, y_exp, true_model_coefficients, obj = "obj",
         y_sim = np.zeros(len_x)
         #Loop over state points (5)
         for k in range(len_x):
+#             print(x[k])
             y_sim[k] = calc_muller(x[k], model_coefficients)
                 
         if obj == "obj":
@@ -285,7 +289,7 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
     y_GP_Opt_data = create_y_data(create_y_data_space, true_model_coefficients_use, x_space_use, skip_param_types = skip_param_types)
     return y_GP_Opt_data   
 
-def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj", skip_param_types = 0, norm_scalers = None):
+def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator = True, obj = "obj", skip_param_types = 0, norm_scalers = None):
     """ 
     Calculates the best error of the 3 input parameter GP
     Parameters
@@ -304,26 +308,32 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj
     #Asserts that inputs are correct
     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
     
-    n = len(Xexp)
-    q = len(true_model_coefficients)
-    
+    Xexp_shape = clean_1D_arrays(Xexp)
+    n,m = np.shape(Xexp)
+    q = train_p.shape[1] - m
+
     t_train = len(train_p)
+    true_p_shape = np.zeros(q)
 
     #Unscale Data for data generation
     if norm_scalers is not None:
 #         print(norm_scalers)
         norm = False
-        m = Xexp.shape[0]
+        CS = 2.2
+        
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
-        true_model_coefficients_unscl = normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm, scaler_C_before, scaler_C_after)[0]
+        true_model_coefficients_unscl = normalize_constants(true_model_coefficients, true_p_shape, scaler_theta, skip_param_types, CS, norm, scaler_C_before, scaler_C_after)[0]
         train_p_unscl = normalize_p_data(train_p, scaler_theta, norm)[0]
         Xexp_unscl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
         train_p_use = train_p_unscl
         Xexp_use = Xexp_unscl
+        true_model_coefficients_use = true_model_coefficients_unscl
     else:
         train_p_use = train_p
         Xexp_use = Xexp
-        true_model_coefficients_use = true_model_coefficients_unscl
+        true_model_coefficients_use = true_model_coefficients
+    
+#     print(Xexp_use)
     SSE = np.zeros(t_train)
     for i in range(t_train):
         SSE[i] = create_sse_data(train_p_use[i], Xexp_use, Yexp, true_model_coefficients_use, obj = obj, skip_param_types = skip_param_types)
@@ -360,6 +370,9 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
     """
     #Note train_p is already unscaled
     #Unscale for Data Generation
+    q = train_p.shape[1] - Xexp.shape[1]
+    true_p_shape = np.zeros(q)
+    
     if norm_scalers is not None:
 #         print(norm_scalers)
         norm = False
@@ -368,7 +381,7 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
         theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm)
         Xexp_unscl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
-        true_model_coefficients_unscl = normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm, scaler_C_before, scaler_C_after)[0]
+        true_model_coefficients_unscl = normalize_constants(Constants, true_p_shape, scaler_theta, skip_param_types, CS, norm, scaler_C_before, scaler_C_after)[0]
         theta_b_use = theta_b_unscl
         Xexp_use = Xexp_unscl
         true_model_coefficients_use = true_model_coefficients_unscl

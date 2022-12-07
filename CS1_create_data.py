@@ -245,7 +245,7 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
 #     y_GP_Opt_data = create_y_data(create_y_data_space, true_model_coefficients, x_space, skip_param_types = skip_param_types)
     return y_GP_Opt_data   
 
-def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator=True, obj = "obj", skip_param_types = 0, norm_scalers=None):
+def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, true_p, emulator=True, obj = "obj", skip_param_types = 0, norm_scalers=None):
     """ 
     Calculates the best error of the emulator approach
     Parameters
@@ -301,7 +301,7 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator=T
     
     return best_error
 
-def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_coefficients, obj, dim_param, skip_param_types=0, noise_std=None, norm_scalers = None):
+def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_coefficients, obj, dim_param, true_p, skip_param_types=0, noise_std=None, norm_scalers = None):
     """
     Augments the training data with the max(EI) point in parameter space at each iteration.
     

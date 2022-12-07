@@ -345,7 +345,7 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
     # Loop over theta 1
     for i in range(len_set):
         #Caclulate best error and initialize arrays to store GP mean and variance in
-        best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients,emulator, "obj", skip_param_types, norm_scalers)
+        best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator, "obj", skip_param_types, norm_scalers)
         GP_mean = np.zeros(n)
         GP_var = np.zeros(n)
         
@@ -1248,8 +1248,8 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
             assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
         
         #Plot all training data
-        #This works, put it back when we need it (11/1/22)
-        train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, param_dict, sep_fact, normalize)
+        #This works, put it back when we need it (12/7/22)
+#         train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, param_dict, sep_fact, normalize)
 
         #Normalize data as appropriate
         if normalize == True:

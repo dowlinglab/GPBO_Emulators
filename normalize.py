@@ -64,6 +64,7 @@ def normalize_general(train_p, test_p, Xexp, theta_set, Theta_True, true_model_c
     #Overwrite theta values with normalized values in theta_set, p_true, and constants
     theta_set_scl = normalize_p_set(theta_set, scaler_theta, norm)
     Theta_True_scl = normalize_p_true(Theta_True, scaler_theta, norm)
+#     print(true_model_coefficients, Theta_True)
     true_model_coefficients_scl, scaler_C_before, scaler_C_after  = normalize_constants(true_model_coefficients, Theta_True,
                                                                                     scaler_theta, skip_param_types,
                                                                                     case_study, norm)
@@ -193,7 +194,7 @@ def normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm =
         scaler_x: MinMaxScaler(), scaler used to obtain these values
     """   
     #Determine number of parameter types and the length of each: Ex, Muller Case study has 6, and 2D case study has 1
-    num_param_types = clean_1D_arrays(Constants).shape[1]
+    num_param_types = clean_1D_arrays(Constants).shape[1] #4 - Represents how many indecies are in each param type A, a, b, c, x0, y0
     len_param_type = int(len(p_true)/num_param_types)
     
     #For the case study, the constants are identical to theta_True and we scale them as such
@@ -201,13 +202,15 @@ def normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm =
         Constants_scl = normalize_p_true(p_true, scaler_theta, norm)
     #For the Muller potential case studies, we need to normalize constants in chunks
     else:
-        #Define constants before, after, and representing theta_true and normalize them
+        #Define constants before, after, and representing theta_true and normalize them by splitting the constants array is 3 parts
+#         print(Constants)
         Constants_before, Constants_theta, Constants_after = np.split(Constants, [skip_params,len_param_type+1])
-        Constants_before_scl, scaler_C_before = norm_unnorm(clean_1D_arrays(Constants_before.T), norm, scaler_C_before)
+#         print(Constants_before.shape, Constants_theta.shape, Constants_after.shape)
+        Constants_before_scl, scaler_C_before = norm_unnorm(Constants_before.T, norm, scaler_C_before)
         
         Constants_theta_scl, scaler_theta =  norm_unnorm(clean_1D_arrays(Constants_theta.flatten(), param_clean = True),
                                                  norm, scaler_theta)
-        Constants_theta_scl = Constants_theta_scl.reshape((2,4))
+        Constants_theta_scl = Constants_theta_scl.reshape((len_param_type,num_param_types)) #(2,4) for 2.2
         
         Constants_after_scl, scaler_C_after = norm_unnorm(Constants_after.T, norm, scaler_C_after)
         
