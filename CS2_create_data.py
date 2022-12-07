@@ -31,9 +31,9 @@ def calc_muller(x, model_coefficients, noise = 0):
     --------
         y_mul: float, value of Muller potential
     """
-    try:
+    if len(x.shape) > 1:
         X1, X2 = x
-    except:
+    else:
         X1 = x[0], X2 = x[1]
     A, a, b, c, x0, y0 = model_coefficients
     Term1 = a*(X1 - x0)**2
@@ -224,7 +224,7 @@ def create_y_data(param_space, true_model_coefficients, x, skip_param_types = 0,
    
     return y_sim
 
-def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0):
+def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0, norm_scalers = None):
 # def gen_y_Theta_GP(x_space, Theta):
     """
     Generates an array of Best Theta Value and X to create y data
@@ -236,6 +236,7 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         x: ndarray, Array containing x data
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed
+        norm_scalers: None or list of MinMaxScaler(), if data is being normalized, the scalers used to normalize the data. Default None
            
     Returns
     -------
@@ -243,6 +244,24 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
         
     """
     x_space = clean_1D_arrays(x_space)
+    
+    m = x_space.shape[1]
+    q = Theta.shape[0]
+    
+    #Unscale Data
+    if norm_scalers is not None:
+        norm = False
+        m = x_space.shape[0]
+        scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
+        true_model_coefficients_unscl = normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm, scaler_C_before, scaler_C_after)[0]
+        Theta_unscl = normalize_p_set(clean_1D_arrays(Theta, param_clean = True), scaler_theta, norm)[0]
+        x_space_unscl = normalize_x(x_space, m, x_space, emulator, norm, scaler_x)[0]
+        Theta_use = Theta_unscl
+        x_space_use = x_space_unscl
+    else:
+        Theta_use = Theta
+        x_space_use = x_space
+        true_model_coefficients_use = true_model_coefficients_unscl
     
     m = x_space.shape[1]
     q = Theta.shape[0]
@@ -257,16 +276,16 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
         #Loop over number of theta values
         for j in range(q):
             #Fill matrix to include all Theta and x parameters
-            create_y_data_space[i,j] = Theta[j]
+            create_y_data_space[i,j] = Theta_use[j]
 #         print(create_y_data_space)
-        create_y_data_space[i,q:] = x_space[i,:]
+        create_y_data_space[i,q:] = x_space_use[i,:]
 #     print(create_y_data_space)
     #Generate y data based on parameters
 #     y_GP_Opt_data = create_y_data(create_y_data_space)
-    y_GP_Opt_data = create_y_data(create_y_data_space, true_model_coefficients, x_space, skip_param_types = skip_param_types)
+    y_GP_Opt_data = create_y_data(create_y_data_space, true_model_coefficients_use, x_space_use, skip_param_types = skip_param_types)
     return y_GP_Opt_data   
 
-def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj", skip_param_types = 0):
+def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj", skip_param_types = 0, norm_scalers = None):
     """ 
     Calculates the best error of the 3 input parameter GP
     Parameters
@@ -277,6 +296,7 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed
+        norm_scalers: None or list of MinMaxScaler(), if data is being normalized, the scalers used to normalize the data. Default None
     Returns
     -------
         best_error: float, the best error of the 3-Input GP model
@@ -288,18 +308,25 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj
     q = len(true_model_coefficients)
     
     t_train = len(train_p)
-#     try:
-#         t_train = len(train_p)
-#     except:
-#         print("train_p",train_p)
-#         t_train = 1
-#     print(true_model_coefficients)
-#     print(true_model_coefficients.shape)
-    #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
+
+    #Unscale Data for data generation
+    if norm_scalers is not None:
+#         print(norm_scalers)
+        norm = False
+        m = Xexp.shape[0]
+        scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
+        true_model_coefficients_unscl = normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm, scaler_C_before, scaler_C_after)[0]
+        train_p_unscl = normalize_p_data(train_p, scaler_theta, norm)[0]
+        Xexp_unscl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
+        train_p_use = train_p_unscl
+        Xexp_use = Xexp_unscl
+    else:
+        train_p_use = train_p
+        Xexp_use = Xexp
+        true_model_coefficients_use = true_model_coefficients_unscl
     SSE = np.zeros(t_train)
     for i in range(t_train):
-#         SSE[i] = create_sse_data(q,train_p[i], Xexp, Yexp, obj= obj) 
-        SSE[i] = create_sse_data(train_p[i], Xexp, Yexp, true_model_coefficients, obj = obj, skip_param_types = skip_param_types)
+        SSE[i] = create_sse_data(train_p_use[i], Xexp_use, Yexp, true_model_coefficients_use, obj = obj, skip_param_types = skip_param_types)
 
     #Define best_error as the minimum SSE or ln(SSE) value
     best_error = np.amin(SSE)
@@ -307,7 +334,7 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, obj = "obj
     return best_error
 
 
-def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_coefficients, obj, dim_param, skip_param_types = 0, noise_std = None):
+def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_coefficients, obj, dim_param, skip_param_types = 0, noise_std = None, norm_scalers = None):
     """
     Augments the training data with the max(EI) point in parameter space at each iteration.
     
@@ -324,21 +351,40 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
         dim_param: int, Number of parameters to be regressed
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed
         noise_std: float, int: The standard deviation of the noise
+        norm_scalers: None or list of MinMaxScaler(), if data is being normalized, the scalers used to normalize the data. Default None
     
     Returns:
     --------
         train_p: tensor or ndarray, The training parameter space data with the augmented point
         train_y: tensor or ndarray, The training y data with the augmented point
     """
-    #Make this a new function
+    #Note train_p is already unscaled
+    #Unscale for Data Generation
+    if norm_scalers is not None:
+#         print(norm_scalers)
+        norm = False
+        CS = 2.2
+        m = Xexp.shape[0]
+        scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
+        theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm)
+        Xexp_unscl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
+        true_model_coefficients_unscl = normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm, scaler_C_before, scaler_C_after)[0]
+        theta_b_use = theta_b_unscl
+        Xexp_use = Xexp_unscl
+        true_model_coefficients_use = true_model_coefficients_unscl
+    else:
+        theta_b_use = theta_b
+        Xexp_use = Xexp
+        true_model_coefficients_use = true_model_coefficients
+        
     n = Xexp.shape[0]
     if emulator == False:   
         #Call the expensive function and evaluate at Theta_Best
 #             print(theta_b.shape)
-        sse_Best = create_sse_data(theta_b, Xexp, Yexp, true_model_coefficients, obj, skip_param_types)
+        sse_Best = create_sse_data(theta_b_use, Xexp_use, Yexp, true_model_coefficients_use, obj, skip_param_types)
 #             print(sse_Best)
         #Add Theta_Best to train_p and y_best to train_y
-        train_p = np.concatenate((train_p, [theta_b]), axis=0) #(q x t)
+        train_p = np.concatenate((train_p, [theta_b_use]), axis=0) #(q x t)
 #             print(train_y.shape, sse_Best)
         train_y = np.concatenate((train_y, sse_Best),axis=0) #(1 x t)
 #             print(train_y.shape, sse_Best.shape)      
@@ -348,11 +394,11 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
 #             print(Xexp)
         for k in range(n):
             Best_Point = theta_b
-            Best_Point = np.append(Best_Point, Xexp[k])
+            Best_Point = np.append(Best_Point, Xexp_use[k])
             #Create y-value/ experimental data ---- #Should use calc_y_exp correct? create_y_sim_exp
 #                 y_Best = calc_y_exp(theta_b, Xexp[k].reshape((1,-1)), noise_std, noise_mean=0,random_seed=6)
             #Adding the noise creates experimental data at theta_b using create_y_data
-            y_Best = create_y_data(Best_Point, true_model_coefficients, Xexp[k].reshape((1,-1)), skip_param_types, noise_std)         
+            y_Best = create_y_data(Best_Point, true_model_coefficients_use, Xexp_use[k].reshape((1,-1)), skip_param_types, noise_std)       
             train_p = np.append(train_p, [Best_Point], axis=0) #(q x t)
             train_y = np.append(train_y, [y_Best]) #(1 x t)
 #                 print(train_p.shape, train_y.shape)

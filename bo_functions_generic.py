@@ -102,6 +102,9 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
         n_points:, int, number of meshgrid points/ parameter or the square root of the number of LHS samples
         dimensions: int, Number of parameters to regress
         bounds: None or ndarray, contains bounds for LHS generation if necessary
+    Returns
+    -------
+        theta_set: ndarray, the set of thetas that will initially be tested using the GP
     """
     if LHS == False:
         #Generate mesh_grid data for theta_set in 2D
@@ -149,7 +152,8 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
     
     Parameters:
     -----------
-        
+        param_dim: int, number of parameters to be regressed. dimensionality of theta
+        exp_data_dim: int, dimensions of experimental X data
         theta_set: ndarray, (n x dim_param) arrays containing all values of the input parameters. Created with np.meshgrid() or LHS samples
         train_p: tensor or ndarray, The training parameter space data
         test_p: tensor or ndarray, The training parameter space data
@@ -168,6 +172,7 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
         verbose: True/False, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
+        normalize: bool, determines whether data is normalized. Default False
     Returns:
     --------
         Prints or saves plots of starting training data for any set of dimensions
@@ -263,7 +268,7 @@ def set_ep(emulator, obj, sparse):
 #     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
 #     return param_space     
 
-def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
+def test_train_split(all_data, sep_fact=1, runs = 1, shuffle_seed = None):
     """
     Splits y data into training and testing data
     
@@ -271,7 +276,7 @@ def test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = None):
     ----------
         all_data: ndarray or tensor, The simulated parameter space and y data
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        runs: int, # of run for bo iterations. default is 0
+        runs: int, # of run for bo iterations. default is 1
         shuffle_seed, int, number of seed for shuffling training data. Default is None.
     Returns:
         train_data: ndarray, The training data
@@ -604,7 +609,7 @@ def ei_approx_ln_term(epsilon, error_best, pred_mean, pred_stdev, y_target, ep):
     
     Returns
     -------
-        ei: ndarray, the expected improvement for one term of the GP model
+        ei_term_2_integral: ndarray, the expected improvement for term 2 of the GP model for method 2B
     """
 #     EI = ( (error_best - ep) - np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 ) )*norm.pdf(epsilon)
 
@@ -612,7 +617,7 @@ def ei_approx_ln_term(epsilon, error_best, pred_mean, pred_stdev, y_target, ep):
 #     ei_term_2_integral = np.log( (y_target - pred_mean - pred_stdev*epsilon)**2 )*norm.pdf(epsilon)
     return ei_term_2_integral
     
-def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, obj = "obj"): #Will need obj toggle soon
+def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=1, obj = "obj"): #Will need obj toggle soon
     """ 
     Calculates the expected improvement of the emulator approach
     Parameters
@@ -621,7 +626,7 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=0.0, o
         pred_mean: ndarray, model mean
         pred_var: ndarray, model variance
         y_target: ndarray, the expected value of the function from data or other source
-        explore_bias: float, the numerical bias towards exploration, zero is the default
+        explore_bias: float, the numerical bias towards exploration, 1 is the default
         obj: str, LN_obj or obj, determines whether log or regular EI function is calculated
     
     Returns
@@ -751,7 +756,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, ep, verbose =
         GP_stdev: ndarray, Array of GP standard deviation values at each experimental data point
         best_error: float, the best error of the 3-Input GP model
         ep: float, the exploration parameter
-        verbose: bool, determines whether plot of sparse grid points is printed
+        verbose: bool, determines whether plot of sparse grid points is printed. Default False
     
     Returns
     ----------
@@ -785,7 +790,7 @@ def eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, ep, verbose =
 #         EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error*ep),0]))
     return EI_Temp
 
-def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
+def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=1, verbose=False):
     """ 
     Calculates the expected improvement of the 2 input parameter GP
     Parameters
@@ -793,8 +798,8 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=0.0, verbose=False):
         f_best: float, the best predicted sse encountered
         pred_mean: tensor, model mean
         pred_var, tensor, model variance
-        explore_bias: float, the numerical bias towards exploration, zero is the default
-        verbose: True/False: Determines whether z and ei terms are printed
+        explore_bias: float, the numerical bias towards exploration, 1 is the default
+        verbose: True/False: Determines whether z and ei terms are printed. Default False
     
     Returns
     -------

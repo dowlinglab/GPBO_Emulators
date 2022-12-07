@@ -200,6 +200,8 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         x: ndarray, Array containing x data
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed
+        norm_scalers: None or list of MinMaxScaler(), if data is being normalized, the scalers used to normalize the data. Default None
+        emulator: bool, determines whether emulator approach is used
            
     Returns
     -------
@@ -254,6 +256,7 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator=T
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed
+        norm_scalers: None or list of MinMaxScaler(), if data is being normalized, the scalers used to normalize the data. Default None
     Returns
     -------
         best_error: float, the best error of the 3-Input GP model
@@ -315,6 +318,7 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
         dim_param: int, Number of parameters to be regressed
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed
         noise_std: float, int: The standard deviation of the noise
+        norm_scalers: None or list of MinMaxScaler(), if data is being normalized, the scalers used to normalize the data. Default None
     
     Returns:
     --------

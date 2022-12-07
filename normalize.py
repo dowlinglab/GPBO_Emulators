@@ -203,7 +203,7 @@ def normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm =
     else:
         #Define constants before, after, and representing theta_true and normalize them
         Constants_before, Constants_theta, Constants_after = np.split(Constants, [skip_params,len_param_type+1])
-        Constants_before_scl, scaler_C_before = norm_unnorm(Constants_before.T, norm, scaler_C_before)
+        Constants_before_scl, scaler_C_before = norm_unnorm(clean_1D_arrays(Constants_before.T), norm, scaler_C_before)
         
         Constants_theta_scl, scaler_theta =  norm_unnorm(clean_1D_arrays(Constants_theta.flatten(), param_clean = True),
                                                  norm, scaler_theta)

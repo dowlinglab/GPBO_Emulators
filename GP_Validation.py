@@ -40,8 +40,8 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         skip_param_types: int, The offset of which parameter types (A - y0) that are being guessed. Default 0
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         train_iter: int, number of training iterations to run for GP. Default is 300
-        noise_std: float, int: The standard deviation of the noise. Default 0,1
-        verbose: bool, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
+        noise_std: float, int: The standard deviation of the noise. Default 0.1
+        verbose: bool, Determines whether EI component terms are saved also determines activeness of print statement, Default = False
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         save_figure: bool, Determines whether figures will be saved. Default True
     
@@ -50,7 +50,6 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         None, prints/saves graphs and sse numbers 
         
     """
-    
     #Define constants for dimensions of x (m), number of parameters to be regressed (q), and data length (t)
     m = Xexp.shape[1]
     q = true_p.shape[0]
@@ -72,9 +71,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     for train_index, test_index in loo.split(all_data):
         index_list.append(test_index)
         data_train = all_data[train_index]
-#         print(data_train[0:5])
         data_test = all_data[test_index]
-#         print(data_test)
         #separate into y data and parameter data
         if m > 1:
             train_p = torch.tensor(data_train[:,1:-m+1]) #8 or 10 (emulator) parameters 
@@ -94,7 +91,6 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         #Theta_set will be be only the test value
         #Make theta_set a numpy array
         test_p_reshape = test_p.numpy()
-#         print(test_p_reshape, test_p_reshape.shape)
         #Evaluate GP on test set
         eval_components = LOO_eval_GP(test_p_reshape, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std)
 #         print("Evaluated")
@@ -183,8 +179,8 @@ def LOO_eval_GP(theta_set, Xexp, train_y, true_model_coefficients, model, likeli
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert verbose==True or verbose==False, "Verbose must be True/False"
-    ##Set Hyperparameters to 1
-#     print(skip_param_types)
+    
+    #Ensure train_y is a tensor
     if isinstance(train_y, np.ndarray)==True:
         train_y = torch.tensor(train_y) #1xn
     
@@ -222,7 +218,7 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
         train_sse: ndarray (1 x t), Training data for sse
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        explore_bias: float, the numerical bias towards exploration, zero is the default
+        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated. Default "obj"
         verbose: True/False: Determines whether z and ei terms are printed
     
     Returns
@@ -237,25 +233,21 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert verbose==True or verbose==False, "Verbose must be True/False"
 
-#     print(theta_set.shape)
+    #Define constants for number of parameters to be regressed (q), and theta_set length (len_set)
     if len(theta_set.shape) > 1:
         len_set, q = theta_set.shape[0], theta_set.shape[1]
     else:
         len_set, q = 1, theta_set.shape[0]
-#     print(theta_set.shape)
-    #These will be redone
     #Initalize matricies to save GP outputs and calculations using GP outputs
     sse = np.zeros(len_set)
     var = np.zeros(len_set)
     stdev = np.zeros(len_set)
         
-    
+    #Loop over rows in theta_set
     for i in range(len_set):
         #Choose and evaluate point
         point = theta_set[i]
-#         point = [theta_set[i]]
         eval_point = np.array([point])
-#         print(eval_point, train_sse)
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         #Save GP outputs
@@ -274,27 +266,29 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
         var[i] = model_variance
         stdev[i] = np.sqrt(model_variance)  
 
-    return sse, var, stdev #Prints just the value
+    return sse, var, stdev 
 
 def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, likelihood, verbose = False, train_p = None, obj = "obj", skip_param_types = 0, noise_std = 0.1):
     """ 
     Calculates the expected improvement of the emulator approach
     Parameters
     ----------
-        Xexp: ndarray, "experimental" x values
-        Yexp: ndarray, "experimental" y values
         theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
+        Xexp: ndarray, "experimental" x values
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        explore_bias: float, the numerical bias towards exploration, zero is the default
-        verbose: bool, Determines whether output is verbose
-        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
-        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
-        (NOT USED NOW) optimize: bool, Determines whether scipy will be used to find the best point for 
+        verbose: bool, Determines whether output is verbose. Default False
+        train_p: tensor or ndarray, The training parameter space data
+        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated. Default "obj"
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed. Default 0
+        noise_std: float, int: The standard deviation of the noise
     
     Returns
     -------
+        GP_mean_all: ndarray, Array of GP mean predictions
+        GP_var_all: ndarray, Array of GP variances
+        GP_stdev: ndarray, Array of GP standard deviations
         SSE: ndarray, The SSE of the model 
         SSE_var_GP: ndarray, The varaince of the SSE pf the GP model
         SSE_stdev_GP: ndarray, The satndard deviation of the SSE of the GP model
@@ -360,23 +354,20 @@ def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, mode
     Calculates the expected improvement of the emulator approach
     Parameters
     ----------
-        Xexp: ndarray, "experimental" x values
-        Yexp: ndarray, "experimental" y values
         theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
+        Xexp: ndarray, "experimental" x values
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        explore_bias: float, the numerical bias towards exploration, zero is the default
-        verbose: bool, Determines whether output is verbose
-        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated
-        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
+        verbose: bool, Determines whether output is verbose. Default False
+        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated. Default "obj"
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed. Default 0
         CS: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
     
     Returns
     -------
-        SSE: ndarray, The SSE of the model 
-        SSE_var_GP: ndarray, The varaince of the SSE pf the GP model
-        SSE_stdev_GP: ndarray, The satndard deviation of the SSE of the GP model
+        SSE_model: ndarray, The SSE of the model 
+        SSE_sim: ndarray, The SSE of the simulated data 
     """
     #Asserts that inputs are correct
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
@@ -436,14 +427,13 @@ def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, mode
     return SSE_model, SSE_sim
 
 def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False):
-#     print(sse_sim.shape, GP_mean.shape, iter_space.shape)
     
+    #Define function, length of GP mean predictions (p), and number of tests (t)
     p = GP_mean.shape[0]
     fxn = "LOO_Plots_2_Input"
     t = len(iter_space)
-#     print(X1.shape, X2.shape, GP_mean.shape)
-    # Compare the experiments to the true model
-    
+
+    # Compare the GP mean to the true model (simulated model)
     #Plot Minimum SSE value at each run
     plt.figure(figsize = (6.4,4))
 #     plt.scatter(iter_space,Y_space, label = "$y_{exp}$")
@@ -463,6 +453,7 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study,
     plt.xlabel("Index", fontsize=16, fontweight='bold')
     plt.ylabel(r'$\mathbf{log(e(\theta))}$', fontsize=16, fontweight='bold')
     
+    #Make pretty
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tick_params(direction="in",top=True, right=True)
@@ -498,15 +489,15 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study,
     return
 
 def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Theta, Case_Study, DateTime, set_lengthscale = None, save_figure = True):
+    
+    #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj")
     fxn = "LOO_Plots_3_Input"
     emulator = True
     p = GP_mean.shape[0]
     t = len(iter_space)
     obj = "obj"
-#     print(X1.shape, X2.shape, GP_mean.shape)
-    # Compare the experiments to the true model
-    
-    #Plot Minimum SSE value at each run
+
+    # Compare the GP Mean to the true model (simulated model ysim)
     plt.figure(figsize = (6.4,4))
     plt.scatter(iter_space,GP_mean, label = "$y_{model}$", s=100 )
     plt.scatter(iter_space,y_sim, label = "$y_{sim}$" , s=50)
@@ -563,20 +554,11 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
     Parameters
     ----------
         emulator: True/False, Determines if GP will model the function or the function error
-        ep: float, float,int,tensor,ndarray (1 value) The original exploration bias parameter
-        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         fxn: str, The name of the function whose file path name will be created
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         t: int, int, Number of initial training points to use
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-        mesh_combo: str, the name of the combination of parameters - Used to make a folder name
-        bo_iter: int, integer, number of the specific BO iterations
-        title_save: str or None,  A string containing the title of the file of the plot
-        run, int or None, The iteration of the number of times new training points have been picked
-        tot_iter: int, The total number of iterations. Printed at top of job script
-        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
-        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
-        sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
+        Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
         is_figure: bool, used for saving CSVs as part of this function and for calling the data from a CSV to make a plot
         csv_end: str, the name of the csv file
     Returns:
