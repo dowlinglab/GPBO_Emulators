@@ -59,7 +59,7 @@ def normalize_general(train_p, test_p, Xexp, theta_set, Theta_True, true_model_c
         train_p_scl, scaler_theta = normalize_p_data(train_p, m, emulator, norm)
         #normalize testing data if there is any
         if test_p.shape[0] >= 1:
-            test_p_scl = normalize_p_data(test_p, m, emulator, norm)
+            test_p_scl = normalize_p_data(test_p, m, emulator, norm)[0]
 
     #Overwrite theta values with normalized values in theta_set, p_true, and constants
     theta_set_scl = normalize_p_set(theta_set, scaler_theta, norm)

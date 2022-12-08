@@ -639,7 +639,7 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, set_
     plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
     plt.tight_layout()
 #     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
-    plt.xlabel("$y_{sim}$", fontsize=16, fontweight='bold')
+    plt.xlabel(r'$\mathbf{y_{sim}}$', fontsize=16, fontweight='bold')
     plt.ylabel("y value", fontsize=16, fontweight='bold')
 
     plt.xticks(fontsize=16)

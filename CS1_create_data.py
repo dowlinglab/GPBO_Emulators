@@ -110,7 +110,6 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     Returns:
         sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
     """   
-    
     #Asserts that test_T is a tensor with 2 columns (May delete this)
     assert isinstance(q, int), "Number of inputs must be an integer"
 #     print(train_T.T)    
@@ -127,7 +126,7 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
     y_exp = clean_1D_arrays(y_exp)    
 
     #Creates an array for train_sse that will be filled with the for loop
-    sum_error_sq = torch.from_numpy(np.zeros((train_T.shape[0])))
+    sum_error_sq = np.zeros((train_T.shape[0]))
 
     #Iterates over evey combination of theta to find the SSE for each combination
     #For each point in train_T
@@ -139,11 +138,12 @@ def create_sse_data(q,train_T, x, y_exp, obj = "obj"):
         y_sim = theta_1*x + theta_2*x**2 +x**3 #n_train^2 x n_x
         #Clean y_sim and calculate sse or log(sse)
         y_sim = clean_1D_arrays(y_sim)
+#         print(type(y_sim))
         if obj == "obj":
             sum_error_sq[i] = sum((y_sim - y_exp)**2) #Scaler
         else:
             sum_error_sq[i] = np.log(sum((y_sim - y_exp)**2)) #Scaler
-    
+    sum_error_sq = torch.from_numpy(sum_error_sq)
     return sum_error_sq    
 
 def create_y_data(param_space):
