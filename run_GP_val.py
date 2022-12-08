@@ -57,7 +57,7 @@ noise_std = 0.1
 sep_fact = np.linspace(1,1,1)
 set_lengthscale = None
 explore_bias = 1
-plot_axis = np.array([0,1])
+plot_axis = [0,1]
 
 obj = np.array(["obj", "LN_obj"])
 # obj = np.array(["obj"])
@@ -76,20 +76,20 @@ Yexp = exp_data[:,-1]
 
 Xexp = clean_1D_arrays(Xexp)
 
-for axis in plot_axis:
-    for emul in emulator:
-        print("Emulator =", emul)
-        if emul == False:
-            t_use = t
-            obj_use = obj
-        else:
-            t_use = t*n
-            obj_use = np.array(["obj"])
-        for obj_func in obj_use:
-            print("Objective Function =", obj_func)
-            all_data_doc = find_train_doc_path(emul, obj_func, d, t_use)
-            all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-    #         print(all_data)
-            LOO_Analysis(all_data, Xexp, Yexp, Constants, true_p, emul, obj_func, CS,  
-                         skip_param_types = skip_param_types, noise_std = noise_std, DateTime = DateTime, 
-                         save_figure= save_figure, plot_axis = axis)        
+
+for emul in emulator:
+    print("Emulator =", emul)
+    if emul == False:
+        t_use = t
+        obj_use = obj
+    else:
+        t_use = t*n
+        obj_use = np.array(["obj"])
+    for obj_func in obj_use:
+        print("Objective Function =", obj_func)
+        all_data_doc = find_train_doc_path(emul, obj_func, d, t_use)
+        all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
+#         print(all_data)
+        LOO_Analysis(all_data, Xexp, Yexp, Constants, true_p, emul, obj_func, CS,  
+                     skip_param_types = skip_param_types, noise_std = noise_std, DateTime = DateTime, 
+                     save_figure= save_figure, plot_axis = plot_axis)        

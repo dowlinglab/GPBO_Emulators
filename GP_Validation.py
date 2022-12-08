@@ -44,7 +44,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         verbose: bool, Determines whether EI component terms are saved also determines activeness of print statement, Default = False
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         save_figure: bool, Determines whether figures will be saved. Default True
-        plot_axis: None or 0 or 1: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
+        plot_axis: None or list: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
     
     Returns:
     --------
@@ -161,14 +161,16 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         #Plot log(SSE) from GP(theta_j,Xexp) and y_sim(theta_j,Xexp)
         LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, None, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
         
-        #For each row or column of GP(theta_j, Xexp_k), make a parity plot between GP(theta_j, Xexp_k) and y_sim(theta_j, Xexp_k)
-        for i in range(y_model_tj_xk_list.shape[plot_axis]):   #Plot axis either 0 or 1
-            #If plot_axis == 0, plot on axis Xexp and have j graphs
-            if plot_axis == 0: 
-                LOO_parity_plot_emul(y_model_tj_xk_list[i,:], y_sim_tj_xk_list[i,:], y_model_stdev_tj_xk_list[i,:], Case_Study, DateTime, t, set_lengthscale, save_figure, plot_axis, plot_num = i)
-            #If plot_axis == 1, plot on axis theta_j and have n graphs
-            else:
-                LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, set_lengthscale, save_figure, plot_axis, plot_num = i)
+        #Loop over each axis
+        for axis in plot_axis:
+            #For each row or column of GP(theta_j, Xexp_k), make a parity plot between GP(theta_j, Xexp_k) and y_sim(theta_j, Xexp_k)
+            for i in range(y_model_tj_xk_list.shape[axis]):   #Plot axis either 0 or 1
+                #If plot_axis == 0, plot on axis Xexp and have j graphs
+                if axis == 0: 
+                    LOO_parity_plot_emul(y_model_tj_xk_list[i,:], y_sim_tj_xk_list[i,:], y_model_stdev_tj_xk_list[i,:], Case_Study, DateTime, t, set_lengthscale, save_figure, axis, plot_num = i)
+                #If plot_axis == 1, plot on axis theta_j and have n graphs
+                else:
+                    LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, set_lengthscale, save_figure, axis, plot_num = i)
         
         #Print and save total sse value to CSV
         fxn = "LOO_Plots_3_Input"
@@ -197,9 +199,9 @@ def LOO_eval_GP(theta_set, Xexp, train_y, true_model_coefficients, model, likeli
         sparse_grd: True/False: Determines whether an assumption or sparse grid is used
         set_lengthscale: float/None: Determines whether Hyperparameter values will be set
         train_p: tensor or ndarray, The training parameter space data
-        obj: ob or LN_obj: Determines which objective function is used for the 2 input GP
-        skip_param_types: The offset of which parameter types (A - y0) that are being guessed
-        noise_std: float, int: The standard deviation of the noise. Default 0,1
+        obj: ob or LN_obj: Determines which objective function is used for the 2 input GP. Default = "obj"
+        skip_param_types: The offset of which parameter types (A - y0) that are being guessed. Default 0
+        noise_std: float, int: The standard deviation of the noise. Default 0.1
         
     
     Returns:
@@ -255,7 +257,6 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
     Returns
     -------
         sse: ndarray, the sse/ln(sse) of the GP model
-        var: ndarray, the variance of the GP model
         stdev: ndarray, the standard deviation of the GP model
     """
         #Asserts that inputs are correct
@@ -274,7 +275,6 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
     var = np.zeros(len_set)
     stdev = np.zeros(len_set)
         
-    #Loop over rows in theta_set
     #Choose and evaluate point
     point = theta_set[0]
     eval_point = np.array([point])
@@ -312,13 +312,12 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
         train_p: tensor or ndarray, The training parameter space data
         obj: str, LN_obj or obj, determines whether log or regular objective function is calculated. Default "obj"
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed. Default 0
-        noise_std: float, int: The standard deviation of the noise
+        noise_std: float, int: The standard deviation of the noise. Default 0.1
     
     Returns
     -------
         GP_mean_all: ndarray, Array of GP mean predictions
-        GP_var_all: ndarray, Array of GP variances
-        GP_stdev: ndarray, Array of GP standard deviations
+        GP_stdev_all: ndarray, Array of GP standard deviations
         SSE: ndarray, The SSE of the model 
         SSE_var_GP: ndarray, The varaince of the SSE pf the GP model
         SSE_stdev_GP: ndarray, The satndard deviation of the SSE of the GP model
@@ -327,12 +326,12 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     
-    #Define length and dimsenionality of theta_set
+    #Define length (len_set) and dimsenionality (q) of theta_set and dimensionality of Xexp (m)
     if len(theta_set.shape) > 1:
         len_set, q = theta_set.shape[0], theta_set.shape[1]
     else:
         len_set, q = 1, theta_set.shape[0]
-#     print(theta_set.shape)
+
     m = Xexp.shape[1]
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     
@@ -347,22 +346,22 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     eval_point = np.array([point])
     #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
     GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-    #Save GP Valuez
+    #Save GP Values
     model_mean = GP_Outputs[3].numpy()[0] #1xn
     model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
 
     #Calculate corresponding experimental data from theta_set value
     calc_exp_point = clean_1D_arrays(theta_set[:,-m:])
 
-    Yexp = calc_y_exp(true_model_coefficients, calc_exp_point, noise_std)
-#         print(Yexp)   
-
-    #Compute SSE and SSE variance for that point
+    ##Compute SSE and SSE variance for that point
+    #Copute Yexp
+    Yexp = calc_y_exp(true_model_coefficients, calc_exp_point, noise_std)  
     SSE += (model_mean - Yexp)**2
 
     error_point = (model_mean - Yexp) #This SSE_variance CAN be negative
     SSE_var_GP += 2*error_point*model_variance #Error Propogation approach
 
+    #Ensure positive standard deviations are saved for plotting purposes
     if SSE_var_GP > 0:
         SSE_stdev_GP += np.sqrt(SSE_var_GP)
     else:
@@ -372,7 +371,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     GP_mean_all = model_mean
     GP_var_all = model_variance
     GP_stdev_all = np.sqrt(GP_var_all)
-#     print(GP_mean_all)
+
     return GP_mean_all, GP_stdev_all, SSE, SSE_var_GP, SSE_stdev_GP
     
 def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose=False, skip_param_types=0, CS= 1):
@@ -382,18 +381,21 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
     ----------
         theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
         Xexp: ndarray, "experimental" x values
+        Yexp: ndarray, experimental y values
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
         verbose: bool, Determines whether output is verbose. Default False
-        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated. Default "obj"
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed. Default 0
         CS: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
     
     Returns
     -------
-        SSE_model: ndarray, The SSE of the model 
-        SSE_sim: ndarray, The SSE of the simulated data 
+        GP_mean: ndaarray, Array of GP mean predictions at Xexp and theta_set
+        GP_stdev: ndarray, Array of GP variances related to GP means at Xexp and theta_set
+        y_sim: ndarray, simulated values at Xexp and theta_set
+        SSE_model: ndarray, The SSE of the model at Xexp and theta_set
+        SSE_sim: ndarray, The SSE of the simulated data at Xexp and theta_set
     """
     #Asserts that inputs are correct
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
@@ -416,6 +418,7 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
     GP_mean = np.zeros((n))
     GP_var = np.zeros((n))
     y_sim = np.zeros((n))
+    
     #Loop over experimental data 
     for k in range(n):
         ##Calculate Values
@@ -469,19 +472,21 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
     -------
         None
     """
-    #Define function, length of GP mean predictions (p), and number of tests (t)
+    #Flatten GP mean to ensure smooth plotting
     GP_mean = GP_mean.flatten()
     
+    #Define function, length of GP mean predictions (p), and number of tests (t)   
     p = GP_mean.shape[0]
     fxn = "LOO_Plots_2_Input"
     t = len(iter_space)
 
     # Compare the GP mean to the true model (simulated model)
-    #Plot Minimum SSE value at each run
     plt.figure(figsize = (6.4,4))
 #     plt.scatter(iter_space,Y_space, label = "$y_{exp}$")
 #     label = "$log(SSE_{model})$"
 #     print(GP_stdev.shape, GP_mean.shape)
+
+    #Only plot error bars if a standard deviation is given
     if GP_stdev is not None:
         GP_stdev = GP_stdev.flatten()
         plt.errorbar(iter_space,np.log(GP_mean), fmt="o", yerr=1.96*GP_stdev, label = r'$\mathbf{log(e(\theta))_{model}}$', ms=10, zorder=1)
@@ -489,10 +494,6 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
         plt.scatter(iter_space,np.log(GP_mean), label = r'$\mathbf{log(e(\theta))_{model}}$' , s=100, zorder=1)
     plt.scatter(iter_space,np.log(sse_sim), label = r'$\mathbf{log(e(\theta))_{sim}}$' , s=50, color = "orange", zorder=2)
     
-#     ax.fill_between(iter_space,
-#     GP_mean - 1.96 * GP_stdev,
-#     GP_mean + 1.96 * GP_stdev,
-#     alpha=0.3 )
     #Set plot details        
 #     plt.legend(loc = "best")
     plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
@@ -500,8 +501,7 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
 #     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
     plt.xlabel("Index", fontsize=16, fontweight='bold')
     plt.ylabel(r'$\mathbf{log(e(\theta))}$', fontsize=16, fontweight='bold')
-    
-    #Make pretty
+
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tick_params(direction="in",top=True, right=True)
@@ -509,10 +509,7 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
     plt.locator_params(axis='x', nbins=5)
     plt.minorticks_on() # turn on minor ticks
     plt.tick_params(which="minor",direction="in",top=True, right=True)
-#     plt.gca().axes.xaxis.set_ticklabels([]) # remove tick labels
-#     plt.gca().axes.yaxis.set_ticklabels([])
 #     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
-#     plt.grid(True)
 
     #Save CSVs
     iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space")
@@ -525,7 +522,7 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
         save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
 #         print("2", make_csv_list[i])
     
-    #Save Figures (if applicable)
+    #Save figure or show and close figure
     if save_figure == True:
         path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True)
         save_fig(path, ext='png', close=True, verbose=False) 
@@ -547,7 +544,6 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
         GP_stdev: ndarray, Array of GP standard deviations
         Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
-        t: int, int, Number of initial training points to use
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_figure: bool, Determines whether figures will be saved. Default True
     
@@ -555,11 +551,11 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
     -------
         None
     """
-    
-    #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj")
+    #Flatten values to ensure no plotting errors from shape (len(vals),1)
     GP_mean = GP_mean.flatten()
     GP_stdev = GP_stdev.flatten()
     
+    #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj") 
     fxn = "LOO_Plots_3_Input"
     emulator = True
     p = GP_mean.shape[0]
@@ -571,10 +567,6 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
     plt.errorbar(iter_space,GP_mean, fmt = "o", yerr = 1.96*GP_stdev, label = "$y_{model}$", ms=10, zorder =1 )
     plt.scatter(iter_space,y_sim, label = "$y_{sim}$" , s=50, color = "orange", zorder=2)
     
-#     ax.fill_between(iter_space,
-#     GP_mean - 1.96 * GP_stdev,
-#     GP_mean + 1.96 * GP_stdev,
-#     alpha=0.3 )
     #Set plot details        
 #     plt.legend(loc = "best")
     plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
@@ -590,10 +582,8 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
     plt.locator_params(axis='x', nbins=5)
     plt.minorticks_on() # turn on minor ticks
     plt.tick_params(which="minor",direction="in",top=True, right=True)
-#     plt.gca().axes.xaxis.set_ticklabels([]) # remove tick labels
-#     plt.gca().axes.yaxis.set_ticklabels([])
 #     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
-#     plt.grid(True)
+
     #Save CSVs
     iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space")
     GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_model")
@@ -605,7 +595,7 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
         save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
 #         print("3", make_csv_list[i])
     
-    #Save Figures (if applicable)
+    #Save figure or show and close figure
     if save_figure == True:
         path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True)
 #         print(path)
@@ -629,24 +619,25 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, set_
         t: int, int, Number of initial training points to use
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_figure: bool, Determines whether figures will be saved. Default True
-        plot_axis: None or 0 or 1: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
+        plot_axis: None or list: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
         plot_num: None or int, The number of the parity plot w.r.t Xexp or thet_j indecies
     
     Returns
     -------
         None
     """
-    
-#     print(y_sim.shape, GP_mean.shape, GP_stdev.shape)
+    #Flatten values to ensure no plotting errors from shape (len(vals),1)
     y_sim = y_sim.flatten()
     GP_mean = GP_mean.flatten()
     GP_stdev = GP_stdev.flatten()
+    
     #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj")
     fxn = "LOO_parity_plot_emul"
     emulator = True
     p = GP_mean.shape[0]
     obj = "obj"
-
+    
+    #Create figure
     plt.figure(figsize = (6.4,4))
     # Compare the GP Mean to the true model (simulated model ysim)
     plt.errorbar(y_sim,GP_mean, yerr=1.96*GP_stdev, fmt = "o", label = "$y_{model}$", ms=5 )
@@ -676,9 +667,8 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, set_
 
     for i in range(len(make_csv_list)):
         save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
-#         print("3", make_csv_list[i])
 
-    #Save Figures (if applicable)
+    #Save figure or show and close figure
     if save_figure == True:
         path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True, plot_axis =plot_axis, plot_num= plot_num )
 #         print(path)
@@ -704,9 +694,11 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         is_figure: bool, used for saving CSVs as part of this function and for calling the data from a CSV to make a plot
         csv_end: str, the name of the csv file
-        plot_axis: None or 0 or 1: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
+        plot_axis: None or list: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
         plot_num: None or int, The number of the parity plot w.r.t Xexp or thet_j indecies
+        
     Returns:
+    --------
         path: str, The path to which the file is saved
     
     """
