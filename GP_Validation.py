@@ -17,8 +17,8 @@ from sklearn.model_selection import LeaveOneOut
 from bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
 from CS2_bo_plotters import save_csv, save_fig
     
-from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
-# from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+# from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+from CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 
 ###Load data
 ###Get constants
@@ -55,8 +55,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     m = Xexp.shape[1]
     q = true_p.shape[0]
     t = len(all_data)
-#     print(m)
-
+    
     #Define LOO splits
     loo = LeaveOneOut()
     loo.get_n_splits(all_data)
@@ -76,11 +75,14 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     sse_y_sim_tj_xk_list = []
     sse_y_sim_tj_xj_list = []
     
+#     print(all_data[0:5,1:-1])
     #Loop over all test indecies & #Shuffle and split into training and testing data where 1 point is testing data
     for train_index, test_index in loo.split(all_data):
         index_list.append(test_index)
         data_train = all_data[train_index]
         data_test = all_data[test_index]
+#         print(all_data[0:5,1:-1])
+#         print(data_test[0,1:-1])
         #separate into y data and parameter data
         if m > 1:
             train_p = torch.tensor(data_train[:,1:-m+1]) #8 or 10 (emulator) parameters 
@@ -91,7 +93,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
             
         train_y = torch.tensor(data_train[:,-1])
         test_y = torch.tensor(data_test[:,-1])
-         
+#         print(test_p == torch.tensor(data_test[0,1:-1]))
         #Set likelihood and model
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
         model = ExactGPModel(train_p, train_y, likelihood)
@@ -102,7 +104,6 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         test_p_reshape = test_p.numpy()
         #Evaluate GP on test set
         eval_components = LOO_eval_GP(test_p_reshape, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std)
-#         print("Evaluated")
         #If emulator is false, eval_components is the GP mean, StDev, and variance
         if emulator == False:
             sse_GP_tj_xj,sse_GP_stdev_tj_xj = eval_components
@@ -283,10 +284,6 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
     #Save GP outputs
     model_sse = GP_Outputs[3].numpy()[0] #1xn
     model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
-#             if verbose == True:
-#                 print("Point",eval_point)
-#                 print("Model Mean",model_sse)
-#                 print("Model Var", model_variance)
 
     #Ensures sse is saved instead of ln(sse)
     if obj == "obj":
@@ -428,7 +425,6 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         x_point_data = list(Xexp[k]) #astype(np.float)
         #Create point to be evaluated
         point = point + x_point_data
-#             print(point, type(point))
         eval_point = np.array([point])
         #Evaluate GP model
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
@@ -484,7 +480,6 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
     plt.figure(figsize = (6.4,4))
 #     plt.scatter(iter_space,Y_space, label = "$y_{exp}$")
 #     label = "$log(SSE_{model})$"
-#     print(GP_stdev.shape, GP_mean.shape)
 
     #Only plot error bars if a standard deviation is given
     if GP_stdev is not None:
@@ -520,13 +515,11 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
     
     for i in range(len(make_csv_list)):
         save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
-#         print("2", make_csv_list[i])
     
     #Save figure or show and close figure
     if save_figure == True:
         path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True)
         save_fig(path, ext='png', close=True, verbose=False) 
-#         print(path)
     else:
         plt.show()
         plt.close()
@@ -593,12 +586,10 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
     
     for i in range(len(make_csv_list)):
         save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
-#         print("3", make_csv_list[i])
     
     #Save figure or show and close figure
     if save_figure == True:
         path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True)
-#         print(path)
         save_fig(path, ext='png', close=True, verbose=False) 
     else:
         plt.show()
@@ -671,7 +662,6 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, set_
     #Save figure or show and close figure
     if save_figure == True:
         path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True, plot_axis =plot_axis, plot_num= plot_num )
-#         print(path)
         save_fig(path, ext='png', close=True, verbose=False) 
     else:
         plt.show()
@@ -736,5 +726,5 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
         
     if csv_end is not None:
         path = path + csv_end
-#     print(path)   
+   
     return path
