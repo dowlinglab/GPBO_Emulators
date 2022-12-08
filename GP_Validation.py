@@ -23,7 +23,7 @@ from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True):  
+def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True, plot_axis = None):  
     """
     Run GP Validation using a leave one out scheme
     
@@ -44,6 +44,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         verbose: bool, Determines whether EI component terms are saved also determines activeness of print statement, Default = False
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         save_figure: bool, Determines whether figures will be saved. Default True
+        plot_axis: None or 0 or 1: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
     
     Returns:
     --------
@@ -62,11 +63,19 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     
     #Create empy lists to store index, GP model val, y_sim vals, sse's from emulator vals, SSE from emulator val, and sse from GP vals
     index_list = []
-    model_list = []
-    y_sim_list = []
-    y_sim_sse_list = []
-    GP_SSE_model_list = []
-    sse_model_list = []
+    y_model_tj_xk_list = []
+    y_model_tj_xj_list = []
+    y_model_stdev_tj_xk_list = []
+    y_model_stdev_tj_xj_list = []
+    sse_GP_tj_xk_list = []
+    sse_GP_tj_xj_list = []
+#     sse_GP_stdev_tj_xk_list = []
+    sse_GP_stdev_tj_xj_list = []
+    y_sim_tj_xk_list = []
+    y_sim_tj_xj_list = []
+    sse_y_sim_tj_xk_list = []
+    sse_y_sim_tj_xj_list = []
+    
     #Loop over all test indecies & #Shuffle and split into training and testing data where 1 point is testing data
     for train_index, test_index in loo.split(all_data):
         index_list.append(test_index)
@@ -96,54 +105,76 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
 #         print("Evaluated")
         #If emulator is false, eval_components is the GP mean, StDev, and variance
         if emulator == False:
-            GP_mean,GP_var,GP_stdev = eval_components
+            sse_GP_tj_xj,sse_GP_stdev_tj_xj = eval_components
+            #Append data to lists as appropriate
+            sse_GP_tj_xj_list.append(sse_GP_tj_xj)
+            sse_GP_stdev_tj_xj_list.append(sse_GP_stdev_tj_xj)
         #If emulator is true, eval_components is the GP mean, StDev, and variance, and the corresponding sse value, variance, and stdev
         else:
-            GP_mean,GP_var,GP_stdev, sse, sse_GP_var, sse_GP_stdev  = eval_components #sse here is w/ theta_j x_j
-            #Calculate the SSE value from Y_sim and GP_SSE using theta_j and Xexp 
-            GP_SSE, Y_sim_SSE = LOO_eval_GP_emulator_sse(test_p_reshape, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose, skip_param_types, Case_Study)
+            y_model_tj_xj, y_model_stdev_tj_xj, sse_GP_tj_xj, sse_GP_var_tj_xj, sse_GP_stdev_tj_xj  = eval_components 
+            #Calculate the values using theta_j and Xexp_k
+            y_model_tj_xk, y_model_stdev_tj_xk, y_sim_tj_xk, sse_GP_tj_xk,  sse_y_sim_tj_xk = LOO_eval_GP_emulator_tj_xk(test_p_reshape, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose, skip_param_types, Case_Study)
             
             #Append data to lists as appropriate
-            GP_SSE_model_list.append(GP_SSE)
-            y_sim_sse_list.append(Y_sim_SSE)
+            y_model_tj_xj_list.append(y_model_tj_xj)
+            y_model_tj_xk_list.append(y_model_tj_xk)
+            y_model_stdev_tj_xj_list.append(y_model_stdev_tj_xj)
+            y_model_stdev_tj_xk_list.append(y_model_stdev_tj_xk)
+            sse_GP_tj_xj_list.append(sse_GP_tj_xj)
+            sse_GP_tj_xk_list.append(sse_GP_tj_xk)
+            sse_GP_stdev_tj_xj_list.append(sse_GP_stdev_tj_xj)
+            y_sim_tj_xj_list.append(data_test[:,-1])
+            y_sim_tj_xk_list.append(y_sim_tj_xk)
+            sse_y_sim_tj_xk_list.append(sse_y_sim_tj_xk)
             
-            sse_model_list.append(sse)
-            y_sim_list.append(data_test[:,-1])
             
-#         if test_index%50 ==0:
+#         if test_index%50 ==0: #Can use to track completion visually in jupyter notebook runs
 #             print("Loop")
-        model_list.append(GP_mean)
     
     #Turn lists into arrays
     index_list = np.array(index_list)
-    model_list = np.array(model_list)
-    sse_model_list = np.array(sse_model_list)
+    y_model_tj_xk_list = np.array(y_model_tj_xk_list)
+    y_model_tj_xj_list = np.array(y_model_tj_xj_list)
+    y_model_stdev_tj_xk_list = np.array(y_model_stdev_tj_xk_list)
+    y_model_stdev_tj_xj_list = np.array(y_model_stdev_tj_xj_list)
+    sse_GP_tj_xk_list = np.array(sse_GP_tj_xk_list)
+    sse_GP_tj_xj_list = np.array(sse_GP_tj_xj_list)
+    sse_GP_stdev_tj_xj_list = np.array(sse_GP_stdev_tj_xj_list)
+    y_sim_tj_xk_list = np.array(y_sim_tj_xk_list)
+    y_sim_tj_xj_list = np.array(y_sim_tj_xj_list)
+    sse_y_sim_tj_xk_list = np.array(sse_y_sim_tj_xk_list)
     
     if emulator == False:
         #Depending on obj, ensure sse is sse and not log(sse)
         if obj == "LN_obj":
-            sse_sim = np.exp(all_data[:,-1])
+            sse_y_sim_tj_xj_list = np.exp(all_data[:,-1])
         else:
-            sse_sim = all_data[:,-1]
+            sse_y_sim_tj_xj_list = all_data[:,-1]
+        sse_y_sim_tj_xj_list = np.array(sse_y_sim_tj_xj_list)
+        
         #Plot model vs sim sse
-        LOO_Plots_2_Input(index_list, model_list, sse_sim, GP_stdev, true_p, Case_Study, DateTime, obj, set_lengthscale, save_figure)
+        LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure)
         
-    else:
-        #turn lists into arrays
-        y_sim_list = np.array(y_sim_list)
-        y_sim_sse_list = np.array(y_sim_sse_list)
-        GP_SSE_model_list = np.array(GP_SSE_model_list)
-        
+    else:        
         #Plot GP vs y_sim
-        LOO_Plots_3_Input(index_list, model_list, all_data[:,-1], GP_stdev, true_p, Case_Study, DateTime, set_lengthscale, save_figure)
+        LOO_Plots_3_Input(index_list, y_model_tj_xj_list, y_sim_tj_xj_list, y_model_stdev_tj_xj_list, Case_Study, DateTime, set_lengthscale, save_figure)
         #Plot log(SSE) from GP(theta_j,Xexp) and y_sim(theta_j,Xexp)
-        LOO_Plots_2_Input(index_list, GP_SSE_model_list, y_sim_sse_list, None, true_p, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
+        LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, None, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
+        
+        #For each row or column of GP(theta_j, Xexp_k), make a parity plot between GP(theta_j, Xexp_k) and y_sim(theta_j, Xexp_k)
+        for i in range(y_model_tj_xk_list.shape[plot_axis]):   #Plot axis either 0 or 1
+            #If plot_axis == 0, plot on axis Xexp and have j graphs
+            if plot_axis == 0: 
+                LOO_parity_plot_emul(y_model_tj_xk_list[i,:], y_sim_tj_xk_list[i,:], y_model_stdev_tj_xk_list[i,:], Case_Study, DateTime, t, set_lengthscale, save_figure, plot_axis, plot_num = i)
+            #If plot_axis == 1, plot on axis theta_j and have n graphs
+            else:
+                LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, set_lengthscale, save_figure, plot_axis, plot_num = i)
         
         #Print and save total sse value to CSV
         fxn = "LOO_Plots_3_Input"
-        SSE_Total =  sum( (y_sim_list - model_list)**2 ) 
-        sse_tot_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/sse_tot")
-#         print(sse_tot_path)
+        #Note flatten y_sim_tj_xj_list to prevent an error in the calculation and ensure y_sim_tj_xj_list.shape = y_model_tj_xj_list.shape
+        SSE_Total =  sum( (y_sim_tj_xj_list.flatten() - y_model_tj_xj_list)**2 ) 
+        sse_tot_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/sse_tot"))
         print("SSE Total = ",'{:.4e}'.format(SSE_Total) )
     return
 
@@ -244,29 +275,28 @@ def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", 
     stdev = np.zeros(len_set)
         
     #Loop over rows in theta_set
-    for i in range(len_set):
-        #Choose and evaluate point
-        point = theta_set[i]
-        eval_point = np.array([point])
-        #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-        #Save GP outputs
-        model_sse = GP_Outputs[3].numpy()[0] #1xn
-        model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+    #Choose and evaluate point
+    point = theta_set[0]
+    eval_point = np.array([point])
+    #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
+    GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+    #Save GP outputs
+    model_sse = GP_Outputs[3].numpy()[0] #1xn
+    model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
 #             if verbose == True:
 #                 print("Point",eval_point)
 #                 print("Model Mean",model_sse)
 #                 print("Model Var", model_variance)
-        
-        #Ensures sse is saved instead of ln(sse)
-        if obj == "obj":
-            sse[i] = model_sse
-        else:
-            sse[i] = np.exp(model_sse)
-        var[i] = model_variance
-        stdev[i] = np.sqrt(model_variance)  
 
-    return sse, var, stdev 
+    #Ensures sse is saved instead of ln(sse)
+    if obj == "obj":
+        sse = model_sse
+    else:
+        sse = np.exp(model_sse)
+    var = model_variance
+    stdev = np.sqrt(model_variance)  
+
+    return sse, stdev 
 
 def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, likelihood, verbose = False, train_p = None, obj = "obj", skip_param_types = 0, noise_std = 0.1):
     """ 
@@ -310,46 +340,42 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     SSE_var_GP = 0
     SSE_stdev_GP = 0
     SSE = 0
-    GP_mean_all = np.zeros((len_set))
-    GP_var_all = np.zeros((len_set))
-    
-    # Loop over theta 1
-    for i in range(len_set):        
+         
     ##Calculate Values
-        #Caclulate GP vals for each value given theta_j and x_j
-        point = list(theta_set[i])
-        eval_point = np.array([point])
-        #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-        #Save GP Valuez
-        model_mean = GP_Outputs[3].numpy()[0] #1xn
-        model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
-        
-        #Calculate corresponding experimental data from theta_set value
-        calc_exp_point = clean_1D_arrays(theta_set[:,-m:])
-        
-        Yexp = calc_y_exp(true_model_coefficients, calc_exp_point, noise_std)
+    #Caclulate GP vals for each value given theta_j and x_j
+    point = list(theta_set[0])
+    eval_point = np.array([point])
+    #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
+    GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+    #Save GP Valuez
+    model_mean = GP_Outputs[3].numpy()[0] #1xn
+    model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+
+    #Calculate corresponding experimental data from theta_set value
+    calc_exp_point = clean_1D_arrays(theta_set[:,-m:])
+
+    Yexp = calc_y_exp(true_model_coefficients, calc_exp_point, noise_std)
 #         print(Yexp)   
 
-        #Compute SSE and SSE variance for that point
-        SSE += (model_mean - Yexp)**2
+    #Compute SSE and SSE variance for that point
+    SSE += (model_mean - Yexp)**2
 
-        error_point = (model_mean - Yexp) #This SSE_variance CAN be negative
-        SSE_var_GP += 2*error_point*model_variance #Error Propogation approach
+    error_point = (model_mean - Yexp) #This SSE_variance CAN be negative
+    SSE_var_GP += 2*error_point*model_variance #Error Propogation approach
 
-        if SSE_var_GP > 0:
-            SSE_stdev_GP += np.sqrt(SSE_var_GP)
-        else:
-            SSE_stdev_GP += np.sqrt(np.abs(SSE_var_GP))
+    if SSE_var_GP > 0:
+        SSE_stdev_GP += np.sqrt(SSE_var_GP)
+    else:
+        SSE_stdev_GP += np.sqrt(np.abs(SSE_var_GP))
 
-        #Save values for each value in theta_set (in this case only 1 value)
-        GP_mean_all[i] = model_mean
-        GP_var_all[i] = model_variance
-        GP_stdev = np.sqrt(GP_var_all)
+    #Save values for each value in theta_set (in this case only 1 value)
+    GP_mean_all = model_mean
+    GP_var_all = model_variance
+    GP_stdev_all = np.sqrt(GP_var_all)
 #     print(GP_mean_all)
-    return GP_mean_all, GP_var_all, GP_stdev, SSE, SSE_var_GP, SSE_stdev_GP
+    return GP_mean_all, GP_stdev_all, SSE, SSE_var_GP, SSE_stdev_GP
     
-def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose=False, skip_param_types=0, CS = 1):
+def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose=False, skip_param_types=0, CS= 1):
     """ 
     Calculates the expected improvement of the emulator approach
     Parameters
@@ -375,6 +401,7 @@ def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, mode
 
     #Define dimensionality of X
     m = Xexp.shape[1]
+    n = Xexp.shape[0]
     
     #Set theta_set to only be parameter values instead of theta_j, x_j
     theta_set_params = theta_set[:, 0:-m]
@@ -385,50 +412,66 @@ def LOO_eval_GP_emulator_sse(theta_set, Xexp, Yexp,true_model_coefficients, mode
     else:
         len_set, q = 1, theta_set_params.shape[0]
     
-    #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
-    
-    #Initialize values
-    SSE_model = np.zeros((len_set))
-    SSE_sim = np.zeros((len_set))
-    ##Calculate Best Error
-    # Loop over theta 1
-    for i in range(len_set): 
     #Initialize values for saving data
-        GP_mean = np.zeros((Xexp.shape[0]))
-        y_sim = np.zeros((Xexp.shape[0]))
-        SSE = 0
-        #Loop over experimental data 
-        for k in range(Xexp.shape[0]):
-            ##Calculate Values
-            #Caclulate sse for each value theta_j, xexp_k
-            point = list(theta_set_params[i])
-            #Append Xexk_k to theta_set to evaluate at theta_j, xexp_k
-            x_point_data = list(Xexp[k]) #astype(np.float)
-            #Create point to be evaluated
-            point = point + x_point_data
+    GP_mean = np.zeros((n))
+    GP_var = np.zeros((n))
+    y_sim = np.zeros((n))
+    #Loop over experimental data 
+    for k in range(n):
+        ##Calculate Values
+        #Caclulate sse for each value theta_j, xexp_k
+        point = list(theta_set_params[0])
+        #Append Xexk_k to theta_set to evaluate at theta_j, xexp_k
+        x_point_data = list(Xexp[k]) #astype(np.float)
+        #Create point to be evaluated
+        point = point + x_point_data
 #             print(point, type(point))
-            eval_point = np.array([point])
-            #Evaluate GP model
-            #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-            model_mean = GP_Outputs[3].numpy()[0] #1xn
-            GP_mean[i] = model_mean
-            #Calculate y_sim & sse_sim
-            if CS == 1:
-                #Case study 1, the 2D problem takes different arguments for its function create_y_data than 2.2
-                y_sim[k] = create_y_data(eval_point)
-            else:
-                y_sim[k] = create_y_data(eval_point, true_model_coefficients, Xexp, skip_param_types)
-        
-        #Compute GP SSE and SSE_sim for that point
-        SSE_model[i] = np.sum((GP_mean - Yexp)**2)
-        SSE_sim[i] = np.sum((y_sim - Yexp)**2)
-        
-    return SSE_model, SSE_sim
+        eval_point = np.array([point])
+        #Evaluate GP model
+        #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
+        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+        model_mean = GP_Outputs[3].numpy()[0] #1xn
+        GP_mean[k] = model_mean
+        model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+        GP_var[k] = model_variance
+        #Calculate y_sim & sse_sim
+        if CS == 1:
+            #Case study 1, the 2D problem takes different arguments for its function create_y_data than 2.2
+            y_sim[k] = create_y_data(eval_point)
+        else:
+            y_sim[k] = create_y_data(eval_point, true_model_coefficients, Xexp, skip_param_types)
 
-def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False):
+    #Compute GP SSE and SSE_sim for that point
+    SSE_model = np.sum((GP_mean - Yexp)**2)
+    SSE_sim = np.sum((y_sim - Yexp)**2)
+        
+    GP_stdev = np.sqrt(GP_var)  
     
+    return GP_mean, GP_stdev, y_sim, SSE_model,  SSE_sim
+
+def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False):
+    """ 
+    Creates plots of sse_sim and sse_model vs test space point
+    Parameters
+    ----------
+        iter_space: ndarray, a linspace of the number of testing points evaluated
+        GP_mean: ndarray, Array of GP mean predictions
+        sse_sim: ndarray, Array of sse_sim values
+        GP_stdev: ndarray, Array of GP standard deviations
+        Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        t: int, int, Number of initial training points to use
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        save_figure: bool, Determines whether figures will be saved. Default True
+        emulator: bool, whether or not emulator SSEs are being plotted (used for savinf CSV data and figures)
+    
+    Returns
+    -------
+        None
+    """
     #Define function, length of GP mean predictions (p), and number of tests (t)
+    GP_mean = GP_mean.flatten()
+    
     p = GP_mean.shape[0]
     fxn = "LOO_Plots_2_Input"
     t = len(iter_space)
@@ -438,8 +481,13 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study,
     plt.figure(figsize = (6.4,4))
 #     plt.scatter(iter_space,Y_space, label = "$y_{exp}$")
 #     label = "$log(SSE_{model})$"
-    plt.scatter(iter_space,np.log(GP_mean), label = r'$\mathbf{log(e(\theta))_{model}}$', s=100 )
-    plt.scatter(iter_space,np.log(sse_sim), label = r'$\mathbf{log(e(\theta))_{sim}}$' , s=50)
+#     print(GP_stdev.shape, GP_mean.shape)
+    if GP_stdev is not None:
+        GP_stdev = GP_stdev.flatten()
+        plt.errorbar(iter_space,np.log(GP_mean), fmt="o", yerr=1.96*GP_stdev, label = r'$\mathbf{log(e(\theta))_{model}}$', ms=10, zorder=1)
+    else:
+        plt.scatter(iter_space,np.log(GP_mean), label = r'$\mathbf{log(e(\theta))_{model}}$' , s=100, zorder=1)
+    plt.scatter(iter_space,np.log(sse_sim), label = r'$\mathbf{log(e(\theta))_{sim}}$' , s=50, color = "orange", zorder=2)
     
 #     ax.fill_between(iter_space,
 #     GP_mean - 1.96 * GP_stdev,
@@ -488,9 +536,30 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Theta, Case_Study,
         
     return
 
-def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Theta, Case_Study, DateTime, set_lengthscale = None, save_figure = True):
+def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime, set_lengthscale = None, save_figure = True):
+    """ 
+    Creates plots of y_sim and y_model vs test space point
+    Parameters
+    ----------
+        iter_space: ndarray, a linspace of the number of testing points evaluated
+        GP_mean: ndarray, Array of GP mean predictions
+        y_sim: ndarray, Array of y_sim values
+        GP_stdev: ndarray, Array of GP standard deviations
+        Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        t: int, int, Number of initial training points to use
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        save_figure: bool, Determines whether figures will be saved. Default True
+    
+    Returns
+    -------
+        None
+    """
     
     #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj")
+    GP_mean = GP_mean.flatten()
+    GP_stdev = GP_stdev.flatten()
+    
     fxn = "LOO_Plots_3_Input"
     emulator = True
     p = GP_mean.shape[0]
@@ -499,8 +568,8 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Theta, Case_Study, D
 
     # Compare the GP Mean to the true model (simulated model ysim)
     plt.figure(figsize = (6.4,4))
-    plt.scatter(iter_space,GP_mean, label = "$y_{model}$", s=100 )
-    plt.scatter(iter_space,y_sim, label = "$y_{sim}$" , s=50)
+    plt.errorbar(iter_space,GP_mean, fmt = "o", yerr = 1.96*GP_stdev, label = "$y_{model}$", ms=10, zorder =1 )
+    plt.scatter(iter_space,y_sim, label = "$y_{sim}$" , s=50, color = "orange", zorder=2)
     
 #     ax.fill_between(iter_space,
 #     GP_mean - 1.96 * GP_stdev,
@@ -547,7 +616,80 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Theta, Case_Study, D
         
     return
 
-def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime = None, is_figure = True, csv_end = None):
+def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0):
+    """ 
+    Creates parity plots of y_sim and y_model along axis for theta_j or Xexp
+    Parameters
+    ----------
+        GP_mean: ndarray, Array of GP mean predictions
+        y_sim: ndarray, Array of y_sim values
+        GP_stdev: ndarray, Array of GP standard deviations
+        Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        t: int, int, Number of initial training points to use
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        save_figure: bool, Determines whether figures will be saved. Default True
+        plot_axis: None or 0 or 1: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
+        plot_num: None or int, The number of the parity plot w.r.t Xexp or thet_j indecies
+    
+    Returns
+    -------
+        None
+    """
+    
+#     print(y_sim.shape, GP_mean.shape, GP_stdev.shape)
+    y_sim = y_sim.flatten()
+    GP_mean = GP_mean.flatten()
+    GP_stdev = GP_stdev.flatten()
+    #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj")
+    fxn = "LOO_parity_plot_emul"
+    emulator = True
+    p = GP_mean.shape[0]
+    obj = "obj"
+
+    plt.figure(figsize = (6.4,4))
+    # Compare the GP Mean to the true model (simulated model ysim)
+    plt.errorbar(y_sim,GP_mean, yerr=1.96*GP_stdev, fmt = "o", label = "$y_{model}$", ms=5 )
+    plt.plot(y_sim, y_sim, label = "$y_{sim}$" , zorder=1, color = "black")
+
+    #Set plot details        
+#     plt.legend(loc = "best")
+    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
+    plt.tight_layout()
+#     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
+    plt.xlabel("$y_{sim}$", fontsize=16, fontweight='bold')
+    plt.ylabel("y value", fontsize=16, fontweight='bold')
+
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.tick_params(direction="in",top=True, right=True)
+    plt.locator_params(axis='y', nbins=5)
+    plt.locator_params(axis='x', nbins=5)
+    plt.minorticks_on() # turn on minor ticks
+    plt.tick_params(which="minor",direction="in",top=True, right=True)
+
+    #Save CSVs
+    GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = "/y_model")
+    y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = "/y_sim")
+    csv_item_list = [GP_mean, y_sim]
+    make_csv_list = [GP_mean_path, y_sim_path]
+
+    for i in range(len(make_csv_list)):
+        save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
+#         print("3", make_csv_list[i])
+
+    #Save Figures (if applicable)
+    if save_figure == True:
+        path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True, plot_axis =plot_axis, plot_num= plot_num )
+#         print(path)
+        save_fig(path, ext='png', close=True, verbose=False) 
+    else:
+        plt.show()
+        plt.close()
+        
+    return
+
+def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime = None, is_figure = True, csv_end = None, plot_axis = None, plot_num = None):
     """
     names a path
     
@@ -559,8 +701,11 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
         t: int, int, Number of initial training points to use
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         is_figure: bool, used for saving CSVs as part of this function and for calling the data from a CSV to make a plot
         csv_end: str, the name of the csv file
+        plot_axis: None or 0 or 1: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
+        plot_num: None or int, The number of the parity plot w.r.t Xexp or thet_j indecies
     Returns:
         path: str, The path to which the file is saved
     
@@ -569,7 +714,8 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
     obj_str = "/"+str(obj)
     len_scl = "/len_scl_varies"
     org_TP_str = "/TP_"+ str(t)
-    CS = "/CS_" + str(Case_Study)
+    CS = "/CS_" + str(Case_Study) 
+    parity_end = "/axis_val_" +str(plot_axis) + "/plot_num_" + str(plot_num)
 
     if emulator == False:
         Emulator = "/GP_Error_Emulator"
@@ -577,7 +723,7 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
     else:
         Emulator = "/GP_Emulator"
             
-    fxn_dict = {"LOO_Plots_2_Input":"/SSE_gp_val" , "LOO_Plots_3_Input":"/y_gp_val"}
+    fxn_dict = {"LOO_Plots_2_Input":"/SSE_gp_val" , "LOO_Plots_3_Input":"/y_gp_val", "LOO_parity_plot_emul":"/parity_plots"+parity_end}
     plot = fxn_dict[fxn]        
       
     if DateTime is not None:
