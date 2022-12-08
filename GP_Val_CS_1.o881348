@@ -1,0 +1,4 @@
+/scratch365/mcarlozo/Toy_Problem/GP_Validation.py:487: RuntimeWarning: invalid value encountered in log
+  plt.errorbar(iter_space,np.log(GP_mean), fmt="o", yerr=1.96*GP_stdev, label = r'$\mathbf{log(e(\theta))_{model}}$', ms=10, zorder=1)
+/scratch365/mcarlozo/Toy_Problem/GP_Validation.py:521: RuntimeWarning: invalid value encountered in log
+  csv_item_list = [iter_space, np.log(GP_mean), np.log(sse_sim)]

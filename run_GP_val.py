@@ -19,7 +19,7 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
-DateTime = "2022/11/29/11-15"
+# DateTime = "2022/11/29/11-15"
 # DateTime = None ##For Testing
 
 #Set Parameters
@@ -33,7 +33,7 @@ Constants = np.array([[-200,-100,-170,15],
                       [1,0,-0.5,-1],
                       [0,0.5,1.5,1]])
 
-CS = Case_Study[1]
+CS = Case_Study[0]
 if CS == 2.2:
     skip_param_types = 1 #This is what changes for subpoint
     true_p = Constants[skip_param_types:skip_param_types+2].flatten()
@@ -57,6 +57,7 @@ noise_std = 0.1
 sep_fact = np.linspace(1,1,1)
 set_lengthscale = None
 explore_bias = 1
+plot_axis = np.array([0,1])
 
 obj = np.array(["obj", "LN_obj"])
 # obj = np.array(["obj"])
@@ -75,19 +76,20 @@ Yexp = exp_data[:,-1]
 
 Xexp = clean_1D_arrays(Xexp)
 
-for emul in emulator:
-    print("Emulator =", emul)
-    if emul == False:
-        t_use = t
-        obj_use = obj
-    else:
-        t_use = t*n
-        obj_use = np.array(["obj"])
-    for obj_func in obj_use:
-        print("Objective Function =", obj_func)
-        all_data_doc = find_train_doc_path(emul, obj_func, d, t_use)
-        all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-#         print(all_data)
-        LOO_Analysis(all_data, Xexp, Yexp, Constants, true_p, emul, obj_func, CS,  
-                     skip_param_types = skip_param_types, noise_std = noise_std, DateTime = DateTime, 
-                     save_figure= save_figure)        
+for axis in plot_axis:
+    for emul in emulator:
+        print("Emulator =", emul)
+        if emul == False:
+            t_use = t
+            obj_use = obj
+        else:
+            t_use = t*n
+            obj_use = np.array(["obj"])
+        for obj_func in obj_use:
+            print("Objective Function =", obj_func)
+            all_data_doc = find_train_doc_path(emul, obj_func, d, t_use)
+            all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
+    #         print(all_data)
+            LOO_Analysis(all_data, Xexp, Yexp, Constants, true_p, emul, obj_func, CS,  
+                         skip_param_types = skip_param_types, noise_std = noise_std, DateTime = DateTime, 
+                         save_figure= save_figure, plot_axis = axis)        

@@ -174,7 +174,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         fxn = "LOO_Plots_3_Input"
         #Note flatten y_sim_tj_xj_list to prevent an error in the calculation and ensure y_sim_tj_xj_list.shape = y_model_tj_xj_list.shape
         SSE_Total =  sum( (y_sim_tj_xj_list.flatten() - y_model_tj_xj_list)**2 ) 
-        sse_tot_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/sse_tot"))
+        sse_tot_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/sse_tot")
         print("SSE Total = ",'{:.4e}'.format(SSE_Total) )
     return
 
