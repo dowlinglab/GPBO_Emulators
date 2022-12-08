@@ -33,7 +33,7 @@ Constants = np.array([[-200,-100,-170,15],
                       [1,0,-0.5,-1],
                       [0,0.5,1.5,1]])
 
-CS = Case_Study[0]
+CS = Case_Study[1]
 if CS == 2.2:
     skip_param_types = 1 #This is what changes for subpoint
     true_p = Constants[skip_param_types:skip_param_types+2].flatten()
