@@ -697,7 +697,7 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
     len_scl = "/len_scl_varies"
     org_TP_str = "/TP_"+ str(t)
     CS = "/CS_" + str(Case_Study) 
-    parity_end = "/axis_val_" +str(plot_axis) + "/plot_num_" + str(plot_num)
+    parity_end = "/axis_val_" +str(plot_axis) + "/plot_num_" + str(plot_num).zfill(len(str(t)))
 
     if emulator == False:
         Emulator = "/GP_Error_Emulator"
