@@ -253,7 +253,7 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
     q = Theta.shape[0]
     
     #Unscale Data
-    if norm_scalers is not None:
+    if str(norm_scalers) != "None":
         norm = False
         m = x_space.shape[0]
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
@@ -316,14 +316,16 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator =
     true_p_shape = np.zeros(q)
 
     #Unscale Data for data generation
-    if norm_scalers is not None:
+    if str(norm_scalers) != "None":
 #         print(norm_scalers)
         norm = False
         CS = 2.2
         
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
         true_model_coefficients_unscl = normalize_constants(true_model_coefficients, true_p_shape, scaler_theta, skip_param_types, CS, norm, scaler_C_before, scaler_C_after)[0]
-        train_p_unscl = normalize_p_data(train_p, scaler_theta, norm)[0]
+#         train_p_unscl = normalize_p_data(train_p, scaler_theta, norm)[0]
+        train_p_unscl[:,0:-m] = normalize_p_data(train_p[:,0:-m], m, emulator, norm, scaler_theta)[0] 
+        train_p_unscl[:,-m:] = normalize_x(train_p[:,-m:], m, Xexp, emulator, norm, scaler_x)[0]
         Xexp_unscl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
         train_p_use = train_p_unscl
         Xexp_use = Xexp_unscl
@@ -373,7 +375,7 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
     q = train_p.shape[1] - Xexp.shape[1]
     true_p_shape = np.zeros(q)
     
-    if norm_scalers is not None:
+    if str(norm_scalers) != "None":
 #         print(norm_scalers)
         norm = False
         CS = 2.2

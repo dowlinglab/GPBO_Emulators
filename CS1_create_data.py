@@ -207,7 +207,7 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
     x_space = clean_1D_arrays(x_space)
     
     #Unscale Data
-    if norm_scalers is not None:
+    if str(norm_scalers) != "None":
         norm = False
         m = x_space.shape[0]
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
@@ -266,17 +266,21 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator=T
     SSE = np.zeros(t_train)
     
     #Unscale Data for data generation
-    if norm_scalers is not None:
+    if str(norm_scalers) != "None":
+#         print("norming...")
         norm = False
+        train_p_unscl = train_p.clone()
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
-        train_p_unscl = normalize_p_data(train_p, scaler_theta, norm)[0]
+#         train_p_unscl = normalize_p_set(train_p, scaler_theta, norm)
+        train_p_unscl[:,0:-m] = normalize_p_data(train_p[:,0:-m], m, emulator, norm, scaler_theta)[0] 
+        train_p_unscl[:,-m:] = normalize_x(train_p[:,-m:], m, Xexp, emulator, norm, scaler_x)[0]
         Xexp_unscl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
         train_p_use = train_p_unscl
         Xexp_use = Xexp_unscl
     else:
         train_p_use = train_p
         Xexp_use = Xexp
-    
+      
     #Loop over each training point
     for i in range(t_train):
         #Caclulate SSE and save to list
@@ -284,7 +288,7 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator=T
 
     #Define best_error as the minimum SSE or ln(SSE) value
     best_error = np.amin(SSE)
-    
+#     print(best_error)
     return best_error
 
 def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_coefficients, obj, dim_param, skip_param_types=0, noise_std=None, norm_scalers = None):
@@ -315,7 +319,7 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
     #Infer dimensions (m) and length (n) of experimental data
     n,m = clean_1D_arrays(Xexp).shape
     #Unscale for Data Generation
-    if norm_scalers is not None:
+    if str(norm_scalers) != "None":
         norm = False
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
         theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm)

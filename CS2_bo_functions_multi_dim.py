@@ -169,6 +169,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         None - Saves graphs and CSVs     
         
     '''
+#     print(norm_scalers)
     #Clean shape of Xexp from a 1D arrays to shape (len(Xexp), 1)
     Xexp = clean_1D_arrays(Xexp)
     #Clean shape of theta_true from a 1D arrays to shape (1, len(theta_true))
@@ -194,7 +195,8 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
             theta_set[:,i] = theta_o[i]
                
     #Evaluate GP at new points
-    eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
+#     print(theta_set[0:5], Xexp, true_model_coefficients, train_p[0:5])
+    eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types, norm_scalers = norm_scalers)
 
     
     #Determine which parameters will be plotted given the method type and whether verbose is T/F. Save parameters to plot to a list
@@ -232,6 +234,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error", "GP_Mean", "GP_Var"] 
     
     #Unscale data before plotting if necessary
+    train_p_unscl = train_p.clone()
     if normalize == True:
         #Norm = False will unscale data
         norm = False
@@ -244,9 +247,10 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         Theta_True = normalize_p_true(Theta_True, scaler_theta, norm)
         #Ensure that only parameter value columns in train_p will be plotted. Since everything after this is redefining or plotting, train_p is simply redefined if the emulator approach is being used
         if emulator == True:
-            train_p = normalize_p_data(train_p[:,0:-dim_x], dim_x, emulator, norm, scaler_theta)[0]
+            train_p_unscl[:,0:-dim_x] = normalize_p_data(train_p[:,0:-dim_x], dim_x, emulator, norm, scaler_theta)[0]
+            train_p_unscl[:,-dim_x:] = normalize_x(train_p[:,-dim_x:], dim_x, Xexp, emulator, norm, scaler_x)[0]
         else:
-            train_p  = normalize_p_data(train_p, dim_x, emulator, norm, scaler_theta)[0]
+            train_p_unscl  = normalize_p_data(train_p, dim_x, emulator, norm, scaler_theta)[0]
             
     #Generate meshgrid and theta_set from unnormalized meshgrid 
     Theta1_lin = np.linspace(np.min(theta_set_org[:,indecies[0]]),np.max(theta_set_org[:,indecies[0]]), n_points)
@@ -262,11 +266,11 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
     theta_b = np.array([theta_b[indecies[0]], theta_b[indecies[1]]])
     #Note, clean_1D_theta arrays assures shape of (1, len(train_p)) for each column of train_p that will be plotted
     #Note: We concatenate the 2 columns for train_p that will be plotted after normalizing the values
-    train_p = np.concatenate(( clean_1D_arrays(train_p[:,indecies[0]]) , clean_1D_arrays(train_p[:,indecies[1]]) ), axis = 1)
+    train_p_plot = np.concatenate(( clean_1D_arrays(train_p_unscl[:,indecies[0]]) , clean_1D_arrays(train_p_unscl[:,indecies[1]]) ), axis = 1)
     Theta_True = np.array([Theta_True[indecies[0]], Theta_True[indecies[1]]])
     
     #Plot and save figures for EI
-    value_plotter(theta_mesh, list_of_plot_variables[0], Theta_True, theta_o, theta_b, train_p, titles[0],titles_save[0], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, normalize = normalize)
+    value_plotter(theta_mesh, list_of_plot_variables[0], Theta_True, theta_o, theta_b, train_p_plot, titles[0],titles_save[0], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, normalize = normalize)
 
     #Ensure that a plot of SSE (and never ln(SSE)) is drawn
     if obj == "LN_obj" and emulator == False:
@@ -275,7 +279,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         plot_sse = np.log(list_of_plot_variables[1])
 
     #Plot and save figures for SSE
-    value_plotter(theta_mesh, plot_sse, Theta_True, theta_o, theta_b, train_p, titles[1], titles_save[1], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, normalize = normalize)
+    value_plotter(theta_mesh, plot_sse, Theta_True, theta_o, theta_b, train_p_plot, titles[1], titles_save[1], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, normalize = normalize)
 
     #Plot and save other figures
     #Loop over remaining variables to be saved and plotted
@@ -288,7 +292,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         if type(component) is not np.float64:
             if title not in ['GP Mean','GP Variance']: 
 #                 print(type(component), component.shape)
-                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, normalize = normalize)
+                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p_plot, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, normalize = normalize)
         elif type(component) is np.float64 and title == "Best_Error" :
             Best_Error_Found = np.round(component,4)
             if verbose == True:
@@ -331,6 +335,7 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
     
     #Define variables for length of Xexp (n), dimensionality of parameter set (q), and length of parameter set (len_set)
     n = len(Xexp)
+#     print(Xexp,true_model_coefficients, train_p)
     len_set , q = theta_set.shape
     
     #Initialize values
@@ -345,7 +350,9 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
     # Loop over theta 1
     for i in range(len_set):
         #Caclulate best error and initialize arrays to store GP mean and variance in
+#         print(norm_scalers)
         best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator, "obj", skip_param_types, norm_scalers)
+#         print(best_error)
         GP_mean = np.zeros(n)
         GP_var = np.zeros(n)
         
@@ -677,6 +684,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
         ei = 0
         sse = 0
         #Caclulate best error
+#         print(Xexp, train_p, true_model_coefficients)
         best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator, "obj", skip_param_types, norm_scalers)
         GP_mean = np.zeros(n)
         GP_stdev = np.zeros(n)
@@ -988,8 +996,12 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, skip_param_types, norm_scalers)
 #         print(Theta_True, theta_o)
         
+                #Evaluate all pairs of theta if necessary
+        if eval_all_pairs == True:
+            eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, sep_fact, skip_param_types, normalize, norm_scalers)
+        
         #Evaluate GP for best EI theta set
-        eval_components_best = eval_GP(np.array([theta_b]), train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types)
+        eval_components_best = eval_GP(np.array([theta_b]), train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types, norm_scalers = norm_scalers)
 
         #Determine which parameters will be plotted given the method type and whether verbose is T/F. Save parameters to plot to a list
     #eval_GP will also save internal parameters used in the calculation of EI if the standard approach is used and verbose is true. These are useful in critically analyzing which components of EI have a large effect, but are tedious to save and take up a lot of space. Therefore, they are only saved when verbose == True       
@@ -1008,10 +1020,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             ei_best,sse_best,var_best,stdev_best,best_error_best = eval_components_best
             gp_mean_all_mat[i] = sse_best
             gp_var_all_mat[i] = var_best
-        #         if verbose == True and emulator == False:
-#             ei,sse,var,stdev,best_error,z,ei_term_1,ei_term_2,CDF,PDF = eval_components  
-#         else:
-#             ei,sse,var,stdev,best_error = eval_components
+
         #Write code to save these values
 #         print(ei,sse,var,stdev,best_error)
         
@@ -1019,11 +1028,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         #Update timer
         timeend = time.time()
         time_per_iter[i] +=  (timeend - timestart)
-        
-        #Evaluate all pairs of theta if necessary
-        if eval_all_pairs == True:
-            eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, sep_fact, skip_param_types, normalize, norm_scalers)
-        
+              
         #Update timer
         timestart = time.time()
 
@@ -1249,7 +1254,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         
         #Plot all training data
         #This works, put it back when we need it (12/7/22)
-#         train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, param_dict, sep_fact, normalize)
+        train_test_plot_preparation(q, m, theta_set, train_p, test_p, Theta_True, Xexp, emulator, sparse_grid, obj, ep0, set_lengthscale, i, save_fig, BO_iters, runs, DateTime, verbose, param_dict, sep_fact, normalize)
 
         #Normalize data as appropriate
         if normalize == True:
