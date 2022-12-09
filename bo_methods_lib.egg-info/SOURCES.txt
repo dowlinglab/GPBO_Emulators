@@ -1,0 +1,8 @@
+README.md
+setup.cfg
+setup.py
+bo_methods_lib/__init__.py
+bo_methods_lib.egg-info/PKG-INFO
+bo_methods_lib.egg-info/SOURCES.txt
+bo_methods_lib.egg-info/dependency_links.txt
+bo_methods_lib.egg-info/top_level.txt

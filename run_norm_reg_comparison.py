@@ -5,11 +5,9 @@ import pandas as pd
 import torch
 from datetime import datetime
 
-from bo_functions_generic import gen_theta_set
-from bo_functions_generic import clean_1D_arrays
-from CS2_bo_functions_multi_dim import bo_iter_w_runs
-from CS2_bo_functions_multi_dim import find_train_doc_path
-from CS2_bo_functions_multi_dim import set_ep
+import bo_methods_lib
+from bo_methods_lib.bo_functions_generic import gen_theta_set, clean_1D_arrays
+from bo_methods_lib.CS2_bo_functions_multi_dim import bo_iter_w_runs, find_train_doc_path, set_ep
 
 import matplotlib as mpl
 mpl.rcParams['figure.dpi'] = 300
