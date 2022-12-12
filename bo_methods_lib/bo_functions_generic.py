@@ -191,6 +191,7 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
     for i in range(len(mesh_combos)):
         #Set the indecies of theta_set to evaluate and plot as each row of mesh_combos
         indecies = mesh_combos[i]
+        p_True_new = np.array([p_True[indecies[0]], p_True[indecies[1]]])
         #Finds the name of the parameters that correspond to each index. There will only ever be 2 here since the purpose of the function called here is to plot in 2D
         param_names_list = [param_dict[indecies[0]], param_dict[indecies[1]]]
         #Concatenate test data and train data from indecie combination
@@ -211,12 +212,12 @@ def train_test_plot_preparation(param_dim, exp_data_dim, theta_set, train_p, tes
                 train_data_piece_j = torch.cat( (train_data_piece, torch.reshape(train_p[:,(param_dim-1) +(j+1)],(-1,1))), axis = 1 )       
                 test_data_piece_j = torch.cat( (test_data_piece, torch.reshape(test_p[:,(param_dim-1)+(j+1)],(-1,1))), axis = 1 )
                 #Plot training and testing data
-                plot_org_train(theta_set_piece,train_data_piece_j, test_data_piece_j, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact, normalize = normalize)
+                plot_org_train(theta_set_piece,train_data_piece_j, test_data_piece_j, p_True_new, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact, normalize = normalize)
         else:
             #Loop over each X dimension
             for j in range(exp_data_dim):
 #            #Plot training and testing data
-                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact, normalize = normalize)
+                plot_org_train(theta_set_piece,train_data_piece, test_data_piece, p_True_new, Xexp[:,j], emulator, sparse_grid, obj, ep0, len_scl, run, save_fig, param_names_list, tot_iters, tot_runs, DateTime, verbose, sep_fact = sep_fact, normalize = normalize)
     return 
 
 #This will need to change eventually

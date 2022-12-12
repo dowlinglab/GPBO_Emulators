@@ -287,11 +287,11 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
 #         plt.gca().axes.yaxis.set_ticklabels([])
         
         #plot training data, testing data, and true values
-        plt.scatter(train_p[:,0],train_p[:,1], color="green",s=50, label = "Training Data", marker = "x")
+        plt.scatter(train_p[:,0],train_p[:,1], color="green",s=50, label = "Training Data", marker = "x", zorder = 1)
         
-        plt.scatter(test_p[:,0],test_p[:,1], color="red",s=25, label = "Testing Data", marker = "x")
+        plt.scatter(test_p[:,0],test_p[:,1], color="red",s=25, label = "Testing Data", marker = "x", zorder = 2)
 
-        plt.scatter(p_true[0],p_true[1], color="blue", label = "True argmin" + r'$(e(\theta))$', s=100, marker = (5,1))
+        plt.scatter(p_true[0],p_true[1], color="blue", label = "True argmin" + r'$(e(\theta))$', s=100, marker = (5,1), zorder = 3)
         #Set plot details
         plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
 #         plt.legend(loc = "best")
@@ -314,7 +314,8 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
         x_space = Xexp
         len_x = len(x_space)
 
-        p_true_3D = np.repeat(p_true,len_x).reshape(-1,len_x).T
+        p_true_3D = np.tile(p_true, (len(Xexp),1))
+#         p_true_3D = np.repeat(p_true,len_x).reshape(-1,len_x).T
         p_true_3D_full = np.hstack((p_true_3D, x_space.reshape(len_x,-1)))
 #         print(p_true_3D_full)
         # Create the figure
@@ -336,15 +337,15 @@ def plot_org_train(test_set,train_p, test_p, p_true, Xexp, emulator, sparse_grid
 
     
         # Plot the values
-        ax.scatter(train_p[:,0], train_p[:,1], train_p[:,2], color = "green", s=50, label = "Training Data", marker='o')
+        ax.scatter(train_p[:,0], train_p[:,1], train_p[:,2], color = "green", s=50, label = "Training Data", marker='o', zorder = 1)
 #         if len(test_p) > 0:
 #             try:
-        ax.scatter(test_p[:,0],test_p[:,1], test_p[:,2], color="red", s=25, label = "Testing Data", marker = "x")
+        ax.scatter(test_p[:,0],test_p[:,1], test_p[:,2], color="red", s=25, label = "Testing Data", marker = "x", zorder = 2)
 #             except:
 #                 ax.scatter(test_p[0],test_p[1], test_p[2], color="red",s=25, label = "Testing Data", marker = "x")
             
         ax.scatter(p_true_3D_full[:,0], p_true_3D_full[:,1], p_true_3D_full[:,2], color="blue", label = "True argmin" + r'$(e(\theta))$', 
-                    s=100, marker = (5,1))
+                    s=100, marker = (5,1), zorder = 3)
         
         plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
         x_label = r'$\mathbf{'+ param_names_list[0] +'}$'
