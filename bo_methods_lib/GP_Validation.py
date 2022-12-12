@@ -17,8 +17,8 @@ from sklearn.model_selection import LeaveOneOut
 from .bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
 from .CS2_bo_plotters import save_csv, save_fig
     
-# from CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
-from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+# from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 
 ###Load data
 ###Get constants
@@ -51,8 +51,8 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         None, prints/saves graphs and sse numbers 
         
     """
-    #Define constants for dimensions of x (m), number of parameters to be regressed (q), and data length (t)
-    m = Xexp.shape[1]
+    #Define constants for dimensions of x (m), number of exp data points (n), number of parameters to be regressed (q), and data length (t)
+    n,m = Xexp.shape
     q = true_p.shape[0]
     t = len(all_data)
     
@@ -68,7 +68,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     y_model_stdev_tj_xj_list = []
     sse_GP_tj_xk_list = []
     sse_GP_tj_xj_list = []
-#     sse_GP_stdev_tj_xk_list = []
+    sse_GP_stdev_tj_xk_list = []
     sse_GP_stdev_tj_xj_list = []
     y_sim_tj_xk_list = []
     y_sim_tj_xj_list = []
@@ -114,21 +114,23 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         else:
             y_model_tj_xj, y_model_stdev_tj_xj, sse_GP_tj_xj, sse_GP_var_tj_xj, sse_GP_stdev_tj_xj  = eval_components 
             #Calculate the values using theta_j and Xexp_k
-            y_model_tj_xk, y_model_stdev_tj_xk, y_sim_tj_xk, sse_GP_tj_xk,  sse_y_sim_tj_xk = LOO_eval_GP_emulator_tj_xk(test_p_reshape, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose, skip_param_types, Case_Study)
-            
+            if test_index%n == 0: #For each set of UNIQUE theta_j
+                #If I want all n*t points, use: new_arr = [arr[i] for i in range(len(arr)) if i % n == 0] before plotting
+                y_model_tj_xk, y_model_stdev_tj_xk, y_sim_tj_xk, sse_GP_tj_xk,  sse_y_sim_tj_xk, sse_GP_stdev_tj_xk = LOO_eval_GP_emulator_tj_xk(test_p_reshape, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose, skip_param_types, Case_Study)
+                y_model_tj_xk_list.append(y_model_tj_xk)
+                y_model_stdev_tj_xk_list.append(y_model_stdev_tj_xk)
+                sse_GP_tj_xk_list.append(sse_GP_tj_xk)
+                y_sim_tj_xk_list.append(y_sim_tj_xk)
+                sse_y_sim_tj_xk_list.append(sse_y_sim_tj_xk)
+                sse_GP_stdev_tj_xk_list.append(sse_GP_stdev_tj_xk)
+                
             #Append data to lists as appropriate
             y_model_tj_xj_list.append(y_model_tj_xj)
-            y_model_tj_xk_list.append(y_model_tj_xk)
             y_model_stdev_tj_xj_list.append(y_model_stdev_tj_xj)
-            y_model_stdev_tj_xk_list.append(y_model_stdev_tj_xk)
             sse_GP_tj_xj_list.append(sse_GP_tj_xj)
-            sse_GP_tj_xk_list.append(sse_GP_tj_xk)
             sse_GP_stdev_tj_xj_list.append(sse_GP_stdev_tj_xj)
-            y_sim_tj_xj_list.append(data_test[:,-1])
-            y_sim_tj_xk_list.append(y_sim_tj_xk)
-            sse_y_sim_tj_xk_list.append(sse_y_sim_tj_xk)
-            
-            
+            y_sim_tj_xj_list.append(data_test[:,-1]) 
+              
 #         if test_index%50 ==0: #Can use to track completion visually in jupyter notebook runs
 #             print("Loop")
     
@@ -141,6 +143,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     sse_GP_tj_xk_list = np.array(sse_GP_tj_xk_list)
     sse_GP_tj_xj_list = np.array(sse_GP_tj_xj_list)
     sse_GP_stdev_tj_xj_list = np.array(sse_GP_stdev_tj_xj_list)
+    sse_GP_stdev_tj_xk_list = np.array(sse_GP_stdev_tj_xk_list)
     y_sim_tj_xk_list = np.array(y_sim_tj_xk_list)
     y_sim_tj_xj_list = np.array(y_sim_tj_xj_list)
     sse_y_sim_tj_xk_list = np.array(sse_y_sim_tj_xk_list)
@@ -156,22 +159,29 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         #Plot model vs sim sse
         LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure)
         
+        LOO_parity_plot_emul(sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, t, emulator, set_lengthscale, save_figure, plot_axis = None, plot_num = None)
+        
     else:        
         #Plot GP vs y_sim
         LOO_Plots_3_Input(index_list, y_model_tj_xj_list, y_sim_tj_xj_list, y_model_stdev_tj_xj_list, Case_Study, DateTime, set_lengthscale, save_figure)
         #Plot log(SSE) from GP(theta_j,Xexp) and y_sim(theta_j,Xexp)
-        LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, None, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
+        LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
+        
+        #Plot Parity plot for log(SSE)
+        LOO_parity_plot_emul(sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, t, emulator, set_lengthscale, save_figure, plot_axis = None, plot_num = None)
         
         #Loop over each axis
         for axis in plot_axis:
             #For each row or column of GP(theta_j, Xexp_k), make a parity plot between GP(theta_j, Xexp_k) and y_sim(theta_j, Xexp_k)
+#             print((y_model_tj_xk_list.shape, y_model_tj_xk_list.shape[axis]))
             for i in range(y_model_tj_xk_list.shape[axis]):   #Plot axis either 0 or 1
                 #If plot_axis == 0, plot on axis Xexp and have j graphs
                 if axis == 0: 
-                    LOO_parity_plot_emul(y_model_tj_xk_list[i,:], y_sim_tj_xk_list[i,:], y_model_stdev_tj_xk_list[i,:], Case_Study, DateTime, t, set_lengthscale, save_figure, axis, plot_num = i)
+                    test_data = all_data[int(i*n)]       
+                    LOO_parity_plot_emul(y_model_tj_xk_list[i,:], y_sim_tj_xk_list[i,:], y_model_stdev_tj_xk_list[i,:], Case_Study, DateTime, t, emulator, set_lengthscale, save_figure, axis, plot_num = i, title_arg = test_data[1:-m-1])
                 #If plot_axis == 1, plot on axis theta_j and have n graphs
-                else:
-                    LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, set_lengthscale, save_figure, axis, plot_num = i)
+                else:  
+                    LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, emulator, set_lengthscale, save_figure, axis, plot_num = i, title_arg = Xexp[i])
         
         #Print and save total sse value to CSV
         fxn = "LOO_Plots_3_Input"
@@ -442,11 +452,20 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
 
     #Compute GP SSE and SSE_sim for that point
     SSE_model = np.sum((GP_mean - Yexp)**2)
+    error_point = (GP_mean - Yexp) #This SSE_variance CAN be negative
+    SSE_var_GP = sum(2*error_point*model_variance) #Error Propogation approach
+    
     SSE_sim = np.sum((y_sim - Yexp)**2)
+    
+    #Ensure positive standard deviations are saved for plotting purposes
+    if SSE_var_GP > 0:
+        SSE_model_stdev = np.sqrt(SSE_var_GP)
+    else:
+        SSE_model_stdev = np.sqrt(np.abs(SSE_var_GP))
         
     GP_stdev = np.sqrt(GP_var)  
     
-    return GP_mean, GP_stdev, y_sim, SSE_model,  SSE_sim
+    return GP_mean, GP_stdev, y_sim, SSE_model, SSE_sim, SSE_model_stdev
 
 def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False):
     """ 
@@ -468,13 +487,21 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
     -------
         None
     """
+    #If emulator, change indecies of GP_mean to match actual indecies given that theta values are repeated n times
+    if emulator == True:
+        n = len(iter_space)/len(GP_mean)
+        iter_space = np.linspace(0,len(GP_mean), len(GP_mean))
+        iter_space = iter_space*n
+        t = int(len(iter_space)*n)
+    else:
+        t = len(iter_space)
     #Flatten GP mean to ensure smooth plotting
     GP_mean = GP_mean.flatten()
     
     #Define function, length of GP mean predictions (p), and number of tests (t)   
     p = GP_mean.shape[0]
     fxn = "LOO_Plots_2_Input"
-    t = len(iter_space)
+    
 
     # Compare the GP mean to the true model (simulated model)
     plt.figure(figsize = (6.4,4))
@@ -482,20 +509,22 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
 #     label = "$log(SSE_{model})$"
 
     #Only plot error bars if a standard deviation is given
-    if GP_stdev is not None:
-        GP_stdev = GP_stdev.flatten()
-        plt.errorbar(iter_space,np.log(GP_mean), fmt="o", yerr=1.96*GP_stdev, label = r'$\mathbf{log(e(\theta))_{model}}$', ms=10, zorder=1)
-    else:
-        plt.scatter(iter_space,np.log(GP_mean), label = r'$\mathbf{log(e(\theta))_{model}}$' , s=100, zorder=1)
-    plt.scatter(iter_space,np.log(sse_sim), label = r'$\mathbf{log(e(\theta))_{sim}}$' , s=50, color = "orange", zorder=2)
+#     print(GP_mean.shape, sse_sim.shape)
+    GP_stdev = GP_stdev.flatten()
+    GP_upper = np.log(GP_mean + GP_stdev)
+    GP_lower = np.log(GP_mean - GP_stdev)
+    y_err = np.array([GP_lower, GP_upper])
+#         yerr=1.96*GP_stdev
+    plt.errorbar(iter_space,np.log(GP_mean), fmt="o", yerr=y_err, label = r'$log(e(\theta))_{model}$', ms=10, zorder=1)
+    plt.scatter(iter_space,np.log(sse_sim), label = r'$log(e(\theta))_{sim}$' , s=50, color = "orange", zorder=2, marker = "*")
     
     #Set plot details        
 #     plt.legend(loc = "best")
-    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
+    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left", fontsize=16)
     plt.tight_layout()
 #     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
     plt.xlabel("Index", fontsize=16, fontweight='bold')
-    plt.ylabel(r'$\mathbf{log(e(\theta))}$', fontsize=16, fontweight='bold')
+    plt.ylabel("Natural Log Error", fontsize=16, fontweight='bold')
 
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
@@ -558,11 +587,11 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
     # Compare the GP Mean to the true model (simulated model ysim)
     plt.figure(figsize = (6.4,4))
     plt.errorbar(iter_space,GP_mean, fmt = "o", yerr = 1.96*GP_stdev, label = "$y_{model}$", ms=10, zorder =1 )
-    plt.scatter(iter_space,y_sim, label = "$y_{sim}$" , s=50, color = "orange", zorder=2)
+    plt.scatter(iter_space,y_sim, label = "$y_{sim}$" , s=50, color = "orange", zorder=2, marker = "*")
     
     #Set plot details        
 #     plt.legend(loc = "best")
-    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
+    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left", fontsize=16)
     plt.tight_layout()
 #     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
     plt.xlabel("Index", fontsize=16, fontweight='bold')
@@ -597,7 +626,7 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
         
     return
 
-def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0):
+def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emulator, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0, title_arg = "None"):
     """ 
     Creates parity plots of y_sim and y_model along axis for theta_j or Xexp
     Parameters
@@ -624,23 +653,41 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, set_
     
     #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj")
     fxn = "LOO_parity_plot_emul"
-    emulator = True
     p = GP_mean.shape[0]
     obj = "obj"
     
     #Create figure
     plt.figure(figsize = (6.4,4))
     # Compare the GP Mean to the true model (simulated model ysim)
-    plt.errorbar(y_sim,GP_mean, yerr=1.96*GP_stdev, fmt = "o", label = "$y_{model}$", ms=5 )
-    plt.plot(y_sim, y_sim, label = "$y_{sim}$" , zorder=1, color = "black")
+        #For sse calc lower and upper bound separately 
+    if emulator == True:
+        y_lab = "$y_{sim}$"
+        plt.errorbar(y_sim,GP_mean, yerr=1.96*GP_stdev, fmt = "s", label = "$y_{model}$", ms=5 )
+        plt.plot(y_sim, y_sim, label = y_lab , zorder=1, color = "black")
+    if emulator == False:
+        y_lab = r'$log(e(\theta))_{sim}$'
+        GP_upper = np.log(GP_mean + GP_stdev)
+        GP_lower = np.log(GP_mean - GP_stdev)
+        y_err = np.array([GP_lower, GP_upper])
+    #         yerr=1.96*GP_stdev
+        plt.errorbar(np.log(y_sim), np.log(GP_mean), fmt="o", yerr=y_err, label = r'$log(e(\theta))_{model}$', ms=10, zorder=1)
+        plt.plot(np.log(y_sim), np.log(y_sim), label = y_lab , zorder=1, color = "black")
 
     #Set plot details        
 #     plt.legend(loc = "best")
-    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
+    if plot_axis == 1:
+        plt.title("Xexp = " + str(np.round(title_arg,2)), fontsize=16, fontweight='bold')
+    elif plot_axis == 0:
+        plt.title(r'$\theta_{j}$' + "=" + str(np.round(title_arg,2)), fontsize=16, fontweight='bold')
+    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left", fontsize=16)
     plt.tight_layout()
 #     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
-    plt.xlabel(r'$\mathbf{y_{sim}}$', fontsize=16, fontweight='bold')
-    plt.ylabel("y value", fontsize=16, fontweight='bold')
+    if emulator == True:
+        plt.xlabel(r'$\mathbf{y_{sim}}$', fontsize=16, fontweight='bold')
+        plt.ylabel(r'$\mathbf{y_{model}}$', fontsize=16, fontweight='bold')
+    else:
+        plt.xlabel("Simulated Natural Log Error", fontsize=16, fontweight='bold')
+        plt.ylabel("Model Natural Log Error", fontsize=16, fontweight='bold')
 
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
@@ -651,10 +698,15 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, set_
     plt.tick_params(which="minor",direction="in",top=True, right=True)
 
     #Save CSVs
-    GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = "/y_model")
-    y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = "/y_sim")
-    csv_item_list = [GP_mean, y_sim]
-    make_csv_list = [GP_mean_path, y_sim_path]
+    if plot_axis == None:
+        csv_ends = ["/y_model", "/y_sim", "/y_stdev"]
+    else:
+        csv_ends = ["/sse_model", "/sse_sim", "/sse_gp_stdev"]
+    GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[0])
+    y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[1] )
+    y_stdev_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[2] )
+    csv_item_list = [GP_mean, y_sim, GP_stdev]
+    make_csv_list = [GP_mean_path, y_sim_path, y_stdev_path]
 
     for i in range(len(make_csv_list)):
         save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
@@ -697,8 +749,12 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
     len_scl = "/len_scl_varies"
     org_TP_str = "/TP_"+ str(t)
     CS = "/CS_" + str(Case_Study) 
-    parity_end = "/axis_val_" +str(plot_axis) + "/plot_num_" + str(plot_num).zfill(len(str(t)))
-
+    
+    if plot_axis == 1 or plot_axis == 0:
+        parity_end = "/axis_val_" +str(plot_axis) + "/plot_num_" + str(plot_num).zfill(len(str(t)))
+    else:
+        parity_end = "/sse_parity_plot"
+        
     if emulator == False:
         Emulator = "/GP_Error_Emulator"
         method = ""
@@ -712,7 +768,7 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
 #         path_org = "../"+DateTime #Will send to the Datetime folder outside of CS1
         path_org = DateTime #Will send to the Datetime folder outside of CS1
     else:
-        path_org = "Test_Figs"
+        path_org = "Test_Figs_GP_Val"
         
 #         path_org = "Test_Figs"+"/Sep_Analysis2"+"/Figures"
     if is_figure == True:

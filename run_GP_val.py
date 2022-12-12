@@ -14,6 +14,10 @@ from bo_methods_lib.bo_functions_generic import gen_theta_set, find_train_doc_pa
 
 import matplotlib as mpl
 
+#Filter out Runtime warnings caused by taking the log of negative numbers
+import warnings
+warnings.simplefilter("ignore", category=RuntimeWarning)
+
 #Set Date and Time
 dateTimeObj = datetime.now()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
@@ -34,7 +38,7 @@ Constants = np.array([[-200,-100,-170,15],
                       [1,0,-0.5,-1],
                       [0,0.5,1.5,1]])
 
-CS = Case_Study[1]
+CS = Case_Study[0]
 if CS == 2.2:
     skip_param_types = 1 #This is what changes for subpoint
     true_p = Constants[skip_param_types:skip_param_types+2].flatten()
