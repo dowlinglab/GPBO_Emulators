@@ -159,7 +159,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         #Plot model vs sim sse
         LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure)
         
-        LOO_parity_plot_emul(sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, t, emulator, set_lengthscale, save_figure, plot_axis = None, plot_num = None)
+        LOO_parity_plot_emul(sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None)
         
     else:        
         #Plot GP vs y_sim
@@ -168,7 +168,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator)
         
         #Plot Parity plot for log(SSE)
-        LOO_parity_plot_emul(sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, t, emulator, set_lengthscale, save_figure, plot_axis = None, plot_num = None)
+        LOO_parity_plot_emul(sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None)
         
         #Loop over each axis
         for axis in plot_axis:
@@ -178,10 +178,10 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
                 #If plot_axis == 0, plot on axis Xexp and have j graphs
                 if axis == 0: 
                     test_data = all_data[int(i*n)]       
-                    LOO_parity_plot_emul(y_model_tj_xk_list[i,:], y_sim_tj_xk_list[i,:], y_model_stdev_tj_xk_list[i,:], Case_Study, DateTime, t, emulator, set_lengthscale, save_figure, axis, plot_num = i, title_arg = test_data[1:-m-1])
+                    LOO_parity_plot_emul(y_model_tj_xk_list[i,:], y_sim_tj_xk_list[i,:], y_model_stdev_tj_xk_list[i,:], Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, axis, plot_num = i, title_arg = test_data[1:-m-1])
                 #If plot_axis == 1, plot on axis theta_j and have n graphs
                 else:  
-                    LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, emulator, set_lengthscale, save_figure, axis, plot_num = i, title_arg = Xexp[i])
+                    LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, axis, plot_num = i, title_arg = Xexp[i])
         
         #Print and save total sse value to CSV
         fxn = "LOO_Plots_3_Input"
@@ -626,7 +626,7 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
         
     return
 
-def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emulator, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0, title_arg = "None"):
+def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emulator, obj, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0, title_arg = "None"):
     """ 
     Creates parity plots of y_sim and y_model along axis for theta_j or Xexp
     Parameters
@@ -654,7 +654,6 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emul
     #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj")
     fxn = "LOO_parity_plot_emul"
     p = GP_mean.shape[0]
-    obj = "obj"
     
     #Create figure
     plt.figure(figsize = (6.4,4))

@@ -6,10 +6,7 @@ import torch
 from datetime import datetime
 from scipy.stats import qmc
 
-from GP_Validation import LOO_Analysis
-# from CS2_create_data import calc_y_exp
-# from CS1_create_data import calc_y_exp
-import bo_methods_lib
+from bo_methods_lib.GP_Validation import LOO_Analysis
 from bo_methods_lib.bo_functions_generic import gen_theta_set, find_train_doc_path, set_ep, clean_1D_arrays
 
 import matplotlib as mpl
