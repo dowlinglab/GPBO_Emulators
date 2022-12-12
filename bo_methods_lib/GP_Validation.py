@@ -626,7 +626,7 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
         
     return
 
-def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emulator, obj, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0, title_arg = "None"):
+def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emulator, obj, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0, title_arg = "None", save_csv = True):
     """ 
     Creates parity plots of y_sim and y_model along axis for theta_j or Xexp
     Parameters
@@ -658,12 +658,12 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emul
     #Create figure
     plt.figure(figsize = (6.4,4))
     # Compare the GP Mean to the true model (simulated model ysim)
-        #For sse calc lower and upper bound separately 
-    if emulator == True:
+    #Plot y_sim vs y_GP for axis plots or plot log(sse_sim) vs log(sse_GP)
+    if plot_axis != None:
         y_lab = "$y_{sim}$"
-        plt.errorbar(y_sim,GP_mean, yerr=1.96*GP_stdev, fmt = "s", label = "$y_{model}$", ms=5 )
+        plt.errorbar(y_sim,GP_mean, yerr=1.96*GP_stdev, fmt = "o", label = "$y_{model}$", ms=5 )
         plt.plot(y_sim, y_sim, label = y_lab , zorder=1, color = "black")
-    if emulator == False:
+    else:
         y_lab = r'$log(e(\theta))_{sim}$'
         GP_upper = np.log(GP_mean + GP_stdev)
         GP_lower = np.log(GP_mean - GP_stdev)
@@ -681,7 +681,7 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emul
     plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left", fontsize=16)
     plt.tight_layout()
 #     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
-    if emulator == True:
+    if plot_axis != None:
         plt.xlabel(r'$\mathbf{y_{sim}}$', fontsize=16, fontweight='bold')
         plt.ylabel(r'$\mathbf{y_{model}}$', fontsize=16, fontweight='bold')
     else:
@@ -697,18 +697,19 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emul
     plt.tick_params(which="minor",direction="in",top=True, right=True)
 
     #Save CSVs
-    if plot_axis == None:
-        csv_ends = ["/y_model", "/y_sim", "/y_stdev"]
-    else:
-        csv_ends = ["/sse_model", "/sse_sim", "/sse_gp_stdev"]
-    GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[0])
-    y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[1] )
-    y_stdev_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[2] )
-    csv_item_list = [GP_mean, y_sim, GP_stdev]
-    make_csv_list = [GP_mean_path, y_sim_path, y_stdev_path]
+    if save_csv == True:
+        if plot_axis == None:
+            csv_ends = ["/y_model", "/y_sim", "/y_stdev"]
+        else:
+            csv_ends = ["/sse_model", "/sse_sim", "/sse_gp_stdev"]
+        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[0])
+        y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[1] )
+        y_stdev_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[2] )
+        csv_item_list = [GP_mean, y_sim, GP_stdev]
+        make_csv_list = [GP_mean_path, y_sim_path, y_stdev_path]
 
-    for i in range(len(make_csv_list)):
-        save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
+        for i in range(len(make_csv_list)):
+            save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
 
     #Save figure or show and close figure
     if save_figure == True:
@@ -753,6 +754,7 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
         parity_end = "/axis_val_" +str(plot_axis) + "/plot_num_" + str(plot_num).zfill(len(str(t)))
     else:
         parity_end = "/sse_parity_plot"
+
         
     if emulator == False:
         Emulator = "/GP_Error_Emulator"
