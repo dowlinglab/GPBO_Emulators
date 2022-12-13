@@ -322,7 +322,7 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator =
 #         print(norm_scalers)
         norm = False
         CS = 2.2
-        
+        train_p_unscl = train_p.clone()
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
         true_model_coefficients_unscl = normalize_constants(true_model_coefficients, true_p_shape, scaler_theta, skip_param_types, CS, norm, scaler_C_before, scaler_C_after)[0]
 #         train_p_unscl = normalize_p_data(train_p, scaler_theta, norm)[0]
