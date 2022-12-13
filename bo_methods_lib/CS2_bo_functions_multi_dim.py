@@ -18,8 +18,8 @@ import Tasmanian
 
 #Notes: Change line below when changing test problems: 
 # If line 21 is active, the 8D problem is used, if line 22 is active, the 2D problem is used
-from .CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
-# from .CS1_create_data import create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
+# from .CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
+from .CS1_create_data import create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
 
 from .bo_functions_generic import LHS_Design, set_ep, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays, norm_unnorm
 
@@ -1041,20 +1041,13 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
            
         #Save unnormalized theta_best and theta_opt values for iteration. Print values if verbose is true
         if normalize == False:
-            All_Theta_Best[i], All_Theta_Opt[i] = theta_b, theta_o
-            if verbose == True:
-                print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o_unscl, "is", "{:.4e}".format(ln_error_mag))
-                print("Scipy Theta Best = ",theta_b)
-                print("Scipy Theta Opt = ",theta_o)
+            theta_b_unscl, theta_o_unscl = theta_b, theta_o
+            All_Theta_Best[i], All_Theta_Opt[i] = theta_b_unscl, theta_o_unscl
         else:
             scaler_theta = norm_scalers[1]
             theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm= False)
             theta_o_unscl = normalize_p_true(theta_o, scaler_theta, norm= False)
             All_Theta_Best[i], All_Theta_Opt[i] = theta_b_unscl, theta_o_unscl
-            if verbose == True:
-                print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o_unscl, "is", "{:.4e}".format(ln_error_mag))
-                print("Scipy Theta Best = ",theta_b_unscl)
-                print("Scipy Theta Opt = ",theta_o_unscl)
         
         #Calculate values of y given the GP optimal theta values
         if case_study == 1:
@@ -1063,7 +1056,12 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             y_GP_Opt = gen_y_Theta_GP(Xexp, theta_o, true_model_coefficients, Theta_True, case_study, skip_param_types, norm_scalers, emulator)
         
         #Calculate GP SSE and save value
-        ln_error_mag = np.log(np.sum((y_GP_Opt-Yexp)**2)) #Should SSE be calculated like this or should we use the GP approximation?
+        ln_error_mag = np.log(np.sum((y_GP_Opt-Yexp)**2)) 
+        
+        if verbose == True:
+            print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o_unscl, "is", "{:.4e}".format(ln_error_mag))
+            print("Scipy Theta Best = ",theta_b_unscl)
+            print("Scipy Theta Opt = ",theta_o_unscl)
         
 #       sse_opt = eval_GP_scipy(theta_o, train_p, Xexp,Yexp, theta_mesh, model, likelihood, emulator, sparse_grid, explore_bias, ei_sse_choice = "sse", verbose = False)
 #         ln_error_mag = sse_opt
@@ -1074,10 +1072,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         if i == 0:
         #At the first iteration, the minimum SSE is the only SSE and the min theta is the first theta
             All_SSE_abs_min[i] = ln_error_mag
-            if normalize == False:
-                All_Theta_abs_Opt[i] = theta_o
-            else:
-                All_Theta_abs_Opt[i] = theta_o_unscl
+            All_Theta_abs_Opt[i] = theta_o_unscl
             improvement = False
 #             All_SSE_abs_min[i] = sse_opt
         #Otherwise, the minimum SSE and theta_o that correspond are determined by the ln_error_mag
@@ -1085,10 +1080,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         #If ln_error_mag is smaller than before it is the new best value, otherwise it remains the same
             if All_SSE_abs_min[i-1] >= ln_error_mag:
                 All_SSE_abs_min[i] = ln_error_mag
-                if normalize == False:
-                    All_Theta_abs_Opt[i] = theta_o
-                else:
-                    All_Theta_abs_Opt[i] = theta_o_unscl
+                All_Theta_abs_Opt[i] = theta_o_unscl
                 improvement = True
             else: 
                 All_SSE_abs_min[i] = All_SSE_abs_min[i-1]
@@ -1266,6 +1258,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
             train_p_scl, test_p_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl = norm_vals
             scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
 #             print(test_p_scl)
+#             print(normalize_p_scl)
             
             #Run BO Iteration
             BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients_scl, param_dict, verbose, save_fig, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)

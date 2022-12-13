@@ -205,11 +205,12 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
     """
     #clean x_space to shape (len(Xexp),1)
     x_space = clean_1D_arrays(x_space)
+    m = x_space.shape[1]
+    q = Theta.shape[0]
     
     #Unscale Data
     if str(norm_scalers) != "None":
         norm = False
-        m = x_space.shape[0]
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
         Theta_unscl = normalize_p_set(clean_1D_arrays(Theta, param_clean = True), scaler_theta, norm)[0]
         x_space_unscl = normalize_x(x_space, m, x_space, emulator, norm, scaler_x)[0]
@@ -218,10 +219,7 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
     else:
         Theta_use = Theta
         x_space_use = x_space
-    
-    m = x_space.shape[1]
-    q = Theta.shape[0]
-    
+        
     #Define dimensions of GP (dim) and the number of experimental data (lenX), and initialize parameter matricies
     dim = q+m
     lenX = x_space.shape[0]

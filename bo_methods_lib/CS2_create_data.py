@@ -319,7 +319,6 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator =
 
     #Unscale Data for data generation
     if str(norm_scalers) != "None":
-#         print(norm_scalers)
         norm = False
         CS = 2.2
         train_p_unscl = train_p.clone()
