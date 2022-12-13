@@ -228,7 +228,7 @@ def create_y_data(param_space, true_model_coefficients, x, skip_param_types = 0,
    
     return y_sim
 
-def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0, norm_scalers = None):
+def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, p_true, CS, skip_param_types = 0, norm_scalers = None, emulator = True):
 # def gen_y_Theta_GP(x_space, Theta):
     """
     Generates an array of Best Theta Value and X to create y data
@@ -257,15 +257,17 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
         norm = False
         m = x_space.shape[0]
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
-        true_model_coefficients_unscl = normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm, scaler_C_before, scaler_C_after)[0]
+        true_model_coefficients_unscl = normalize_constants(true_model_coefficients, p_true, scaler_theta, skip_param_types, CS, norm, scaler_C_before, scaler_C_after)[0]
         Theta_unscl = normalize_p_set(clean_1D_arrays(Theta, param_clean = True), scaler_theta, norm)[0]
         x_space_unscl = normalize_x(x_space, m, x_space, emulator, norm, scaler_x)[0]
+        
         Theta_use = Theta_unscl
         x_space_use = x_space_unscl
+        true_model_coefficients_use = true_model_coefficients_unscl
     else:
         Theta_use = Theta
         x_space_use = x_space
-        true_model_coefficients_use = true_model_coefficients_unscl
+        true_model_coefficients_use = true_model_coefficients
     
     m = x_space.shape[1]
     q = Theta.shape[0]
@@ -372,7 +374,10 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
     """
     #Note train_p is already unscaled
     #Unscale for Data Generation
-    q = train_p.shape[1] - Xexp.shape[1]
+    if emulator == True:
+        q = train_p.shape[1] - Xexp.shape[1]
+    else:
+        q = train_p.shape[1]
     true_p_shape = np.zeros(q)
     
     if str(norm_scalers) != "None":
@@ -383,7 +388,7 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
         theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm)
         Xexp_unscl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
-        true_model_coefficients_unscl = normalize_constants(Constants, true_p_shape, scaler_theta, skip_param_types, CS, norm, scaler_C_before, scaler_C_after)[0]
+        true_model_coefficients_unscl = normalize_constants(true_model_coefficients, true_p_shape, scaler_theta, skip_param_types, CS, norm, scaler_C_before, scaler_C_after)[0]
         theta_b_use = theta_b_unscl
         Xexp_use = Xexp_unscl
         true_model_coefficients_use = true_model_coefficients_unscl
