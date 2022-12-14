@@ -213,7 +213,7 @@ def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, skip_param_types = 0
         norm = False
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
         Theta_unscl = normalize_p_set(clean_1D_arrays(Theta, param_clean = True), scaler_theta, norm)[0]
-        x_space_unscl = normalize_x(x_space, m, x_space, emulator, norm, scaler_x)[0]
+        x_space_unscl = normalize_x(x_space, None, norm, scaler_x)[0]
         Theta_use = Theta_unscl
         x_space_use = x_space_unscl
     else:
@@ -270,9 +270,9 @@ def eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator=T
         train_p_unscl = train_p.clone()
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
 #         train_p_unscl = normalize_p_set(train_p, scaler_theta, norm)
-        train_p_unscl[:,0:-m] = normalize_p_data(train_p[:,0:-m], m, emulator, norm, scaler_theta)[0] 
-        train_p_unscl[:,-m:] = normalize_x(train_p[:,-m:], m, Xexp, emulator, norm, scaler_x)[0]
-        Xexp_unscl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
+        train_p_unscl[:,0:-m] = normalize_p_data(train_p[:,0:-m], m, emulator, norm, scaler_theta) 
+        train_p_unscl[:,-m:] = normalize_x(Xexp, train_p[:,-m:], norm, scaler_x)[0]
+        Xexp_unscl = normalize_x(Xexp, None, norm, scaler_x)[0]
         train_p_use = train_p_unscl
         Xexp_use = Xexp_unscl
     else:
@@ -321,7 +321,7 @@ def make_next_point(train_p, train_y, theta_b, Xexp, Yexp, emulator, true_model_
         norm = False
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
         theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm)
-        Xexp_unscl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
+        Xexp_unscl = normalize_x(Xexp, None, norm, scaler_x)[0]
         theta_b_use = theta_b_unscl
         Xexp_use = Xexp_unscl
     else:

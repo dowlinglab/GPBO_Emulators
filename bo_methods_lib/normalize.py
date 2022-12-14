@@ -3,15 +3,16 @@ import numpy as np
 import torch
 from .bo_functions_generic import clean_1D_arrays, norm_unnorm
 
-def normalize_general(bounds, train_p, test_p, Xexp, theta_set, Theta_True, true_model_coefficients, emulator, skip_param_types, case_study):
+def normalize_general(bounds_p, train_p, test_p, bounds_x, Xexp, theta_set, Theta_True, true_model_coefficients, emulator, skip_param_types, case_study):
     """
     normalizes many constants at once
     
     Parameters:
     -----------
-        bounds: ndarray, The bounds for searching for Theta_True.
+        bounds_p: ndarray, The bounds for searching for Theta_True.
         train_p: tensor or ndarray, The training parameter space data
         test_p: tensor, or ndarray, The testing parameter space data
+        bounds_x: ndarray, The bounds for Xexp
         Xexp: ndarray, The list of xs that will be used to generate y
         theta_set: ndarray (len_set x dim_param), array of Theta values
         Theta_True: ndarray, The array containing the true values of theta values (must be 1D)
@@ -42,55 +43,51 @@ def normalize_general(bounds, train_p, test_p, Xexp, theta_set, Theta_True, true
         test_p_scl = test_p.copy()
     
     #Normalize Parameter Bounds, always emulator = False always since bounds do no include state points
-    bounds_scl, scaler_theta = normalize_p_data(bounds, m, False, norm)
+    bounds_p_scl, scaler_theta = normalize_p_bounds(bounds_p, norm)
+    
+    #Normalize x bounds and X
+    bounds_x_scl, scaler_x = normalize_x(bounds_x, norm = norm)
+    Xexp_scl = normalize_x(Xexp, None, norm, scaler_x)[0]
         
     if emulator == True:
-    #Overwrite x_data in train_p w/ normalized values
-#         print(type(test_p[:,-m:]), type(train_p[:,-m:]))
-        train_p_scl[:,-m:], scaler_x = normalize_x(train_p[:,-m:], m, Xexp, emulator, norm)
-        #Normalize Xexp data
-        Xexp_scl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
+        #Overwrite x_data in train_p w/ normalized values
+        train_p_scl[:,-m:] = normalize_x(Xexp, train_p[:,-m:], norm, scaler_x)[0]
         #Normalize train_p data
-        train_p_scl[:,0:-m] = normalize_p_data(train_p, m, emulator, norm)[0]
+        train_p_scl[:,0:-m] = normalize_p_data(train_p, m, emulator, norm, scaler_theta)
         #normalize testing data if there is any
         if test_p.shape[0] >= 1:
-            test_p_scl[:,-m:] = normalize_x(test_p[:,-m:], m, Xexp, emulator, norm, scaler_x)[0]
-            test_p_scl[:,0:-m] = normalize_p_data(test_p, m, emulator, norm, scaler_theta)[0]
-    else:
-        #Normalize x data with Xexp if there is no X training data
-        Xexp_scl, scaler_x = normalize_x(Xexp, m, Xexp, emulator, norm)
+            test_p_scl[:,-m:] = normalize_x(Xexp, test_p[:,-m:], norm, scaler_x)[0]
+            test_p_scl[:,0:-m] = normalize_p_data(test_p, m, emulator, norm, scaler_theta)
+    else:   
         #Normalize train_p data
-        train_p_scl = normalize_p_data(train_p, m, emulator, norm)[0]
+        train_p_scl = normalize_p_data(train_p, m, emulator, norm, scaler_theta)
         #normalize testing data if there is any
         if test_p.shape[0] >= 1:
-            test_p_scl = normalize_p_data(test_p, m, emulator, norm)[0]
+            test_p_scl = normalize_p_data(test_p, m, emulator, norm, scaler_theta)
 
     #Overwrite theta values with normalized values in theta_set, p_true, and constants
     theta_set_scl = normalize_p_set(theta_set, scaler_theta, norm)
     Theta_True_scl = normalize_p_true(Theta_True, scaler_theta, norm)
 #     print(true_model_coefficients, Theta_True)
-    true_model_coefficients_scl, scaler_C_before, scaler_C_after  = normalize_constants(true_model_coefficients, Theta_True,
-                                                                                    scaler_theta, skip_param_types,
-                                                                                    case_study, norm)
+    true_model_coefficients_scl, scaler_C_before, scaler_C_after  = normalize_constants(true_model_coefficients, Theta_True, scaler_theta, skip_param_types, case_study, norm)
+    
     #Define list of normalized values and scalers used to normalize the values and return them
-    norm_vals_and_scalers = [bounds_scl, train_p_scl, test_p_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl, scaler_x, scaler_theta, scaler_C_before, scaler_C_after]
-    norm_vals = norm_vals_and_scalers[:7]
-    norm_scalers = norm_vals_and_scalers[7:]
+    norm_vals_and_scalers = [bounds_p_scl, train_p_scl, test_p_scl, bounds_x_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl, scaler_x, scaler_theta, scaler_C_before, scaler_C_after]
+    norm_vals = norm_vals_and_scalers[:8]
+    norm_scalers = norm_vals_and_scalers[8:]
     
     #norm_vals, norm_scalers = np.split(norm_vals_and_scalers, [6])
     
     return  norm_vals, norm_scalers
 
-def normalize_x(x_vals, m, Xexp, emulator, norm = True, scaler = None):
+def normalize_x(X_val, train_p_x = None, norm = True, scaler = None):
     """
     Normalizes or unnormalizes x data from training/testing data and experimental data
     
     Parameters
     ----------
-        x_vals: ndarray, x_values to normalize from training/testing data or Xexp when standard approaches are used
-        m: int, dimensionality of x data
-        Xexp: ndarraay, experimental x values
-        emulator: bool, whether GP is emulating fxn or error
+        X_val: ndarray, experimental x values (Xexp) or Xexp bounds
+        train_p_x: ndarray or None, x_values to normalize from train/test data or Xexp when standard approaches are used. Default None
         norm: bool, whether the value will be normalized to 0 and 1 (True) or from 0 and 1 (False). Default True
         scaler: None or MinMaxScaler(), used to un-normalize data or normalize data based on another sets normalization
         
@@ -100,14 +97,17 @@ def normalize_x(x_vals, m, Xexp, emulator, norm = True, scaler = None):
         scaler_x: MinMaxScaler(), scaler used to obtain these values
     """
     #Change 1D array to 2S with shape (len(X),1)
-    x_vals = clean_1D_arrays(x_vals)
-    if emulator == True:
-        #If using emulator approach, scale x data using x training data
-        x_scl, scaler_x = norm_unnorm(x_vals, norm, scaler)
-#         x_scl, scaler_x = norm_unnorm(x_vals[:,-m:], norm, scaler)
+    X_val = clean_1D_arrays(X_val)
+    #Changes train_p values if they exist 
+    if train_p_x is not None:
+        train_p_x = clean_1D_arrays(train_p_x)
+        #If scaling train_p_x data, scale x data using x training data
+        x_scl, scaler_x = norm_unnorm(train_p_x, norm, scaler)
+        
     else:
-        #If not using emulator approach, scale x data using experimental x data
-        x_scl, scaler_x = norm_unnorm(Xexp, norm, scaler)
+        #Scale x data using experimental x data
+        x_scl, scaler_x = norm_unnorm(X_val, norm, scaler)
+#     print(x_scl)
     return x_scl, scaler_x
 
 def normalize_p_data(param_vals_data, m, emulator, norm = True, scaler = None):
@@ -137,6 +137,28 @@ def normalize_p_data(param_vals_data, m, emulator, norm = True, scaler = None):
     else:
          #If using standard approach overwrite scaled/normal values with normal/scaled values
         param_data_scl, scaler_theta = norm_unnorm(param_vals_data, norm, scaler)
+    return param_data_scl
+
+def normalize_p_bounds(bounds_p, norm = True, scaler = None):
+    """
+    Normalizes or unnormalizes parameter data from training/testing data
+    
+    Parameters
+    ----------
+        param_vals_data: ndarray, parameter values to normalize from training/testing data
+        m: int, dimensionality of x data
+        emulator: bool, whether GP is emulating fxn or error
+        norm: bool, whether the value will be normalized to 0 and 1 (True) or from 0 and 1 (False). Default True
+        scaler: None or MinMaxScaler(), used to un-normalize data or normalize data based on another sets normalization
+        
+    Returns
+    -------
+        param_data_scl: ndarray, rescaled values of x
+        scaler_theta: MinMaxScaler(), scaler used to obtain these values
+    """
+    #Overwite scaled/normal values with normal/scaled values for bounds
+    param_data_scl, scaler_theta = norm_unnorm(bounds_p, norm, scaler)
+    
     return param_data_scl, scaler_theta
 
 def normalize_p_set(p_set, scaler_theta, norm = True):

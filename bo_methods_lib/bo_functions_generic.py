@@ -40,11 +40,11 @@ def norm_unnorm(X, norm = True, scaler = None):
     
     #Normalize or unnormalize data
     if norm == True:
-        if scaler == None:
+        if scaler is None:
             scaler =  MinMaxScaler()
             scaler.fit(X)
         X = scaler.transform(X)
-    elif norm == False and scaler != None:
+    elif norm == False and scaler is not None:
         X = scaler.inverse_transform(X)
     
     #Make scaled data a tensor if it went into the function as a tensor

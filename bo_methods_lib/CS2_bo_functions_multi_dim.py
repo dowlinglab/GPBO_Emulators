@@ -18,17 +18,17 @@ import Tasmanian
 
 #Notes: Change line below when changing test problems: 
 # If line 21 is active, the 8D problem is used, if line 22 is active, the 2D problem is used
-# from .CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
-from .CS1_create_data import create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
+from .CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
+# from .CS1_create_data import create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
 
 from .bo_functions_generic import LHS_Design, set_ep, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays, norm_unnorm
 
-from .normalize import normalize_x, normalize_p_data, normalize_p_set, normalize_p_true, normalize_constants, normalize_general
+from .normalize import normalize_x, normalize_p_data, normalize_p_set, normalize_p_true, normalize_constants, normalize_general, normalize_p_bounds
 
 from .CS2_bo_plotters import value_plotter, plot_xy, plot_Theta, plot_Theta_min, plot_obj, plot_obj_abs_min, plot_3GP_performance, plot_sep_fact_min, save_fig, save_csv, path_name, plot_EI_abs_max, save_misc_data
 # from CS2_bo_plotters import plot_org_train
 
-def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, skip_param_types = 0, norm_scalers = None):
+def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, bounds_p, skip_param_types = 0, norm_scalers = None):
     """
     Finds the lowest sse and highest EI parameter sets using scipy
     
@@ -62,11 +62,11 @@ def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, 
     theta0_b, theta0_o = find_opt_and_best_arg(theta_set, sse, ei, train_p)
 #     print(theta0_b, theta0_o)
     #Use scipy to find the true values of theta_b and theta_o
-    theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj, skip_param_types, norm_scalers)
+    theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj, bounds_p, skip_param_types, norm_scalers)
 #     print(theta_b, theta_o)
     return theta_b, theta_o
 
-def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, sep_fact = 1, skip_param_types = 0, normalize = False, norm_scalers = None):
+def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, bounds_p, sep_fact = 1, skip_param_types = 0, normalize = False, norm_scalers = None):
     """
     Evaluates all combinations of theta pairs to make heat maps
     
@@ -232,9 +232,11 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2', '\sigma', 'Best_Error', 'GP Mean', 'GP Variance']  
         titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error", "GP_Mean", "GP_Var"] 
     
+    #Create train_p_unscl
+    train_p_unscl = train_p.clone()
+    
     #Unscale data before plotting if necessary
-    if normalize == True:
-        train_p_unscl = train_p.clone()
+    if normalize == True: 
         #Norm = False will unscale data
         norm = False
         #Unpack scalers
@@ -246,10 +248,10 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         Theta_True = normalize_p_true(Theta_True, scaler_theta, norm)
         #Ensure that only parameter value columns in train_p will be plotted. Since everything after this is redefining or plotting, train_p is simply redefined if the emulator approach is being used
         if emulator == True:
-            train_p_unscl[:,0:-dim_x] = normalize_p_data(train_p[:,0:-dim_x], dim_x, emulator, norm, scaler_theta)[0]
-            train_p_unscl[:,-dim_x:] = normalize_x(train_p[:,-dim_x:], dim_x, Xexp, emulator, norm, scaler_x)[0]
+            train_p_unscl[:,0:-dim_x] = normalize_p_data(train_p[:,0:-dim_x], dim_x, emulator, norm, scaler_theta)
+            train_p_unscl[:,-dim_x:] = normalize_x(Xexp, train_p[:,-dim_x:], norm, scaler_x)[0]
         else:
-            train_p_unscl  = normalize_p_data(train_p, dim_x, emulator, norm, scaler_theta)[0]
+            train_p_unscl  = normalize_p_data(train_p, dim_x, emulator, norm, scaler_theta)
             
     #Generate meshgrid and theta_set from unnormalized meshgrid 
     Theta1_lin = np.linspace(np.min(theta_set_org[:,indecies[0]]),np.max(theta_set_org[:,indecies[0]]), n_points)
@@ -349,7 +351,6 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
     # Loop over theta 1
     for i in range(len_set):
         #Caclulate best error and initialize arrays to store GP mean and variance in
-#         print(norm_scalers)
         best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator, "obj", skip_param_types, norm_scalers)
 #         print(best_error)
         GP_mean = np.zeros(n)
@@ -413,7 +414,7 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
     
     if verbose == True:
         print(EI)
-    
+
     return EI, SSE, SSE_var_GP, SSE_stdev_GP, best_error, GP_mean_all, GP_var_all
 
 def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0, verbose = False):
@@ -683,7 +684,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
         ei = 0
         sse = 0
         #Caclulate best error
-#         print(Xexp, train_p, true_model_coefficients)
+#         print(Xexp, train_p[0:5], true_model_coefficients)
         best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator, "obj", skip_param_types, norm_scalers)
         GP_mean = np.zeros(n)
         GP_stdev = np.zeros(n)
@@ -726,7 +727,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
 #         print("sse chosen")
         return sse #We want to minimize sse or ln(sse)
 
-def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj, skip_param_types = 0, norm_scalers = None):
+def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj, bounds_p, skip_param_types = 0, norm_scalers = None):
     """
     Finds the Theta value where min(sse) or min(-ei) is true using scipy.minimize and the L-BFGS-B method
     
@@ -763,16 +764,19 @@ def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,
     
     #Define dimensionality (q) and length (len_set) of theta_set
     len_set, q = theta_set.shape[0], theta_set.shape[1]
-    bnds = np.zeros((q,2)) #Upper and lower bound for each dimension
     
-    #Define bounds for eave column in theta_set
-    #What's a better way to set these bounds
-    for i in range(q):
-#         bnds[i] = np.amin(theta_set[:,i]), np.amax(theta_set[:,i])
-        bnds[i] = np.amin(train_p[:,i].detach().numpy()), np.amax(train_p[:,i].detach().numpy())
-    print(bnds)
-        
-#     bnds = [[np.amin(theta1_mesh), np.amax(theta1_mesh)], [np.amin(theta2_mesh), np.amax(theta2_mesh)]]
+    #Define bounds for each column in theta_set (each parameter)
+    #If X is one dimensional, reshape it to the correct dimensions)
+    if bounds_p.shape[1] == 1:
+        bnds = bnds.reshape((q,2))
+    
+    #Un-normalize values if necessary and transpose bounds to get into correct form
+    if norm_scalers is not None:
+        scaler_x, scaler_theta, scaler_C_before, scaer_C_after = norm_scalers
+        bounds_p = normalize_p_bounds(bounds_p, norm, scaler_theta)[0]
+        bnds = bounds_p.T
+    else:
+        bnds = bounds_p.T   
     
     #Use L-BFGS Method with scipy.minimize to find theta_opt and theta_best
     #Either minimizing negative ei or sse
@@ -854,7 +858,7 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
     
     return eval_components
 
-def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, true_model_coefficients, param_dict, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = False, norm_scalers = None, case_study = 1):
+def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, true_model_coefficients, param_dict, bounds_p, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = False, norm_scalers = None, case_study = 1):
     """
     Performs BO iterations
     
@@ -877,6 +881,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
+        bounds_p: ndarray, The bounds for searching for Theta_True.
         verbose: bool, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: bool, Determines whether figures will be saved. Default False
         tot_runs: The total number of runs to perform. Default 1
@@ -992,12 +997,12 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             ei,sse,var,stdev,best_error = eval_components
 
         #solve for opt and best based on theta_set
-        theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, skip_param_types, norm_scalers)
+        theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, bounds_p, skip_param_types, norm_scalers)
 #         print(Theta_True, theta_o)
         
-                #Evaluate all pairs of theta if necessary
+        #Evaluate all pairs of theta if necessary
         if eval_all_pairs == True:
-            eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, sep_fact, skip_param_types, normalize, norm_scalers)
+            eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, bounds_p, sep_fact, skip_param_types, normalize, norm_scalers)
         
         #Evaluate GP for best EI theta set
         eval_components_best = eval_GP(np.array([theta_b]), train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj, skip_param_types, norm_scalers)
@@ -1146,7 +1151,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
               
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt, All_Max_EI, gp_mean_all_mat, gp_var_all_mat, time_per_iter
 
-def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, true_model_coefficients, param_dict, bounds, verbose = False, save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = True, case_study = 1):
+def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, true_model_coefficients, param_dict, bounds_p, bounds_x, verbose = False, save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = True, case_study = 1):
     """
     Performs BO iterations with runs. A run contains of choosing different initial training data.
     
@@ -1169,7 +1174,8 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
-        bounds: ndarray, The bounds for searching for Theta_True.
+        bounds_p: ndarray, The bounds for searching for Theta_True.
+        bounds_x: ndarray, The bounds of Xexp
         verbose: bool, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: bool, Determines whether figures will be saved. Default False
         shuffle_seed, int, number of seed for shuffling training data. Default is None. 
@@ -1253,16 +1259,37 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
 
         #Normalize data as appropriate
         if normalize == True:
-            norm_vals, norm_scalers = normalize_general(bounds, train_p, test_p, Xexp, theta_set, Theta_True, true_model_coefficients, emulator, skip_param_types, case_study)
-            bounds_p_scl, train_p_scl, test_p_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl = norm_vals
+            norm_vals, norm_scalers = normalize_general(bounds_p, train_p, test_p, bounds_x, Xexp, theta_set, Theta_True, true_model_coefficients, emulator, skip_param_types, case_study)
+            bounds_p_scl, train_p_scl, test_p_scl, bounds_x_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl = norm_vals
             scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
+#             print(norm_vals, norm_scalers)
         else:
             norm_scalers = None
-            bounds_p_scl, train_p_scl, test_p_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl =  bounds, train_p, test_p, Xexp, theta_set, Theta_True, true_model_coefficients
-            
-            
+            bounds_p_scl, train_p_scl, test_p_scl, bounds_x_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl =  bounds, train_p, test_p, Xexp, theta_set, Theta_True, true_model_coefficients
+        
+        #Testing that normalization is happening correctly
+#         norm = False
+#         train_p_unscl = train_p_scl.clone()
+#         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
+#         bounds_p_unscl = normalize_p_bounds(bounds_p_scl, norm, scaler = scaler_theta)[0] 
+#         train_p_unscl[:,0:-m] = normalize_p_data(train_p_scl[:,0:-m], m, emulator, norm, scaler_theta)
+#         train_p_unscl[:,-m:] = normalize_x(Xexp, train_p_scl[:,-m:], norm, scaler_x)[0]
+# #         test_p_unscl = normalize_p_data(test_p_scl, m, emulator, norm, scaler_theta)[0] 
+#         bounds_x_unscl = normalize_x(bounds_x_scl, None, norm, scaler_x)[0]
+#         Xexp_unscl = normalize_x(Xexp_scl, None, norm, scaler_x)[0]
+#         theta_set_unscl = normalize_p_set(theta_set_scl, scaler_theta, norm)
+#         Theta_True_unscl =  normalize_p_true(Theta_True_scl, scaler_theta, norm)
+        
+#         print(np.allclose(train_p_unscl, train_p, rtol=1e-10))
+#         print(np.allclose(bounds_p_unscl, bounds_p, rtol=1e-10))
+#         print(np.allclose(bounds_x_unscl, bounds_x, rtol=1e-10))
+#         print(np.allclose(Xexp_unscl, Xexp, rtol=1e-10))
+#         print(np.allclose(theta_set_unscl, theta_set, rtol=1e-10))
+#         print(np.allclose(Theta_True_unscl, Theta_True, rtol=1e-10))
+        
+                       
         #Run BO Iteration
-        BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients_scl, param_dict, verbose, save_fig, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)
+        BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients_scl, param_dict, bounds_p_scl, verbose, save_fig, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)
         
         #Add all SSE/theta results at each BO iteration for that run
         Theta_Best_matrix[i,:,:] = BO_results[0]
