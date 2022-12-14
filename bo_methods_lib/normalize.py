@@ -3,12 +3,13 @@ import numpy as np
 import torch
 from .bo_functions_generic import clean_1D_arrays, norm_unnorm
 
-def normalize_general(train_p, test_p, Xexp, theta_set, Theta_True, true_model_coefficients, emulator, skip_param_types, case_study):
+def normalize_general(bounds, train_p, test_p, Xexp, theta_set, Theta_True, true_model_coefficients, emulator, skip_param_types, case_study):
     """
     normalizes many constants at once
     
     Parameters:
     -----------
+        bounds: ndarray, The bounds for searching for Theta_True.
         train_p: tensor or ndarray, The training parameter space data
         test_p: tensor, or ndarray, The testing parameter space data
         Xexp: ndarray, The list of xs that will be used to generate y
@@ -40,6 +41,9 @@ def normalize_general(train_p, test_p, Xexp, theta_set, Theta_True, true_model_c
         train_p_scl = train_p.copy()
         test_p_scl = test_p.copy()
     
+    #Normalize Parameter Bounds, always emulator = False always since bounds do no include state points
+    bounds_scl, scaler_theta = normalize_p_data(bounds, m, False, norm)
+        
     if emulator == True:
     #Overwrite x_data in train_p w/ normalized values
 #         print(type(test_p[:,-m:]), type(train_p[:,-m:]))
@@ -47,7 +51,7 @@ def normalize_general(train_p, test_p, Xexp, theta_set, Theta_True, true_model_c
         #Normalize Xexp data
         Xexp_scl = normalize_x(Xexp, m, Xexp, emulator, norm, scaler_x)[0]
         #Normalize train_p data
-        train_p_scl[:,0:-m], scaler_theta = normalize_p_data(train_p, m, emulator, norm)
+        train_p_scl[:,0:-m] = normalize_p_data(train_p, m, emulator, norm)[0]
         #normalize testing data if there is any
         if test_p.shape[0] >= 1:
             test_p_scl[:,-m:] = normalize_x(test_p[:,-m:], m, Xexp, emulator, norm, scaler_x)[0]
@@ -56,7 +60,7 @@ def normalize_general(train_p, test_p, Xexp, theta_set, Theta_True, true_model_c
         #Normalize x data with Xexp if there is no X training data
         Xexp_scl, scaler_x = normalize_x(Xexp, m, Xexp, emulator, norm)
         #Normalize train_p data
-        train_p_scl, scaler_theta = normalize_p_data(train_p, m, emulator, norm)
+        train_p_scl = normalize_p_data(train_p, m, emulator, norm)[0]
         #normalize testing data if there is any
         if test_p.shape[0] >= 1:
             test_p_scl = normalize_p_data(test_p, m, emulator, norm)[0]
@@ -69,9 +73,9 @@ def normalize_general(train_p, test_p, Xexp, theta_set, Theta_True, true_model_c
                                                                                     scaler_theta, skip_param_types,
                                                                                     case_study, norm)
     #Define list of normalized values and scalers used to normalize the values and return them
-    norm_vals_and_scalers = [train_p_scl, test_p_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl, scaler_x, scaler_theta, scaler_C_before, scaler_C_after]
-    norm_vals = norm_vals_and_scalers[:6]
-    norm_scalers = norm_vals_and_scalers[6:]
+    norm_vals_and_scalers = [bounds_scl, train_p_scl, test_p_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl, scaler_x, scaler_theta, scaler_C_before, scaler_C_after]
+    norm_vals = norm_vals_and_scalers[:7]
+    norm_scalers = norm_vals_and_scalers[7:]
     
     #norm_vals, norm_scalers = np.split(norm_vals_and_scalers, [6])
     
