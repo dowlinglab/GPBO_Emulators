@@ -490,7 +490,13 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
 #                 print("Model Var", model_variance) 
         sse[i] = model_sse
         var[i] = model_variance
-        stdev[i] = np.sqrt(model_variance)  
+        stdev[i] = np.sqrt(model_variance) 
+#         if i ==0:
+#             print(best_error)
+#             print(eval_point)
+#             print(model_sse)
+#             print(model_variance)
+#             print(explore_bias)
 
         #Negative sign because -max(-train_sse) = min(train_sse)
         #Print and save certain values based on verboseness
@@ -506,7 +512,9 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
 
         else:
             ei[i] = calc_ei_basic(best_error,model_sse,model_variance,explore_bias,verbose)
-
+#             if i ==0:
+#                 print( ei[i])
+    
     if verbose == True:
         return ei, sse, var, stdev, best_error, z_term, ei_term_1, ei_term_2, CDF, PDF
     else:
@@ -983,6 +991,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         explore_bias = ep_init #Sets ep to the multiplicative scaler between 0.1 and 1
         
         #Evaluate GP to find sse and ei for optimization step
+#         print(theta_set[0:5], train_p[0:5], Xexp[0:5], true_model_coefficients)
         eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj, skip_param_types, norm_scalers)
 
         #Determine which parameters will be plotted given the method type and whether verbose is T/F. Save parameters to plot to a list
@@ -1272,8 +1281,11 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
 #         train_p_unscl = train_p_scl.clone()
 #         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
 #         bounds_p_unscl = normalize_p_bounds(bounds_p_scl, norm, scaler = scaler_theta)[0] 
-#         train_p_unscl[:,0:-m] = normalize_p_data(train_p_scl[:,0:-m], m, emulator, norm, scaler_theta)
-#         train_p_unscl[:,-m:] = normalize_x(Xexp, train_p_scl[:,-m:], norm, scaler_x)[0]
+#         if emulator == True:
+#             train_p_unscl[:,0:-m] = normalize_p_data(train_p_scl[:,0:-m], m, emulator, norm, scaler_theta)
+#             train_p_unscl[:,-m:] = normalize_x(Xexp, train_p_scl[:,-m:], norm, scaler_x)[0]
+#         else:
+#             train_p_unscl = normalize_p_data(train_p_scl, m, emulator, norm, scaler_theta)  
 # #         test_p_unscl = normalize_p_data(test_p_scl, m, emulator, norm, scaler_theta)[0] 
 #         bounds_x_unscl = normalize_x(bounds_x_scl, None, norm, scaler_x)[0]
 #         Xexp_unscl = normalize_x(Xexp_scl, None, norm, scaler_x)[0]
@@ -1286,8 +1298,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
 #         print(np.allclose(Xexp_unscl, Xexp, rtol=1e-10))
 #         print(np.allclose(theta_set_unscl, theta_set, rtol=1e-10))
 #         print(np.allclose(Theta_True_unscl, Theta_True, rtol=1e-10))
-        
-                       
+                             
         #Run BO Iteration
         BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients_scl, param_dict, bounds_p_scl, verbose, save_fig, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)
         
