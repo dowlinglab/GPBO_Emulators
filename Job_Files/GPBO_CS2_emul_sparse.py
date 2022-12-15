@@ -55,7 +55,7 @@ skip_param_types = 1
 eval_all_pairs = True
 # eval_all_pairs = False
 
-obj = np.array(["LN_obj"])
+obj = np.array(["obj"])
 # obj = np.array(["obj","LN_obj"])
 # emulator = False
 # emulator = np.array([False])
