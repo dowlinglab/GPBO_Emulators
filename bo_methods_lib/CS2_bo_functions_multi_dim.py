@@ -1274,7 +1274,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
 #             print(norm_vals, norm_scalers)
         else:
             norm_scalers = None
-            bounds_p_scl, train_p_scl, test_p_scl, bounds_x_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl =  bounds, train_p, test_p, Xexp, theta_set, Theta_True, true_model_coefficients
+            bounds_p_scl, train_p_scl, test_p_scl, bounds_x_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl =  bounds_p, train_p, test_p, bounds_x, Xexp, theta_set, Theta_True, true_model_coefficients
         
         #Testing that normalization is happening correctly
 #         norm = False
