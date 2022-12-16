@@ -1,0 +1,6 @@
+Date and Time:  16-Dec-2022 (09:57:47)
+Runs: 3
+BO Iterations: 10
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
