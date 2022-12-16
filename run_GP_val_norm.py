@@ -21,12 +21,12 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
-# DateTime = "2022/11/29/11-15"
+DateTime = "2022/12/16/16-07"
 # DateTime = None ##For Testing
 
 #Set Parameters
 #Need to run at a and b, need 2 arrays to test that this will work
-Case_Study = [1,2.2]
+Case_Study = [1, 2.2]
 CS = Case_Study[0]
 
 Constants = np.array([[-200,-100,-170,15],

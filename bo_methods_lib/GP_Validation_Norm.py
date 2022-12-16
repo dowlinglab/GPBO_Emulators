@@ -217,7 +217,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
                     #Un-normalize if necessary
                     if normalize == True:
                         norm = False
-                        title_arg = normalize_x(title_arg, None, norm, scaler_x)[0]
+                        title_arg = normalize_x(clean_1D_arrays(title_arg, param_clean = True), None, norm, scaler_x)[0]
                     LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, axis, plot_num = i, title_arg = title_arg, normalize = normalize)
         
         #Print and save total sse value to CSV
