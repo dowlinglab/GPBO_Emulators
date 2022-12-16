@@ -93,6 +93,7 @@ print("Runs:", runs)
 print("BO Iterations:",BO_iters)
 print("%%%%%%%%%%%%%%%%%%%%%%%%%%")
 for norm in normalize:
+    print("Norm:", norm)
     for emul in emulator: 
         sys.stdout.flush()
         obj_use = obj
