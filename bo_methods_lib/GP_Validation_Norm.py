@@ -18,8 +18,8 @@ from .bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_p
 from .CS2_bo_plotters import save_csv, save_fig
 from .normalize import normalize_x, normalize_p_data, normalize_p_bounds, normalize_p_set, normalize_p_true, normalize_constants, normalize_general
     
-# from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
-from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+# from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 
 ###Load data
 ###Get constants
@@ -399,7 +399,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
 
     #Calculate corresponding experimental data from theta_set value
-    if str(norm_scalers) != None:
+    if str(norm_scalers) != "None":
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
         Xexp_unscl = normalize_x(Xexp, theta_set[:,-m:], False, scaler_x)[0]
         true_model_coefficients_unscl = normalize_constants(true_model_coefficients, p_true, scaler_theta, skip_param_types, CS, False, scaler_C_before, scaler_C_after)[0]
@@ -497,7 +497,7 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         GP_var[k] = model_variance
         
         #Unnormalize data
-        if str(norm_scalers) != None:
+        if str(norm_scalers) != "None":
             eval_point_unscl = eval_point.copy()
             scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
             Xexp_unscl = normalize_x(Xexp, None, norm = False, scaler = scaler_x)[0]
