@@ -2,3 +2,18 @@ Date and Time:  16-Dec-2022 (09:57:47)
 Runs: 3
 BO Iterations: 10
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+-------------------
+Emulator?: True
+______________________________
+Sparse Grid?: True
+Objective Function: obj
+-  -  -  -  -  -  -  -  -  -  -
+Separation Factor Train/Test: 1.0
+Lengthscale Set To: None
+Explore Bias Multiplier: 1.0
+The GP predicts the lowest SSE of 4.160e+05 occurs at θ = [-0.99736202  0.62940707 -6.63261824 -0.70809831 -1.70638697 -1.05534051
+ 10.62998923  0.36888605] during run 3 at BO iteration 2
+At this point, the highest EI occurs at θ = [ 0.11199221  1.67905099 -0.36607202 -1.57605799 -0.9973266   0.07553218
+  5.02958315 -0.95356759]
+
+

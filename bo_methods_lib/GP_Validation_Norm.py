@@ -186,9 +186,9 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         sse_y_sim_tj_xj_list = np.array(sse_y_sim_tj_xj_list)
         
         #Plot model vs sim sse
-        LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure)
+        LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, normalize = normalize)
         
-        LOO_parity_plot_emul(sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None)
+        LOO_parity_plot_emul(sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None, normalize = normalize)
         
     else:        
         #Plot GP vs y_sim

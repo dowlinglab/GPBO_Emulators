@@ -1,0 +1,26 @@
+Date and Time:  16-Dec-2022 (14:33:32)
+Norm: False
+Emulator = False
+Objective Function = obj
+Objective Function = LN_obj
+Emulator = True
+Objective Function = obj
+SSE Total =  5.2105e+13
+Norm: True
+Emulator = False
+Objective Function = obj
+Objective Function = LN_obj
+Emulator = True
+Objective Function = obj
+Traceback (most recent call last):
+  File "/scratch365/mcarlozo/Toy_Problem/run_GP_val_norm.py", line 102, in <module>
+    LOO_Analysis(all_data, Xexp, Yexp, Constants, true_p, emul, obj_func, CS,  
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/GP_Validation_Norm.py", line 220, in LOO_Analysis
+    title_arg = normalize_x(title_arg, None, norm, scaler_x)[0]
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/normalize.py", line 109, in normalize_x
+    x_scl, scaler_x = norm_unnorm(X_val, norm, scaler)
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_functions_generic.py", line 48, in norm_unnorm
+    X = scaler.inverse_transform(X)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/sklearn/preprocessing/_data.py", line 532, in inverse_transform
+    X -= self.min_
+ValueError: non-broadcastable output operand with shape (2,1) doesn't match the broadcast shape (2,2)
