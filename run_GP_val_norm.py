@@ -21,7 +21,7 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
-DateTime = "2022/12/16/16-07"
+DateTime = "2022/12/19/15-48"
 # DateTime = None ##For Testing
 
 #Set Parameters
@@ -71,7 +71,7 @@ normalizing = np.array([False,True])
 obj = np.array(["obj", "LN_obj"])
 # obj = np.array(["obj"])
 
-emulator = np.array([False, True])
+emulator = np.array([True, False])
 # emulator = np.array([True])
 # emulator =  np.array([False])
 save_figure = True

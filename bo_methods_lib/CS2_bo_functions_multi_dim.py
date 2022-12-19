@@ -367,7 +367,7 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
 #             print(point)
 #             point.append(x_point_data) 
             point = np.array(point)  
-            eval_point = np.array([point])
+            eval_point = np.array([point]).astype('float32')
 #             eval_point = np.array([point])[0]
 #             print(eval_point)
             #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
@@ -704,7 +704,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
             x_point_data = list(Xexp[k])
             point = point + x_point_data
             point = np.array(point)
-            eval_point = np.array([point])
+            eval_point = np.array([point]).astype('float32')
             #Eval GP
             #Note: eval_point[0:1] is used to avoid a shape error when calling function calc_GP_outputs
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
@@ -970,12 +970,13 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     for i in range(BO_iters):
         #Start timer for BO loop
         timestart = time.time() #Might be a duplicate
-        #Converts numpy arrays to tensors
-        if torch.is_tensor(train_p) != True:
+        #Converts numpy arrays to tensors after 1st pass
+        if i !=0: 
+#         if torch.is_tensor(train_p) != True:
             train_p = torch.tensor(train_p)
 #             train_p = torch.from_numpy(train_p)
 #             train_p = torch.from_numpy(train_p.astype(np.float32))
-        if torch.is_tensor(train_y) != True:
+#         if torch.is_tensor(train_y) != True:
             train_y = torch.tensor(train_y)
 #             train_y = torch.from_numpy(train_y)
 #             train_y = torch.from_numpy(train_y.astype(np.float32))

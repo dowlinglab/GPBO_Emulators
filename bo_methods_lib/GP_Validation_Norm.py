@@ -390,7 +390,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     ##Calculate Values
     #Caclulate GP vals for each value given theta_j and x_j
     point = list(theta_set[0])
-    eval_point = np.array([point])
+    eval_point = np.array([point]).astype('float32')
 #     print(eval_point)
     #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
     GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
@@ -487,7 +487,7 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         x_point_data = list(Xexp[k]) #astype(np.float)
         #Create point to be evaluated
         point = point + x_point_data
-        eval_point = np.array([point])
+        eval_point = np.array([point]).astype('float32')
         #Evaluate GP model
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])

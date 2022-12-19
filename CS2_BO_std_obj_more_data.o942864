@@ -214,3 +214,1705 @@ At this point, the highest EI occurs at θ = [-1.03533496 -1.74325843 -0.4770772
   self.zmax = float(z.max())
 /afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
   self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py:280: RuntimeWarning: invalid value encountered in log
+  plot_sse = np.log(list_of_plot_variables[1])
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1486: UserWarning: Warning: converting a masked element to nan.
+  self.zmax = float(z.max())
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/matplotlib/contour.py:1487: UserWarning: Warning: converting a masked element to nan.
+  self.zmin = float(z.min())
