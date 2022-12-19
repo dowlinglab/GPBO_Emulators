@@ -56,10 +56,10 @@ eval_all_pairs = True
 obj = np.array(["obj"])
 # obj = np.array(["obj","LN_obj"])
 # emulator = False
-# emulator = np.array([False])
-emulator = np.array([True])
-sparse_grid = np.array([True])
-# sparse_grid = np.array([False])
+emulator = np.array([False])
+# emulator = np.array([True])
+# sparse_grid = np.array([True])
+sparse_grid = np.array([False])
 normalize = np.array([False,True])
 # sparse_grid = np.array([False,True])
 verbose = False
@@ -93,7 +93,6 @@ print("Runs:", runs)
 print("BO Iterations:",BO_iters)
 print("%%%%%%%%%%%%%%%%%%%%%%%%%%")
 for norm in normalize:
-    print("Norm:", norm)
     for emul in emulator: 
         sys.stdout.flush()
         obj_use = obj

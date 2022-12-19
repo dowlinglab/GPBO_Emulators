@@ -27,7 +27,7 @@ DateTime = "2022/12/16/16-07"
 #Set Parameters
 #Need to run at a and b, need 2 arrays to test that this will work
 Case_Study = [1, 2.2]
-CS = Case_Study[0]
+CS = Case_Study[1]
 
 Constants = np.array([[-200,-100,-170,15],
                       [-1,-1,-6.5,0.7],
@@ -58,7 +58,7 @@ else:
                          [ 2,  2]])
 
 # print(Theta_True)
-t = 20
+t = 200
 d = len(true_p)
 train_iter = 300
 noise_std = 0.1

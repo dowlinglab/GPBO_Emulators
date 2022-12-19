@@ -1,8 +1,0 @@
-Date and Time:  16-Dec-2022 (09:57:47)
-Runs: 3
-BO Iterations: 10
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_functions_generic.py:699: RuntimeWarning: overflow encountered in exp
-  bound_a = ((y_target - pred_mean) +np.sqrt(np.exp(error_best*explore_bias)))/pred_stdev #1xn
-/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_functions_generic.py:700: RuntimeWarning: overflow encountered in exp
-  bound_b = ((y_target - pred_mean) -np.sqrt(np.exp(error_best*explore_bias)))/pred_stdev #1xn

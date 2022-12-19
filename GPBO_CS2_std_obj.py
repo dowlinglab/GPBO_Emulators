@@ -12,6 +12,10 @@ from bo_methods_lib.CS2_bo_functions_multi_dim import bo_iter_w_runs, find_train
 
 import matplotlib as mpl
 mpl.rcParams['figure.dpi'] = 300
+
+#Ignore warnings caused by approximating sse as negative
+import warnings
+warnings.simplefilter("ignore", category=RuntimeWarning)
 #----------------------------------------------
 CS = 2.2
 
