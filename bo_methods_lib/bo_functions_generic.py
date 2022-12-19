@@ -316,7 +316,8 @@ def test_train_split(all_data, sep_fact=1, runs = 1, shuffle_seed = None):
     #Stack training and testing x and y data
     train_data = np.column_stack((train_param, train_y))
     test_data = np.column_stack((test_param, test_y))
-    return torch.tensor(train_data),torch.tensor(test_data)
+    return train_data, test_data
+#     return torch.tensor(train_data),torch.tensor(test_data)
 
 def find_train_doc_path(emulator, obj, d, t):
     """

@@ -88,7 +88,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         norm_scalers = [scaler_x, scaler_theta, scaler_C_before, scaler_C_after]
     else:
         norm_scalers = None
-    
+    all_data = all_data.astype('float32')
 #     print(all_data[0:5,1:-1])
     #Loop over all test indecies & #Shuffle and split into training and testing data where 1 point is testing data
     for train_index, test_index in loo.split(all_data):
@@ -122,7 +122,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
                
         #Theta_set will be be only the test value
         #Make theta_set a numpy array
-        theta_set = test_p.numpy()
+        theta_set = torch.tensor(test_p.numpy())
         
         #Set model and likelihood
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
@@ -390,7 +390,7 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     ##Calculate Values
     #Caclulate GP vals for each value given theta_j and x_j
     point = list(theta_set[0])
-    eval_point = np.array([point]).astype('float32')
+    eval_point = torch.tensor(np.array([point]))
 #     print(eval_point)
     #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
     GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
@@ -487,7 +487,7 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         x_point_data = list(Xexp[k]) #astype(np.float)
         #Create point to be evaluated
         point = point + x_point_data
-        eval_point = np.array([point]).astype('float32')
+        eval_point = torch.tensor(np.array([point]))
         #Evaluate GP model
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
@@ -498,7 +498,8 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         
         #Unnormalize data
         if str(norm_scalers) != "None":
-            eval_point_unscl = eval_point.copy()
+#             eval_point_unscl = eval_point.copy()
+            eval_point_unscl = eval_point.clone()
             scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
             Xexp_unscl = normalize_x(Xexp, None, norm = False, scaler = scaler_x)[0]
             eval_point_unscl[:,0:-m] = normalize_p_data(eval_point_unscl[:,0:-m], m, True, norm = False, scaler = scaler_theta)

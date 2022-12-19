@@ -181,7 +181,8 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
     
     #Create a set that has the 2 columns changing, but eveything else is based on theta_opt value
     #Create copy of theta_set_org
-    theta_set = theta_set_org.copy()
+#     theta_set = theta_set_org.copy()
+    theta_set = theta_set_org.clone()
     
     #Loop over all dimenisons (columns) in theta_set_org
     for i in range(theta_set_org.shape[1]):
@@ -367,11 +368,19 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
 #             print(point)
 #             point.append(x_point_data) 
             point = np.array(point)  
-            eval_point = np.array([point]).astype('float32')
+            eval_point = torch.from_numpy(np.array([point])).float()
 #             eval_point = np.array([point])[0]
-#             print(eval_point)
-            #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+            try:
+#                 if i == 0:
+#                     print("Working")
+#                     print(type(train_p), train_p.dtype, train_p.shape)
+#                     print(type(eval_point), eval_point.dtype, eval_point.shape, type(eval_point[0:1]), eval_point[0:1].dtype, eval_point[0:1].shape )
+                #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
+                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+            except:
+                print("Not Working")
+                print(type(eval_point), eval_point.dtype, eval_point.shape, type(eval_point[0:1]), eval_point[0:1].dtype, eval_point[0:1].shape )
+                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
             model_mean = GP_Outputs[3].numpy()[0] #1xn
             model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
             
@@ -616,7 +625,7 @@ def argmax_multiple(argmax, train_p, theta_set): #not sure how to fix setting of
         Theta_Arr = theta_set[i]
 
         #Calculate Distance
-        distance_sq = np.sum((train_T12_avg - Theta_Arr)**2)
+        distance_sq = np.sum((train_T12_avg - np.array(Theta_Arr) )**2)
 
         #Set distance to max distance if it is applicable. At the end of the loop, argmax will be the point with the greatest distance.
         if distance_sq > max_distance_sq:
@@ -704,7 +713,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
             x_point_data = list(Xexp[k])
             point = point + x_point_data
             point = np.array(point)
-            eval_point = np.array([point]).astype('float32')
+            eval_point = torch.from_numpy(np.array([point])).float()
             #Eval GP
             #Note: eval_point[0:1] is used to avoid a shape error when calling function calc_GP_outputs
             GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
@@ -948,7 +957,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     gp_mean_all_mat = np.zeros((BO_iters, n))
     gp_var_all_mat = np.zeros((BO_iters, n))
     time_per_iter = np.zeros(BO_iters)
-
+    
     
     #Ensures GP will take correct # of inputs
     if emulator == True:
@@ -965,21 +974,31 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     
     #Start timer for BO loop
 #     timestart = time.time()
+
+    theta_set = torch.tensor(theta_set)
     
     #Loop over # of BO iterations
     for i in range(BO_iters):
         #Start timer for BO loop
         timestart = time.time() #Might be a duplicate
         #Converts numpy arrays to tensors after 1st pass
-        if i !=0: 
-#         if torch.is_tensor(train_p) != True:
-            train_p = torch.tensor(train_p)
-#             train_p = torch.from_numpy(train_p)
-#             train_p = torch.from_numpy(train_p.astype(np.float32))
-#         if torch.is_tensor(train_y) != True:
-            train_y = torch.tensor(train_y)
-#             train_y = torch.from_numpy(train_y)
-#             train_y = torch.from_numpy(train_y.astype(np.float32))
+        
+#         train_p = torch.tensor(train_p)
+        train_p = torch.from_numpy(train_p).float()
+#         print(train_p.dtype)
+#         train_y = torch.tensor(train_y)
+        train_y = torch.from_numpy(train_y).float()
+        
+#         if i !=0: 
+# #         if torch.is_tensor(train_p) != True:
+#             train_p = torch.tensor(train_p)
+# #             train_p = torch.from_numpy(train_p)
+# #             train_p = torch.from_numpy(train_p.astype(np.float32))
+# #         if torch.is_tensor(train_y) != True:
+#             train_y = torch.tensor(train_y)
+# #             train_y = torch.from_numpy(train_y)
+# #             train_y = torch.from_numpy(train_y.astype(np.float32))
+
         if torch.is_tensor(test_p) != True:
             test_p = torch.tensor(test_p)
 #             test_p = torch.from_numpy(test_p)
@@ -1014,6 +1033,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             ei,sse,var,stdev,best_error = eval_components
 
         #solve for opt and best based on theta_set
+#         print(type(theta_set), type(train_p))
         theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, bounds_p, skip_param_types, norm_scalers)
 #         print(Theta_True, theta_o)
         
@@ -1022,7 +1042,9 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, bounds_p, sep_fact, skip_param_types, normalize, norm_scalers)
         
         #Evaluate GP for best EI theta set
-        eval_components_best = eval_GP(np.array([theta_b]), train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj, skip_param_types, norm_scalers)
+#         eval_components_best = eval_GP(np.array([theta_b]), train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj, skip_param_types, norm_scalers)
+        torch_theta_b = torch.tensor(np.array([theta_b]))
+        eval_components_best = eval_GP(torch_theta_b, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj, skip_param_types, norm_scalers)
 
         #Determine which parameters will be plotted given the method type and whether verbose is T/F. Save parameters to plot to a list
     #eval_GP will also save internal parameters used in the calculation of EI if the standard approach is used and verbose is true. These are useful in critically analyzing which components of EI have a large effect, but are tedious to save and take up a lot of space. Therefore, they are only saved when verbose == True       
