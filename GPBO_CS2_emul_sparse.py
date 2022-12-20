@@ -22,6 +22,7 @@ print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 # DateTime = None ##For Testing
+# DateTime = "2022/12/19/15-48"
 
 #Set Parameters
 #Need to run at a and b, need 2 arrays to test that this will work

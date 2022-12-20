@@ -99,7 +99,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
 #         print(data_test[0,1:-1])
         #separate into y data and parameter data
         if m > 1:
-            train_p = torch.tensor(data_train[:,1:-m+1]) #8 or 10 (emulator) parameters 
+            train_p = torch.tensor(data_train[:,1:-m+1]) #8 or 10 (emulator) parameters   
             test_p = torch.tensor(data_test[:,1:-m+1])
         else:
             train_p = torch.tensor(data_train[:,1:-m]) #8 or 10 (emulator) parameters 
@@ -107,7 +107,9 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         
         train_y = torch.tensor(data_train[:,-1])
         test_y = torch.tensor(data_test[:,-1])
-                      
+        
+#         print(type(train_p), train_p.dtype)
+#         print(type(train_y), train_y.dtype)
         #Normalize Data if norm = True
         if normalize == True:
             if Case_Study == 1 or emulator == True:
@@ -390,10 +392,15 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     ##Calculate Values
     #Caclulate GP vals for each value given theta_j and x_j
     point = list(theta_set[0])
-    eval_point = torch.tensor(np.array([point]))
+    eval_point = torch.tensor(np.array([point])).float()
 #     print(eval_point)
     #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-    GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+    try:
+        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+    except:
+        print("Not Working")
+        print(type(eval_point), eval_point.dtype, eval_point.shape, type(eval_point[0:1]), eval_point[0:1].dtype, eval_point[0:1].shape )
+        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
     #Save GP Values
     model_mean = GP_Outputs[3].numpy()[0] #1xn
     model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
@@ -401,10 +408,10 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     #Calculate corresponding experimental data from theta_set value
     if str(norm_scalers) != "None":
         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
-        Xexp_unscl = normalize_x(Xexp, theta_set[:,-m:], False, scaler_x)[0]
+        Xexp_unscl = normalize_x(Xexp, np.array(theta_set[:,-m:]), False, scaler_x)[0]
         true_model_coefficients_unscl = normalize_constants(true_model_coefficients, p_true, scaler_theta, skip_param_types, CS, False, scaler_C_before, scaler_C_after)[0]
     else:
-        Xexp_unscl = theta_set[:,-m:]
+        Xexp_unscl = np.array(theta_set[:,-m:])
         true_model_coefficients_unscl = true_model_coefficients
         
     calc_exp_point = clean_1D_arrays(Xexp_unscl)
@@ -413,8 +420,12 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
 
     ##Compute SSE and SSE variance for that point
     #Copute Yexp
-    Yexp = calc_y_exp(true_model_coefficients_unscl, calc_exp_point, noise_std)  
-    SSE += (model_mean - Yexp)**2
+    try:
+        Yexp = calc_y_exp(true_model_coefficients_unscl, calc_exp_point, noise_std) 
+    except:
+        print(type(true_model_coefficients_unscl), true_model_coefficients_unscl.dtype, type(calc_exp_point), calc_exp_point.dtype)
+        Yexp = calc_y_exp(true_model_coefficients_unscl, calc_exp_point, noise_std) 
+    SSE += (np.array(model_mean) - Yexp)**2
 
     error_point = (model_mean - Yexp) #This SSE_variance CAN be negative
     SSE_var_GP += 2*error_point*model_variance #Error Propogation approach
@@ -487,10 +498,15 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         x_point_data = list(Xexp[k]) #astype(np.float)
         #Create point to be evaluated
         point = point + x_point_data
-        eval_point = torch.tensor(np.array([point]))
+        eval_point = torch.tensor(np.array([point])).float()
         #Evaluate GP model
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+        try:
+            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+        except:
+            print("Not Working")
+            print(type(eval_point), eval_point.dtype, eval_point.shape, type(eval_point[0:1]), eval_point[0:1].dtype, eval_point[0:1].shape )
+            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         model_mean = GP_Outputs[3].numpy()[0] #1xn
         GP_mean[k] = model_mean
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
@@ -499,14 +515,14 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         #Unnormalize data
         if str(norm_scalers) != "None":
 #             eval_point_unscl = eval_point.copy()
-            eval_point_unscl = eval_point.clone()
+            eval_point_unscl = np.array(eval_point.clone())
             scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
             Xexp_unscl = normalize_x(Xexp, None, norm = False, scaler = scaler_x)[0]
             eval_point_unscl[:,0:-m] = normalize_p_data(eval_point_unscl[:,0:-m], m, True, norm = False, scaler = scaler_theta)
             eval_point_unscl[:,-m:] = normalize_x(Xexp, eval_point_unscl[:,-m:], norm = False, scaler = scaler_x)[0]  
             true_model_coefficients_unscl = normalize_constants(true_model_coefficients, p_true, scaler_theta, skip_param_types, CS, False, scaler_C_before, scaler_C_after)[0]
         else:
-            eval_point_unscl = eval_point
+            eval_point_unscl = np.array(eval_point)
             true_model_coefficients_unscl = true_model_coefficients
             Xexp_unscl = Xexp
         
@@ -518,8 +534,8 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
             y_sim[k] = create_y_data(eval_point_unscl, true_model_coefficients_unscl, Xexp_unscl, skip_param_types)
 
     #Compute GP SSE and SSE_sim for that point
-    SSE_model = np.sum((GP_mean - Yexp)**2)
-    error_point = (GP_mean - Yexp) #This SSE_variance CAN be negative
+    SSE_model = np.sum((np.array(GP_mean) - Yexp)**2)
+    error_point = (np.array(GP_mean) - Yexp) #This SSE_variance CAN be negative
     SSE_var_GP = sum(2*error_point*model_variance) #Error Propogation approach
     
     SSE_sim = np.sum((y_sim - Yexp)**2)

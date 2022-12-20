@@ -255,6 +255,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
             train_p_unscl  = normalize_p_data(train_p, dim_x, emulator, norm, scaler_theta)
             
     #Generate meshgrid and theta_set from unnormalized meshgrid 
+    theta_set_org = np.array(theta_set_org)
     Theta1_lin = np.linspace(np.min(theta_set_org[:,indecies[0]]),np.max(theta_set_org[:,indecies[0]]), n_points)
     Theta2_lin = np.linspace(np.min(theta_set_org[:,indecies[1]]),np.max(theta_set_org[:,indecies[1]]), n_points)
     theta_mesh = np.array(np.meshgrid(Theta1_lin, Theta2_lin)) 
@@ -370,6 +371,7 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
             point = np.array(point)  
             eval_point = torch.from_numpy(np.array([point])).float()
 #             eval_point = np.array([point])[0]
+            #Note this try/except statement was for bug checking
             try:
 #                 if i == 0:
 #                     print("Working")
