@@ -58,7 +58,8 @@ else:
                          [ 2,  2]])
 
 # print(Theta_True)
-t_list = np.array([20,40,100,200,300])
+# t_list = np.array([20,40,100,200,300])
+t_list = np.array([300])
 d = len(true_p)
 train_iter = 300
 noise_std = 0.1
