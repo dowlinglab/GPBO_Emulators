@@ -646,13 +646,12 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=1, obj
 #     explore_bias = float(explore_bias)
     assert isinstance(error_best, (float,int))==True, "error_best must be a float or integer"
     
-    #Coverts any tensors given as inputs to ndarrays         
-    #Checks for equal lengths
-    
-    if not isinstance(y_target, float)==True:
-        y_target = float(y_target)
-    assert isinstance(pred_mean, float)==True, "y_target, pred_mean, and pred_var must be floats"
-    assert isinstance(pred_var, float)==True, "y_target, pred_mean, and pred_var must be floats"
+    #Coverts y_target to ndarray of type float32         
+    #Checks that GP mean, GP_var, and y_target are all float 32
+    if type(y_target) != type(pred_mean):
+        y_target = np.float32(y_target) 
+#     print(type(y_target), type(pred_mean))
+    assert type(pred_mean) == type(pred_var) == type(y_target), "y_target, pred_mean, and pred_var must be floats"
     
     #Defines standard devaition
     pred_stdev = np.sqrt(pred_var) #1xn
