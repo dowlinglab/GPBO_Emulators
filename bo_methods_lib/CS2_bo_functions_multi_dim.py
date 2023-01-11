@@ -1075,12 +1075,12 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         #Save unnormalized theta_best and theta_opt values for iteration. Print values if verbose is true
         if normalize == False:
             theta_b_unscl, theta_o_unscl = theta_b, theta_o
-            All_Theta_Best[i], All_Theta_Opt[i] = theta_b_unscl, theta_o_unscl
         else:
             scaler_theta = norm_scalers[1]
             theta_b_unscl = normalize_p_true(theta_b, scaler_theta, norm= False)
             theta_o_unscl = normalize_p_true(theta_o, scaler_theta, norm= False)
-            All_Theta_Best[i], All_Theta_Opt[i] = theta_b_unscl, theta_o_unscl
+        
+        All_Theta_Best[i], All_Theta_Opt[i] = theta_b_unscl, theta_o_unscl
         
         #Calculate values of y given the GP optimal theta values
         if case_study == 1:
@@ -1299,7 +1299,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         #Testing that normalization is happening correctly
 #         print(Xexp, Xexp_scl)
 #         norm = False
-#         train_p_unscl = train_p_scl.clone()
+#         train_p_unscl = train_p_scl.copy()
 #         scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
 #         bounds_p_unscl = normalize_p_bounds(bounds_p_scl, norm, scaler = scaler_theta)[0] 
 #         if emulator == True:
@@ -1313,12 +1313,12 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
 #         theta_set_unscl = normalize_p_set(theta_set_scl, scaler_theta, norm)
 #         Theta_True_unscl =  normalize_p_true(Theta_True_scl, scaler_theta, norm)
         
-#         print(np.allclose(train_p_unscl, train_p, rtol=1e-10))
-#         print(np.allclose(bounds_p_unscl, bounds_p, rtol=1e-10))
-#         print(np.allclose(bounds_x_unscl, bounds_x, rtol=1e-10))
-#         print(np.allclose(Xexp_unscl, Xexp, rtol=1e-10))
-#         print(np.allclose(theta_set_unscl, theta_set, rtol=1e-10))
-#         print(np.allclose(Theta_True_unscl, Theta_True, rtol=1e-10))
+#         print(np.allclose(train_p_unscl, train_p, rtol=1e-7))
+#         print(np.allclose(bounds_p_unscl, bounds_p, rtol=1e-7))
+#         print(np.allclose(bounds_x_unscl, bounds_x, rtol=1e-7))
+#         print(np.allclose(Xexp_unscl, Xexp, rtol=1e-7))
+#         print(np.allclose(theta_set_unscl, theta_set, rtol=1e-7))
+#         print(np.allclose(Theta_True_unscl, Theta_True, rtol=1e-7))
                              
         #Run BO Iteration
         BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients_scl, param_dict, bounds_p_scl, verbose, save_fig, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)

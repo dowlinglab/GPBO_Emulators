@@ -123,7 +123,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
                 test_p = normalize_p_data(test_p, m, emulator, norm, scaler_theta).float()
                
         #Theta_set will be be only the test value
-        #Make theta_set a numpy array
+        #Make theta_set a numpy array. Note: Theta_set is always 1xtrain_p.shape[1]
         theta_set = torch.tensor(test_p.numpy())
         
         #Set model and likelihood
