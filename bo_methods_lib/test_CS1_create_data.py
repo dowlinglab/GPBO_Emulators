@@ -22,7 +22,7 @@ from .CS1_create_data import calc_y_exp, create_sse_data_GP_val, create_sse_data
 
 Theta_True = np.array([1,-1])
 d = len(Theta_True)
-noise_std = 0.1
+noise_std = float(0.1)
 exp_d = 1
 n = 5
 exp_data_doc = '/scratch365/mcarlozo/Toy_Problem/Input_CSVs/Exp_Data/d='+str(exp_d)+'/n='+str(n)+'.csv'
@@ -39,7 +39,7 @@ def test_calc_y_exp():
     ("LN_obj", np.array([-7.2]))
 ])
 
-def test_create_sse_data_GP_val():
+def test_create_sse_data_GP_val(obj, sse_pred):
     q = 2
     sse = create_sse_data_GP_val(q,Theta_True.reshape(1,-1), Xexp, Yexp, obj)
     assert pytest.approx(sse_pred, abs = 0.1) == sse.flatten(), "SSE should be zero at the true parameter set" 
@@ -85,7 +85,7 @@ theta_b = Theta_True
 ])
 
 # def test_make_next_point(emulator, train_p_org, train_y_org, train_p_new, train_y_new)
-def test_make_next_point(emulator, train_p_org, train_y_org):
-    train_p_after, train_y_after = make_next_point(train_p_org, train_y_org, theta_b, Xexp, Yexp, emulator, Theta_True, obj, dim_param, skip_param_types=0, noise_std=None, norm_scalers = None)
+def test_make_next_point(emulator, obj, train_p_org, train_y_org, n_mult):
+    train_p_after, train_y_after = make_next_point(train_p_org, train_y_org, theta_b, Xexp, Yexp, emulator, Theta_True, obj, 2, skip_param_types=0, noise_std  = noise_std, norm_scalers = None)
     assert len(train_p_after) == len(train_p_org) + 1*n_mult , "train_p not updated correctly"
     assert len(train_y_after) == len(train_y_org) + 1*n_mult, "train_y not updated correctly"

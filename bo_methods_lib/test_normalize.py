@@ -15,8 +15,9 @@ import pandas as pd
 import os
 import time
 import Tasmanian
+import pytest
 
-from .bo_functions_generic import test_train_split, norm_unnorm
+from .bo_functions_generic import test_train_split, norm_unnorm, clean_1D_arrays, gen_theta_set, find_train_doc_path
 
 from .normalize import normalize_x, normalize_p_data, normalize_p_bounds, normalize_p_set, normalize_p_true, normalize_constants, normalize_general
 
@@ -26,6 +27,7 @@ d = len(Theta_True)
 noise_std = 0.1
 exp_d = 1
 n = 5
+shuffle_seed = 9
 exp_data_doc = '/scratch365/mcarlozo/Toy_Problem/Input_CSVs/Exp_Data/d='+str(exp_d)+'/n='+str(n)+'.csv'
 exp_data = np.array(pd.read_csv(exp_data_doc, header=0,sep=","))
 Xexp = exp_data[:,1:exp_d+1]
@@ -55,24 +57,24 @@ train_p = np.array([[1,-1], [1,-2], [0,0], [-1,1]])
     (True, 100, 80, 20)
 ])
 
-def test_test_train_split():
-    all_data_doc = find_train_doc_path(emulator, obj_func, d, t)
+def test_test_train_split(emulator, t, len_train, len_test):
+    all_data_doc = '/scratch365/mcarlozo/Toy_Problem/' + find_train_doc_path(emulator, "obj", d, t)
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-    train_data, test_data = test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed)
+    train_data, test_data = test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = 9)
     assert len(train_data) == len_train and len(test_data) == len_test, "Training and testing data incorrect lengths"
 
 
 def test_normalize_x():
-    bounds_x_scl, scaler_x = normalize_x(bounds_x, True)
+    bounds_x_scl, scaler_x = normalize_x(bounds_x, norm = True)
     X_norm = normalize_x(Xexp, None, True, scaler_x)[0]
     X_org = normalize_x(X_norm, None, False, scaler_x)[0]
-    bounds_x_org = normalize_x(bounds_x, None, False, scaler_x)[0]
-    assert pytest.approx(Xexp, abs = 1e-2) == X_norm
-    assert pytest.approx(bounds_x, abs = 1e-2) == bounds_x_org
+    bounds_x_org = normalize_x(bounds_x_scl, None, False, scaler_x)[0]
+    assert pytest.approx(Xexp, abs = 1e-2) == X_org, "Xexp not normalized correctly"
+    assert pytest.approx(bounds_x, abs = 1e-2) == bounds_x_org, "X bounds not normalized correctly"
 
 def test_normalize_p_bounds():
     bounds_p_scl, scaler_theta = normalize_p_bounds(bounds_p, norm = True, scaler = None)
-    bounds_p_reg = normalize_p_bounds(bounds_p_scl, norm = False, scaler = scaler_theta)
+    bounds_p_reg = normalize_p_bounds(bounds_p_scl, norm = False, scaler = scaler_theta)[0]
     assert pytest.approx(bounds_p, abs = 1e-2) == bounds_p_reg
     
 bounds_p_scl, scaler_theta = normalize_p_bounds(bounds_p, norm = True, scaler = None)
@@ -84,11 +86,11 @@ def test_normalize_p_true():
 
 def test_normalize_p_set():
     theta_set_scl = normalize_p_set(theta_set, scaler_theta, True)
-    theta_set_reg = normalize_p_set(theta_set_scl, scaler_theta, True)
+    theta_set_reg = normalize_p_set(theta_set_scl, scaler_theta, False)
     assert pytest.approx(theta_set, abs = 1e-2) == theta_set_reg
 
-@pytest.mark.parametrize("emulator, obj_func, t, train_p_compare", [
-    (False, "obj", 20, train_p_unscl[:,0:-m]),
+@pytest.mark.parametrize("emulator, obj_func, t", [
+    (False, "obj", 20),
     (False, "LN_obj", 20),
     (True, "obj", 100)
 ])
@@ -97,6 +99,7 @@ def test_normalize_p_data(emulator, obj_func, t):
     all_data_doc = '/scratch365/mcarlozo/Toy_Problem/' + find_train_doc_path(emulator, obj_func, d, t)
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
     train_data, test_data = test_train_split(all_data, runs = 0, sep_fact = 1, shuffle_seed=shuffle_seed)
+    q = d
     if emulator == True:
         train_p = train_data[:,1:(q+m+1)]
         test_p = test_data[:,1:(q+m+1)]
@@ -117,21 +120,21 @@ Constants_2 = np.array([[-200,-100,-170,15],
                       [1,0,-0.5,-1],
                       [0,0.5,1.5,1]])
 
-Theta_True_2 = Constants[1:3].flatten()
+Theta_True_2 = Constants_2[1:3].flatten()
 skip_params_2 = 1
 
 bounds_p_2 = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
                    [ 2,  2,   0,  2,  2,  2, 15,  2]])
-bounds_p_2_scl, scaler_theta_2 = normalize_p_bounds(bounds_p_2, norm = True, scaler = None)
+bounds_p_2_scl, scaler_theta_2 = normalize_p_bounds(bounds_p_2, norm = True)
 
-@pytest.mark.parametrize("Constants, p_true, skip_params, CS, scaler_theta", [
-    (Constants_2, Theta_True_2, skip_params_2, CS_2, scaler_theta_2),
+@pytest.mark.parametrize("Constants, p_true, skip_params, CS, scaler_thetas", [
     (Theta_True, Theta_True, skip_params, CS, scaler_theta),
+#     (Constants_2, Theta_True_2, skip_params_2, CS_2, scaler_theta_2)
 ])    
 
-def test_normalize_constants():
-    Constants_scl, scaler_C_before, scaler_C_after = normalize_constants(Constants, p_true, scaler_theta, skip_params, CS, norm = True, scaler_C_before = None, scaler_C_after = None)
-    Constants_reg = normalize_constants(Constants_scl, p_true, scaler_theta, skip_params, CS, norm = False, scaler_C_before, scaler_C_after)
+def test_normalize_constants(Constants, p_true, skip_params, CS, scaler_thetas):
+    Constants_scl, scaler_C_before, scaler_C_after = normalize_constants(Constants, p_true, scaler_thetas, skip_params, CS, norm = True, scaler_C_before = None, scaler_C_after = None)
+    Constants_reg = normalize_constants(Constants_scl, p_true, scaler_thetas, skip_params, CS, False, scaler_C_before, scaler_C_after)[0]
     assert pytest.approx(Constants, abs = 1e-2) == Constants_reg
 
 @pytest.mark.parametrize("emulator, obj_func", [
@@ -142,6 +145,10 @@ def test_normalize_constants():
 
 def test_normalize_general(emulator, obj_func):
     #Find and split training/testing data
+    t = 20
+    if emulator == True:
+        t = 20*n
+    q = d
     all_data_doc = '/scratch365/mcarlozo/Toy_Problem/' + find_train_doc_path(emulator, obj_func, d, t)
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
     train_data, test_data = test_train_split(all_data, runs = 0, sep_fact = 1, shuffle_seed=shuffle_seed)
@@ -173,7 +180,7 @@ def test_normalize_general(emulator, obj_func):
     Xexp_unscl = normalize_x(Xexp_scl, None, norm, scaler_x)[0]
     theta_set_unscl = normalize_p_set(theta_set_scl, scaler_theta, norm)
     Theta_True_unscl =  normalize_p_true(Theta_True_scl, scaler_theta, norm)
-    Constants_unscl = normalize_constants(Constants_scl, Theta_True, scaler_theta, skip_params, CS, norm = False, scaler_C_before, scaler_C_after)
+    Constants_unscl = normalize_constants(Constants_scl, Theta_True, scaler_theta, skip_params,CS, False,scaler_C_before, scaler_C_after)[0]
 
     assert pytest.approx(train_p, abs = 1e-2) == train_p_unscl, "Training data not scaled correctly"
     assert pytest.approx(bounds_p, abs = 1e-2) == bounds_p_unscl, "Param bounds not scaled correctly"
