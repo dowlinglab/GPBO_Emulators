@@ -1,0 +1,8 @@
+Date and Time:  11-Jan-2023 (08:55:30)
+Norm: False
+Emulator = False
+Objective Function = obj
+Objective Function = LN_obj
+Emulator = True
+Objective Function = obj
+SSE Total =  1.5132e+15

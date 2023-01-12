@@ -227,7 +227,7 @@ def create_y_data(param_space, true_model_coefficients, x, skip_param_types = 0,
         y_sim[i] = calc_muller(x, model_coefficients, noise)
    
     return y_sim
-
+#Note: FUnction doesn't actually use emulator tool
 def gen_y_Theta_GP(x_space, Theta, true_model_coefficients, p_true, CS, skip_param_types = 0, norm_scalers = None, emulator = True):
 # def gen_y_Theta_GP(x_space, Theta):
     """

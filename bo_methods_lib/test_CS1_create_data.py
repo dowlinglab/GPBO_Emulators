@@ -32,7 +32,7 @@ Yexp = exp_data[:,-1]
 
 def test_calc_y_exp():
     y_exp = calc_y_exp(Theta_True, Xexp, noise_std, noise_mean=0,random_seed=9)
-    assert pytest.approx(Yexp.flatten(), atol = 0.1) == y_exp.flatten(), "Yexp and y_exp are not the same values" 
+    assert pytest.approx(Yexp.flatten(), abs = 0.1) == y_exp.flatten(), "Yexp and y_exp are not the same values" 
 
 @pytest.mark.parametrize("obj, sse_pred", [
     ("obj", np.array([0])),
@@ -42,19 +42,19 @@ def test_calc_y_exp():
 def test_create_sse_data_GP_val():
     q = 2
     sse = create_sse_data_GP_val(q,Theta_True.reshape(1,-1), Xexp, Yexp, obj)
-    assert pytest.approx(sse_pred, atol = 0.1) == sse.flatten(), "SSE should be zero at the true parameter set" 
+    assert pytest.approx(sse_pred, abs = 0.1) == sse.flatten(), "SSE should be zero at the true parameter set" 
 
 param_space = np.array([[1,-1,0], [1,-1,2]]) 
 expected_y_data = np.array([0,6])
 
 def test_create_y_data():
     y_data = create_y_data(param_space)
-    assert pytest.approx(expected_y_data, atol = 0.1) == y_data
+    assert pytest.approx(expected_y_data, abs = 0.1) == y_data
 
 def test_gen_y_Theta_GP():
     #Note: Need to add test for norm_scalers w/parametrization once normalization code has tests
     y_data_GP = gen_y_Theta_GP(Xexp, Theta_True, Theta_True, skip_param_types = 0, norm_scalers = None, emulator = False)
-    assert pytest.approx(np.array([-14, -3, 0, 1, 6]), atol = 0.1) == y_data_GP
+    assert pytest.approx(Yexp, abs = 0.1) == y_data_GP, "Given Xexp and true theta, you should get roughly the experimental data"
 
 train_p = np.array([[1,-1], [1,-2], [0,0], [-1,1]])
 
@@ -78,14 +78,14 @@ train_y_new_emul = np.array([0, 1, 10, -14, -3, 0, 1, 6])
 
 theta_b = Theta_True
 
-@pytest.mark.parametrize("emulator, obj, train_p_org, train_y_org", [
-    (False, "obj", train_p_org_std, train_y_org_std),
-    (False, "LN_obj", train_p_org_std, train_y_org_std_log),
-    (True, "obj", train_p_org_emul, train_y_org_emul)
+@pytest.mark.parametrize("emulator, obj, train_p_org, train_y_org, n_mult", [
+    (False, "obj", train_p_org_std, train_y_org_std, 1),
+    (False, "LN_obj", train_p_org_std, train_y_org_std_log, 1),
+    (True, "obj", train_p_org_emul, train_y_org_emul, n)
 ])
 
 # def test_make_next_point(emulator, train_p_org, train_y_org, train_p_new, train_y_new)
 def test_make_next_point(emulator, train_p_org, train_y_org):
     train_p_after, train_y_after = make_next_point(train_p_org, train_y_org, theta_b, Xexp, Yexp, emulator, Theta_True, obj, dim_param, skip_param_types=0, noise_std=None, norm_scalers = None)
-    assert len(train_p_after) == len(train_p_org) + 1 , "train_p not updated correctly"
-    assert len(train_y_after) == len(train_y_org) + 1, "train_y not updated correctly"
+    assert len(train_p_after) == len(train_p_org) + 1*n_mult , "train_p not updated correctly"
+    assert len(train_y_after) == len(train_y_org) + 1*n_mult, "train_y not updated correctly"
