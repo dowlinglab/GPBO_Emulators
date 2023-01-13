@@ -4,7 +4,6 @@ from scipy.stats import norm
 from scipy import integrate
 import torch
 import csv
-import gpytorch
 import scipy.optimize as optimize
 import itertools
 from itertools import combinations_with_replacement
@@ -71,13 +70,13 @@ def test_ei_approx_ln_term():
     
 #Not testing true because it's usually not used     
 def test_calc_ei_basic():
-    ei_basic_components = calc_ei_basic(2.994189548,1.7,1, 0, False)
-    assert pytest.approx(0.046093317 , abs = 1e-2) == ei_basic_components
+    ei_basic_components = calc_ei_basic(f_best =0.4,pred_mean=0.5,pred_var=0.25, explore_bias=1, verbose=False)
+    assert pytest.approx(0.1534 , abs = 1e-2) == ei_basic_components
 
 #Hard to calculate LN_obj by hand, but this function was checked a while back, works fine and hasn't changed since
 def test_calc_ei_emulator():
-    ei_emul = calc_ei_emulator(0.052964003, -6.2356, 6.6659, -6.4657044, explore_bias= torch.tensor(1), obj = "obj")
-    assert pytest.approx(0.291972608, abs = 1e-2) == ei_emul
+    ei_emul = calc_ei_emulator(error_best=0.4,pred_mean=0.5,pred_var=0.25**2,y_target=0.45, explore_bias=torch.tensor(1), obj = "obj")
+    assert pytest.approx(0.33653, abs = 1e-2) == ei_emul
 
 #Tests sparse grid creater too
 def test_eval_GP_sparse_grid():

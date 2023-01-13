@@ -573,7 +573,7 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
 #     print(Theta_Opt_GP)
     return Theta_Best, Theta_Opt_GP
 
-def argmax_multiple(argmax, train_p, theta_set): #not sure how to fix setting of points here either
+def argmax_multiple(argmax, train_p, theta_set):
     """
     Finds the best ei point argument when more than one point has the maximum ei
     

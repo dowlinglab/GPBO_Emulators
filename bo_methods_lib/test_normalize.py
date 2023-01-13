@@ -127,23 +127,24 @@ bounds_p_2 = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
                    [ 2,  2,   0,  2,  2,  2, 15,  2]])
 bounds_p_2_scl, scaler_theta_2 = normalize_p_bounds(bounds_p_2, norm = True)
 
-@pytest.mark.parametrize("Constants, p_true, skip_params, CS, scaler_thetas", [
+@pytest.mark.parametrize("Constants, p_true, skip_params, CS_use, scaler_thetas", [
     (Theta_True, Theta_True, skip_params, CS, scaler_theta),
-#     (Constants_2, Theta_True_2, skip_params_2, CS_2, scaler_theta_2)
+    (Constants_2, Theta_True_2, skip_params_2, CS_2, scaler_theta_2)
 ])    
 
-def test_normalize_constants(Constants, p_true, skip_params, CS, scaler_thetas):
-    Constants_scl, scaler_C_before, scaler_C_after = normalize_constants(Constants, p_true, scaler_thetas, skip_params, CS, norm = True, scaler_C_before = None, scaler_C_after = None)
-    Constants_reg = normalize_constants(Constants_scl, p_true, scaler_thetas, skip_params, CS, False, scaler_C_before, scaler_C_after)[0]
+def test_normalize_constants(Constants, p_true, skip_params, CS_use, scaler_thetas):
+    Constants_scl, scaler_C_before, scaler_C_after = normalize_constants(Constants, p_true, scaler_thetas, skip_params, CS_use, norm = True, scaler_C_before = None, scaler_C_after = None)
+    Theta_True_scl = normalize_p_true(p_true, scaler_thetas, True)
+    Constants_reg = normalize_constants(Constants_scl, Theta_True_scl, scaler_thetas, skip_params, CS_use, False, scaler_C_before, scaler_C_after)[0]
     assert pytest.approx(Constants, abs = 1e-2) == Constants_reg
 
-@pytest.mark.parametrize("emulator, obj_func", [
-    (False, "obj"),
-    (False, "LN_obj"),
-    (True, "obj")
+@pytest.mark.parametrize("emulator, obj_func, d, n ", [
+    (False, "obj", 2, 5),
+    (False, "LN_obj", 2, 5),
+    (True, "obj", 2, 5)
 ])    
 
-def test_normalize_general(emulator, obj_func):
+def test_normalize_general(emulator, obj_func, d, n):
     #Find and split training/testing data
     t = 20
     if emulator == True:
@@ -180,7 +181,7 @@ def test_normalize_general(emulator, obj_func):
     Xexp_unscl = normalize_x(Xexp_scl, None, norm, scaler_x)[0]
     theta_set_unscl = normalize_p_set(theta_set_scl, scaler_theta, norm)
     Theta_True_unscl =  normalize_p_true(Theta_True_scl, scaler_theta, norm)
-    Constants_unscl = normalize_constants(Constants_scl, Theta_True, scaler_theta, skip_params,CS, False,scaler_C_before, scaler_C_after)[0]
+    Constants_unscl = normalize_constants(Constants_scl, Theta_True_scl, scaler_theta, skip_params,CS, False,scaler_C_before, scaler_C_after)[0]
 
     assert pytest.approx(train_p, abs = 1e-2) == train_p_unscl, "Training data not scaled correctly"
     assert pytest.approx(bounds_p, abs = 1e-2) == bounds_p_unscl, "Param bounds not scaled correctly"

@@ -671,24 +671,29 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=1, obj
             ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
 #             ei_term1_comp2 = (error_best - explore_bias) - (y_target - pred_mean)**2 #1xn
             ei_term1_comp2 = (error_best*explore_bias) - (y_target - pred_mean)**2 #1xn
+#             print(ei_term1_comp1, ei_term1_comp2)
 
             ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
             ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
             ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
+#             print(ei_eta_upper, ei_eta_lower)
             ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
 
             ei_term3_comp1 = bound_upper*ei_eta_upper #1xn
             ei_term3_comp2 = bound_lower*ei_eta_lower #1xn
 
             ei_term3_comp3 = (1/2)*math.erf(bound_upper/np.sqrt(2)) #1xn
-            ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2)) #1xn     
+            ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2)) #1xn  
+#             print(ei_term3_comp3, ei_term3_comp4)
 
             ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
             ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4 #1xn
+#             print(ei_term3_psi_upper, ei_term3_psi_lower)
             ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
 
             ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
             ei_term3 = -pred_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
+#             print(ei_term1, ei_term2, ei_term3)
             EI = ei_term1 + ei_term2 + ei_term3 #1xn
     else:
 #         print("It's working")
