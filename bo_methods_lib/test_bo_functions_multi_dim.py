@@ -19,8 +19,8 @@ import pytest
 from .bo_functions_generic import clean_1D_arrays, gen_theta_set, LHS_Design, ei_approx_ln_term, calc_ei_emulator, eval_GP_sparse_grid, calc_ei_basic
 
 from .CS2_bo_functions_multi_dim import argmax_multiple, find_opt_and_best_arg, eval_GP_emulator_set, eval_GP_basic_set, eval_GP_scipy, eval_GP  
-#How to write tests for if scipy works correctly (optimize_theta_set)? How to write unit tests for bo_iter and bo_iter_w_runs?
-#How to write unit test for: eval_GP_emulator_set, eval_GP_basic_set, eval_GP_scipy, eval_GP: Need a simple model and there's no way to know in advance what the GP will output
+#Note: Use -W ignore::DeprecationWarning to ignore funky deprecation warnings.
+#How to write unit test for: eval_GP_emulator_set, eval_GP_basic_set, eval_GP_scipy, eval_GP: Don't. These aren't functions where a unit test is necessarily helpful
 Theta_True = np.array([1,-1])
 d = len(Theta_True)
 noise_std = 0.1

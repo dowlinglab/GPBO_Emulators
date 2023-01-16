@@ -17,7 +17,8 @@ import time
 import Tasmanian
 import pytest
 
-from .bo_functions_generic import test_train_split, norm_unnorm, clean_1D_arrays, gen_theta_set, find_train_doc_path
+from .bo_functions_generic import test_train_split as tt_split
+from .bo_functions_generic import norm_unnorm, clean_1D_arrays, gen_theta_set, find_train_doc_path
 
 from .normalize import normalize_x, normalize_p_data, normalize_p_bounds, normalize_p_set, normalize_p_true, normalize_constants, normalize_general
 
@@ -60,7 +61,8 @@ train_p = np.array([[1,-1], [1,-2], [0,0], [-1,1]])
 def test_test_train_split(emulator, t, len_train, len_test):
     all_data_doc = '/scratch365/mcarlozo/Toy_Problem/' + find_train_doc_path(emulator, "obj", d, t)
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-    train_data, test_data = test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = 9)
+#     train_data, test_data = test_train_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = 9)
+    train_data, test_data = tt_split(all_data, sep_fact=0.8, runs = 0, shuffle_seed = 9)
     assert len(train_data) == len_train and len(test_data) == len_test, "Training and testing data incorrect lengths"
 
 
@@ -98,7 +100,8 @@ def test_normalize_p_set():
 def test_normalize_p_data(emulator, obj_func, t):
     all_data_doc = '/scratch365/mcarlozo/Toy_Problem/' + find_train_doc_path(emulator, obj_func, d, t)
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-    train_data, test_data = test_train_split(all_data, runs = 0, sep_fact = 1, shuffle_seed=shuffle_seed)
+    train_data, test_data = tt_split(all_data, runs = 0, sep_fact = 1, shuffle_seed=shuffle_seed)
+#     train_data, test_data = test_train_split(all_data, runs = 0, sep_fact = 1, shuffle_seed=shuffle_seed)
     q = d
     if emulator == True:
         train_p = train_data[:,1:(q+m+1)]
@@ -152,7 +155,8 @@ def test_normalize_general(emulator, obj_func, d, n):
     q = d
     all_data_doc = '/scratch365/mcarlozo/Toy_Problem/' + find_train_doc_path(emulator, obj_func, d, t)
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-    train_data, test_data = test_train_split(all_data, runs = 0, sep_fact = 1, shuffle_seed=shuffle_seed)
+#     train_data, test_data = test_train_split(all_data, runs = 0, sep_fact = 1, shuffle_seed=shuffle_seed)
+    train_data, test_data = tt_split(all_data, runs = 0, sep_fact = 1, shuffle_seed=shuffle_seed)
     if emulator == True:
         train_p = train_data[:,1:(q+m+1)]
         test_p = test_data[:,1:(q+m+1)]
