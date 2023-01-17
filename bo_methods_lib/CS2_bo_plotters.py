@@ -32,7 +32,8 @@ def save_csv(df, path, ext='npy', verbose=False):
     filename = "%s.%s" % (os.path.split(path)[1], ext)
     if directory == '':
         directory = '.'
-
+        
+#     print(directory, filename)
     # If the directory does not exist, create it
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -40,12 +41,15 @@ def save_csv(df, path, ext='npy', verbose=False):
     # The final path to save to
     savepath = os.path.join(directory, filename)
     
-    #If the df is a dataframe, make it a numpy array before saving, otherwise, just save it
-    if isinstance(df, pd.DataFrame):
-        np.save(savepath, df.to_numpy())
-    else:
+    #If the df is a dataframe, make it a numpy array before saving, otherwise, just save it 
+    if ext == "npy":
+        if isinstance(df, pd.DataFrame):
+            df = df.to_numpy()
         np.save(savepath, df)
-
+    else:
+        assert isinstance(df, pd.DataFrame)
+        df.to_csv(savepath)
+        
     if verbose:
         print("Saving to '%s'..." % savepath),
 
