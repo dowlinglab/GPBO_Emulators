@@ -22,6 +22,7 @@ print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 DateTime = "2023/1/23/13-30"
+print("Date and Time Saved: ", DateTime)
 # DateTime = None ##For Testing
 
 #Set Parameters

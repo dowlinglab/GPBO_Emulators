@@ -88,6 +88,7 @@ bounds_p = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
 # theta_mesh = np.array(np.meshgrid(Theta1, Theta2)) #2 Uniform 5x5 arrays 
 theta_mesh = gen_theta_set(LHS = LHS, n_points = p, dimensions = d, bounds = bounds_p)
 # print(theta_mesh.shape)
+t_0 = 20
 
 print("Runs:", runs)
 print("BO Iterations:",BO_iters)
@@ -99,10 +100,10 @@ for norm in normalize:
         print("-------------------")
         print("Emulator?:", emul)
         if emul == True: #Change this based on number of TP for each test
-            t = 3000
+            t = t_0*n
             sparse_grid_use = sparse_grid
         else:
-            t = 200
+            t = t_0
             sparse_grid_use = np.array([sparse_grid[0]]) #Sparse Grid will always be False for 2-Input
 
         for sparse in sparse_grid_use:
