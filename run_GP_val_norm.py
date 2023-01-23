@@ -21,7 +21,7 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
-DateTime = "2022/12/19/15-48"
+DateTime = "2023/1/23/13-30"
 # DateTime = None ##For Testing
 
 #Set Parameters
@@ -41,7 +41,8 @@ if CS == 2.2:
     param_dict = {0 : 'a_1', 1 : 'a_2', 2 : 'a_3', 3 : 'a_4',
                   4 : 'b_1', 5 : 'b_2', 6 : 'b_3', 7 : 'b_4'}
     exp_d = 2
-    n = 15 #Number of experimental data points to use
+#     n = 15 #Number of experimental data points to use
+    n = 17 #Number of experimental data points to use
     bounds_x = np.array([[-1.5, -0.5],
                      [   1,    2]])
     bounds_p = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
