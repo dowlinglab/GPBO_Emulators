@@ -21,7 +21,7 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
-DateTime = "2023/1/23/13-30"
+DateTime = "2023/1/23/13-45"
 print("Date and Time Saved: ", DateTime)
 # DateTime = None ##For Testing
 
@@ -61,7 +61,7 @@ else:
 
 # print(Theta_True)
 # t_list = np.array([20,40,100,200,300])
-t_list = np.array([300])
+t_list = np.array([20])
 d = len(true_p)
 train_iter = 300
 noise_std = 0.1
