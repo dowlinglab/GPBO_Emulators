@@ -69,8 +69,8 @@ sep_fact = np.linspace(1,1,1)
 set_lengthscale = None
 explore_bias = 1
 plot_axis = np.array([1,0])
-# normalizing = np.array([False])
-normalizing = np.array([True])
+normalizing = np.array([False])
+# normalizing = np.array([True])
 # normalizing = np.array([False,True])
 
 obj = np.array(["obj", "LN_obj"])
