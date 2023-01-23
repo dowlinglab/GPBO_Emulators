@@ -73,7 +73,8 @@ save_fig = True
 
 #Pull Experimental data from CSV
 exp_d = 2
-n = 15 #Number of experimental data points to use
+# n = 15 #Number of experimental data points to use
+n = 17 #Number of experimental data points to use
 exp_data_doc = 'Input_CSVs/Exp_Data/d='+str(exp_d)+'/n='+str(n)+'.csv'
 exp_data = np.array(pd.read_csv(exp_data_doc, header=0,sep=","))
 Xexp = exp_data[:,1:exp_d+1]
