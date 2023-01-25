@@ -1163,6 +1163,164 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
 #     print(fxn)
     return 
 
+def value_plotter_remake(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title_save, obj,ep, emulator, sparse_grid, set_lengthscale, save_figure, param_names_list, Bo_iter, run = 0, tot_iter = 1, tot_runs = 1, DateTime=None, t = 100, sep_fact = None, levels = 20, save_CSV = True, normalize = False):
+    '''
+    Plots heat maps for 2 input GP
+    Parameters
+    ----------
+        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        z: ndarray or tensor, An NxN Array containing all points that will be plotted
+        p_true: ndarray, A 2x1 containing the true input parameters
+        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+        p_GP_Best: ndarray, A 2x1 containing the input parameters predicted by the GP to have the best EI
+        title: str, A string containing the title of the plot
+        title_save: str, A string containing the title of the file of the plot
+        obj: str, The name of the objective function. Used for saving figures
+        ep: int or float, the exploration parameter
+        emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
+        save_figure: True/False, Determines whether figures will be saved
+        param_names_list: list, list of names of each parameter that will be plotted
+        Bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
+        run, int or None, The iteration of the number of times new training points have been picked
+        tot_iter: int, The total number of iterations. Printed at top of job script
+        tot_runs: int, The total number of times training data/ testing data is reshuffled. Printed at top of job script
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        t: int, Number of total data points to use (from LHS or meshgrid)
+        sep_fact: float, in (0,1]. Determines fraction of all data that will be used to train the GP. Default is 1.
+        levels: int, Number of levels to skip when drawing contour lines. Default is 20
+        save_CSV: bool, determines whether a CSV is saved when this function is called. Prevents accidental overwrite of CSVs     
+    Returns
+    -------
+        plt.show(), A heat map of test_mesh and z
+    '''
+#     print(z)
+    #Backtrack out number of parameters from given information
+    fxn = "value_plotter"
+    mesh_combo = str(param_names_list[0]) + "-" + str(param_names_list[1])
+    q=len(p_true)
+    xx , yy = test_mesh #NxN, NxN
+    #Assert sattements
+    assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
+    assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
+    assert z.shape==xx.shape, "Array z must be NxN"
+    assert len(p_true) ==len(p_GP_opt)==len(p_GP_best)==q, "p_true, p_GP_opt, and p_GP_best must be qx1 for a q input GP"
+#     assert isinstance(title, str)==True, "Title must be a string"
+    assert len(train_p.T) >= q, "Train_p must have at least q columns"
+    assert isinstance(Bo_iter,int) == True or Bo_iter == None, "Bo_iter must be an integer or None"
+    assert isinstance(obj,str)==True, "Objective function name must be a string" 
+    
+    #Set plot details
+    fig = plt.figure(figsize=(6,6))
+    ax = fig.add_subplot()
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.tick_params(direction="in",top=True, right=True)
+    
+    #   cmap defines the overall color within the heatmap 
+    #   levels: determines the number and positions of the contour lines / regions.
+    cs = plt.contourf(xx, yy,z, levels = 100, cmap = "autumn")
+    ax.set_box_aspect(1)
+    # plot color bar
+    if np.amax(z) < 1e-1 or np.amax(z) > 1000:
+        cbar = plt.colorbar(cs, format='%.2e')
+    else:
+        cbar = plt.colorbar(cs, format = '%2.2f')
+    
+    if isinstance(title, str)!=True:
+        title = str(title)
+        
+    # plot title in color bar
+    cbar.ax.set_ylabel(r'$\mathbf{' + title +'}$', fontsize=16, fontweight='bold')
+#     print(p_GP_opt[0],p_GP_opt[1])
+
+    # set font size in color bar
+    cbar.ax.tick_params(labelsize=16)
+#     cbar.ax.set_aspect('equal')
+    # Plot equipotential line
+    cs2 = plt.contour(cs, levels=cs.levels[::levels], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+    
+    #Plot heatmap label
+    
+    if np.amax(z) < 1e-1 or np.amax(z) > 1000:
+        plt.clabel(cs2, fmt='%.2e', colors='k', fontsize=16)
+    else:
+        plt.clabel(cs2, fmt='%2.2f', colors='k', fontsize=16)
+    
+    #Can only plot np arrays
+    if torch.is_tensor(train_p) == True:
+        train_p = train_p.numpy() 
+    
+    #Plots the true optimal value, the best EI value, the GP value, and all training points
+    plt.scatter(p_true[0],p_true[1], color="blue", label = "True argmin" + r'$(e(\theta))$', s=100, marker = (5,1))
+        
+    plt.scatter(train_p[:,0],train_p[:,1], color="green",s=25, label = "Training Data", marker = "x")
+    
+    plt.scatter(p_GP_opt[0],p_GP_opt[1], color="white", s=90, label = "GP argmin" + r'$(e(\theta))$', marker = ".", edgecolors= "k", linewidth=0.3)
+    
+    plt.scatter(p_GP_best[0],p_GP_best[1], color="black", s=25, label = "GP argmax" + r'$(E(I(\theta)))$', marker = ".")
+    
+    #Plots grid and legend
+#     plt.grid()
+#     plt.legend(loc = 'upper right')
+    plt.legend(fontsize=10,bbox_to_anchor=(0, 1.05, 1, 0.2),borderaxespad=0)
+
+    #Creates axis labels and title
+    plt.xlabel(r'$\mathbf{'+ param_names_list[0]+ '}$',fontsize=16,fontweight='bold')
+#     plt.xlabel(r'$\mathbf{\theta_1}$',fontsize=16,fontweight='bold')
+    plt.ylabel(r'$\mathbf{'+ param_names_list[1]+ '}$',fontsize=16,fontweight='bold')
+#     plt.ylabel(r'$\mathbf{\theta_2}$',fontsize=16,fontweight='bold')
+    plt.xlim((np.amin(xx), np.amax(xx)))
+#     print((np.amin(xx), np.amax(xx)))
+    plt.ylim((np.amin(yy),np.amax(yy)))   
+    plt.locator_params(axis='y', nbins=5)
+    plt.locator_params(axis='x', nbins=5)
+    plt.minorticks_on() # turn on minor ticks
+    plt.tick_params(which="minor",direction="in",top=True, right=True)
+#     ax = plt.gca() #you first need to get the axis handle
+#     ax.set_aspect('box') #sets the height to width ratio to 1
+#     plt.gca().axes.xaxis.set_ticklabels([]) # remove tick labels
+#     plt.gca().axes.yaxis.set_ticklabels([])
+    fig.tight_layout()
+    #Plots axes such that they are scaled the same way (eg. circles look like circles) 
+    
+    #Back out number of original training points for saving figures and CSVs   
+    df_list = [z, p_GP_opt, p_GP_best, p_true]
+    df_list_ends = [str(title_save), "GP_Min_SSE_Pred", "GP_Best_EI_Pred", "True_p"]
+    
+    if save_CSV == True:
+        for i in range(len(df_list)):
+            array_df = pd.DataFrame(df_list[i])
+            path_csv = "../" + path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i], normalize = normalize)
+            save_csv(array_df, path_csv, ext = "npy")
+    
+    if tot_iter > 1:
+#         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
+        
+#         t = t = str(t - Bo_iter )
+#         if emulator == True:
+#             t = str(t - 5*(Bo_iter) )
+#         else:
+#             t = str(t - Bo_iter )
+        
+        #Generate path and save figures     
+        if save_figure == True:
+            path = "../" + path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, normalize = normalize)
+            save_fig(path, ext='png', close=True, verbose=False)
+#             print(path)
+        else:
+            plt.show()
+    #Don't save if there's only 1 BO iteration
+#     else:
+#         plt.title("Heat Map of "+title, weight='bold',fontsize=16)     
+
+    plt.close()
+    
+#     print(fxn)
+    return 
+
+
 
 def plot_3GP_performance(X_space, Y_sim, GP_mean, GP_stdev, Theta, Xexp, train_p = None, train_y = None, test_p = None, test_y = None, verbose = True):
     """
@@ -1193,6 +1351,8 @@ def plot_3GP_performance(X_space, Y_sim, GP_mean, GP_stdev, Theta, Xexp, train_p
     ax.legend()
     
     return plt.show()
+
+
 
 # def plot_2GP_performance(X_space, Y_sim, y_mean, GP_stdev, Theta, Xexp, train_p = None, train_y = None, test_p = None, test_y = None, verbose = True):
 #     """
