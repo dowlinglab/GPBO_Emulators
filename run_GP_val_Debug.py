@@ -63,6 +63,7 @@ else:
 # print(Theta_True)
 # t_list = np.array([20,40,100,200,300])
 t_list = np.array([20])
+
 d = len(true_p)
 train_iter = 300
 noise_std = 0.1
@@ -70,6 +71,7 @@ sep_fact = np.linspace(1,1,1)
 set_lengthscale = None
 explore_bias = 1
 plot_axis = np.array([1,0])
+
 # normalizing = np.array([False])
 # normalizing = np.array([True])
 normalizing = np.array([False,True])
