@@ -21,14 +21,14 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
-DateTime = "2023/1/25/10-55"
+DateTime = "2023/1/27/12-00"
 print("Date and Time Saved: ", DateTime)
 # DateTime = None ##For Testing
 
 #Set Parameters
 #Need to run at a and b, need 2 arrays to test that this will work
 Case_Study = [1, 2.2]
-CS = Case_Study[0]
+CS = Case_Study[1]
 
 Constants = np.array([[-200,-100,-170,15],
                       [-1,-1,-6.5,0.7],
@@ -43,7 +43,8 @@ if CS == 2.2:
                   4 : 'b_1', 5 : 'b_2', 6 : 'b_3', 7 : 'b_4'}
     exp_d = 2
 #     n = 15 #Number of experimental data points to use
-    n = 17 #Number of experimental data points to use
+#     n = 17 #Number of experimental data points to use
+    n = 27 #Number of experimental data points to use
     bounds_x = np.array([[-1.5, -0.5],
                      [   1,    2]])
     bounds_p = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
