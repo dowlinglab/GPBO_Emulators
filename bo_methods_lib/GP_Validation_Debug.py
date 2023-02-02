@@ -541,7 +541,7 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
     
     return GP_mean, GP_stdev, y_sim, SSE_model, SSE_sim, SSE_model_stdev
 
-def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False, normalize = False):
+def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False, normalize = False, save_csvs = True):
     """ 
     Creates plots of sse_sim and sse_model vs test space point
     Parameters
@@ -610,14 +610,15 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
 #     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
 
     #Save CSVs
-    iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space", normalize = normalize)
-    GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_model", normalize = normalize)
-    sse_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_sim", normalize = normalize)
-    csv_item_list = [iter_space, np.log(GP_mean), np.log(sse_sim)]
-    make_csv_list = [iter_space_path, GP_mean_path, sse_sim_path]
-    
-    for i in range(len(make_csv_list)):
-        save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
+    if save_csvs == True:
+        iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space", normalize = normalize)
+        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_model", normalize = normalize)
+        sse_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_sim", normalize = normalize)
+        csv_item_list = [iter_space, np.log(GP_mean), np.log(sse_sim)]
+        make_csv_list = [iter_space_path, GP_mean_path, sse_sim_path]
+
+        for i in range(len(make_csv_list)):
+            save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
     
     #Save figure or show and close figure
     if save_figure == True:
@@ -629,7 +630,7 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
         
     return
 
-def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime, set_lengthscale = None, save_figure = True, normalize = False):
+def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime, set_lengthscale = None, save_figure = True, normalize = False, save_csvs = True):
     """ 
     Creates plots of y_sim and y_model vs test space point
     Parameters
@@ -681,11 +682,12 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
 #     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
 
     #Save CSVs
-    iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space", normalize = normalize)
-    GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_model", normalize = normalize)
-    y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_sim", normalize = normalize)
-    csv_item_list = [iter_space, GP_mean, y_sim]
-    make_csv_list = [iter_space_path, GP_mean_path, y_sim_path]
+    if save_csvs == True:
+        iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space", normalize = normalize)
+        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_model", normalize = normalize)
+        y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_sim", normalize = normalize)
+        csv_item_list = [iter_space, GP_mean, y_sim]
+        make_csv_list = [iter_space_path, GP_mean_path, y_sim_path]
     
     for i in range(len(make_csv_list)):
         save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
