@@ -71,23 +71,20 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     sse_y_sim_tj_xk_list = []
     sse_y_sim_tj_xj_list = []
     
-
-    data_train = all_data[train_index]
-    data_test = all_data[test_index]
-#         print(all_data[0:5,1:-1])
-#         print(data_test[0,1:-1])
+    #Set training data
+    data_train = all_data
     #separate into y data and parameter data
     if m > 1:
         train_p = torch.tensor(data_train[:,1:-m+1]) #8 or 10 (emulator) parameters 
-        test_p = torch.tensor(data_test[:,1:-m+1])
     else:
         train_p = torch.tensor(data_train[:,1:-m]) #8 or 10 (emulator) parameters 
-        test_p = torch.tensor(data_test[:,1:-m])
 
     train_y = torch.tensor(data_train[:,-1])
-    test_y = torch.tensor(data_test[:,-1])
+    
+    #Define model and likelihood
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
     model = ExactGPModel(train_p, train_y, likelihood)
+    
     #Train GP
     train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose)
 
@@ -97,6 +94,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     #Plot true shape
     
     #Plot GP shape
+    
     return
 
 def LOO_eval_GP(theta_set, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = None, obj = "obj", skip_param_types = 0, noise_std = 0.1):
