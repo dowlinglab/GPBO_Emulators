@@ -93,11 +93,11 @@ def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true
     
     title1 = "- True Value"
     X_mesh = X_space.reshape(p,p,-1).T
-    Muller_plotter(X_mesh, y_sim, minima, saddle, title1, X_train = X_train)
+    Muller_plotter(X_mesh, y_sim.T, minima, saddle, title1, X_train = X_train)
     
     #Plot GP shape
     title2 = "- GP Mean"
-    Muller_plotter(X_mesh, GP_mean, minima, saddle, title2, X_train = X_train)
+    Muller_plotter(X_mesh, GP_mean.T, minima, saddle, title2, X_train = X_train)
     
     return
 
@@ -212,12 +212,15 @@ def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model,
         #Create point to be evaluated
         point = point + x_point_data
         eval_point = torch.from_numpy(np.array([point])).float()
-#         print(eval_point.dtype)
+        if k <10:
+            print(eval_point[0:1])
         #Evaluate GP model
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         model_mean = GP_Outputs[3].numpy()[0] #1xn
         GP_mean[k] = model_mean
+        if k <10:
+            print(model_mean)
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
         GP_var[k] = model_variance
         #Calculate y_sim
@@ -271,7 +274,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, X_train = None):
     
     #Set plot details
 #     plt.figure(figsize=(8,4))
-    plt.contourf(xx, yy,z.T, levels = 1000, cmap = "jet")
+    plt.contourf(xx, yy,z, levels = 1000, cmap = "jet")
     plt.colorbar()
     
     #plot saddle pts and local minima, only label 1st instance
