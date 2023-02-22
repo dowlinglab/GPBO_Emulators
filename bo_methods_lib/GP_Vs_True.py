@@ -17,8 +17,8 @@ from sklearn.model_selection import LeaveOneOut
 from .bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
 from .CS2_bo_plotters import save_csv, save_fig
     
-from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
-# from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+# from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 
 ###Load data
 ###Get constants
@@ -65,17 +65,18 @@ def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true
     data_train = all_data
     #separate into y data and parameter data
     if m > 1:
-        train_p = torch.tensor(data_train[:,1:-m+1]) #8 or 10 (emulator) parameters 
+        train_p = torch.tensor(data_train[:,1:-m+1]).float() #8 or 10 (emulator) parameters 
     else:
-        train_p = torch.tensor(data_train[:,1:-m]) #8 or 10 (emulator) parameters 
+        train_p = torch.tensor(data_train[:,1:-m]).float() #8 or 10 (emulator) parameters 
 
-    train_y = torch.tensor(data_train[:,-1])
+    train_y = torch.tensor(data_train[:,-1]).float()
     X_train = train_p[:,-m:]
     #Define model and likelihood
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
     model = ExactGPModel(train_p, train_y, likelihood)
     
     #Train GP
+#     print(train_p.dtype, train_y.dtype)
     train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose)
 
     #Evaluate GP with true parameters over meshgrid X1 X2
@@ -91,11 +92,11 @@ def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true
                   [0.22,0.30]])
     
     title1 = "- True Value"
-    X_mesh = x_space.reshape(p,p,-1).T
+    X_mesh = X_space.reshape(p,p,-1).T
     Muller_plotter(X_mesh, y_sim, minima, saddle, title1, X_train = X_train)
     
     #Plot GP shape
-    title1 = "- GP Mean"
+    title2 = "- GP Mean"
     Muller_plotter(X_mesh, GP_mean, minima, saddle, title2, X_train = X_train)
     
     return
@@ -110,7 +111,6 @@ def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model,
         train_y: tensor or ndarray, The training y data
         explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
         X_space: ndarray, The p^2 x dim(x) meshgrid points for X over which to evaluate the GP
-        Yexp: ndarray, experimental y values
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
@@ -154,19 +154,18 @@ def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model,
     likelihood.eval()
     
     #Evaluate GP based on property emulator
-    eval_components = eval_GP_emulator_x_space(theta_set, X_space, Yexp, true_model_coefficients, model, likelihood, skip_param_types, CS)
+    eval_components = eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model, likelihood, skip_param_types, CS)
     
     return eval_components
 
     
-def eval_GP_emulator_x_space(theta_set, X_space, Yexp, true_model_coefficients, model, likelihood, skip_param_types=0, CS=1):
+def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model, likelihood, skip_param_types=0, CS=1):
     """ 
     Calculates the expected improvement of the emulator approach
     Parameters
     ----------
         theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
         X_space: ndarray, The p^2 x dim(x) meshgrid points for X over which to evaluate the GP
-        Yexp: ndarray, experimental y values
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         model: bound method, The model that the GP is bound by
         likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
@@ -195,7 +194,8 @@ def eval_GP_emulator_x_space(theta_set, X_space, Yexp, true_model_coefficients, 
     if len(theta_set_params.shape) > 1:
         len_set, q = theta_set_params.shape[0], theta_set_params.shape[1]
     else:
-        len_set, q = 1, theta_set_params.shape[0]
+        theta_set_params = clean_1D_arrays(theta_set_params, param_clean = True)
+        len_set, q = theta_set_params.shape[0], theta_set_params.shape[1]
     
     #Initialize values for saving data
     GP_mean = np.zeros((p_sq))
@@ -211,14 +211,15 @@ def eval_GP_emulator_x_space(theta_set, X_space, Yexp, true_model_coefficients, 
         x_point_data = list(X_space[k]) #astype(np.float)
         #Create point to be evaluated
         point = point + x_point_data
-        eval_point = np.array([point])
+        eval_point = torch.from_numpy(np.array([point])).float()
+#         print(eval_point.dtype)
         #Evaluate GP model
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         model_mean = GP_Outputs[3].numpy()[0] #1xn
-        GP_mean[r] = model_mean
+        GP_mean[k] = model_mean
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
-        GP_var[r] = model_variance
+        GP_var[k] = model_variance
         #Calculate y_sim
         if CS == 1:
             #Case study 1, the 2D problem takes different arguments for its function create_y_data than 2.2
@@ -270,7 +271,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, X_train = None):
     
     #Set plot details
 #     plt.figure(figsize=(8,4))
-    plt.contourf(xx, yy,z, levels = 1000, cmap = "jet")
+    plt.contourf(xx, yy,z.T, levels = 1000, cmap = "jet")
     plt.colorbar()
     
     #plot saddle pts and local minima, only label 1st instance
