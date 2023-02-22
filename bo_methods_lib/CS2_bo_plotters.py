@@ -415,7 +415,10 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison")
     '''
     #assert statments
     assert isinstance(title, str)==True, "Title must be a string"
-    assert len(x_exp) == len(y_exp) == len(y_GP), "Xexp, Yexp, and Y_GP must be the same length"
+    if y_GP:
+        assert len(x_exp) == len(y_exp) == len(y_GP), "Xexp, Yexp, and Y_GP must be the same length"
+    else:
+        assert len(x_exp) == len(y_exp), "Xexp, Yexp, and Y_GP must be the same length"
     
     #Plot x vs Y for experimental and extrapolated data
     plt.figure(figsize = (6.4,4))
@@ -429,10 +432,11 @@ def plot_xy(x_line, x_exp, y_exp, y_GP,y_GP_long,y_true,title = "XY Comparison")
 #     plt.gca().axes.xaxis.set_ticklabels([]) # remove tick labels
 #     plt.gca().axes.yaxis.set_ticklabels([])
     
-    plt.scatter(x_exp, y_exp, label = "y $\theta_{true}$", color = "orange")
-    plt.scatter(x_exp, y_GP)
+    plt.scatter(x_exp, y_exp, label = r"y $\theta_{true}$", color = "orange")
+    if y_GP:
+        plt.scatter(x_exp, y_GP)
     plt.plot(x_line, y_true, color = "orange")
-    plt.plot(x_line, y_GP_long, "--", label = "y $\theta_{GP}$")
+    plt.plot(x_line, y_GP_long, "--", label = r"y $\theta_{GP}$")
     
     #Set plot details
 #     plt.grid(True)

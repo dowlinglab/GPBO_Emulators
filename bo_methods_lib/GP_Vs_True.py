@@ -15,7 +15,7 @@ from scipy.stats import qmc
 from sklearn.model_selection import LeaveOneOut
 
 from .bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
-from .CS2_bo_plotters import save_csv, save_fig
+from .CS2_bo_plotters import save_csv, save_fig, plot_xy
     
 # from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
@@ -84,20 +84,23 @@ def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true
     GP_mean, GP_stdev, y_sim = eval_components
     
     #Plot true shape
-    minima = np.array([[-0.558,1.442],
-                  [-0.050,0.467],
-                  [0.623,0.028]])
+    if Case_Study == 2.2:
+        minima = np.array([[-0.558,1.442],
+                      [-0.050,0.467],
+                      [0.623,0.028]])
 
-    saddle = np.array([[-0.82,0.62],
-                  [0.22,0.30]])
-    
-    title1 = "- True Value"
-    X_mesh = X_space.reshape(p,p,-1).T
-    Muller_plotter(X_mesh, y_sim.T, minima, saddle, title1, X_train = X_train)
-    
-    #Plot GP shape
-    title2 = "- GP Mean"
-    Muller_plotter(X_mesh, GP_mean.T, minima, saddle, title2, X_train = X_train)
+        saddle = np.array([[-0.82,0.62],
+                      [0.22,0.30]])
+
+        title1 = "- True Value"
+        X_mesh = X_space.reshape(p,p,-1).T
+        Muller_plotter(X_mesh, y_sim.T, minima, saddle, title1, X_train = X_train)
+
+        #Plot GP shape
+        title2 = "- GP Mean"
+        Muller_plotter(X_mesh, GP_mean.T, minima, saddle, title2, X_train = X_train)
+    elif Case_Study == 1:
+        plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison")
     
     return
 
@@ -212,15 +215,15 @@ def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model,
         #Create point to be evaluated
         point = point + x_point_data
         eval_point = torch.from_numpy(np.array([point])).float()
-        if k <10:
-            print(eval_point[0:1])
+#         if k <10:
+#             print(eval_point[0:1])
         #Evaluate GP model
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         model_mean = GP_Outputs[3].numpy()[0] #1xn
         GP_mean[k] = model_mean
-        if k <10:
-            print(model_mean)
+#         if k <10:
+#             print(model_mean)
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
         GP_var[k] = model_variance
         #Calculate y_sim
@@ -233,10 +236,11 @@ def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model,
         
     GP_stdev = np.sqrt(GP_var)  
     
-    #Turn GP_mean, GP_stdev, and y_sim back into meshgrid form
-    GP_stdev = np.array(GP_stdev).reshape((p, p))
-    GP_mean = np.array(GP_mean).reshape((p, p))
-    y_sim = np.array(y_sim).reshape((p, p))
+    if m > 1:
+        #Turn GP_mean, GP_stdev, and y_sim back into meshgrid form
+        GP_stdev = np.array(GP_stdev).reshape((p, p))
+        GP_mean = np.array(GP_mean).reshape((p, p))
+        y_sim = np.array(y_sim).reshape((p, p))
     
     return GP_mean, GP_stdev, y_sim
 
@@ -274,25 +278,30 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, X_train = None):
     
     #Set plot details
 #     plt.figure(figsize=(8,4))
-    plt.contourf(xx, yy,z, levels = 1000, cmap = "jet")
-    plt.colorbar()
+    cs = plt.contourf(xx, yy,z, levels = 1000, cmap = "jet")
+    if np.amax(z) < 1e-1 or np.amax(z) > 1000:
+        cbar = plt.colorbar(cs, format='%.2e')
+    else:
+        cbar = plt.colorbar(cs, format = '%2.2f')
+        
+    cs2 = plt.contour(cs, levels=cs.levels[::25], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
     
     #plot saddle pts and local minima, only label 1st instance
+    if str(X_train) != "None":
+        plt.scatter(X_train[:,0], X_train[:,1], color = "brown", label = "Training", marker = "o")
+    
     for i in range(len(minima)):
         if i == 0:
             plt.scatter(minima[i,0], minima[i,1], color="black", label = "Minima", s=25, marker = (5,1))
         else:
             plt.scatter(minima[i,0], minima[i,1], color="black", s=25, marker = (5,1))
-    
+
     for j in range(len(saddle)):
         if j == 0:
             plt.scatter(saddle[j,0], saddle[j,1], color="white", label = "Saddle", s=25, marker = "x")
         else:
             plt.scatter(saddle[j,0], saddle[j,1], color="white", s=25, marker = "x")
-    if str(X_train) != "None":
-        plt.scatter(X_train[:,0], X_train[:,1], color = "brown", label = "Training", marker = "o")
-        
-    
+       
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')    
     
