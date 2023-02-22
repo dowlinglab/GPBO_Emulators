@@ -23,14 +23,15 @@ from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True, plot_axis = None):  
+def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True):  
     """
     Run GP Validation using a leave one out scheme
     
     Parameters:
     -----------
         all_data: ndarray, contains all data for GP
-        Xexp: ndarray, The list of Xs that will be used to generate Y
+        X_space: ndarray, The p^2 x dim(x) meshgrid points for X over which to evaluate the GP
+        Xexp: ndarray, The experimental data for y (the true value)
         Yexp: ndarray, The experimental data for y (the true value)
         true_model_coefficients: ndarray, The array containing the true values of the problem (may be the same as true_p)
         true_p: ndarray, The array containing the true values of theta parameters to regress- flattened array
@@ -52,24 +53,13 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         
     """
     #Define constants for dimensions of x (m), number of exp data points (n), number of parameters to be regressed (q), and data length (t)
-    n,m = Xexp.shape
+    n, m = Xexp.shape
+    p_sq = len(X_space)
+    p = int(np.sqrt(p_sq))
     q = true_p.shape[0]
     t = len(all_data)
     
     #Create empy lists to store index, GP model val, y_sim vals, sse's from emulator vals, SSE from emulator val, and sse from GP vals
-    index_list = []
-    y_model_tj_xk_list = []
-    y_model_tj_xj_list = []
-    y_model_stdev_tj_xk_list = []
-    y_model_stdev_tj_xj_list = []
-    sse_GP_tj_xk_list = []
-    sse_GP_tj_xj_list = []
-    sse_GP_stdev_tj_xk_list = []
-    sse_GP_stdev_tj_xj_list = []
-    y_sim_tj_xk_list = []
-    y_sim_tj_xj_list = []
-    sse_y_sim_tj_xk_list = []
-    sse_y_sim_tj_xj_list = []
     
     #Set training data
     data_train = all_data
@@ -80,7 +70,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         train_p = torch.tensor(data_train[:,1:-m]) #8 or 10 (emulator) parameters 
 
     train_y = torch.tensor(data_train[:,-1])
-    
+    X_train = train_p[:,-m:]
     #Define model and likelihood
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
     model = ExactGPModel(train_p, train_y, likelihood)
@@ -89,15 +79,28 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose)
 
     #Evaluate GP with true parameters over meshgrid X1 X2
-    eval_components = LOO_eval_GP(test_p_reshape, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std)
-
+    eval_components = eval_GP_x_space(true_p, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study)
+    GP_mean, GP_stdev, y_sim = eval_components
+    
     #Plot true shape
+    minima = np.array([[-0.558,1.442],
+                  [-0.050,0.467],
+                  [0.623,0.028]])
+
+    saddle = np.array([[-0.82,0.62],
+                  [0.22,0.30]])
+    
+    title1 = "- True Value"
+    X_mesh = x_space.reshape(p,p,-1).T
+    Muller_plotter(X_mesh, y_sim, minima, saddle, title1, X_train = X_train)
     
     #Plot GP shape
+    title1 = "- GP Mean"
+    Muller_plotter(X_mesh, GP_mean, minima, saddle, title2, X_train = X_train)
     
     return
 
-def LOO_eval_GP(theta_set, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, train_p = None, obj = "obj", skip_param_types = 0, noise_std = 0.1):
+def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = None, obj = "obj", skip_param_types = 0, noise_std = 0.1, CS = 1):
     """
     Evaluates GP
     
@@ -106,7 +109,7 @@ def LOO_eval_GP(theta_set, Xexp, train_y, true_model_coefficients, model, likeli
         theta_set: ndarray (len_set x dim_param), array of Theta values 
         train_y: tensor or ndarray, The training y data
         explore_bias: float,int,tensor,ndarray (1 value) The exploration bias parameter
-        Xexp: ndarray, experimental x values
+        X_space: ndarray, The p^2 x dim(x) meshgrid points for X over which to evaluate the GP
         Yexp: ndarray, experimental y values
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         model: bound method, The model that the GP is bound by
@@ -150,150 +153,19 @@ def LOO_eval_GP(theta_set, Xexp, train_y, true_model_coefficients, model, likeli
     #Puts likelihood in evaluation mode
     likelihood.eval()
     
-    #Evaluate GP based on error emulator or property emulator
-    if emulator == False:
-        eval_components = LOO_eval_GP_basic_set(theta_set, train_y, model, likelihood, obj, verbose)
-    else:
-#         eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose)
-        eval_components = LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, likelihood, verbose, train_p, obj, skip_param_types = skip_param_types,  noise_std = noise_std)
+    #Evaluate GP based on property emulator
+    eval_components = eval_GP_emulator_x_space(theta_set, X_space, Yexp, true_model_coefficients, model, likelihood, skip_param_types, CS)
     
     return eval_components
 
-def LOO_eval_GP_basic_set(theta_set, train_sse, model, likelihood, obj = "obj", verbose = False):
-    """ 
-    Calculates the expected improvement of the 2 input parameter GP
-    Parameters
-    ----------
-        theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
-        train_sse: ndarray (1 x t), Training data for sse
-        model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated. Default "obj"
-        verbose: True/False: Determines whether z and ei terms are printed
     
-    Returns
-    -------
-        sse: ndarray, the sse/ln(sse) of the GP model
-        stdev: ndarray, the standard deviation of the GP model
-    """
-        #Asserts that inputs are correct
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-    assert verbose==True or verbose==False, "Verbose must be True/False"
-
-    #Define constants for number of parameters to be regressed (q), and theta_set length (len_set)
-    if len(theta_set.shape) > 1:
-        len_set, q = theta_set.shape[0], theta_set.shape[1]
-    else:
-        len_set, q = 1, theta_set.shape[0]
-    #Initalize matricies to save GP outputs and calculations using GP outputs
-    sse = np.zeros(len_set)
-    var = np.zeros(len_set)
-    stdev = np.zeros(len_set)
-        
-    #Choose and evaluate point
-    point = theta_set[0]
-    eval_point = np.array([point])
-    #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-    GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-    #Save GP outputs
-    model_sse = GP_Outputs[3].numpy()[0] #1xn
-    model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
-
-    #Ensures sse is saved instead of ln(sse)
-    if obj == "obj":
-        sse = model_sse
-    else:
-        sse = np.exp(model_sse)
-    var = model_variance
-    stdev = np.sqrt(model_variance)  
-
-    return sse, stdev 
-
-def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, likelihood, verbose = False, train_p = None, obj = "obj", skip_param_types = 0, noise_std = 0.1):
+def eval_GP_emulator_x_space(theta_set, X_space, Yexp, true_model_coefficients, model, likelihood, skip_param_types=0, CS=1):
     """ 
     Calculates the expected improvement of the emulator approach
     Parameters
     ----------
         theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
-        Xexp: ndarray, "experimental" x values
-        true_model_coefficients: ndarray, The array containing the true values of problem constants
-        model: bound method, The model that the GP is bound by
-        likelihood: bound method, The likelihood of the GP model. In this case, must be a Gaussian likelihood
-        verbose: bool, Determines whether output is verbose. Default False
-        train_p: tensor or ndarray, The training parameter space data
-        obj: str, LN_obj or obj, determines whether log or regular objective function is calculated. Default "obj"
-        skip_param_types: The offset of which parameter types (A - y0) that are being guessed. Default 0
-        noise_std: float, int: The standard deviation of the noise. Default 0.1
-    
-    Returns
-    -------
-        GP_mean_all: ndarray, Array of GP mean predictions
-        GP_stdev_all: ndarray, Array of GP standard deviations
-        SSE: ndarray, The SSE of the model 
-        SSE_var_GP: ndarray, The varaince of the SSE pf the GP model
-        SSE_stdev_GP: ndarray, The satndard deviation of the SSE of the GP model
-    """
-    #Asserts that inputs are correct
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
-    
-    #Define length (len_set) and dimsenionality (q) of theta_set and dimensionality of Xexp (m)
-    if len(theta_set.shape) > 1:
-        len_set, q = theta_set.shape[0], theta_set.shape[1]
-    else:
-        len_set, q = 1, theta_set.shape[0]
-
-    m = Xexp.shape[1]
-    #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
-    
-    #Initialize values
-    SSE_var_GP = 0
-    SSE_stdev_GP = 0
-    SSE = 0
-         
-    ##Calculate Values
-    #Caclulate GP vals for each value given theta_j and x_j
-    point = list(theta_set[0])
-    eval_point = np.array([point])
-    #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-    GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-    #Save GP Values
-    model_mean = GP_Outputs[3].numpy()[0] #1xn
-    model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
-
-    #Calculate corresponding experimental data from theta_set value
-    calc_exp_point = clean_1D_arrays(theta_set[:,-m:])
-
-    ##Compute SSE and SSE variance for that point
-    #Copute Yexp
-    Yexp = calc_y_exp(true_model_coefficients, calc_exp_point, noise_std)  
-    SSE += (model_mean - Yexp)**2
-
-    error_point = (model_mean - Yexp) #This SSE_variance CAN be negative
-    SSE_var_GP += 2*error_point*model_variance #Error Propogation approach
-
-    #Ensure positive standard deviations are saved for plotting purposes
-    if SSE_var_GP > 0:
-        SSE_stdev_GP += np.sqrt(SSE_var_GP)
-    else:
-        SSE_stdev_GP += np.sqrt(np.abs(SSE_var_GP))
-
-    #Save values for each value in theta_set (in this case only 1 value)
-    GP_mean_all = model_mean
-    GP_var_all = model_variance
-    GP_stdev_all = np.sqrt(GP_var_all)
-
-    return GP_mean_all, GP_stdev_all, SSE, SSE_var_GP, SSE_stdev_GP
-    
-def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, model, likelihood, verbose=False, skip_param_types=0, CS= 1):
-    """ 
-    Calculates the expected improvement of the emulator approach
-    Parameters
-    ----------
-        theta_set: ndarray (num_LHS_points x dimensions), list of theta combinations
-        Xexp: ndarray, "experimental" x values
+        X_space: ndarray, The p^2 x dim(x) meshgrid points for X over which to evaluate the GP
         Yexp: ndarray, experimental y values
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         model: bound method, The model that the GP is bound by
@@ -304,22 +176,20 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
     
     Returns
     -------
-        GP_mean: ndaarray, Array of GP mean predictions at Xexp and theta_set
-        GP_stdev: ndarray, Array of GP variances related to GP means at Xexp and theta_set
-        y_sim: ndarray, simulated values at Xexp and theta_set
-        SSE_model: ndarray, The SSE of the model at Xexp and theta_set
-        SSE_sim: ndarray, The SSE of the simulated data at Xexp and theta_set
+        GP_mean: ndaarray, Array of GP mean predictions at X_space and theta_set
+        GP_stdev: ndarray, Array of GP variances related to GP means at X_space and theta_set
+        y_sim: ndarray, simulated values at X_space and theta_set
     """
     #Asserts that inputs are correct
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
 
     #Define dimensionality of X
-    m = Xexp.shape[1]
-    n = Xexp.shape[0]
-    
-    #Set theta_set to only be parameter values instead of theta_j, x_j
-    theta_set_params = theta_set[:, 0:-m]
+    m = X_space.shape[1]
+    p_sq = X_space.shape[0]
+    p = int(np.sqrt(p_sq))
+    #Set theta_set to only be parameter values
+    theta_set_params = theta_set
     
     #Define the length of theta_set and the number of parameters that will be regressed (q)
     if len(theta_set_params.shape) > 1:
@@ -328,17 +198,17 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         len_set, q = 1, theta_set_params.shape[0]
     
     #Initialize values for saving data
-    GP_mean = np.zeros((n))
-    GP_var = np.zeros((n))
-    y_sim = np.zeros((n))
+    GP_mean = np.zeros((p_sq))
+    GP_var = np.zeros((p_sq))
+    y_sim = np.zeros((p_sq))
     
     #Loop over experimental data 
-    for k in range(n):
+    for k in range(p_sq):
         ##Calculate Values
         #Caclulate sse for each value theta_j, xexp_k
         point = list(theta_set_params[0])
         #Append Xexk_k to theta_set to evaluate at theta_j, xexp_k
-        x_point_data = list(Xexp[k]) #astype(np.float)
+        x_point_data = list(X_space[k]) #astype(np.float)
         #Create point to be evaluated
         point = point + x_point_data
         eval_point = np.array([point])
@@ -346,286 +216,94 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
         model_mean = GP_Outputs[3].numpy()[0] #1xn
-        GP_mean[k] = model_mean
+        GP_mean[r] = model_mean
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
-        GP_var[k] = model_variance
-        #Calculate y_sim & sse_sim
+        GP_var[r] = model_variance
+        #Calculate y_sim
         if CS == 1:
             #Case study 1, the 2D problem takes different arguments for its function create_y_data than 2.2
             y_sim[k] = create_y_data(eval_point)
         else:
-            y_sim[k] = create_y_data(eval_point, true_model_coefficients, Xexp, skip_param_types)
+            y_sim[k] = create_y_data(eval_point, true_model_coefficients, X_space, skip_param_types)
 
-    #Compute GP SSE and SSE_sim for that point
-    SSE_model = np.sum((GP_mean - Yexp)**2)
-    error_point = (GP_mean - Yexp) #This SSE_variance CAN be negative
-    SSE_var_GP = sum(2*error_point*model_variance) #Error Propogation approach
-    
-    SSE_sim = np.sum((y_sim - Yexp)**2)
-    
-    #Ensure positive standard deviations are saved for plotting purposes
-    if SSE_var_GP > 0:
-        SSE_model_stdev = np.sqrt(SSE_var_GP)
-    else:
-        SSE_model_stdev = np.sqrt(np.abs(SSE_var_GP))
         
     GP_stdev = np.sqrt(GP_var)  
     
-    return GP_mean, GP_stdev, y_sim, SSE_model, SSE_sim, SSE_model_stdev
+    #Turn GP_mean, GP_stdev, and y_sim back into meshgrid form
+    GP_stdev = np.array(GP_stdev).reshape((p, p))
+    GP_mean = np.array(GP_mean).reshape((p, p))
+    y_sim = np.array(y_sim).reshape((p, p))
+    
+    return GP_mean, GP_stdev, y_sim
 
-def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False):
-    """ 
-    Creates plots of sse_sim and sse_model vs test space point
+def Muller_plotter(test_mesh, z, minima, saddle, title, X_train = None):
+    '''
+    Plots heat maps for 2 input GP
     Parameters
     ----------
-        iter_space: ndarray, a linspace of the number of testing points evaluated
-        GP_mean: ndarray, Array of GP mean predictions
-        sse_sim: ndarray, Array of sse_sim values
-        GP_stdev: ndarray, Array of GP standard deviations
-        Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
-        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
-        t: int, int, Number of initial training points to use
+        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
+        z: ndarray or tensor, An NxN Array containing all points that will be plotted
+        p_true: ndarray, A 2x1 containing the true input parameters
+        p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
+        p_GP_Best: ndarray, A 2x1 containing the input parameters predicted by the GP to have the best EI
+        title: str, A string containing the title of the plot
+        title_save: str, A string containing the title of the file of the plot
+        obj: str, The name of the objective function. Used for saving figures
+        ep: int or float, the exploration parameter
+        emulator: True/False, Determines if GP will model the function or the function error
+        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
-        save_figure: bool, Determines whether figures will be saved. Default True
-        emulator: bool, whether or not emulator SSEs are being plotted (used for savinf CSV data and figures)
-    
+        save_figure: True/False, Determines whether figures will be saved
+        Bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
+        run, int or None, The iteration of the number of times new training points have been picked
+     
     Returns
     -------
-        None
-    """
-    #If emulator, change indecies of GP_mean to match actual indecies given that theta values are repeated n times
-    if emulator == True:
-        n = len(iter_space)/len(GP_mean)
-        iter_space = np.linspace(0,len(GP_mean), len(GP_mean))
-        iter_space = iter_space*n
-        t = int(len(iter_space)*n)
-    else:
-        t = len(iter_space)
-    #Flatten GP mean to ensure smooth plotting
-    GP_mean = GP_mean.flatten()
+        plt.show(), A heat map of test_mesh and z
+    '''
+    xx , yy = test_mesh #NxN, NxN
+    #Assert sattements
+    assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
+    assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
+    assert z.shape==xx.shape, "Array z must be NxN"
+    assert isinstance(title, str)==True, "Title must be a string" 
     
-    #Define function, length of GP mean predictions (p), and number of tests (t)   
-    p = GP_mean.shape[0]
-    fxn = "LOO_Plots_2_Input"
+    #Set plot details
+#     plt.figure(figsize=(8,4))
+    plt.contourf(xx, yy,z, levels = 1000, cmap = "jet")
+    plt.colorbar()
     
-
-    # Compare the GP mean to the true model (simulated model)
-    plt.figure(figsize = (6.4,4))
-#     plt.scatter(iter_space,Y_space, label = "$y_{exp}$")
-#     label = "$log(SSE_{model})$"
-
-    #Only plot error bars if a standard deviation is given
-#     print(GP_mean.shape, sse_sim.shape)
-    GP_stdev = GP_stdev.flatten()
-    GP_upper = np.log(GP_mean + GP_stdev)
-    GP_lower = np.log(GP_mean - GP_stdev)
-    y_err = np.array([GP_lower, GP_upper])
-#         yerr=1.96*GP_stdev
-    plt.errorbar(iter_space,np.log(GP_mean), fmt="o", yerr=y_err, label = r'$log(e(\theta))_{model}$', ms=10, zorder=1)
-    plt.scatter(iter_space,np.log(sse_sim), label = r'$log(e(\theta))_{sim}$' , s=50, color = "orange", zorder=2, marker = "*")
-    
-    #Set plot details        
-#     plt.legend(loc = "best")
-    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left", fontsize=16)
-    plt.tight_layout()
-#     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
-    plt.xlabel("Index", fontsize=16, fontweight='bold')
-    plt.ylabel("Natural Log Error", fontsize=16, fontweight='bold')
-
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.tick_params(direction="in",top=True, right=True)
-    plt.locator_params(axis='y', nbins=5)
-    plt.locator_params(axis='x', nbins=5)
-    plt.minorticks_on() # turn on minor ticks
-    plt.tick_params(which="minor",direction="in",top=True, right=True)
-#     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
-
-    #Save CSVs
-    iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space")
-    GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_model")
-    sse_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_sim")
-    csv_item_list = [iter_space, np.log(GP_mean), np.log(sse_sim)]
-    make_csv_list = [iter_space_path, GP_mean_path, sse_sim_path]
-    
-    for i in range(len(make_csv_list)):
-        save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
-    
-    #Save figure or show and close figure
-    if save_figure == True:
-        path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True)
-        save_fig(path, ext='png', close=True, verbose=False) 
-    else:
-        plt.show()
-        plt.close()
-        
-    return
-
-def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime, set_lengthscale = None, save_figure = True):
-    """ 
-    Creates plots of y_sim and y_model vs test space point
-    Parameters
-    ----------
-        iter_space: ndarray, a linspace of the number of testing points evaluated
-        GP_mean: ndarray, Array of GP mean predictions
-        y_sim: ndarray, Array of y_sim values
-        GP_stdev: ndarray, Array of GP standard deviations
-        Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
-        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
-        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
-        save_figure: bool, Determines whether figures will be saved. Default True
-    
-    Returns
-    -------
-        None
-    """
-    #Flatten values to ensure no plotting errors from shape (len(vals),1)
-    GP_mean = GP_mean.flatten()
-    GP_stdev = GP_stdev.flatten()
-    
-    #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj") 
-    fxn = "LOO_Plots_3_Input"
-    emulator = True
-    p = GP_mean.shape[0]
-    t = len(iter_space)
-    obj = "obj"
-
-    # Compare the GP Mean to the true model (simulated model ysim)
-    plt.figure(figsize = (6.4,4))
-    plt.errorbar(iter_space,GP_mean, fmt = "o", yerr = 1.96*GP_stdev, label = "$y_{model}$", ms=10, zorder =1 )
-    plt.scatter(iter_space,y_sim, label = "$y_{sim}$" , s=50, color = "orange", zorder=2, marker = "*")
-    
-    #Set plot details        
-#     plt.legend(loc = "best")
-    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left", fontsize=16)
-    plt.tight_layout()
-#     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
-    plt.xlabel("Index", fontsize=16, fontweight='bold')
-    plt.ylabel("y value", fontsize=16, fontweight='bold')
-    
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.tick_params(direction="in",top=True, right=True)
-    plt.locator_params(axis='y', nbins=5)
-    plt.locator_params(axis='x', nbins=5)
-    plt.minorticks_on() # turn on minor ticks
-    plt.tick_params(which="minor",direction="in",top=True, right=True)
-#     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
-
-    #Save CSVs
-    iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space")
-    GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_model")
-    y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_sim")
-    csv_item_list = [iter_space, GP_mean, y_sim]
-    make_csv_list = [iter_space_path, GP_mean_path, y_sim_path]
-    
-    for i in range(len(make_csv_list)):
-        save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
-    
-    #Save figure or show and close figure
-    if save_figure == True:
-        path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True)
-        save_fig(path, ext='png', close=True, verbose=False) 
-    else:
-        plt.show()
-        plt.close()
-        
-    return
-
-def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emulator, obj, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0, title_arg = "None", save_csv = True):
-    """ 
-    Creates parity plots of y_sim and y_model along axis for theta_j or Xexp
-    Parameters
-    ----------
-        GP_mean: ndarray, Array of GP mean predictions
-        y_sim: ndarray, Array of y_sim values
-        GP_stdev: ndarray, Array of GP standard deviations
-        Case_Study: float, the number of the case study to be evaluated. Default is 1, other option is 2.2 
-        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
-        t: int, int, Number of initial training points to use
-        set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
-        save_figure: bool, Determines whether figures will be saved. Default True
-        plot_axis: None or list: Determines which axis to plot parity plot on (0 = Xexp axis (100 graphs), 1 = theta_j axis (5 graphs))
-        plot_num: None or int, The number of the parity plot w.r.t Xexp or thet_j indecies
-    
-    Returns
-    -------
-        None
-    """
-    #Flatten values to ensure no plotting errors from shape (len(vals),1)
-    y_sim = y_sim.flatten()
-    GP_mean = GP_mean.flatten()
-    GP_stdev = GP_stdev.flatten()
-    
-    #Define function (fxn), length of GP mean predictions (p), and number of tests (t), and obj ("obj")
-    fxn = "LOO_parity_plot_emul"
-    p = GP_mean.shape[0]
-    
-    #Create figure
-    plt.figure(figsize = (6.4,4))
-    # Compare the GP Mean to the true model (simulated model ysim)
-    #Plot y_sim vs y_GP for axis plots or plot log(sse_sim) vs log(sse_GP)
-    if plot_axis != None:
-        y_lab = "$y_{sim}$"
-        plt.errorbar(y_sim,GP_mean, yerr=1.96*GP_stdev, fmt = "o", label = "$y_{model}$", ms=5 )
-        plt.plot(y_sim, y_sim, label = y_lab , zorder=1, color = "black")
-    else:
-        y_lab = r'$log(e(\theta))_{sim}$'
-        GP_upper = np.log(GP_mean + GP_stdev)
-        GP_lower = np.log(GP_mean - GP_stdev)
-        y_err = np.array([GP_lower, GP_upper])
-    #         yerr=1.96*GP_stdev
-        plt.errorbar(np.log(y_sim), np.log(GP_mean), fmt="o", yerr=y_err, label = r'$log(e(\theta))_{model}$', ms=10, zorder=1)
-        plt.plot(np.log(y_sim), np.log(y_sim), label = y_lab , zorder=1, color = "black")
-
-    #Set plot details        
-#     plt.legend(loc = "best")
-    if plot_axis == 1:
-        plt.title("Xexp = " + str(np.round(title_arg,2)), fontsize=16, fontweight='bold')
-    elif plot_axis == 0:
-        plt.title(r'$\theta_{j}$' + "=" + str(np.round(title_arg,2)), fontsize=16, fontweight='bold')
-    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left", fontsize=16)
-    plt.tight_layout()
-#     plt.legend(fontsize=10,bbox_to_anchor=(1.02, 0.3),borderaxespad=0)
-    if plot_axis != None:
-        plt.xlabel(r'$\mathbf{y_{sim}}$', fontsize=16, fontweight='bold')
-        plt.ylabel(r'$\mathbf{y_{model}}$', fontsize=16, fontweight='bold')
-    else:
-        plt.xlabel("Simulated Natural Log Error", fontsize=16, fontweight='bold')
-        plt.ylabel("Model Natural Log Error", fontsize=16, fontweight='bold')
-
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.tick_params(direction="in",top=True, right=True)
-    plt.locator_params(axis='y', nbins=5)
-    plt.locator_params(axis='x', nbins=5)
-    plt.minorticks_on() # turn on minor ticks
-    plt.tick_params(which="minor",direction="in",top=True, right=True)
-
-    #Save CSVs
-    if save_csv == True:
-        if plot_axis == None:
-            csv_ends = ["/y_model", "/y_sim", "/y_stdev"]
+    #plot saddle pts and local minima, only label 1st instance
+    for i in range(len(minima)):
+        if i == 0:
+            plt.scatter(minima[i,0], minima[i,1], color="black", label = "Minima", s=25, marker = (5,1))
         else:
-            csv_ends = ["/sse_model", "/sse_sim", "/sse_gp_stdev"]
-        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[0])
-        y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[1] )
-        y_stdev_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[2] )
-        csv_item_list = [GP_mean, y_sim, GP_stdev]
-        make_csv_list = [GP_mean_path, y_sim_path, y_stdev_path]
-
-        for i in range(len(make_csv_list)):
-            save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
-
-    #Save figure or show and close figure
-    if save_figure == True:
-        path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True, plot_axis =plot_axis, plot_num= plot_num )
-        save_fig(path, ext='png', close=True, verbose=False) 
-    else:
-        plt.show()
-        plt.close()
+            plt.scatter(minima[i,0], minima[i,1], color="black", s=25, marker = (5,1))
+    
+    for j in range(len(saddle)):
+        if j == 0:
+            plt.scatter(saddle[j,0], saddle[j,1], color="white", label = "Saddle", s=25, marker = "x")
+        else:
+            plt.scatter(saddle[j,0], saddle[j,1], color="white", s=25, marker = "x")
+    if str(X_train) != "None":
+        plt.scatter(X_train[:,0], X_train[:,1], color = "brown", label = "Training", marker = "o")
         
-    return
+    
+    #Plots axes such that they are scaled the same way (eg. circles look like circles)
+    plt.axis('scaled')    
+    
+    #Plots grid and legend
+#     plt.grid()
+    plt.legend(loc = 'best')
+
+    #Creates axis labels and title
+    plt.xlabel('$x_1$',weight='bold')
+    plt.ylabel('$x_2$',weight='bold')
+    plt.xlim((np.amin(xx), np.amax(xx)))
+    plt.ylim((np.amin(yy),np.amax(yy)))
+    plt.title("Muller Potential "+title, weight='bold',fontsize=16)
+           
+    return plt.show() 
 
 def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime = None, is_figure = True, csv_end = None, plot_axis = None, plot_num = None):
     """
