@@ -18,13 +18,13 @@ from .bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_p
 from .CS2_bo_plotters import save_csv, save_fig
 from .normalize import normalize_x, normalize_p_data, normalize_p_bounds, normalize_p_set, normalize_p_true, normalize_constants, normalize_general
     
-from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
-# from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+# from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
+from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True, plot_axis = None, normalize = False, bounds_p = None, bounds_x = None):  
+def LOO_In_Theta_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True, plot_axis = None, normalize = False, bounds_p = None, bounds_x = None):  
     """
     Run GP Validation using a leave one out scheme
     
@@ -83,9 +83,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
     #Create empy lists to store index, GP model val, y_sim vals, sse's from emulator vals, SSE from emulator val, and sse from GP vals
     index_list = []
     y_model_tj_xk_list = []
-    y_model_tj_xj_list = []
     y_model_stdev_tj_xk_list = []
-    y_model_stdev_tj_xj_list = []
     sse_GP_tj_xk_list = []
     sse_GP_tj_xj_list = []
     sse_GP_stdev_tj_xk_list = []
@@ -160,55 +158,47 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
 #         print(train_p[0:5], theta_set, Xexp, true_model_coefficients)
         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose)      
         
-        
         eval_components = LOO_eval_GP(theta_set, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, emulator, set_lengthscale, true_p, norm_scalers, Case_Study, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std)
         
-        #If emulator is false, eval_components is the GP mean, StDev, and variance
+        #eval_components is the GP_SSE, and GP_SSE_StDev
+        sse_GP_tj_xj,sse_GP_stdev_tj_xj = eval_components
+                
         if emulator == False:
             sse_GP_tj_xj,sse_GP_stdev_tj_xj = eval_components
             #Append data to lists as appropriate
             sse_GP_tj_xj_list.append(sse_GP_tj_xj)
             sse_GP_stdev_tj_xj_list.append(sse_GP_stdev_tj_xj)
         
-        #If emulator is true, eval_components is the GP mean, StDev, and variance, and the corresponding sse value, variance, and stdev
-        else:
-            y_model_tj_xj, y_model_stdev_tj_xj, sse_GP_tj_xj, sse_GP_var_tj_xj, sse_GP_stdev_tj_xj  = eval_components 
-            
+        else:            
             #Calculate the values using theta_j and Xexp_k
-            if test_index%n == 0: #For each set of UNIQUE theta_j
-                #If I want all n*t points, use: new_arr = [arr[i] for i in range(len(arr)) if i % n == 0] before plotting
-                y_model_tj_xk, y_model_stdev_tj_xk, y_sim_tj_xk, sse_GP_tj_xk,  sse_y_sim_tj_xk, sse_GP_stdev_tj_xk = LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, model, likelihood, true_p, norm_scalers, verbose, skip_param_types, Case_Study)
-                y_model_tj_xk_list.append(y_model_tj_xk)
-                y_model_stdev_tj_xk_list.append(y_model_stdev_tj_xk)
-                sse_GP_tj_xk_list.append(sse_GP_tj_xk)
-                y_sim_tj_xk_list.append(y_sim_tj_xk)
-                sse_y_sim_tj_xk_list.append(sse_y_sim_tj_xk)
-                sse_GP_stdev_tj_xk_list.append(sse_GP_stdev_tj_xk)
+            y_model_tj_xk, y_model_stdev_tj_xk, y_sim_tj_xk, sse_GP_tj_xk,  sse_y_sim_tj_xk, sse_GP_stdev_tj_xk = LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, model, likelihood, true_p, norm_scalers, verbose, skip_param_types, Case_Study)
+            y_model_tj_xk_list.append(y_model_tj_xk)
+            y_model_stdev_tj_xk_list.append(y_model_stdev_tj_xk)
+            sse_GP_tj_xk_list.append(sse_GP_tj_xk)
+            y_sim_tj_xk_list.append(y_sim_tj_xk)
+            sse_y_sim_tj_xk_list.append(sse_y_sim_tj_xk)
+            sse_GP_stdev_tj_xk_list.append(sse_GP_stdev_tj_xk)
                 
             #Append data to lists as appropriate
-            y_model_tj_xj_list.append(y_model_tj_xj)
-            y_model_stdev_tj_xj_list.append(y_model_stdev_tj_xj)
             sse_GP_tj_xj_list.append(sse_GP_tj_xj)
             sse_GP_stdev_tj_xj_list.append(sse_GP_stdev_tj_xj)
-            y_sim_tj_xj_list.append(data_test[:,-1]) 
-              
-#         if test_index%50 ==0: #Can use to track completion visually in jupyter notebook runs
-#             print("Loop")
     
     #Turn lists into arrays
     index_list = np.array(index_list)
     y_model_tj_xk_list = np.array(y_model_tj_xk_list)
-    y_model_tj_xj_list = np.array(y_model_tj_xj_list)
     y_model_stdev_tj_xk_list = np.array(y_model_stdev_tj_xk_list)
-    y_model_stdev_tj_xj_list = np.array(y_model_stdev_tj_xj_list)
     sse_GP_tj_xk_list = np.array(sse_GP_tj_xk_list)
     sse_GP_tj_xj_list = np.array(sse_GP_tj_xj_list)
     sse_GP_stdev_tj_xj_list = np.array(sse_GP_stdev_tj_xj_list)
     sse_GP_stdev_tj_xk_list = np.array(sse_GP_stdev_tj_xk_list)
     y_sim_tj_xk_list = np.array(y_sim_tj_xk_list)
-    y_sim_tj_xj_list = np.array(y_sim_tj_xj_list)
+    y_sim_tj_xj_list = data_y
+    sse_y_sim_tj_xj_list =np.zeros(int(len(y_sim_tj_xj_list)/n))
     sse_y_sim_tj_xk_list = np.array(sse_y_sim_tj_xk_list)
     
+    #Plot model vs sim sse
+#     print(len(index_list), len(sse_GP_tj_xj_list), len(sse_y_sim_tj_xj_list), len(sse_GP_stdev_tj_xj_list))      
+        
     if emulator == False:
         #Depending on obj, ensure sse is sse and not log(sse)
         if obj == "LN_obj":
@@ -218,15 +208,11 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         sse_y_sim_tj_xj_list = np.array(sse_y_sim_tj_xj_list)
         
         #Plot model vs sim sse
-        print(len(index_list), len(sse_GP_tj_xj_list))
         LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, normalize = normalize)
         
         LOO_parity_plot_emul(sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None, normalize = normalize)
         
     else:        
-        #Plot GP vs y_sim
-        LOO_Plots_3_Input(index_list, y_model_tj_xj_list, y_sim_tj_xj_list, y_model_stdev_tj_xj_list, Case_Study, DateTime, set_lengthscale, save_figure, normalize = normalize)
-#         print(y_model_tj_xj_list)
         #Plot log(SSE) from GP(theta_j,Xexp) and y_sim(theta_j,Xexp)
         LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator, normalize = normalize)
         
@@ -256,7 +242,7 @@ def LOO_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator
         #Print and save total sse value to CSV
         fxn = "LOO_Plots_3_Input"
         #Note flatten y_sim_tj_xj_list to prevent an error in the calculation and ensure y_sim_tj_xj_list.shape = y_model_tj_xj_list.shape
-        SSE_Total =  sum( (y_sim_tj_xj_list.flatten() - y_model_tj_xj_list)**2 ) 
+        SSE_Total =  sum( sse_GP_tj_xj_list) 
         sse_tot_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/sse_tot", normalize = normalize)
         print("SSE Total = ",'{:.4e}'.format(SSE_Total) )
     return
@@ -418,56 +404,62 @@ def LOO_eval_GP_emulator_set(theta_set, Xexp, true_model_coefficients, model, li
     #Will compare the rigorous solution and approximation later (multidimensional integral over each experiment using a sparse grid)
     
     #Initialize values
+    
     SSE_var_GP = 0
     SSE_stdev_GP = 0
     SSE = 0
          
     ##Calculate Values
-    #Caclulate GP vals for each value given theta_j and x_j
-    point = list(theta_set[0])
-    eval_point = torch.tensor(np.array([point])).float()
-#     print(eval_point)
-    #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-    GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+    #Loop over testing data:
+    for i in range(len(theta_set)):
+        #Caclulate GP vals for each value given theta_j and x_j
+        point = list(theta_set[i])
+        eval_point = torch.tensor(np.array([point])).float()
+    #     print(eval_point)
+        #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
+        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
 
-    #Save GP Values
-    model_mean = GP_Outputs[3].numpy()[0] #1xn
-    model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+        #Save GP Values
+        model_mean = GP_Outputs[3].numpy()[0] #1xn
+        model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+#         print(model_mean)
+        #Calculate corresponding experimental data from theta_set value
+        if str(norm_scalers) != "None":
+            scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
+            Xexp_unscl = normalize_x(Xexp, np.array(theta_set[:,-m:]), False, scaler_x)[0]
+            true_model_coefficients_unscl = normalize_constants(true_model_coefficients, p_true, scaler_theta, skip_param_types, CS, False, scaler_C_before, scaler_C_after)[0]
+        else:
+            Xexp_unscl = np.array(theta_set[:,-m:])
+            true_model_coefficients_unscl = true_model_coefficients
 
-    #Calculate corresponding experimental data from theta_set value
-    if str(norm_scalers) != "None":
-        scaler_x, scaler_theta, scaler_C_before, scaler_C_after = norm_scalers
-        Xexp_unscl = normalize_x(Xexp, np.array(theta_set[:,-m:]), False, scaler_x)[0]
-        true_model_coefficients_unscl = normalize_constants(true_model_coefficients, p_true, scaler_theta, skip_param_types, CS, False, scaler_C_before, scaler_C_after)[0]
-    else:
-        Xexp_unscl = np.array(theta_set[:,-m:])
-        true_model_coefficients_unscl = true_model_coefficients
+        calc_exp_point = clean_1D_arrays(Xexp_unscl)
+    #     print(calc_exp_point)
+    #     print(true_model_coefficients_unscl)
+
+        ##Compute SSE and SSE variance for that point
+        #Copute Yexp
+        Yexp = calc_y_exp(true_model_coefficients_unscl, calc_exp_point, noise_std) 
+
+        SSE += (np.array(model_mean) - Yexp[i])**2
+
+        error_point = (model_mean - Yexp[i]) #This SSE_variance CAN be negative
+        SSE_var_GP += 2*error_point*model_variance #Error Propogation approach
+
+        #Ensure positive standard deviations are saved for plotting purposes
+#         print(SSE_var_GP, SSE_var_GP.shape)
+        if SSE_var_GP > 0:
+            SSE_stdev_GP += np.sqrt(SSE_var_GP)
+        else:
+            SSE_stdev_GP += np.sqrt(np.abs(SSE_var_GP))
+
+        #Save values for each value in theta_set (in this case only 1 value)
+#         GP_mean_all[i] = model_mean
+#         GP_var_all[i] = model_variance
         
-    calc_exp_point = clean_1D_arrays(Xexp_unscl)
-#     print(calc_exp_point)
-#     print(true_model_coefficients_unscl)
+#     GP_stdev_all = np.sqrt(GP_var_all)
+#     print(GP_mean_all, GP_var_all, GP_stdev_all)
 
-    ##Compute SSE and SSE variance for that point
-    #Copute Yexp
-    Yexp = calc_y_exp(true_model_coefficients_unscl, calc_exp_point, noise_std) 
-
-    SSE += (np.array(model_mean) - Yexp)**2
-
-    error_point = (model_mean - Yexp) #This SSE_variance CAN be negative
-    SSE_var_GP += 2*error_point*model_variance #Error Propogation approach
-
-    #Ensure positive standard deviations are saved for plotting purposes
-    if SSE_var_GP > 0:
-        SSE_stdev_GP += np.sqrt(SSE_var_GP)
-    else:
-        SSE_stdev_GP += np.sqrt(np.abs(SSE_var_GP))
-
-    #Save values for each value in theta_set (in this case only 1 value)
-    GP_mean_all = model_mean
-    GP_var_all = model_variance
-    GP_stdev_all = np.sqrt(GP_var_all)
-
-    return GP_mean_all, GP_stdev_all, SSE, SSE_var_GP, SSE_stdev_GP
+    return SSE, SSE_stdev_GP
     
 def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, model, likelihood, p_true, norm_scalers = None, verbose=False, skip_param_types=0, CS= 1):
     """ 
@@ -511,21 +503,16 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         len_set, q = 1, theta_set_params.shape[0]
     
     #Initialize values for saving data
-    GP_mean = np.zeros((n))
-    GP_var = np.zeros((n))
-    y_sim = np.zeros((n))
+    GP_mean = np.zeros((len(theta_set_params)))
+    GP_var = np.zeros((len(theta_set_params)))
+    y_sim = np.zeros((len(theta_set_params)))
     
     #Loop over experimental data 
-    for k in range(n):
+    for k in range(len(theta_set_params)):
         ##Calculate Values
-        #Caclulate sse for each value theta_j, xexp_k
-        point = list(theta_set_params[0])
-        #Append Xexk_k to theta_set to evaluate at theta_j, xexp_k
-        x_point_data = list(Xexp[k]) #astype(np.float)
-        #Create point to be evaluated
-        point = point + x_point_data
+        #Caclulate GP vals for each value given theta_j and x_j
+        point = list(theta_set[k])
         eval_point = torch.tensor(np.array([point])).float()
-        #Evaluate GP model
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
 
@@ -620,6 +607,7 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
     GP_lower = np.log(GP_mean - GP_stdev)
     y_err = np.array([GP_lower, GP_upper])
 #         yerr=1.96*GP_stdev
+#     print(len(iter_space), len(np.log(GP_mean)))
     plt.errorbar(iter_space,np.log(GP_mean), fmt="o", yerr=y_err, label = r'$log(e(\theta))_{model}$', ms=10, zorder=1, mec = "green", mew = 1 )
     plt.scatter(iter_space,np.log(sse_sim), label = r'$log(e(\theta))_{sim}$' , s=50, color = "orange", zorder=2, marker = "*")
     
