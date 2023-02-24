@@ -1,11 +1,27 @@
+import sys
+import gpytorch
+import numpy as np
+import pandas as pd
+import torch
+from datetime import datetime
+from scipy.stats import qmc
+
+from bo_methods_lib.GP_Validation_Theta import LOO_In_Theta_Analysis
+from bo_methods_lib.bo_functions_generic import gen_theta_set, find_train_doc_path, set_ep, clean_1D_arrays
+
+import matplotlib as mpl
+
+import warnings
+warnings.simplefilter("ignore", category=RuntimeWarning)
+
 #Set Date and Time
 dateTimeObj = datetime.now()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
-# DateTime = "2022/11/29/09-48"
-DateTime = None ##For Testing
+# DateTime = "2023/2/24/11-10" #If you want to set a specific time
+# DateTime = None ##For Testing
 print("Date and Time Saved: ", DateTime)
 
 #Set Parameters
@@ -41,7 +57,7 @@ else:
                          [ 2,  2]])
 
 # print(Theta_True)
-t_list = np.array([40])
+t_list = np.array([100])
 d = len(true_p)
 train_iter = 300
 noise_std = 0.1
