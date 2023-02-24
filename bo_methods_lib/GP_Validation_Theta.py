@@ -515,11 +515,13 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
         eval_point = torch.tensor(np.array([point])).float()
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
         GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-
+        
         model_mean = GP_Outputs[3].numpy()[0] #1xn
         GP_mean[k] = model_mean
         model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
         GP_var[k] = model_variance
+        
+#         print(eval_point, model_mean)
         
         #Unnormalize data
         if str(norm_scalers) != "None":
