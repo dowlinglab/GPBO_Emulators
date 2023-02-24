@@ -877,7 +877,7 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
         
     path_end = CS + Emulator + org_TP_str + obj_str + len_scl + plot     
 
-    path = path_org + "/GP_Validation_Figs" + path_end 
+    path = path_org + "/GP_Val_Theta" + path_end 
         
     if csv_end is not None:
         path = path + csv_end
