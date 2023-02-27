@@ -845,7 +845,7 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
 #         path_org = "../"+DateTime #Will send to the Datetime folder outside of CS1
         path_org = DateTime #Will send to the Datetime folder outside of CS1
     else:
-        path_org = "Test_Figs_GP_Val_CB"
+        path_org = "Test_Figs_GP_Val"
         
 #         path_org = "Test_Figs"+"/Sep_Analysis2"+"/Figures"
     if normalize == True:
@@ -858,7 +858,7 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
         
     path_end = CS + Emulator + org_TP_str + obj_str + len_scl + plot     
 
-    path = path_org + "/GP_Validation_Figs" + path_end 
+    path = path_org + "/GP_Validation_Figs_CB" + path_end 
         
     if csv_end is not None:
         path = path + csv_end
