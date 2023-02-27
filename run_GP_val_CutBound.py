@@ -106,7 +106,7 @@ for t in t_list:
                 obj_use = np.array(["obj"])
             for obj_func in obj_use:
                 print("Objective Function =", obj_func)
-                all_data_doc = find_train_doc_path(emul, obj_func, d, t_use)
+                all_data_doc = find_train_doc_path(emul, obj_func, d, t_use, bound_cut = Bound_Cut)
                 all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
                 LOO_Analysis(all_data, Xexp, Yexp, Constants, true_p, emul, obj_func, CS,  
                              skip_param_types = skip_param_types, noise_std = noise_std, DateTime = DateTime, 
