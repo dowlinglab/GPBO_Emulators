@@ -6,7 +6,7 @@ import torch
 from datetime import datetime
 from scipy.stats import qmc
 
-from bo_methods_lib.GP_Validation_Debug import LOO_Analysis
+from bo_methods_lib.GP_Validation_CutBounds import LOO_Analysis
 from bo_methods_lib.bo_functions_generic import gen_theta_set, find_train_doc_path, set_ep, clean_1D_arrays
 
 import matplotlib as mpl
@@ -20,13 +20,12 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
-# DateTime = "2023/1/27/12-00"
 print("Date and Time Saved: ", DateTime)
 # DateTime = None ##For Testing
 
 #Set Parameters
 #Need to run at a and b, need 2 arrays to test that this will work
-CS = Case_Study[2.2]
+CS = 2.2
 
 Constants = np.array([[-200,-100,-170,15],
                       [-1,-1,-6.5,0.7],
@@ -59,7 +58,7 @@ else:
 
 # print(Theta_True)
 # t_list = np.array([20,40,100,200,300])
-t_list = np.array([100])
+t_list = np.array([40])
 d = len(true_p)
 train_iter = 300
 noise_std = 0.1
