@@ -307,7 +307,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, X_train = None):
     
     #Plots grid and legend
 #     plt.grid()
-    plt.legend(loc = 'best')
+    legend(loc='upper right', bbox_to_anchor=(-0.1, 1))
 
     #Creates axis labels and title
     plt.xlabel('$x_1$',weight='bold')
