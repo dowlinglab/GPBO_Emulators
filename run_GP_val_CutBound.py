@@ -27,6 +27,8 @@ print("Date and Time Saved: ", DateTime)
 #Need to run at a and b, need 2 arrays to test that this will work
 CS = 2.2
 
+Bound_Cut = True
+
 Constants = np.array([[-200,-100,-170,15],
                       [-1,-1,-6.5,0.7],
                       [0,0,11,0.6],
@@ -40,9 +42,14 @@ if CS == 2.2:
                   4 : 'b_1', 5 : 'b_2', 6 : 'b_3', 7 : 'b_4'}
     exp_d = 2
     n = 25 #Number of experimental data points to use
-    Bound_Cut = True
-    bounds_x = np.array([[-1.0, 0.0],
+    
+    if Bound_Cut == True:
+        bounds_x = np.array([[-1.0, 0.0],
                      [   0.5,    1.5]])
+    else:
+        bounds_x = np.array([[-1.5, -0.5],
+                     [   1,    2]])
+        
     bounds_p = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
                    [ 2,  2,   0,  2,  2,  2, 15,  2]])
 

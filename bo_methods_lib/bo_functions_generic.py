@@ -84,12 +84,13 @@ def normalize_bounds(x, newRange=np.array([0, 1])): #x is an array. Default rang
     """
 #     print(newRange)
     xmin, xmax = np.min(x), np.max(x) #get max and min from input array
+#     print(newRange)
     norm = (x - xmin)/(xmax - xmin) # scale between zero and one
-    
     if newRange.all() == np.array([0, 1]).all():
         return(norm) # wanted range is the same as norm
-    elif newRange.all() != np.array([0, 1]).all():
+    else: #elif newRange.all() != np.array([0, 1]).all():
         norm_new = norm * (newRange[1] - newRange[0]) + newRange[0] #scale to a different range. 
+        print(norm_new)
         return norm_new  
     
 def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
@@ -114,6 +115,8 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
         df = pd.DataFrame(list(itertools.product(Theta, repeat=dimensions)))
         df2 = df.drop_duplicates()
         theta_set = df2.to_numpy()
+#         print(theta_set)
+#         print(theta_set.shape[1])
         #Normalize to bounds 
         if bounds is not None:
             for i in range(theta_set.shape[1]):
@@ -122,6 +125,60 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
         #Generate LHS sample
         theta_set = LHS_Design(n_points**2, dimensions, seed = 9, bounds = bounds)
     return theta_set
+
+def gen_x_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
+    """
+    Generates theta_set from either a meshgrid search or and LHS
+    
+    Parameters:
+    -----------
+        LHS: bool, Determines whether a meshgrid or LHS sample is generated, default True
+        n_points:, int, number of meshgrid points/ parameter or the square root of the number of LHS samples
+        dimensions: int, Number of parameters to regress
+        bounds: None or ndarray, contains bounds for LHS generation if necessary
+    Returns
+    -------
+        X_set: ndarray, the set of thetas that will initially be tested using the GP
+    """
+    if LHS == False:
+        #Generate mesh_grid data for theta_set in 2D
+        #Define linspace for theta
+        X = np.linspace(0,1,n_points)
+        #Generate the equivalent of all meshgrid points
+        df = pd.DataFrame(list(itertools.product(X, repeat=dimensions)))
+        df2 = df.drop_duplicates()
+        X_set = df2.to_numpy()
+#         print(X_set[-5:,:])
+#         print(theta_set.shape[1])
+        #Normalize to bounds 
+        if bounds is not None:
+            for i in range(X_set.shape[1]):
+#                 print(X_set[-5:,i], bounds[:,i])
+                X_set[:,i] = normalize_x_bounds(X_set[:,i], newRange = (bounds[:,i]))       
+#                 print(X_set[-5:,i])
+    else:
+        #Generate LHS sample
+        X_set = LHS_Design(n_points**2, dimensions, seed = 9, bounds = bounds)
+    return X_set
+
+def normalize_x_bounds(x, newRange=np.array([0, 1])): #x is an array. Default range is between zero and one
+    """
+    Normalize values between a set of bounds
+    
+    Parameters:
+    -----------
+        x: ndarray, array you want to normalize in bounds
+        newRange, ndarray, the bounds you want to normalize to. default [0,1]
+        
+    Returns:
+        norm or norm_new: the normalized values of x
+    """
+#     print(newRange)
+    xmin, xmax = np.min(x), np.max(x) #get max and min from input array
+#     print(newRange)
+    norm = (x - xmin)/(xmax - xmin) # scale between zero and one
+    norm_new = norm * (newRange[1] - newRange[0]) + newRange[0] #scale to a different range. 
+    return norm_new  
 
 def LHS_Design(num_points, dimensions, seed = None, bounds = None):
     """
