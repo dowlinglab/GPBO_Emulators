@@ -92,7 +92,7 @@ if Bound_Cut == True:
 else:
     cut_bounds = ""
     
-exp_data_doc = 'Input_CSVs/Exp_Data/d='+str(exp_d)+'/n='+str(n)+'.csv'
+exp_data_doc = 'Input_CSVs/Exp_Data/d='+str(exp_d)+'/n='+str(n)+cut_bounds+'.csv'
 exp_data = np.array(pd.read_csv(exp_data_doc, header=0,sep=","))
 Xexp = exp_data[:,1:exp_d+1]
 Yexp = exp_data[:,-1]
