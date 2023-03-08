@@ -1,0 +1,17 @@
+Date and Time:  27-Feb-2023 (11:17:24)
+Date and Time Saved:  2023/02/27/11-17
+Norm: False
+Emulator = False
+Objective Function = obj
+Objective Function = LN_obj
+Emulator = True
+Objective Function = obj
+SSE Total =  1.2555e+11
+Norm: True
+Emulator = False
+Objective Function = obj
+Objective Function = LN_obj
+Emulator = True
+Objective Function = obj
+SSE Total =  1.2446e+11
+/opt/sge/util/sge_condor_epilog.sh: line 65: /opt/sge/mpi/cleanorphan.sh: No such file or directory
