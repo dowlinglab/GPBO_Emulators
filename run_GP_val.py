@@ -6,7 +6,7 @@ import torch
 from datetime import datetime
 from scipy.stats import qmc
 
-from bo_methods_lib.GP_Validation_Theta_CutBounds import LOO_In_Theta_Analysis
+from bo_methods_lib.GP_Validation_Debug import LOO_Analysis
 from bo_methods_lib.bo_functions_generic import gen_theta_set, find_train_doc_path, set_ep, clean_1D_arrays
 
 import matplotlib as mpl
@@ -20,9 +20,8 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
-# DateTime = "2023/2/24/11-11" #If you want to set a specific time
-# DateTime = None ##For Testing
 print("Date and Time Saved: ", DateTime)
+# DateTime = None ##For Testing
 
 #Set Parameters
 #Need to run at a and b, need 2 arrays to test that this will work
@@ -66,7 +65,8 @@ else:
                          [ 2,  2]])
 
 # print(Theta_True)
-t_list = np.array([100])
+# t_list = np.array([20,40,100,200,300])
+t_list = np.array([40])
 d = len(true_p)
 train_iter = 300
 noise_std = 0.1
@@ -74,10 +74,12 @@ sep_fact = np.linspace(1,1,1)
 set_lengthscale = None
 explore_bias = 1
 plot_axis = np.array([1,0])
+
+# normalizing = np.array([False])
+# normalizing = np.array([True])
 normalizing = np.array([False,True])
 
 obj = np.array(["obj", "LN_obj"])
-# obj = np.array(["LN_obj"])
 # obj = np.array(["obj"])
 
 emulator = np.array([False, True])
@@ -114,7 +116,7 @@ for t in t_list:
                 print("Objective Function =", obj_func)
                 all_data_doc = find_train_doc_path(emul, obj_func, d, t_use, bound_cut = Bound_Cut)
                 all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-                LOO_In_Theta_Analysis(all_data, Xexp, Yexp, Constants, true_p, emul, obj_func, CS,  
+                LOO_Analysis(all_data, Xexp, Yexp, Constants, true_p, emul, obj_func, CS,  
                              skip_param_types = skip_param_types, noise_std = noise_std, DateTime = DateTime, 
                              save_figure= save_figure, plot_axis = plot_axis, normalize = norm, bounds_p = bounds_p, 
-                             bounds_x = bounds_x)        
+                             bounds_x = bounds_x, CutBounds = Bound_Cut)        

@@ -24,7 +24,7 @@ from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def LOO_In_Theta_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True, plot_axis = None, normalize = False, bounds_p = None, bounds_x = None):  
+def LOO_In_Theta_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p, emulator, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True, plot_axis = None, normalize = False, bounds_p = None, bounds_x = None, CutBounds = False):  
     """
     Run GP Validation using a leave one out scheme
     
@@ -54,6 +54,7 @@ def LOO_In_Theta_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p,
     """   
     
     #Define constants for dimensions of x (m), number of exp data points (n), number of parameters to be regressed (q), and data length (t)
+#     print(Xexp)
     n,m = Xexp.shape
     q = true_p.shape[0]
     t = len(all_data)
@@ -208,16 +209,16 @@ def LOO_In_Theta_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p,
         sse_y_sim_tj_xj_list = np.array(sse_y_sim_tj_xj_list)
         
         #Plot model vs sim sse
-        LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, normalize = normalize)
+        LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, normalize = normalize, CutBounds = CutBounds)
         
-        LOO_parity_plot_emul(sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None, normalize = normalize)
+        LOO_parity_plot_emul(sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None, normalize = normalize, CutBounds = CutBounds)
         
     else:        
         #Plot log(SSE) from GP(theta_j,Xexp) and y_sim(theta_j,Xexp)
-        LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator, normalize = normalize)
+        LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator, normalize = normalize, CutBounds = CutBounds)
         
         #Plot Parity plot for log(SSE)
-        LOO_parity_plot_emul(sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None, normalize = normalize)
+        LOO_parity_plot_emul(sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None, normalize = normalize, CutBounds = CutBounds)
         
         #Loop over each axis
         for axis in plot_axis:
@@ -229,7 +230,7 @@ def LOO_In_Theta_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p,
                     test_data_to_plot = all_data[int(i*n)] 
                     title_arg = test_data_to_plot[1:-m-1]
                                       
-                    LOO_parity_plot_emul(y_model_tj_xk_list[i,:], y_sim_tj_xk_list[i,:], y_model_stdev_tj_xk_list[i,:], Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, axis, plot_num = i, title_arg = title_arg, normalize = normalize)
+                    LOO_parity_plot_emul(y_model_tj_xk_list[i,:], y_sim_tj_xk_list[i,:], y_model_stdev_tj_xk_list[i,:], Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, axis, plot_num = i, title_arg = title_arg, normalize = normalize, CutBounds = CutBounds)
                 #If plot_axis == 1, plot on axis theta_j and have n graphs
                 else:  
                     title_arg = Xexp[i]
@@ -237,13 +238,13 @@ def LOO_In_Theta_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p,
                     if normalize == True:
                         norm = False
                         title_arg = normalize_x(clean_1D_arrays(title_arg, param_clean = True), None, norm, scaler_x)[0]
-                    LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, axis, plot_num = i, title_arg = title_arg, normalize = normalize)
+                    LOO_parity_plot_emul(y_model_tj_xk_list[:,i], y_sim_tj_xk_list[:,i], y_model_stdev_tj_xk_list[:,i], Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, axis, plot_num = i, title_arg = title_arg, normalize = normalize, CutBounds = CutBounds)
         
         #Print and save total sse value to CSV
         fxn = "LOO_Plots_3_Input"
         #Note flatten y_sim_tj_xj_list to prevent an error in the calculation and ensure y_sim_tj_xj_list.shape = y_model_tj_xj_list.shape
         SSE_Total =  sum( sse_GP_tj_xj_list) 
-        sse_tot_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/sse_tot", normalize = normalize)
+        sse_tot_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/sse_tot", normalize = normalize, CutBounds = CutBounds)
         print("SSE Total = ",'{:.4e}'.format(SSE_Total) )
     return
 
@@ -561,7 +562,7 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
     
     return GP_mean, GP_stdev, y_sim, SSE_model, SSE_sim, SSE_model_stdev
 
-def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False, normalize = False, save_csvs = True):
+def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False, normalize = False, save_csvs = True, CutBounds = False):
     """ 
     Creates plots of sse_sim and sse_model vs test space point
     Parameters
@@ -630,20 +631,26 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
     plt.tick_params(which="minor",direction="in",top=True, right=True)
 #     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
 
+    if emulator == True:
+        t_save = t*n
+    else:
+        t_save = t
+        
     #Save CSVs
     if save_csvs == True:
-        iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space", normalize = normalize)
-        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_model", normalize = normalize)
-        sse_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_sim", normalize = normalize)
+        iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t_save, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space", normalize = normalize, CutBounds = CutBounds)
+        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t_save, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_model", normalize = normalize, CutBounds = CutBounds)
+        sse_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t_save, obj, Case_Study, DateTime, is_figure = False, csv_end = "/log_sse_sim", normalize = normalize, CutBounds = CutBounds)
         csv_item_list = [iter_space, np.log(GP_mean), np.log(sse_sim)]
         make_csv_list = [iter_space_path, GP_mean_path, sse_sim_path]
-
+#         print(iter_space_path)
         for i in range(len(make_csv_list)):
             save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
     
     #Save figure or show and close figure
     if save_figure == True:
-        path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True, normalize = normalize)
+        path = path_name_gp_val(emulator, fxn, set_lengthscale, t_save, obj, Case_Study, DateTime, is_figure = True, normalize = normalize, CutBounds = CutBounds)
+#         print(path)
         save_fig(path, ext='png', close=True, verbose=False) 
     else:
         plt.show()
@@ -651,7 +658,7 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
         
     return
 
-def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime, set_lengthscale = None, save_figure = True, normalize = False, save_csvs = True):
+def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime, set_lengthscale = None, save_figure = True, normalize = False, save_csvs = True, CutBounds = False):
     """ 
     Creates plots of y_sim and y_model vs test space point
     Parameters
@@ -704,9 +711,9 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
 
     #Save CSVs
     if save_csvs == True:
-        iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space", normalize = normalize)
-        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_model", normalize = normalize)
-        y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_sim", normalize = normalize)
+        iter_space_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/iter_space", normalize = normalize, CutBounds = CutBounds)
+        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_model", normalize = normalize, CutBounds = CutBounds)
+        y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, csv_end = "/y_sim", normalize = normalize, CutBounds = CutBounds)
         csv_item_list = [iter_space, GP_mean, y_sim]
         make_csv_list = [iter_space_path, GP_mean_path, y_sim_path]
     
@@ -715,7 +722,7 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
     
     #Save figure or show and close figure
     if save_figure == True:
-        path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True, normalize= normalize)
+        path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True, normalize= normalize, CutBounds = CutBounds)
         save_fig(path, ext='png', close=True, verbose=False) 
     else:
         plt.show()
@@ -723,7 +730,7 @@ def LOO_Plots_3_Input(iter_space, GP_mean, y_sim, GP_stdev, Case_Study, DateTime
         
     return
 
-def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emulator, obj, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0, title_arg = "None", save_csvs = True, normalize = False):
+def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emulator, obj, set_lengthscale = None, save_figure = True, plot_axis = 0, plot_num = 0, title_arg = "None", save_csvs = True, normalize = False, CutBounds = False):
     """ 
     Creates parity plots of y_sim and y_model along axis for theta_j or Xexp
     Parameters
@@ -799,9 +806,9 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emul
             csv_ends = ["/y_model", "/y_sim", "/y_stdev"]
         else:
             csv_ends = ["/sse_model", "/sse_sim", "/sse_gp_stdev"]
-        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[0], normalize = normalize)
-        y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[1], normalize = normalize )
-        y_stdev_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[2], normalize = normalize )
+        GP_mean_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[0], normalize = normalize, CutBounds = CutBounds)
+        y_sim_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[1], normalize = normalize, CutBounds = CutBounds )
+        y_stdev_path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = False, plot_axis = plot_axis, plot_num = plot_num, csv_end = csv_ends[2], normalize = normalize, CutBounds = CutBounds )
         csv_item_list = [GP_mean, y_sim, GP_stdev]
         make_csv_list = [GP_mean_path, y_sim_path, y_stdev_path]
 
@@ -810,7 +817,7 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emul
 
     #Save figure or show and close figure
     if save_figure == True:
-        path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True, plot_axis =plot_axis, plot_num= plot_num, normalize = normalize )
+        path = path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime, is_figure = True, plot_axis =plot_axis, plot_num= plot_num, normalize = normalize, CutBounds = CutBounds )
         save_fig(path, ext='png', close=True, verbose=False) 
     else:
         plt.show()
@@ -818,7 +825,7 @@ def LOO_parity_plot_emul(GP_mean, y_sim, GP_stdev, Case_Study, DateTime, t, emul
         
     return
 
-def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime = None, is_figure = True, csv_end = None, plot_axis = None, plot_num = None, normalize = False):
+def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTime = None, is_figure = True, csv_end = None, plot_axis = None, plot_num = None, normalize = False, CutBounds = False):
     """
     names a path
     
@@ -875,11 +882,19 @@ def path_name_gp_val(emulator, fxn, set_lengthscale, t, obj, Case_Study, DateTim
     if is_figure == True:
         path_org = path_org + "/Figures"
     else:
-        path_org = path_org + "/CSV_Data"
+        if CutBounds == False:
+            path_org = path_org + "/CSV_Data"
+        else:
+            path_org = path_org + "/CSV_Data_CB"
         
     path_end = CS + Emulator + org_TP_str + obj_str + len_scl + plot     
 
-    path = path_org + "/GP_Val_Theta" + path_end 
+    
+    if CutBounds == False:
+        path = path_org + "/GP_Val_Theta" + path_end  
+    else:
+        path = path_org + "/GP_Val_Theta_CB" + path_end 
+    
         
     if csv_end is not None:
         path = path + csv_end
