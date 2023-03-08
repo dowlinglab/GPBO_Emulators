@@ -83,7 +83,9 @@ def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true
     if eval_Train == False:
         eval_p = true_p
     else:
-        eval_p = np.round(train_p[0,0:q],2)
+        eval_p = np.round(train_p[0,0:q],2) #For Either Cut Bound Problem
+#         eval_p = torch.tensor([-1.29, -1.63, -8.65,  0.92,  0.63,  1.11, 10.53,  1.91]) #For TP = 40
+#         eval_p = torch.tensor([1.05, -1.61, -7.16, -1.39, -0.47,  1.68, 14.31,  0.04]) #For TP = 100
 #         print(len(eval_p))
     eval_components = eval_GP_x_space(eval_p, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study)
         
@@ -102,7 +104,8 @@ def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true
             title1 = "- True Value"
             print("True Theta" + eval_p.tolist())
         else:
-            print("Test TP Rounded:" + np.round(eval_p.tolist(),2))
+            print("Test TP Rounded:", np.round(eval_p.tolist(),2))
+#             print(eval_p)
             theta_eval = "Test"
             title1 = r'$\theta =$' + theta_eval 
         X_mesh = X_space.reshape(p,p,-1).T
