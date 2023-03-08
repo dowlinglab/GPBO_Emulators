@@ -23,7 +23,7 @@ from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True):  
+def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, obj, Case_Study, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_figure= True, eval_Train = False):  
     """
     Run GP Validation using a leave one out scheme
     
@@ -79,8 +79,14 @@ def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true
 #     print(train_p.dtype, train_y.dtype)
     train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose)
 
-    #Evaluate GP with true parameters over meshgrid X1 X2
-    eval_components = eval_GP_x_space(true_p, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study)
+    #Evaluate GP with true parameters OR a close training point over meshgrid X1 X2
+    if eval_Train == False:
+        eval_p = true_p
+    else:
+        eval_p = np.round(train_p[0,0:q],2)
+#         print(len(eval_p))
+    eval_components = eval_GP_x_space(eval_p, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, obj = obj, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study)
+        
     GP_mean, GP_stdev, y_sim = eval_components
     
     #Plot true shape
@@ -92,13 +98,24 @@ def Compare_GP_True(all_data, X_space, Xexp, Yexp, true_model_coefficients, true
         saddle = np.array([[-0.82,0.62],
                       [0.22,0.30]])
 
-        title1 = "- True Value"
+        if eval_Train == False:
+            title1 = "- True Value"
+            print("True Theta" + eval_p.tolist())
+        else:
+            print("Test TP Rounded:" + np.round(eval_p.tolist(),2))
+            theta_eval = "Test"
+            title1 = r'$\theta =$' + theta_eval 
         X_mesh = X_space.reshape(p,p,-1).T
         Muller_plotter(X_mesh, y_sim.T, minima, saddle, title1, X_train = X_train)
 
         #Plot GP shape
         title2 = "- GP Mean"
         Muller_plotter(X_mesh, GP_mean.T, minima, saddle, title2, X_train = X_train)
+        
+        #Plot GPstdev
+        title3 = "- GP StDev"
+        Muller_plotter(X_mesh, GP_stdev.T, minima, saddle, title3, X_train = X_train)
+        
     elif Case_Study == 1:
         plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison")
     
@@ -284,11 +301,11 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, X_train = None):
     else:
         cbar = plt.colorbar(cs, format = '%2.2f')
         
-    cs2 = plt.contour(cs, levels=cs.levels[::25], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+    cs2 = plt.contour(cs, levels=cs.levels[::40], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
     
     #plot saddle pts and local minima, only label 1st instance
     if str(X_train) != "None":
-        plt.scatter(X_train[:,0], X_train[:,1], color = "brown", label = "Training", marker = "o")
+        plt.scatter(X_train[:,0], X_train[:,1], color = "goldenrod", label = "Training", marker = "o")
     
     for i in range(len(minima)):
         if i == 0:
@@ -298,9 +315,9 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, X_train = None):
 
     for j in range(len(saddle)):
         if j == 0:
-            plt.scatter(saddle[j,0], saddle[j,1], color="white", label = "Saddle", s=25, marker = "x")
+            plt.scatter(saddle[j,0], saddle[j,1], color="white", label = "Saddle", s=25, marker = "X", edgecolor='k')
         else:
-            plt.scatter(saddle[j,0], saddle[j,1], color="white", s=25, marker = "x")
+            plt.scatter(saddle[j,0], saddle[j,1], color="white", s=25, marker = "X", edgecolor='k')
        
     #Plots axes such that they are scaled the same way (eg. circles look like circles)
     plt.axis('scaled')    

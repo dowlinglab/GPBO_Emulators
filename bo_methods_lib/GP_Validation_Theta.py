@@ -215,7 +215,7 @@ def LOO_In_Theta_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p,
         
     else:        
         #Plot log(SSE) from GP(theta_j,Xexp) and y_sim(theta_j,Xexp)
-        LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator, normalize = normalize, CutBounds = CutBounds)
+        LOO_Plots_2_Input(index_list, sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator, normalize = normalize, CutBounds = CutBounds, len_Xexp = n)
         
         #Plot Parity plot for log(SSE)
         LOO_parity_plot_emul(sse_GP_tj_xk_list, sse_y_sim_tj_xk_list, sse_GP_stdev_tj_xk_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None, normalize = normalize, CutBounds = CutBounds)
@@ -562,7 +562,7 @@ def LOO_eval_GP_emulator_tj_xk(theta_set, Xexp, Yexp,true_model_coefficients, mo
     
     return GP_mean, GP_stdev, y_sim, SSE_model, SSE_sim, SSE_model_stdev
 
-def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False, normalize = False, save_csvs = True, CutBounds = False):
+def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTime, obj, set_lengthscale = None, save_figure= True, emulator = False, normalize = False, save_csvs = True, CutBounds = False, len_Xexp = 0):
     """ 
     Creates plots of sse_sim and sse_model vs test space point
     Parameters
@@ -588,8 +588,8 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
         iter_space = np.linspace(0,len(GP_mean), len(GP_mean))
         iter_space = iter_space*n
         t = int(len(iter_space)*n)
-        t_save = t*n
-        print(n, len(iter_space), t, t_save)
+        t_save = t*len_Xexp
+#         print(n, len(iter_space), t, t_save)
     else:
         t = len(iter_space)
         t_save = t
