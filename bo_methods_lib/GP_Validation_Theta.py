@@ -209,7 +209,7 @@ def LOO_In_Theta_Analysis(all_data, Xexp, Yexp, true_model_coefficients, true_p,
         sse_y_sim_tj_xj_list = np.array(sse_y_sim_tj_xj_list)
         
         #Plot model vs sim sse
-        LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, normalize = normalize, CutBounds = CutBounds)
+        LOO_Plots_2_Input(index_list, sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, obj, set_lengthscale, save_figure, emulator, normalize = normalize, CutBounds = CutBounds)
         
         LOO_parity_plot_emul(sse_GP_tj_xj_list, sse_y_sim_tj_xj_list, sse_GP_stdev_tj_xj_list, Case_Study, DateTime, t, emulator, obj, set_lengthscale, save_figure, plot_axis = None, plot_num = None, normalize = normalize, CutBounds = CutBounds)
         
@@ -588,15 +588,18 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
         iter_space = np.linspace(0,len(GP_mean), len(GP_mean))
         iter_space = iter_space*n
         t = int(len(iter_space)*n)
+        t_save = t*n
+        print(n, len(iter_space), t, t_save)
     else:
         t = len(iter_space)
+        t_save = t
+        
     #Flatten GP mean to ensure smooth plotting
     GP_mean = GP_mean.flatten()
     
     #Define function, length of GP mean predictions (p), and number of tests (t)   
     p = GP_mean.shape[0]
     fxn = "LOO_Plots_2_Input"
-    
 
     # Compare the GP mean to the true model (simulated model)
     plt.figure(figsize = (6.4,4))
@@ -629,12 +632,7 @@ def LOO_Plots_2_Input(iter_space, GP_mean, sse_sim, GP_stdev, Case_Study, DateTi
     plt.locator_params(axis='x', nbins=5)
     plt.minorticks_on() # turn on minor ticks
     plt.tick_params(which="minor",direction="in",top=True, right=True)
-#     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")
-
-    if emulator == True:
-        t_save = t*n
-    else:
-        t_save = t
+#     plt.title("BO Iteration Results: Lowest Overall ln(SSE)")        
         
     #Save CSVs
     if save_csvs == True:
