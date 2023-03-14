@@ -72,9 +72,10 @@ d = len(true_p)
 train_iter = 300
 noise_std = 0.1
 set_lengthscale = None
+emulator = True
+obj = "obj"
 verbose = False
 
-emulator =  True
 save_figure = True
 save_csvs = True
 
@@ -91,6 +92,17 @@ Yexp = exp_data[:,-1]
 
 Xexp = clean_1D_arrays(Xexp)
 
+print("Case Study: ", CS)
+print("Number of Training Thetas: ", t_list[0])
+print("Number of Experimental Data Points: ", n)
+print("GP Emulating Function Output (T) or SSE (F)? ", emulator)
+print("Scaling of Objective Function? ", obj)
+print("Bounds On X Cut (T) or Normal (F)? ", Bound_Cut)
+print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
+print("GP RBF Kernel lengthscale: ", set_lengthscale)
+print("GP Training Iterations: ", train_iter)
+print("Training Data Noise st.dev: ", noise_std)
+
 #Define GP Testing space
 p=20
 # print(bounds_x)
@@ -99,8 +111,10 @@ X_space = gen_x_set(LHS = False, n_points = p, dimensions = exp_d, bounds = boun
 
 for t in t_list:
     t_use = int(t*n)
+    obj = "obj"
     all_data_doc = find_train_doc_path(emulator, obj, d, t_use, bound_cut = Bound_Cut)
-    print(all_data_doc)
+    print("All Data Path: ", all_data_doc)
+    all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
 #     Compare_GP_True(all_data, X_space, Xexp, Yexp, Constants, true_p, obj, CS, 
 #                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
 #                 save_figure, eval_Train = eval_Train)
