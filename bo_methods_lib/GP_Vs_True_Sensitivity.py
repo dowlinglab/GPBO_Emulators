@@ -23,7 +23,7 @@ from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False):  
+def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, percentiles, skip_param_types = 0, set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False):  
     """
     Run GP Validation using a leave one out scheme
     
@@ -83,6 +83,8 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 
     #Create list to save evaluated arrays in
     eval_p_df = []
+    #Save each percentile as a number from 0 to len(percentiles)
+    pct_num_map = np.linspace(0,len(percentiles)-1, len(percentiles))
 #     
     #Evaluate GP with true parameters OR a close training point over meshgrid X1 X2
     if eval_Train == False:
@@ -100,8 +102,7 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     for i in range(len(eval_p_base)):   
         # Evaluate at the lower bound for each theta and add or subtract 100% of org value from theta to see what happens
         #Note: Could modify this to be dependent on problem bounds
-        percentiles = np.linspace(-1.0,1.0,41)
-        print(percentiles)
+#         print(percentiles)
         eval_p = eval_p_base.clone()
         for j in range(len(percentiles)):
 #             lower_theta = bounds_p[0,i]
@@ -132,19 +133,20 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
                 else:
 #                     print("Test TP Rounded:", np.round(eval_p.tolist(),2))
         #             print(eval_p)
-                    theta_eval = np.round(eval_p.tolist(),2)
+                    theta_eval = np.round(eval_p.tolist(),4)
                     title1 = r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$' 
 #                     print(title1)
                 X_mesh = X_space.reshape(p,p,-1).T
-                Muller_plotter(X_mesh, y_sim.T, minima, saddle, title1, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/Sim_val", param = param_dict[i], percentile = percentiles[j])
+                
+                Muller_plotter(X_mesh, y_sim.T, minima, saddle, title1, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/Sim_val", param = param_dict[i], percentile = pct_num_map[j])
 
                 #Plot GP shape
                 title2 = "GP Mean"
-                Muller_plotter(X_mesh, GP_mean.T, minima, saddle, title2, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/GP_mean", param = param_dict[i], percentile = percentiles[j])
+                Muller_plotter(X_mesh, GP_mean.T, minima, saddle, title2, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/GP_mean", param = param_dict[i], percentile = pct_num_map[j])
 
                 #Plot GPstdev
                 title3 = "GP StDev"
-                Muller_plotter(X_mesh, GP_stdev.T, minima, saddle, title3, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/GP_stdev", param = param_dict[i], percentile = percentiles[j])
+                Muller_plotter(X_mesh, GP_stdev.T, minima, saddle, title3, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/GP_stdev", param = param_dict[i], percentile = pct_num_map[j])
 
             elif Case_Study == 1:
                 plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison")
@@ -331,7 +333,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, t, Case
     
     #Set plot details
 #     plt.figure(figsize=(8,4))
-    cs = plt.contourf(xx, yy,z, levels = 1000, cmap = "jet")
+    cs = plt.contourf(xx, yy,z, levels = 900, cmap = "jet")
     if np.amax(z) < 1e-1 or np.amax(z) > 1000:
         cbar = plt.colorbar(cs, format='%.2e')
     else:
@@ -428,7 +430,7 @@ def path_name_gp_val(set_lengthscale, t, Case_Study, DateTime = None, is_figure 
         param = "/" + str(param)
     
     if percentile != "":
-        percent = "/pct_" + str(np.round(float(percentile),3))
+        percent = "/pct_" + str(int(percentile)).zfill(len(str(50))) #Note, 2 places is the default.
     else:
         percent = ""
             

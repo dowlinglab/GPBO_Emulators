@@ -67,7 +67,7 @@ else:
                          [ 2,  2]])
 
 # print(Theta_True)
-t_list = [40]
+t_list = [100]
 d = len(true_p)
 train_iter = 300
 noise_std = 0.1
@@ -91,6 +91,7 @@ Xexp = exp_data[:,1:exp_d+1]
 Yexp = exp_data[:,-1]
 
 Xexp = clean_1D_arrays(Xexp)
+percentiles = np.linspace(-1.0,1.0,41)
 
 print("Case Study: ", CS)
 print("Number of Training Thetas: ", t_list[0])
@@ -102,6 +103,7 @@ print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
 print("GP RBF Kernel lengthscale: ", set_lengthscale)
 print("GP Training Iterations: ", train_iter)
 print("Training Data Noise st.dev: ", noise_std)
+print("Percentiles: ", percentiles)
 
 #Define GP Testing space
 p=20
@@ -118,6 +120,6 @@ for t in t_list:
 #     Compare_GP_True(all_data, X_space, Xexp, Yexp, Constants, true_p, obj, CS, 
 #                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
 #                 save_figure, eval_Train = eval_Train)
-    Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p,
+    Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
                 save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut)
