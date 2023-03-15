@@ -3,13 +3,13 @@ import gpytorch
 import numpy as np
 import pandas as pd
 import torch
-from datetime import datetime
+from datetime import datetime, timedelta
 from scipy.stats import qmc
 
 # from bo_methods_lib.GP_Vs_True import Compare_GP_True
 from bo_methods_lib.GP_Vs_True_Sensitivity import Compare_GP_True_Movie
 # from bo_methods_lib.GP_Validation import LOO_Analysis
-from bo_methods_lib.bo_functions_generic import gen_theta_set,gen_x_set, find_train_doc_path, set_ep, clean_1D_arrays
+from bo_methods_lib.bo_functions_generic import round_time, gen_theta_set,gen_x_set, find_train_doc_path, set_ep, clean_1D_arrays
 
 import matplotlib as mpl
 mpl.rcParams['figure.dpi'] = 300
@@ -18,7 +18,7 @@ import warnings
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
 #Set Date and Time
-dateTimeObj = datetime.now()
+dateTimeObj = round_time()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")

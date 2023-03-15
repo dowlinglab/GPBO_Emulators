@@ -10,11 +10,11 @@ import os
 import gpytorch
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from scipy.stats import qmc
 from sklearn.model_selection import LeaveOneOut
 
-from .bo_functions_generic import train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
+from .bo_functions_generic import round_time, train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs
 from .CS2_bo_plotters import save_csv, save_fig, plot_xy
     
 # from .CS1_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
