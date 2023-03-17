@@ -134,18 +134,18 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 #                     print("Test TP Rounded:", np.round(eval_p.tolist(),2))
         #             print(eval_p)
                     theta_eval = np.round(eval_p.tolist(),4)
-                    title1 = r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$' 
+                    title1 = "Sim Val " + r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$' 
 #                     print(title1)
                 X_mesh = X_space.reshape(p,p,-1).T
                 
                 Muller_plotter(X_mesh, y_sim.T, minima, saddle, title1, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/Sim_val", param = param_dict[i], percentile = pct_num_map[j])
 
                 #Plot GP shape
-                title2 = "GP Mean"
+                title2 = "GP Mean " + r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$'
                 Muller_plotter(X_mesh, GP_mean.T, minima, saddle, title2, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/GP_mean", param = param_dict[i], percentile = pct_num_map[j])
 
                 #Plot GPstdev
-                title3 = "GP StDev"
+                title3 = "GP StDev " + r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$'
                 Muller_plotter(X_mesh, GP_stdev.T, minima, saddle, title3, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/GP_stdev", param = param_dict[i], percentile = pct_num_map[j])
 
             elif Case_Study == 1:
@@ -369,7 +369,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, t, Case
     plt.ylabel('$x_2$',weight='bold')
     plt.xlim((np.amin(xx), np.amax(xx)))
     plt.ylim((np.amin(yy),np.amax(yy)))
-    plt.title("Mul. Pot. - "+title, weight='bold',fontsize=16)
+    plt.title(title, weight='bold',fontsize=16)
     
     #Save CSVs and Figures
     if save_csvs == True:
@@ -430,11 +430,11 @@ def path_name_gp_val(set_lengthscale, t, Case_Study, DateTime = None, is_figure 
         param = "/" + str(param)
     
     if percentile != "":
-        percent = "/pct_" + str(int(percentile)).zfill(len(str(50))) #Note, 2 places is the default.
+        percent = "_pct_" + str(int(percentile)).zfill(len(str(50))) #Note, 2 places is the default.
     else:
         percent = ""
             
-    plot = "/Mul_Pot_Comp" + Mul_title        
+    plot = Mul_title        
       
     if DateTime is not None:
 #         path_org = "../"+DateTime #Will send to the Datetime folder outside of CS1
@@ -448,7 +448,7 @@ def path_name_gp_val(set_lengthscale, t, Case_Study, DateTime = None, is_figure 
     else:
         path_org = path_org + "/CSV_Data"
         
-    path_end = CS + org_TP_str + len_scl + plot + param + percent  
+    path_end = CS  + len_scl + org_TP_str + plot + param + percent  
 
     if CutBounds == True:
         cut_bounds = "_CB"

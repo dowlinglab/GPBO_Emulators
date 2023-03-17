@@ -67,7 +67,7 @@ else:
                          [ 2,  2]])
 
 # print(Theta_True)
-t_list = [100]
+t_list = [40]
 d = len(true_p)
 train_iter = 300
 noise_std = 0.1
