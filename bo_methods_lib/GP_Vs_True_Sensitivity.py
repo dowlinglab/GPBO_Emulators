@@ -96,7 +96,6 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 #         print(len(eval_p))
     print("Base Theta Train for Movies:", eval_p_base)
     X_space_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds)
-    set_lengthscale, train_iter, t, Case_Study, DateTime = None, is_figure = True, csv_end = None, CutBounds = False, Mul_title = "", param = "", percentile = ""
     save_csv(X_space, X_space_path, ext = "npy")
 #     print("X_space_path", X_space_path)
     #Loop over number of thetas
