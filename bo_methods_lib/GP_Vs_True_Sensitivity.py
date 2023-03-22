@@ -137,16 +137,15 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
                     title1 = "Sim Val " + r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$' 
 #                     print(title1)
                 X_mesh = X_space.reshape(p,p,-1).T
-                
-                Muller_plotter(X_mesh, y_sim.T, minima, saddle, title1, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/Sim_val", param = param_dict[i], percentile = pct_num_map[j])
-
-                #Plot GP shape
                 title2 = "GP Mean " + r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$'
-                Muller_plotter(X_mesh, GP_mean.T, minima, saddle, title2, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/GP_mean", param = param_dict[i], percentile = pct_num_map[j])
-
-                #Plot GPstdev
                 title3 = "GP StDev " + r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$'
-                Muller_plotter(X_mesh, GP_stdev.T, minima, saddle, title3, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = "/GP_stdev", param = param_dict[i], percentile = pct_num_map[j])
+    
+                z = [y_sim.T, GP_mean.T, GP_stdev.T]     
+                Mul_title = ["/Sim_val", "/GP_mean", "/GP_stdev"]
+                title = [title1, title2, title3]
+                
+                #Make heat maps
+                Muller_plotter(X_mesh, z, minima, saddle, title, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j])
 
             elif Case_Study == 1:
                 plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison")
@@ -296,7 +295,7 @@ def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model,
         GP_mean = np.array(GP_mean).reshape((p, p))
         y_sim = np.array(y_sim).reshape((p, p))
     
-    return GP_mean, GP_stdev, y_sim
+    return GP_mean, GP_stdev, y_sim 
 
 def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, t, Case_Study, CutBounds, DateTime = None, X_train = None, save_csvs = False, save_figure = False, Mul_title = "", param = "", percentile = ""):
     '''
@@ -304,11 +303,11 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, t, Case
     Parameters
     ----------
         test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
-        z: ndarray or tensor, An NxN Array containing all points that will be plotted
+        z: list of 3 NxN arrays containing all points that will be plotted for GP_mean, GP standard deviation, and y_sim
         p_true: ndarray, A 2x1 containing the true input parameters
         p_GP_Opt: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
         p_GP_Best: ndarray, A 2x1 containing the input parameters predicted by the GP to have the best EI
-        title: str, A string containing the title of the plot
+        title: list of str, A string containing the title of the plots ex: ["Y_sim, GP Mean", "GP Stdev"]
         title_save: str, A string containing the title of the file of the plot
         obj: str, The name of the objective function. Used for saving figures
         ep: int or float, the exploration parameter
@@ -323,81 +322,91 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, t, Case
     -------
         plt.show(), A heat map of test_mesh and z
     '''
-    fxn = "Muller_plotter"
+    #Define figures and x and y data
     xx , yy = test_mesh #NxN, NxN
+    
     #Assert sattements
-    assert isinstance(z, np.ndarray)==True or torch.is_tensor(z)==True, "The values in the heat map must be numpy arrays or torch tensors."
+    assert len(z) == len(title), "Equal number of data matricies and titles must be given!"
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
-    assert z.shape==xx.shape, "Array z must be NxN"
-    assert isinstance(title, str)==True, "Title must be a string" 
+    
+    #Make figures and define number of subplots
+    fig, axes = plt.subplots(nrows = 1, ncols = len(z), figsize = (18,6))
+    ax = axes
     
     #Set plot details
-#     plt.figure(figsize=(8,4))
-    cs = plt.contourf(xx, yy,z, levels = 900, cmap = "jet")
-    if np.amax(z) < 1e-1 or np.amax(z) > 1000:
-        cbar = plt.colorbar(cs, format='%.2e')
-    else:
-        cbar = plt.colorbar(cs, format = '%2.2f')
+    #Loop over number of subplots
+    for i in range(len(z)):
+        #Assert statements
+        assert z[i].shape==xx.shape, "Array z must be NxN"
+        assert isinstance(z[i], np.ndarray)==True or torch.is_tensor(z[i])==True, "Heat map values must be numpy arrays or torch tensors."
+        assert isinstance(title[i], str)==True, "Title must be a string" 
         
-    cs2 = plt.contour(cs, levels=cs.levels[::40], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
-    
-    #plot saddle pts and local minima, only label 1st instance
-    if str(X_train) != "None":
-        plt.scatter(X_train[:,0], X_train[:,1], color = "goldenrod", label = "Training", marker = "o")
+        #Create a colormap and colorbar for each subplot
+        cs_fig = ax[i].contourf(xx, yy,z[i], levels = 900, cmap = "jet")
+        if np.amax(z[i]) < 1e-1 or np.amax(z[i]) > 1000:
+            cbar = plt.colorbar(cs_fig, ax = ax[i], format='%.2e')
+        else:
+            cbar = plt.colorbar(cs_fig, ax = ax[i], format = '%2.2f')
         
-    for i in range(len(minima)):
-        if i == 0:
-            plt.scatter(minima[i,0], minima[i,1], color="black", label = "Minima", s=25, marker = (5,1))
-        else:
-            plt.scatter(minima[i,0], minima[i,1], color="black", s=25, marker = (5,1))
-
-    for j in range(len(saddle)):
-        if j == 0:
-            plt.scatter(saddle[j,0], saddle[j,1], color="white", label = "Saddle", s=25, marker = "X", edgecolor='k')
-        else:
-            plt.scatter(saddle[j,0], saddle[j,1], color="white", s=25, marker = "X", edgecolor='k')
-       
-    #Plots axes such that they are scaled the same way (eg. circles look like circles)
-    plt.axis('scaled')    
+        #Create a line contour for each colormap
+        cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::40], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
     
-    #Plots grid and legend
-#     plt.grid()
-    legend(loc='upper right', bbox_to_anchor=(-0.1, 1))
+        #plot saddle pts and local minima, and training data if it's given
+        if str(X_train) != "None":
+            ax[i].scatter(X_train[:,0], X_train[:,1], color = "goldenrod", label = "Training", marker = "o")
 
-    #Creates axis labels and title
-    plt.xlabel('$x_1$',weight='bold')
-    plt.ylabel('$x_2$',weight='bold')
-    plt.xlim((np.amin(xx), np.amax(xx)))
-    plt.ylim((np.amin(yy),np.amax(yy)))
-    plt.title(title, weight='bold',fontsize=16)
-    
+        ax[i].scatter(minima[:,0], minima[:,1], color="black", label = "Minima", s=25, marker = (5,1))
+        ax[i].scatter(saddle[:,0], saddle[:,1], color="white", label = "Saddle", s=25, marker = "X", edgecolor='k')   
+        
+        #Get legend information
+        if i == len(z)-1:
+            handles, labels = ax[i].get_legend_handles_labels()
+        
+        #Plots axes such that they are scaled the same way (eg. circles look like circles)
+        ax[i].axis('scaled')  
+        ax[i].set_xlabel('$x_1$',weight='bold',fontsize=16)
+        ax[i].set_ylabel('$x_2$',weight='bold',fontsize=16)
+        
+        #Plot title and set axis scale
+        ax[i].set_title(title[i], weight='bold',fontsize=16)
+        ax[i].set_xlim(left = np.amin(xx), right = np.amax(xx))
+        ax[i].set_ylim(bottom = np.amin(yy), top = np.amax(yy))      
+          
+    #Plots legend
+    plt.tight_layout()
+    fig.legend(handles, labels, loc="upper left")  #bbox_to_anchor=(-0.1, 1)
+
     #Save CSVs and Figures
     if save_csvs == True:
-        csv_ends = ["/Mul_Pot", "/Minima", "/Saddle", "/X_train"]
-        z_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[0], CutBounds = CutBounds, Mul_title = Mul_title, param = param, percentile = percentile)
-#         print("z_path", z_path)
-        min_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[1], CutBounds = CutBounds, Mul_title = Mul_title, param = param, percentile = percentile)
+        z_csv_ends = Mul_title #optional
+        csv_ends = ["/Minima", "/Saddle", "/X_train"]
+        z_paths = []
+        for i in range(len(z)):
+            z_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = Mul_title[i], param = param, percentile = percentile)
+#             print(z_path)
+            z_paths.append(z_path)  
+        min_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[0], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "")
 #         print("min_path", min_path)
-        sad_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[2], CutBounds = CutBounds, Mul_title = Mul_title, param = param, percentile = percentile)
+        sad_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[1], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "")
 #         print("sad_path", sad_path)
-        x_trn_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[3], CutBounds = CutBounds, Mul_title = Mul_title, param = param, percentile = percentile)
+        x_trn_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[2], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "")
 #         print("x_trn_path", x_trn_path)
-        csv_item_list = [z, minima, saddle, X_train]
-        make_csv_list = [z_path, min_path, sad_path, x_trn_path]
-
+        csv_item_list = z + [minima, saddle, X_train]
+        make_csv_list = z_paths + [min_path, sad_path, x_trn_path]
         for i in range(len(make_csv_list)):
             save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
 
     #Save figure or show and close figure
     if save_figure == True:
-        path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = True, CutBounds = CutBounds, Mul_title = Mul_title, param = param, percentile = percentile)
+        path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = True, CutBounds = CutBounds, Mul_title = "/Mul_Comp_Figs", param = param, percentile = percentile)
 #         print("fig_path", path)
         save_fig(path, ext='png', close=True, verbose=False) 
     else:
         plt.show()
         plt.close()
-    plt.close()       
-    return plt.show() 
+    
+    plt.close()
+    return plt.show()
 
 def path_name_gp_val(set_lengthscale, t, Case_Study, DateTime = None, is_figure = True, csv_end = None, CutBounds = False, Mul_title = "", param = "", percentile = ""):
     """
