@@ -195,15 +195,11 @@ def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model,
     
     #Set hyperparameters
     if set_lengthscale is not None:
+        if torch.is_tensor(set_lengthscale) is False:
+            lengthscale = torch.tensor([set_lengthscale])
+        model.covar_module.base_kernel.lengthscale =lengthscale
         if verbose == True:
             print("Lengthscale Set To: " + set_lengthscale)
-        outputscale = torch.tensor([1])
-        lengthscale = torch.tensor([set_lengthscale])
-        noise = torch.tensor([0.1])
-
-        model.likelihood.noise = noise
-        model.covar_module.base_kernel.lengthscale =lengthscale
-        model.covar_module.outputscale = outputscale
     
     model.eval()
     #Puts likelihood in evaluation mode
