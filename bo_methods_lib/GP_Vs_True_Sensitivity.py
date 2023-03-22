@@ -95,7 +95,7 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 #         eval_p = torch.tensor([1.05, -1.61, -7.16, -1.39, -0.47,  1.68, 14.31,  0.04]) #For TP = 100
 #         print(len(eval_p))
     print("Base Theta Train for Movies:", eval_p_base)
-    X_space_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds, Mul_title = "")
+    X_space_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds, Mul_title = "")
     save_csv(X_space, X_space_path, ext = "npy")
 #     print("X_space_path", X_space_path)
     #Loop over number of thetas
@@ -145,14 +145,14 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
                 title = [title1, title2, title3]
                 
                 #Make heat maps
-                Muller_plotter(X_mesh, z, minima, saddle, title, set_lengthscale, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j])
+                Muller_plotter(X_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j])
 
             elif Case_Study == 1:
                 plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison")
 
 #         print("eval_p_df loop:", eval_p_df)
     eval_p_df = pd.DataFrame(eval_p_df, columns = list(param_dict.values()))
-    eval_p_df_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = "/eval_p_df", CutBounds = CutBounds, Mul_title = "")
+    eval_p_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/eval_p_df", CutBounds = CutBounds, Mul_title = "")
     save_csv(eval_p_df, eval_p_df_path, ext = "npy")
 #     print("eval_p_df_path", eval_p_df_path)
     return
@@ -297,7 +297,7 @@ def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model,
     
     return GP_mean, GP_stdev, y_sim 
 
-def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, t, Case_Study, CutBounds, DateTime = None, X_train = None, save_csvs = False, save_figure = False, Mul_title = "", param = "", percentile = ""):
+def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, DateTime = None, X_train = None, save_csvs = False, save_figure = False, Mul_title = "", param = "", percentile = ""):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -382,14 +382,14 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, t, Case
         csv_ends = ["/Minima", "/Saddle", "/X_train"]
         z_paths = []
         for i in range(len(z)):
-            z_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = Mul_title[i], param = param, percentile = percentile)
+            z_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = Mul_title[i], param = param, percentile = percentile)
 #             print(z_path)
             z_paths.append(z_path)  
-        min_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[0], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "")
+        min_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[0], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "")
 #         print("min_path", min_path)
-        sad_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[1], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "")
+        sad_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[1], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "")
 #         print("sad_path", sad_path)
-        x_trn_path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[2], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "")
+        x_trn_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = csv_ends[2], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "")
 #         print("x_trn_path", x_trn_path)
         csv_item_list = z + [minima, saddle, X_train]
         make_csv_list = z_paths + [min_path, sad_path, x_trn_path]
@@ -398,7 +398,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, t, Case
 
     #Save figure or show and close figure
     if save_figure == True:
-        path = path_name_gp_val(set_lengthscale, t, Case_Study, DateTime, is_figure = True, CutBounds = CutBounds, Mul_title = "/Mul_Comp_Figs", param = param, percentile = percentile)
+        path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = True, CutBounds = CutBounds, Mul_title = "/Mul_Comp_Figs", param = param, percentile = percentile)
 #         print("fig_path", path)
         save_fig(path, ext='png', close=True, verbose=False) 
     else:
@@ -408,7 +408,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, t, Case
     plt.close()
     return plt.show()
 
-def path_name_gp_val(set_lengthscale, t, Case_Study, DateTime = None, is_figure = True, csv_end = None, CutBounds = False, Mul_title = "", param = "", percentile = ""):
+def path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime = None, is_figure = True, csv_end = None, CutBounds = False, Mul_title = "", param = "", percentile = ""):
     """
     names a path
     
@@ -432,6 +432,7 @@ def path_name_gp_val(set_lengthscale, t, Case_Study, DateTime = None, is_figure 
     
     """
     len_scl = "/len_scl_varies"
+    trn_iter = "/train_iter_" + str(train_iter)
     org_TP_str = "/TP_"+ str(t)
     CS = "/CS_" + str(Case_Study) 
     
@@ -457,7 +458,7 @@ def path_name_gp_val(set_lengthscale, t, Case_Study, DateTime = None, is_figure 
     else:
         path_org = path_org + "/CSV_Data"
         
-    path_end = CS  + len_scl + org_TP_str + plot + param + percent  
+    path_end = CS + train_iter + len_scl + org_TP_str + plot + param + percent  
 
     if CutBounds == True:
         cut_bounds = "_CB"
