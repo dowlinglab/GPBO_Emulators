@@ -69,7 +69,7 @@ else:
 # print(Theta_True)
 t_list = [200]
 d = len(true_p)
-train_iter = 1000 #Tried 1000
+train_iter = 1000 #Tried 1000 and 300
 noise_std = 0.1
 set_lengthscale = None
 emulator = True
