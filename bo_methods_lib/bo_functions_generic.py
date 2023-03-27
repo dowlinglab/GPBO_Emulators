@@ -519,8 +519,7 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1xn_train^2 tensor
 
-
-def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False):
+def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False, set_lenscl = None):
     """
     Trains the GP model and finds hyperparameters with the Adam optimizer with an lr =0.1
     
@@ -552,6 +551,10 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
     if isinstance(train_data, np.ndarray)==True:
         train_data = torch.tensor(train_data) #1xn
 
+    #Set lengthscale if it exists
+    if set_lenscl is not None:
+        model.covar_module.base_kernel.lengthscale = set_lenscl
+        
     #Find optimal model hyperparameters
     training_iter = iterations
 
@@ -560,16 +563,23 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
 
     #Puts the likelihood in training mode
     likelihood.train()
-
+    
+    all_params = set(model.parameters())
+    
+    # Set which parameters will be optimized. Optimize all parameters if set_lenscl is none, and optimize all but lengthscale otherwise
+    if set_lenscl is not None:
+        final_params = list(all_params - {model.covar_module.base_kernel.raw_lengthscale})     
+    else:
+        final_params = all_params
+        
     # Use the adam optimizer
         #algorithm for first-order gradient-based optimization of stochastic objective functions
         # The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. 
         #The hyper-parameters have intuitive interpretations and typically require little tuning.
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)  #Needs GaussianLikelihood parameters, and a learning rate
         #lr default is 0.001
-
-    # Calculate"Loss" for GPs
-
+    optimizer = torch.optim.Adam(final_params, lr=0.1) #Needs GaussianLikelihood parameters, and a learning rate
+    
+    ## Calculate"Loss" for GPs
     #The marginal log likelihood (the evidence: quantifies joint probability of the data under the prior)
     #returns an exact MLL for an exact Gaussian process with Gaussian likelihood
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model) #Takes a Gaussian likelihood and a model, a bound Method
@@ -600,7 +610,89 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
         #x += -lr * x.grad
         optimizer.step()
-    return noise_list,lengthscale_list,outputscale_list
+    return noise_list,lengthscale_list,outputscale_list       
+
+# def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False):
+#     """
+#     Trains the GP model and finds hyperparameters with the Adam optimizer with an lr =0.1
+    
+#     Parameters
+#     ----------
+#         model: bound method, The model that the GP is bound by
+#         likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
+#         train_param: tensor or ndarray, The training parameter space data
+#         train_data: tensor or ndarray, The training y data
+#         iterations: float or int, number of training iterations to run. Default is 300
+#         verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
+    
+#     Returns
+#     -------
+#         noise_list: ndarray, List containing value of noise hyperparameter at every iteration
+#         lengthscale_list: ndarray, List containing value of lengthscale hyperparameter at every iteration
+#         outputscale_list: ndarray, List containing value of outputscale hyperparameter at every iteration
+#     """
+#     #Assert statements check that inputs are the correct types and lengths
+#     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+#     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+#     assert isinstance(iterations, int)==True, "Number of training iterations must be an integer" 
+#     assert len(train_param) == len(train_data), "training data must be the same length as each other"
+#     assert verbose==True or verbose==False, "Verbose must be True/False"
+    
+#     #Converts training data and parameters to tensors if they are a numpy arrays
+#     if isinstance(train_param, np.ndarray)==True:
+#         train_param = torch.tensor(train_param) #1xn
+#     if isinstance(train_data, np.ndarray)==True:
+#         train_data = torch.tensor(train_data) #1xn
+
+#     #Find optimal model hyperparameters
+#     training_iter = iterations
+
+#     #Puts the model in training mode
+#     model.train()
+
+#     #Puts the likelihood in training mode
+#     likelihood.train()
+
+#     # Use the adam optimizer
+#         #algorithm for first-order gradient-based optimization of stochastic objective functions
+#         # The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. 
+#         #The hyper-parameters have intuitive interpretations and typically require little tuning.
+#     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)  #Needs GaussianLikelihood parameters, and a learning rate
+#         #lr default is 0.001
+
+#     # Calculate"Loss" for GPs
+
+#     #The marginal log likelihood (the evidence: quantifies joint probability of the data under the prior)
+#     #returns an exact MLL for an exact Gaussian process with Gaussian likelihood
+#     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model) #Takes a Gaussian likelihood and a model, a bound Method
+#     #iterates a give number of times
+#     noise_list = np.zeros(training_iter)
+#     lengthscale_list = np.zeros(training_iter)
+#     outputscale_list = np.zeros(training_iter)
+#     for i in range(training_iter): #0-299
+#         # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
+#         optimizer.zero_grad() 
+#         # Output from model
+#         output = model(train_param) # A multivariate norm of a 1 x n_train^2 tensor
+#         # Calc loss and backprop gradients
+#         #Minimizing -logMLL lets us fit hyperparameters
+#         loss = -mll(output, train_data) #A number (tensor)
+#         #computes dloss/dx for every parameter x which has requires_grad=True. 
+#         #These are accumulated into x.grad for every parameter x
+#         loss.backward()
+#         noise_list[i] = model.likelihood.noise.item()
+#         lengthscale_list[i] =  model.covar_module.base_kernel.lengthscale.item()
+#         outputscale_list[i] = model.covar_module.outputscale.item()
+#         if verbose == True:
+#             print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f   output scale: %.3f '% (
+#                 i + 1, training_iter, loss.item(),
+#                 model.covar_module.base_kernel.lengthscale.item(),
+#                  model.likelihood.noise.item(), model.covar_module.outputscale.item()
+#             ))
+#         #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
+#         #x += -lr * x.grad
+#         optimizer.step()
+#     return noise_list,lengthscale_list,outputscale_list
 
 def calc_GP_outputs(model,likelihood,test_param):
     #Checked for Correctness 5/19/22

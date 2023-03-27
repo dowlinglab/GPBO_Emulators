@@ -116,11 +116,11 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 #             upper_theta = bounds_p[1,i]
             base_theta = eval_p_base[i] 
             new_eval_p = base_theta + base_theta*percentiles[j]
-#             print("org theta",eval_p_base[i],"new theta", new_eval_p)
-            eval_p[i] = new_eval_p
+            #Change the value to the exact point except for 1 variable that is rounded to 2 sig figs after modification by a percent
+            eval_p[i] = torch.tensor(float('%.2g' % float(new_eval_p)))
 #             print("Eval_p: \n", eval_p)
             eval_p_df.append(list(eval_p.numpy()))
-#             print("eval_p_df: \n", eval_p_df)
+#             print("eval_p_df: \n", eval_p)
             eval_components = eval_GP_x_space(eval_p, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study, Xspace_is_Xexp = False)
 
             GP_mean, GP_stdev, y_sim = eval_components
