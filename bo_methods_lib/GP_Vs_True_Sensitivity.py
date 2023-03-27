@@ -4,6 +4,7 @@ import sys
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.patheffects as PathEffects
 from pylab import *
 import torch
 import os
@@ -80,6 +81,11 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     # Train GP
 #     print(train_p.dtype, train_y.dtype)
     train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose)
+    lenscl_noise_list, lenscl_list, outputscale_list = train_GP
+    lenscl_final = lenscl_list[-1]
+    lenscl_noise_final = lenscl_noise_list[-1]
+    print('lengthscale: %.3f   noise: %.3f'% (model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()) )
+#     print(type(model.covar_module.base_kernel.lengthscale.item()), type(model.likelihood.noise.item()))
 
     #Create list to save evaluated arrays in
     eval_p_df = []
@@ -97,7 +103,8 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     print("Base Theta Train for Movies:", eval_p_base)
     X_space_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds)
     save_csv(X_space, X_space_path, ext = "npy")
-#     print("X_space_path", X_space_path)
+    
+    #Evaluate at true value or close to a training point doing a sensitivity analysis
     #Loop over number of thetas
     for i in range(len(eval_p_base)):   
         # Evaluate at the lower bound for each theta and add or subtract 100% of org value from theta to see what happens
@@ -114,10 +121,21 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 #             print("Eval_p: \n", eval_p)
             eval_p_df.append(list(eval_p.numpy()))
 #             print("eval_p_df: \n", eval_p_df)
-            eval_components = eval_GP_x_space(eval_p, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study)
+            eval_components = eval_GP_x_space(eval_p, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study, Xspace_is_Xexp = False)
 
             GP_mean, GP_stdev, y_sim = eval_components
+        
+            #Evaluate the values at the training point
+            eval_components_Xexp = eval_GP_x_space(eval_p, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study, Xspace_is_Xexp = True)
+            GP_mean_Xexp, GP_stdev_Xexp, y_sim_Xexp = eval_components_Xexp
 
+            #Make pandas df of values evaluated at training points and set indecies to start at 1 and save it as npy
+            Exp_Preds = np.array( [Xexp[:,x] for x in range(m)] + [y_sim_Xexp, GP_mean_Xexp, GP_stdev_Xexp] )
+            Exp_Preds_df = pd.DataFrame(data = Exp_Preds.T, columns= ['Xexp '+str(x+1) for x in range(m)] +["Y sim", "GP Mean", "GP Stdev"])
+            Exp_Preds_df.index += 1
+            Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j])
+            save_csv(Exp_Preds_df, Exp_Preds_df_path, ext = "csv")
+        
             #Plot true shape
             if Case_Study == 2.2:
                 minima = np.array([[-0.558,1.442],
@@ -145,7 +163,8 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
                 title = [title1, title2, title3]
                 
                 #Make heat maps
-                Muller_plotter(X_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, DateTime, X_train, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j])
+                Muller_plotter(X_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, lenscl_final,
+lenscl_noise_final, DateTime, Xexp, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j])
 
             elif Case_Study == 1:
                 plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison")
@@ -157,7 +176,7 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 #     print("eval_p_df_path", eval_p_df_path)
     return
 
-def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = None, skip_param_types = 0, noise_std = 0.1, CS = 1):
+def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = None, skip_param_types = 0, noise_std = 0.1, CS = 1, Xspace_is_Xexp = False):
     """
     Evaluates GP
     
@@ -206,12 +225,12 @@ def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model,
     likelihood.eval()
     
     #Evaluate GP based on property emulator
-    eval_components = eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model, likelihood, skip_param_types, CS)
+    eval_components = eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model, likelihood, skip_param_types, CS, Xspace_is_Xexp)
     
     return eval_components
 
     
-def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model, likelihood, skip_param_types=0, CS=1):
+def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model, likelihood, skip_param_types=0, CS=1, Xspace_is_Xexp = False):
     """ 
     Calculates the expected improvement of the emulator approach
     Parameters
@@ -285,7 +304,10 @@ def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model,
         
     GP_stdev = np.sqrt(GP_var)  
     
-    if m > 1:
+#     if Xspace_is_Xexp == True:
+#         print(GP_mean.shape, y_sim.shape, GP_stdev.shape)
+        
+    if m > 1 and Xspace_is_Xexp == False:
         #Turn GP_mean, GP_stdev, and y_sim back into meshgrid form
         GP_stdev = np.array(GP_stdev).reshape((p, p))
         GP_mean = np.array(GP_mean).reshape((p, p))
@@ -293,7 +315,7 @@ def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model,
     
     return GP_mean, GP_stdev, y_sim 
 
-def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, DateTime = None, X_train = None, save_csvs = False, save_figure = False, Mul_title = "", param = "", percentile = ""):
+def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, lenscl_final = "", lenscl_noise_final = "", DateTime = None, X_train = None, save_csvs = False, save_figure = False, Mul_title = "", param = "", percentile = "", tot_lev = [40,40,75]):
     '''
     Plots heat maps for 2 input GP
     Parameters
@@ -325,9 +347,13 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_i
     assert len(z) == len(title), "Equal number of data matricies and titles must be given!"
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
     
-    #Make figures and define number of subplots
+    #Make figures and define number of subplots  
     fig, axes = plt.subplots(nrows = 1, ncols = len(z), figsize = (18,6))
     ax = axes
+    
+    title_str = r'$\ell =' +  str(format(lenscl_final, '.3f')) + '$ & '+ r'$\sigma_{\ell} = ' + str(format(lenscl_noise_final, '.3f') + '$')
+    if type(lenscl_final) == type(lenscl_noise_final) != str:
+        fig.suptitle(title_str, weight='bold', fontsize=18)
     
     #Set plot details
     #Loop over number of subplots
@@ -345,11 +371,15 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_i
             cbar = plt.colorbar(cs_fig, ax = ax[i], format = '%2.2f')
         
         #Create a line contour for each colormap
-        cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::40], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+        cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+        ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=10, inline=1)
     
-        #plot saddle pts and local minima, and training data if it's given
+        #plot saddle pts and local minima, and training data X values if it's given
         if str(X_train) != "None":
             ax[i].scatter(X_train[:,0], X_train[:,1], color = "goldenrod", label = "Training", marker = "o")
+            for index in range(len(X_train)):
+                txt = ax[i].text(X_train[index,0], X_train[index,1], str(index+1), size=10, color ="white")
+                txt.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='black')])
 
         ax[i].scatter(minima[:,0], minima[:,1], color="black", label = "Minima", s=25, marker = (5,1))
         ax[i].scatter(saddle[:,0], saddle[:,1], color="white", label = "Saddle", s=25, marker = "X", edgecolor='k')   
@@ -368,8 +398,9 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_i
         ax[i].set_xlim(left = np.amin(xx), right = np.amax(xx))
         ax[i].set_ylim(bottom = np.amin(yy), top = np.amax(yy))      
           
-    #Plots legend
+    #Plots legend and title
     plt.tight_layout()
+#     print(type(lenscl_noise_final), type(lenscl_final))
     fig.legend(handles, labels, loc="upper left")  #bbox_to_anchor=(-0.1, 1)
 
     #Save CSVs and Figures

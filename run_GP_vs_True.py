@@ -91,7 +91,8 @@ Xexp = exp_data[:,1:exp_d+1]
 Yexp = exp_data[:,-1]
 
 Xexp = clean_1D_arrays(Xexp)
-percentiles = np.linspace(-1.0,1.0,41)
+# percentiles = np.linspace(-1.0,1.0,41)
+percentiles = np.linspace(0,0,1) #Use this to only look at the value very close to the training data
 
 print("Case Study: ", CS)
 print("Number of Training Thetas: ", t_list[0])
