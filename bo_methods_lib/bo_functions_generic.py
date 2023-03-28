@@ -531,6 +531,7 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         train_data: tensor or ndarray, The training y data
         iterations: float or int, number of training iterations to run. Default is 300
         verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
+        set_lenscl: float/None: Determines whether Hyperparameter values will be set. None by Default
     
     Returns
     -------
@@ -553,8 +554,10 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
 
     #Set lengthscale if it exists
     if set_lenscl is not None:
+        if torch.is_tensor(set_lenscl) is False:
+            set_lenscl = torch.tensor([set_lenscl])
         model.covar_module.base_kernel.lengthscale = set_lenscl
-        
+              
     #Find optimal model hyperparameters
     training_iter = iterations
 
@@ -610,6 +613,15 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
         #x += -lr * x.grad
         optimizer.step()
+        
+    #Print lengthscale if verbose
+    model_lengthscale = model.covar_module.base_kernel.lengthscale
+    if verbose == True:
+        if set_lenscl is not None:
+            print("Lengthscale Set To: " + str(float(model_lengthscale)))
+        else:
+            print("Lengthscale is optimized using MLE to " + str(round(float(model_lengthscale),5)) )  
+            
     return noise_list,lengthscale_list,outputscale_list       
 
 # def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False):

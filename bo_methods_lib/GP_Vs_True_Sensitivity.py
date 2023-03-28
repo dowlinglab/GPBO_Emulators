@@ -80,7 +80,7 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     
     # Train GP
 #     print(train_p.dtype, train_y.dtype)
-    train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose)
+    train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose, set_lenscl = set_lengthscale)
     lenscl_noise_list, lenscl_list, outputscale_list = train_GP
     lenscl_final = lenscl_list[-1]
     lenscl_noise_final = lenscl_noise_list[-1]
@@ -121,17 +121,18 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 #             print("Eval_p: \n", eval_p)
             eval_p_df.append(list(eval_p.numpy()))
 #             print("eval_p_df: \n", eval_p)
-            eval_components = eval_GP_x_space(eval_p, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study, Xspace_is_Xexp = False)
+            eval_components = eval_GP_x_space(eval_p, X_space, train_y, true_model_coefficients, model, likelihood, verbose, train_p = train_p, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study, Xspace_is_Xexp = False)
 
             GP_mean, GP_stdev, y_sim = eval_components
         
             #Evaluate the values at the training point
-            eval_components_Xexp = eval_GP_x_space(eval_p, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = train_p, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study, Xspace_is_Xexp = True)
+            eval_components_Xexp = eval_GP_x_space(eval_p, Xexp, train_y, true_model_coefficients, model, likelihood, verbose, train_p = train_p, skip_param_types = skip_param_types, noise_std = noise_std, CS = Case_Study, Xspace_is_Xexp = True)
             GP_mean_Xexp, GP_stdev_Xexp, y_sim_Xexp = eval_components_Xexp
 
             #Make pandas df of values evaluated at training points and set indecies to start at 1 and save it as npy
-            Exp_Preds = np.array( [Xexp[:,x] for x in range(m)] + [y_sim_Xexp, GP_mean_Xexp, GP_stdev_Xexp] )
-            Exp_Preds_df = pd.DataFrame(data = Exp_Preds.T, columns= ['Xexp '+str(x+1) for x in range(m)] +["Y sim", "GP Mean", "GP Stdev"])
+            APE_Exp_Preds = 100*abs((y_sim_Xexp - GP_mean_Xexp)/y_sim_Xexp)
+            Exp_Preds = np.array( [Xexp[:,x] for x in range(m)] + [y_sim_Xexp, GP_mean_Xexp, GP_stdev_Xexp, APE_Exp_Preds] )
+            Exp_Preds_df = pd.DataFrame(data = Exp_Preds.T, columns= ['Xexp '+str(x+1) for x in range(m)] +["Y sim", "GP Mean", "GP Stdev", "APE"])
             Exp_Preds_df.index += 1
             Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j])
             save_csv(Exp_Preds_df, Exp_Preds_df_path, ext = "csv")
@@ -176,7 +177,7 @@ lenscl_noise_final, DateTime, Xexp, save_csvs, save_figure, Mul_title = Mul_titl
 #     print("eval_p_df_path", eval_p_df_path)
     return
 
-def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model, likelihood, verbose, set_lengthscale, train_p = None, skip_param_types = 0, noise_std = 0.1, CS = 1, Xspace_is_Xexp = False):
+def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model, likelihood, verbose, train_p = None, skip_param_types = 0, noise_std = 0.1, CS = 1, Xspace_is_Xexp = False):
     """
     Evaluates GP
     
@@ -192,7 +193,6 @@ def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model,
         verbose: True/False: Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved
         emulator: True/False: Determiens whether GP is an emulator of the function
         sparse_grd: True/False: Determines whether an assumption or sparse grid is used
-        set_lengthscale: float/None: Determines whether Hyperparameter values will be set
         train_p: tensor or ndarray, The training parameter space data
         obj: ob or LN_obj: Determines which objective function is used for the 2 input GP. Default = "obj"
         skip_param_types: The offset of which parameter types (A - y0) that are being guessed. Default 0
@@ -211,15 +211,7 @@ def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model,
     #Ensure train_y is a tensor
     if isinstance(train_y, np.ndarray)==True:
         train_y = torch.tensor(train_y) #1xn
-    
-    #Set hyperparameters
-    if set_lengthscale is not None:
-        if torch.is_tensor(set_lengthscale) is False:
-            lengthscale = torch.tensor([set_lengthscale])
-        model.covar_module.base_kernel.lengthscale =lengthscale
-        if verbose == True:
-            print("Lengthscale Set To: " + set_lengthscale)
-    
+      
     model.eval()
     #Puts likelihood in evaluation mode
     likelihood.eval()
@@ -458,7 +450,10 @@ def path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime = None
         path: str, The path to which the file is saved
     
     """
-    len_scl = "/len_scl_varies"
+    if set_lengthscale is not None:
+        len_scl = "/len_scl_" + "%0.4f" % set_lengthscale
+    else:
+        len_scl = "/len_scl_varies"
     trn_iter = "/train_iter_" + str(train_iter)
     org_TP_str = "/TP_"+ str(t)
     CS = "/CS_" + str(Case_Study) 

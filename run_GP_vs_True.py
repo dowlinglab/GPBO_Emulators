@@ -71,7 +71,8 @@ t_list = [200]
 d = len(true_p)
 train_iter = 1000 #Tried 1000 and 300
 noise_std = 0.1
-set_lengthscale = None
+set_lengthscale = np.linspace(0,1,41)
+# set_lengthscale = [None]
 emulator = True
 obj = "obj"
 verbose = False
@@ -117,10 +118,11 @@ for t in t_list:
     obj = "obj"
     all_data_doc = find_train_doc_path(emulator, obj, d, t_use, bound_cut = Bound_Cut)
     print("All Data Path: ", all_data_doc)
-    all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-#     Compare_GP_True(all_data, X_space, Xexp, Yexp, Constants, true_p, obj, CS, 
-#                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
-#                 save_figure, eval_Train = eval_Train)
-    Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
-                skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
-                save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut)
+    for len_scl in set_lengthscale:
+        all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
+    #     Compare_GP_True(all_data, X_space, Xexp, Yexp, Constants, true_p, obj, CS, 
+    #                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
+    #                 save_figure, eval_Train = eval_Train)
+        Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
+                    skip_param_types, len_scl, train_iter, noise_std, verbose, DateTime, 
+                    save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut)
