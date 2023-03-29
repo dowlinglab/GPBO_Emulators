@@ -71,8 +71,9 @@ t_list = [200]
 d = len(true_p)
 train_iter = 1000 #Tried 1000 and 300
 noise_std = 0.1
-set_lengthscale = np.linspace(1e-7,1,41)
-# set_lengthscale = [None]
+kernel_func = ["RBF", "Mat_32", "Mat_52"]
+# set_lengthscale = np.linspace(1e-7,1,41)
+set_lengthscale = [None]
 emulator = True
 obj = "obj"
 verbose = False
@@ -102,7 +103,7 @@ print("GP Emulating Function Output (T) or SSE (F)? ", emulator)
 print("Scaling of Objective Function? ", obj)
 print("Bounds On X Cut (T) or Normal (F)? ", Bound_Cut)
 print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
-print("GP RBF Kernel lengthscale: ", set_lengthscale)
+print("GP Kernel lengthscale: ", set_lengthscale)
 print("GP Training Iterations: ", train_iter)
 print("Training Data Noise st.dev: ", noise_std)
 print("Percentiles: ", percentiles)
@@ -118,11 +119,13 @@ for t in t_list:
     obj = "obj"
     all_data_doc = find_train_doc_path(emulator, obj, d, t_use, bound_cut = Bound_Cut)
     print("All Data Path: ", all_data_doc)
-    for len_scl in set_lengthscale:
-        all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-    #     Compare_GP_True(all_data, X_space, Xexp, Yexp, Constants, true_p, obj, CS, 
-    #                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
-    #                 save_figure, eval_Train = eval_Train)
-        Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
-                    skip_param_types, len_scl, train_iter, noise_std, verbose, DateTime, 
-                    save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut)
+    for kernel in kernel_func:
+        print("GP Kernel Function: ", kernel)
+        for len_scl in set_lengthscale:
+            all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
+        #     Compare_GP_True(all_data, X_space, Xexp, Yexp, Constants, true_p, obj, CS, 
+        #                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
+        #                 save_figure, eval_Train = eval_Train)
+            Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
+                        skip_param_types, kernel, len_scl, train_iter, noise_std, verbose, DateTime, 
+                        save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut)

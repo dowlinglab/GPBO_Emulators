@@ -466,7 +466,7 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
     on the training data. The output will be a :obj:`~gpytorch.distributions.MultivariateNormal`.
     """
 
-    def __init__(self, train_param, train_data, likelihood):
+    def __init__(self, train_param, train_data, likelihood, kernel = "RBF"):
         """
         Initializes the model
         
@@ -480,20 +480,26 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
         """
         #Asserts that likeliehood is Gaussian and will work with the exact gp model
         assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"  
-        
         #Converts training data and parameters to tensors if they are numpy arrays
         if isinstance(train_param, np.ndarray)==True:
             param_space = torch.tensor(train_param) #1xn
         if isinstance(train_data, np.ndarray)==True:
             train_data = torch.tensor(train_data) #1xn
- 
+         
+        num_dims = train_param.shape[1]
+        
         #Initializes the GP model with train_param, train_data, and the likelihood
         ##Calls the __init__ method of parent class
         super(ExactGPModel, self).__init__(train_param, train_data, likelihood)
         #Defines a constant prior mean on the GP. Used in the forward method
         self.mean_module = gpytorch.means.ConstantMean()
         #Defines prior covariance matrix of GP to a scaled RFB Kernel. Used in the forward method
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()) 
+        if kernel == "Mat_32":
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=1.5, ard_num_dims = num_dims ))
+        elif kernel == "Mat_52":
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=2.5, ard_num_dims = num_dims)) 
+        else:
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims = num_dims) )
 
     def forward(self, x):
         """
@@ -588,7 +594,7 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model) #Takes a Gaussian likelihood and a model, a bound Method
     #iterates a give number of times
     noise_list = np.zeros(training_iter)
-    lengthscale_list = np.zeros(training_iter)
+    lengthscale_list = np.zeros((training_iter, train_param.shape[1]))
     outputscale_list = np.zeros(training_iter)
     for i in range(training_iter): #0-299
         # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
@@ -602,14 +608,14 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         #These are accumulated into x.grad for every parameter x
         loss.backward()
         noise_list[i] = model.likelihood.noise.item()
-        lengthscale_list[i] =  model.covar_module.base_kernel.lengthscale.item()
+#         lengthscale_list[i] =  model.covar_module.base_kernel.lengthscale.item()
+        lengthscale_list[i] =  model.covar_module.base_kernel.lengthscale.detach().numpy()
         outputscale_list[i] = model.covar_module.outputscale.item()
         if verbose == True:
-            print('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f   output scale: %.3f '% (
-                i + 1, training_iter, loss.item(),
-                model.covar_module.base_kernel.lengthscale.item(),
-                 model.likelihood.noise.item(), model.covar_module.outputscale.item()
+            print('Iter %d/%d - Loss: %.3f noise: %.3f   output scale: %.3f '% (
+                i + 1, training_iter, loss.item(), model.likelihood.noise.item(), model.covar_module.outputscale.item()
             ))
+            print("Lengthscale: ", np.round(model.covar_module.base_kernel.lengthscale.detach().numpy(),4) )
         #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
         #x += -lr * x.grad
         optimizer.step()
@@ -618,9 +624,9 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
     model_lengthscale = model.covar_module.base_kernel.lengthscale
     if verbose == True:
         if set_lenscl is not None:
-            print("Lengthscale Set To: " + str(float(model_lengthscale)))
+            print("Lengthscale Set To: " + str(np.round(model_lengthscale.detach().numpy(),5)))
         else:
-            print("Lengthscale is optimized using MLE to " + str(round(float(model_lengthscale),5)) )  
+            print("Lengthscale is optimized using MLE to " + str(np.round(model_lengthscale.detach().numpy(),5)) )  
             
     return noise_list,lengthscale_list,outputscale_list       
 
