@@ -9,6 +9,7 @@ import gpytorch
 import scipy.optimize as optimize
 from scipy.stats import qmc
 import pandas as pd
+import random
 import os
 import Tasmanian
 import itertools
@@ -525,7 +526,7 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1xn_train^2 tensor
 
-def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False, set_lenscl = None):
+def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False, set_lenscl = None, initialize = False, rand_seed = False):
     """
     Trains the GP model and finds hyperparameters with the Adam optimizer with an lr =0.1
     
@@ -552,6 +553,8 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
     assert len(train_param) == len(train_data), "training data must be the same length as each other"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     
+    training_iter = iterations
+    
     #Converts training data and parameters to tensors if they are a numpy arrays
     if isinstance(train_param, np.ndarray)==True:
         train_param = torch.tensor(train_param) #1xn
@@ -563,10 +566,30 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         if torch.is_tensor(set_lenscl) is False:
             set_lenscl = torch.tensor([set_lenscl])
         model.covar_module.base_kernel.lengthscale = set_lenscl
-              
-    #Find optimal model hyperparameters
-    training_iter = iterations
-
+   
+    #Need to repeat initialization and training n number of times between 1 and 10, set "random" seed to n and calculate loss, using the noise, lengthscale, and outputscale of whichever initialization gives the best value of loss 
+    
+    #Initialize lengthscales to random values and print them if initialize is set to true. Noise and outputscale always init to 1 and 2
+    if initialize == True:
+        if rand_seed == False:
+            np.random.seed(1) #If we don't want a random seed, set it to seed 1
+        rand_float = np.random.random(size = train_param.shape[1]) #Generate array of random numbers between 0 and 1
+        max_lengthscale = 5 #Change if needed
+        init_lenscl = torch.tensor([rand_float]*max_lengthscale)
+        
+        #Set initial lengthscales values
+        hypers = {
+        'likelihood.noise_covar.noise': torch.tensor(1.),
+        'covar_module.base_kernel.lengthscale': init_lenscl,
+        'covar_module.outputscale': torch.tensor(2.), } #Comma a typo?
+        
+        #Initialize hyperparameters
+        model.initialize(**hypers)
+        print(
+            model.likelihood.noise_covar.noise.item(),
+            model.covar_module.base_kernel.lengthscale,
+            model.covar_module.outputscale.item() )
+    
     #Puts the model in training mode
     model.train()
 

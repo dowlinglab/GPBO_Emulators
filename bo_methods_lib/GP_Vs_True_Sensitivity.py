@@ -80,7 +80,7 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     
     # Train GP
 #     print(train_p.dtype, train_y.dtype)
-    train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose, set_lenscl = set_lengthscale)
+    train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose, set_lenscl = set_lengthscale, initialize = False, rand_seed = False)
     lenscl_noise_list, lenscl_list, outputscale_list = train_GP
     lenscl_final = lenscl_list[-1]
     lenscl_noise_final = lenscl_noise_list[-1]
