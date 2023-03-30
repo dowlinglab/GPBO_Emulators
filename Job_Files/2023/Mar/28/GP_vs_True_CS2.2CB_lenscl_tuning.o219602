@@ -1,0 +1,107 @@
+2023-03-28 12:45:00
+Date and Time:  28-Mar-2023 (12:45:00)
+Date and Time Saved:  2023/03/28/12-45
+Case Study:  2.2
+Number of Training Thetas:  200
+Number of Experimental Data Points:  25
+GP Emulating Function Output (T) or SSE (F)?  True
+Scaling of Objective Function?  obj
+Bounds On X Cut (T) or Normal (F)?  True
+Evaluating Near Test Point (T) or True Parameter Set (F)?  True
+GP RBF Kernel lengthscale:  [1.00000000e-07 2.50000975e-02 5.00000950e-02 7.50000925e-02
+ 1.00000090e-01 1.25000088e-01 1.50000085e-01 1.75000083e-01
+ 2.00000080e-01 2.25000078e-01 2.50000075e-01 2.75000073e-01
+ 3.00000070e-01 3.25000068e-01 3.50000065e-01 3.75000063e-01
+ 4.00000060e-01 4.25000058e-01 4.50000055e-01 4.75000053e-01
+ 5.00000050e-01 5.25000047e-01 5.50000045e-01 5.75000043e-01
+ 6.00000040e-01 6.25000037e-01 6.50000035e-01 6.75000033e-01
+ 7.00000030e-01 7.25000028e-01 7.50000025e-01 7.75000022e-01
+ 8.00000020e-01 8.25000018e-01 8.50000015e-01 8.75000013e-01
+ 9.00000010e-01 9.25000007e-01 9.50000005e-01 9.75000003e-01
+ 1.00000000e+00]
+GP Training Iterations:  1000
+Training Data Noise st.dev:  0.1
+Percentiles:  [0.]
+All Data Path:  Input_CSVs/Train_Data/d=8/all_emul_data/t=5000_cut_bounds.csv
+lengthscale: 0.000   noise: 13.969
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.025   noise: 13.969
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.050   noise: 13.969
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.075   noise: 13.969
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.100   noise: 13.969
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.125   noise: 13.969
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.150   noise: 13.969
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.175   noise: 13.969
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.200   noise: 13.969
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.225   noise: 13.970
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.250   noise: 13.970
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.275   noise: 13.970
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.300   noise: 13.970
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.325   noise: 13.971
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.350   noise: 13.971
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.375   noise: 13.971
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.400   noise: 13.971
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.425   noise: 13.971
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.450   noise: 13.971
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.475   noise: 13.971
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.500   noise: 13.971
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.525   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.550   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.575   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.600   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.625   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.650   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.675   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.700   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.725   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.750   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.775   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.800   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.825   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.850   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.875   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.900   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.925   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.950   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 0.975   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+lengthscale: 1.000   noise: 13.972
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])

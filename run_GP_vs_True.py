@@ -72,6 +72,7 @@ d = len(true_p)
 train_iter = 1000 #Tried 1000 and 300
 noise_std = 0.1
 kernel_func = ["RBF", "Mat_32", "Mat_52"]
+initialize = 10
 # set_lengthscale = np.linspace(1e-7,1,41)
 set_lengthscale = [None]
 emulator = True
@@ -105,6 +106,7 @@ print("Bounds On X Cut (T) or Normal (F)? ", Bound_Cut)
 print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
 print("GP Kernel lengthscale: ", set_lengthscale)
 print("GP Training Iterations: ", train_iter)
+print("GP Training Restarts: ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
 print("Percentiles: ", percentiles)
 
@@ -127,5 +129,5 @@ for t in t_list:
         #                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
         #                 save_figure, eval_Train = eval_Train)
             Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
-                        skip_param_types, kernel, len_scl, train_iter, noise_std, verbose, DateTime, 
+                        skip_param_types, kernel, len_scl, train_iter, initialize, noise_std, verbose, DateTime, 
                         save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut)

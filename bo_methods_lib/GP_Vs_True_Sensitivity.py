@@ -24,7 +24,7 @@ from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, percentiles, skip_param_types = 0, kernel_func = "RBF", set_lengthscale = None, train_iter = 300, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False):  
+def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, percentiles, skip_param_types = 0, kernel_func = "RBF", set_lengthscale = None, train_iter = 300, initialize = 1, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False):  
     """
     Run GP Validation using a leave one out scheme
     
@@ -80,14 +80,14 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     
     # Train GP
 #     print(train_p.dtype, train_y.dtype)
-    train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose, set_lenscl = set_lengthscale, initialize = False, rand_seed = False)
-    lenscl_noise_list, lenscl_list, outputscale_list = train_GP
-    lenscl_final = lenscl_list[-1]
-    lenscl_noise_final = lenscl_noise_list[-1]
-    outputscale_final = outputscale_list[-1]
-    print("lengthscale", np.round(model.covar_module.base_kernel.lengthscale.detach().numpy(),5))
-    print("Noise for lengthscale", np.round(model.likelihood.noise.item(),5))
-    print("Outputscale", np.round(model.covar_module.outputscale.item(),5))
+    train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose, set_lenscl = set_lengthscale, initialize = initialize, rand_seed = False)
+    best_hps = train_GP
+    lenscl_final = best_hps[0]
+    lenscl_noise_final = best_hps[1]
+    outputscale_final = best_hps[2]
+    print("Lengthscale", np.round(model.covar_module.base_kernel.lengthscale.detach().numpy(),4))
+    print("Noise for lengthscale", np.round(model.likelihood.noise.item(),4))
+    print("Outputscale", np.round(model.covar_module.outputscale.item(),4))
 #     print('lengthscale: %.3f   noise: %.3f'% (model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()) )
 #     print(type(model.covar_module.base_kernel.lengthscale.item()), type(model.likelihood.noise.item()))
 
@@ -349,7 +349,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_i
     ax = axes
     
 #     title_str = r'$\ell =' +  str(format(lenscl_final, '.3f')) + '$ & '+ r'$\sigma_{\ell} = ' + str(format(lenscl_noise_final, '.3f') + '$')
-    title_str = r'$\ell = $' + str(np.round(lenscl_final,5)) + ' & ' + r'$\sigma_{\ell} = $' + str(np.round(lenscl_noise_final,5))
+    title_str = r'$\ell = $' + str(np.round(lenscl_final,3)) + ' & ' + r'$\sigma_{\ell} = $' + str(np.round(lenscl_noise_final,5))
     if type(lenscl_final) != str:
         fig.suptitle(title_str, weight='bold', fontsize=18)
     
