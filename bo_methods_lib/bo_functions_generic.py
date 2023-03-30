@@ -569,7 +569,10 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
             set_lenscl = torch.tensor([set_lenscl])
         model.covar_module.base_kernel.lengthscale = set_lenscl
    
-    #Need to repeat initialization and training n number of times between 1 and 10, set "random" seed to n and calculate loss, using the noise, lengthscale, and outputscale of whichever initialization gives the best value of loss 
+    #Puts the model in training mode
+    model.train()
+    #Puts the likelihood in training mode
+    likelihood.train()
     
     #Create arrays to store best hyperparameter values over all initializations
     init_lenscl_list = np.zeros((initialize, train_param.shape[1]))
@@ -610,19 +613,14 @@ def train_GP_model(model, likelihood, train_param, train_data, iterations=500, v
         #If verbose print initialized lengthscale
         if verbose == True:
             print("Init. Lengthscale \n", np.round(model.covar_module.base_kernel.lengthscale.detach().numpy(),4) )
-
-        #Puts the model in training mode
-        model.train()
-        #Puts the likelihood in training mode
-        likelihood.train()
-        
+      
         # Set which parameters to optimized. Optimize all parameters if set_lenscl is none, and optimize all but lengthscale otherwise
         all_params = set(model.parameters()) #Make a set of all parameters in the model
         if set_lenscl is not None: #If we are setting the lengthscale...
             final_params = list(all_params - {model.covar_module.base_kernel.raw_lengthscale})  #Remove lengthscale from opt list    
         else: #Otherwise optimize everything
             final_params = all_params
-
+    
         # Use the adam optimizer
             #algorithm for first-order gradient-based optimization of stochastic objective functions
             # The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. 
