@@ -1,0 +1,49 @@
+2023-03-30 13:30:00
+Date and Time:  30-Mar-2023 (13:30:00)
+Date and Time Saved:  2023/03/30/13-30
+Case Study:  2.2
+Number of Training Thetas:  200
+Number of Experimental Data Points:  25
+GP Emulating Function Output (T) or SSE (F)?  True
+Scaling of Objective Function?  obj
+Bounds On X Cut (T) or Normal (F)?  True
+Evaluating Near Test Point (T) or True Parameter Set (F)?  True
+GP Kernel lengthscale:  [None]
+GP Training Iterations:  1000
+GP Training Restarts:  10
+Training Data Noise st.dev:  0.1
+Percentiles:  [0.]
+All Data Path:  Input_CSVs/Train_Data/d=8/all_emul_data/t=5000_cut_bounds.csv
+GP Kernel Function:  RBF
+Init. Noise 1.000 
+Init. Outputscale: 2.000
+Init. Lengthscale of Best Restart 
+ [10.9763 14.3038 12.0553 10.8977  8.4731 12.9179  8.7517 17.8355 19.2733
+  7.6688]
+Lengthscale [[1.56800e-01 3.72560e+00 3.37408e+01 1.98680e+00 2.91710e+00 2.34110e+01
+  2.13040e+01 2.07970e+00 9.34560e+00 6.50000e-03]]
+Noise for lengthscale 5.6576
+Outputscale 38.4044
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+GP Kernel Function:  Mat_32
+Init. Noise 1.000 
+Init. Outputscale: 2.000
+Init. Lengthscale of Best Restart 
+ [10.9763 14.3038 12.0553 10.8977  8.4731 12.9179  8.7517 17.8355 19.2733
+  7.6688]
+Lengthscale [[2.07100e-01 1.77025e+01 2.52952e+01 2.41650e+00 3.28720e+00 2.42151e+01
+  2.12283e+01 2.27410e+00 9.37280e+00 7.70000e-03]]
+Noise for lengthscale 5.7235
+Outputscale 31.0516
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+GP Kernel Function:  Mat_52
+Init. Noise 1.000 
+Init. Outputscale: 2.000
+Init. Lengthscale of Best Restart 
+ [8.34040e+00 1.44065e+01 2.30000e-03 6.04670e+00 2.93510e+00 1.84680e+00
+ 3.72520e+00 6.91120e+00 7.93530e+00 1.07763e+01]
+Lengthscale [[1.82200e-01 5.87890e+00 7.76530e+00 2.22700e+00 2.88630e+00 4.30392e+01
+  2.10510e+01 2.47710e+00 2.56000e-02 6.80000e-02]]
+Noise for lengthscale 5.4386
+Outputscale 39.641
+Base Theta Train for Movies: tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
