@@ -45,8 +45,6 @@ def round_time(dt=None, date_delta=timedelta(minutes=5), to='average'):
 
     return dt + timedelta(0, rounding - seconds, - dt.microsecond)
 
-print(round_time())
-
 def norm_unnorm(X, norm = True, scaler = None):
     """
     Normalizes and unnormalizes data
