@@ -17,6 +17,8 @@ from itertools import combinations_with_replacement
 from itertools import combinations
 from itertools import permutations
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, Matern
 
 from .CS2_bo_plotters import plot_org_train
 
@@ -524,6 +526,54 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1xn_train^2 tensor
 
+def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose=False, set_lenscl = None, initialize = 1, rand_seed = False):
+    """
+    Trains the GP model and finds hyperparameters with the scikit learn package
+    
+    Parameters
+    ----------
+        train_param: tensor or ndarray, The training parameter space data
+        train_data: tensor or ndarray, The training y data
+        iterations: float or int, number of training iterations to run. Default is 300
+        verbose: Set verbose to "True" to view the associated loss and hyperparameters for each training iteration. False by default
+        set_lenscl: float/None: Determines whether Hyperparameter values will be set. None by Default
+    
+    Returns
+    -------
+        lenscl_final: ndarray, List containing value of the lengthscale hyperparameter at the end of training
+    """
+    if rand_seed == True:
+        random_state = 1
+    else:
+        random_state = None
+        
+    if set_lenscl != None:
+        lengthscale_val = set_lenscl
+        optimizer = None
+    else:
+        lengthscale_val = np.ones(train_param.shape[1])
+        optimizer = "fmin_l_bfgs_b"
+        
+    if kern == "RBF":
+        kernel = RBF(length_scale=lengthscale_val, length_scale_bounds=(1e-2, 1e2)) # RBF
+    elif kern == "Mat_32":
+        kernel = Matern(length_scale=lengthscale_val, length_scale_bounds=(1e-05, 10000000.0), nu=1.5) #Matern 3/2
+    else:
+        kernel = Matern(length_scale=lengthscale_val, length_scale_bounds=(1e-05, 10000000.0), nu=2.5) #Matern 5/2
+
+        gaussian_process = GaussianProcessRegressor(kernel=kernel, alpha=noise_std**2, n_restarts_optimizer=initialize, 
+                                                    random_state = random_state, optimizer = optimizer)
+    #Train GP
+    gaussian_process.fit(train_param, train_data)
+
+    lenscl_final = kernel.theta
+    if verbose == True:
+        if set_lenscl is not None:
+            print("Lengthscale Set To: " + str(np.round(np.array(lenscl_final),4)), "\n")
+        else:
+            print("Lengthscale is optimized using MLE to " + str(np.round(np.array(lenscl_final),4)), "\n" )  
+    return lenscl_final, gaussian_process
+    
 def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False, set_lenscl = None, initialize = 1, rand_seed = False):
     """
     Trains the GP model and finds hyperparameters with the Adam optimizer with an lr =0.1
