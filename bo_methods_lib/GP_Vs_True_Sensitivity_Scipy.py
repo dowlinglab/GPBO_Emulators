@@ -151,13 +151,15 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
             GP_mean_Xexp, GP_stdev_Xexp, y_sim_Xexp = eval_components_Xexp
             
             #Make pandas df of values evaluated at training points and set indecies to start at 1 and save it as npy
-#             APE_Exp_Preds = 100*abs((y_sim_Xexp - GP_mean_Xexp)/y_sim_Xexp)
+            APE_Exp_Preds = 100*abs((y_sim_Xexp - GP_mean_Xexp)/y_sim_Xexp)
+            Exp_Preds = [Xexp[:,x] for x in range(m)] + [y_sim_Xexp, GP_mean_Xexp, GP_stdev_Xexp, APE_Exp_Preds]
 #             Exp_Preds = np.array( [Xexp[:,x] for x in range(m)] + [y_sim_Xexp, GP_mean_Xexp, GP_stdev_Xexp, APE_Exp_Preds] )
-#             Exp_Preds_df = pd.DataFrame(data = Exp_Preds.T, columns= ['Xexp '+str(x+1) for x in range(m)] +["Y sim", "GP Mean", "GP Stdev", "APE"])
-#             Exp_Preds_df.index += 1
-#             Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j], kernel = kernel_func,
-#                                                 package = package)
-#             save_csv(Exp_Preds_df, Exp_Preds_df_path, ext = "csv")
+#             print(Exp_Preds.shape)
+            Exp_Preds_df = pd.DataFrame(data = [Exp_Preds], columns= ['Xexp '+str(x+1) for x in range(m)] +["Y sim", "GP Mean", "GP Stdev", "APE"])
+            Exp_Preds_df.index += 1
+            Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j], kernel = kernel_func,
+                                                package = package)
+            save_csv(Exp_Preds_df, Exp_Preds_df_path, ext = "csv")
         
             #Plot true shape
             if Case_Study == 2.2:
