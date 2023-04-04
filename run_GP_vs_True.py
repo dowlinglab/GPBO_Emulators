@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 from scipy.stats import qmc
 
 # from bo_methods_lib.GP_Vs_True import Compare_GP_True
-from bo_methods_lib.GP_Vs_True_Sensitivity import Compare_GP_True_Movie
+# from bo_methods_lib.GP_Vs_True_Sensitivity import Compare_GP_True_Movie
+from bo_methods_lib.GP_Vs_True_Sensitivity_Scipy import Compare_GP_True_Movie
 # from bo_methods_lib.GP_Validation import LOO_Analysis
 from bo_methods_lib.bo_functions_generic import round_time, gen_theta_set,gen_x_set, find_train_doc_path, set_ep, clean_1D_arrays
 
@@ -71,7 +72,8 @@ t_list = [200]
 d = len(true_p)
 train_iter = 1000 #Tried 1000 and 300
 noise_std = 0.1
-kernel_func = ["RBF", "Mat_32", "Mat_52"]
+pckg_list = ["gpytorch", "scikit_learn"]
+kernel_func = ["Mat_52"]
 initialize = 10
 # set_lengthscale = np.linspace(1e-7,1,41)
 set_lengthscale = [None]
@@ -106,7 +108,7 @@ print("Bounds On X Cut (T) or Normal (F)? ", Bound_Cut)
 print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
 print("GP Kernel lengthscale: ", set_lengthscale)
 print("GP Training Iterations: ", train_iter)
-print("GP Training Restarts: ", initialize)
+# print("GP Training Restarts: ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
 print("Percentiles: ", percentiles)
 
@@ -116,18 +118,26 @@ p=20
 X_space = gen_x_set(LHS = False, n_points = p, dimensions = exp_d, bounds = bounds_x)
 # print(X_space[-5:,:])
 
-for t in t_list:
-    t_use = int(t*n)
-    obj = "obj"
-    all_data_doc = find_train_doc_path(emulator, obj, d, t_use, bound_cut = Bound_Cut)
-    print("All Data Path: ", all_data_doc)
-    for kernel in kernel_func:
-        print("GP Kernel Function: ", kernel)
-        for len_scl in set_lengthscale:
-            all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-        #     Compare_GP_True(all_data, X_space, Xexp, Yexp, Constants, true_p, obj, CS, 
-        #                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
-        #                 save_figure, eval_Train = eval_Train)
-            Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
-                        skip_param_types, kernel, len_scl, train_iter, initialize, noise_std, verbose, DateTime, 
-                        save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut)
+for package in pckg_list:
+    print("GP Training Package: ", package)
+    if package == "gpytorch":
+        initialize = 1
+    print("GP Training Restarts: ", initialize) 
+    for t in t_list:
+        t_use = int(t*n)
+        obj = "obj"
+        all_data_doc = find_train_doc_path(emulator, obj, d, t_use, bound_cut = Bound_Cut)
+        print("All Data Path: ", all_data_doc)
+        for kernel in kernel_func:
+            print("GP Kernel Function: ", kernel)
+            for len_scl in set_lengthscale:
+                all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
+            #     Compare_GP_True(all_data, X_space, Xexp, Yexp, Constants, true_p, obj, CS, 
+            #                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
+            #                 save_figure, eval_Train = eval_Train)
+#                 Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
+#                             skip_param_types, kernel, len_scl, train_iter, initialize, noise_std, verbose, DateTime, 
+#                             save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut)
+                Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
+                            skip_param_types, kernel, len_scl, train_iter, initialize, noise_std, verbose, DateTime, 
+                            save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut, package = package)

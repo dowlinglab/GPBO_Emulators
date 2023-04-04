@@ -105,13 +105,13 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 #     
     #Evaluate GP with true parameters OR a close training point over meshgrid X1 X2
     if eval_Train == False:
-        eval_p_base = true_p
+        eval_p_base = torch.tensor(true_p)
     else:
         eval_p_base = train_p[0,0:q] #For Either Cut Bound Problem
 #         eval_p = torch.tensor([-1.29, -1.63, -8.65,  0.92,  0.63,  1.11, 10.53,  1.91]) #For TP = 40
 #         eval_p = torch.tensor([1.05, -1.61, -7.16, -1.39, -0.47,  1.68, 14.31,  0.04]) #For TP = 100
 #         print(len(eval_p))
-    print("Base Theta Train for Movies:", eval_p_base)
+    print("Base Theta Train for Movies:", np.round(eval_p_base.numpy(),6) )
     X_space_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds, kernel = kernel_func, package = package)
 #     print("X space path", X_space_path)
     save_csv(X_space, X_space_path, ext = "npy")
@@ -123,6 +123,7 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
         #Note: Could modify this to be dependent on problem bounds
 #         print(percentiles)
         eval_p = eval_p_base.clone()
+            
         for j in range(len(percentiles)):
 #             lower_theta = bounds_p[0,i]
 #             upper_theta = bounds_p[1,i]
@@ -141,11 +142,9 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
                          
             elif package == "scikit_learn":
                 #Evaluate values at each X_space point
-                eval_components = eval_GP_scipy(eval_p, X_space, true_model_coefficients, gaussian_process, skip_param_types = skip_param_types, 
-                                                CS = Case_Study, Xspace_is_Xexp = False)
+                eval_components = eval_GP_scipy(eval_p, X_space, true_model_coefficients, gaussian_process, skip_param_types = skip_param_types, CS = Case_Study, Xspace_is_Xexp = False)
                 #Evaluate the values at the training point
-                eval_components_Xexp = eval_GP_scipy(eval_p, X_space, true_model_coefficients, gaussian_process, skip_param_types = skip_param_types, 
-                                                     CS = Case_Study, Xspace_is_Xexp = True)
+                eval_components_Xexp = eval_GP_scipy(eval_p, Xexp, true_model_coefficients, gaussian_process, skip_param_types = skip_param_types, CS = Case_Study, Xspace_is_Xexp = True)
                 
             GP_mean, GP_stdev, y_sim = eval_components
             GP_mean_Xexp, GP_stdev_Xexp, y_sim_Xexp = eval_components_Xexp
@@ -153,9 +152,8 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
             #Make pandas df of values evaluated at training points and set indecies to start at 1 and save it as npy
             APE_Exp_Preds = 100*abs((y_sim_Xexp - GP_mean_Xexp)/y_sim_Xexp)
             Exp_Preds = [Xexp[:,x] for x in range(m)] + [y_sim_Xexp, GP_mean_Xexp, GP_stdev_Xexp, APE_Exp_Preds]
-#             Exp_Preds = np.array( [Xexp[:,x] for x in range(m)] + [y_sim_Xexp, GP_mean_Xexp, GP_stdev_Xexp, APE_Exp_Preds] )
-#             print(Exp_Preds.shape)
-            Exp_Preds_df = pd.DataFrame(data = [Exp_Preds], columns= ['Xexp '+str(x+1) for x in range(m)] +["Y sim", "GP Mean", "GP Stdev", "APE"])
+            Exp_Preds = np.array( Exp_Preds )
+            Exp_Preds_df = pd.DataFrame(data = Exp_Preds.T, columns= ['Xexp '+str(x+1) for x in range(m)] +["Y sim", "GP Mean", "GP Stdev", "APE"])
             Exp_Preds_df.index += 1
             Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j], kernel = kernel_func,
                                                 package = package)
@@ -169,14 +167,14 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 
                 saddle = np.array([[-0.82,0.62],
                               [0.22,0.30]])
-
+                
+                theta_eval = np.round(eval_p.tolist(),4)
                 if eval_Train == False:
-                    title1 = "True Values"
+                    title1 = "True Values " + r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$'
 #                     print("True Theta" + eval_p.tolist())
                 else:
 #                     print("Test TP Rounded:", np.round(eval_p.tolist(),2))
         #             print(eval_p)
-                    theta_eval = np.round(eval_p.tolist(),4)
                     title1 = "Sim Val " + r'$' + param_dict[i] + "=" + str(theta_eval[i]) + '$' 
 #                     print(title1)
                 X_mesh = X_space.reshape(p,p,-1).T
