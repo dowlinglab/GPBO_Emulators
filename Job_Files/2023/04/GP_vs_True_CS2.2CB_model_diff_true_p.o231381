@@ -1,0 +1,32 @@
+Date and Time:  04-Apr-2023 (16:50:00)
+Date and Time Saved:  2023/04/04/16-50
+Case Study:  2.2
+Number of Training Thetas:  200
+Number of Experimental Data Points:  25
+GP Emulating Function Output (T) or SSE (F)?  True
+Scaling of Objective Function?  obj
+Bounds On X Cut (T) or Normal (F)?  True
+Evaluating Near Test Point (T) or True Parameter Set (F)?  False
+GP Kernel lengthscale:  [None]
+GP Training Iterations:  1000
+Training Data Noise st.dev:  0.1
+Percentiles:  [0.]
+GP Training Package:  gpytorch
+GP Training Restarts:  1
+All Data Path:  Input_CSVs/Train_Data/d=8/all_emul_data/t=5000_cut_bounds.csv
+GP Kernel Function:  Mat_52
+Init. Noise 0.693 
+Init. Outputscale: 0.693
+Init. Lengthscale of Best Restart 
+ [0.6931 0.6931 0.6931 0.6931 0.6931 0.6931 0.6931 0.6931 0.6931 0.6931]
+Lengthscale [[ 0.2376  8.1378 12.5621  3.0764  3.6806  9.9788 13.0176  2.8864  0.1867
+   0.1761]]
+Noise for lengthscale 7.2484
+Outputscale 12.3651
+Base Theta Train for Movies: [-1.  -1.  -6.5  0.7  0.   0.  11.   0.6]
+GP Training Package:  scikit_learn
+GP Training Restarts:  1
+All Data Path:  Input_CSVs/Train_Data/d=8/all_emul_data/t=5000_cut_bounds.csv
+GP Kernel Function:  Mat_52
+Lengthscale [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+Base Theta Train for Movies: [-1.  -1.  -6.5  0.7  0.   0.  11.   0.6]
