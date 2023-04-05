@@ -542,7 +542,7 @@ def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose
     -------
         lenscl_final: ndarray, List containing value of the lengthscale hyperparameter at the end of training
     """
-    if rand_seed == True:
+    if rand_seed == False:
         random_state = 1
     else:
         random_state = None
@@ -561,8 +561,8 @@ def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose
     else:
         kernel = Matern(length_scale=lengthscale_val, length_scale_bounds=(1e-05, 10000000.0), nu=2.5) #Matern 5/2
 
-        gaussian_process = GaussianProcessRegressor(kernel=kernel, alpha=noise_std**2, n_restarts_optimizer=initialize, 
-                                                    random_state = random_state, optimizer = optimizer)
+    gaussian_process = GaussianProcessRegressor(kernel=kernel, alpha=noise_std**2, n_restarts_optimizer=initialize, 
+                                                random_state = random_state, optimizer = optimizer)
     #Train GP
     gaussian_process.fit(train_param, train_data)
 
