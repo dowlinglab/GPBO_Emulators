@@ -6,9 +6,7 @@ import torch
 from datetime import datetime, timedelta
 from scipy.stats import qmc
 
-# from bo_methods_lib.GP_Vs_True import Compare_GP_True
-# from bo_methods_lib.GP_Vs_True_Sensitivity import Compare_GP_True_Movie
-from bo_methods_lib.GP_Vs_True_Sensitivity_Scipy import Compare_GP_True_Movie
+from bo_methods_lib.GP_Vs_True_Sensitivity import Compare_GP_True_Movie
 # from bo_methods_lib.GP_Validation import LOO_Analysis
 from bo_methods_lib.bo_functions_generic import round_time, gen_theta_set,gen_x_set, find_train_doc_path, set_ep, clean_1D_arrays
 
@@ -132,12 +130,6 @@ for package in pckg_list:
             print("GP Kernel Function: ", kernel)
             for len_scl in set_lengthscale:
                 all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-            #     Compare_GP_True(all_data, X_space, Xexp, Yexp, Constants, true_p, obj, CS, 
-            #                 skip_param_types, set_lengthscale, train_iter, noise_std, verbose, DateTime, 
-            #                 save_figure, eval_Train = eval_Train)
-#                 Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
-#                             skip_param_types, kernel, len_scl, train_iter, initialize, noise_std, verbose, DateTime, 
-#                             save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut)
                 Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, bounds_p, percentiles,
                             skip_param_types, kernel, len_scl, train_iter, initialize, noise_std, verbose, DateTime, 
                             save_csvs, save_figure, eval_Train = eval_Train, CutBounds = Bound_Cut, package = package)
