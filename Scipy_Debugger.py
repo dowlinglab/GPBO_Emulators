@@ -185,8 +185,8 @@ def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose
         random_state = None
     
     #Fix noise to 0 when optimizing lengthscale or you want the noise to be 0
-#     if set_lenscl == None:
-#         noise_level = 0
+    if set_lenscl == None:
+        noise_level = 0
     if noisy == False: 
         noise_level = 0
     else:
