@@ -19,6 +19,10 @@ mpl.rcParams['figure.dpi'] = 300
 import warnings
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
+from warnings import simplefilter
+from sklearn.exceptions import ConvergenceWarning
+simplefilter("ignore", category=ConvergenceWarning)
+
 #Set Date and Time
 dateTimeObj = round_time()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
@@ -88,7 +92,7 @@ train_iter = 300 #Maximum GP training iterations
 initialize = 5 #Number of times to restart GP training
 noise_std = 0.1 #Noise assocuated with data
 lenscl_w_noise = False #Whether or not the lengthscale parameter will also have noise
-lengthscales = [1e-3, 0.1, 1, 10, 100, 1e3, None] #lengthscale of the kernel (None means it will be optimized)
+lengthscales = [1e-2, 0.1, 1, 10, 100, 1e3, None] #lengthscale of the kernel (None means it will be optimized)
 # set_lenscl = None #lengthscale of the kernel (None means it will be optimized)
 verbose = True
 rand_seed = False #Whether or not a random seed it used for RNG events
@@ -170,8 +174,11 @@ def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose
         random_state = 1
     else:
         random_state = None
-        
-    if noisy == False:
+    
+    #Fix noise to 0 when optimizing lengthscale or you want the noise to be 0
+    if set_lenscl == None:
+        noise_level = 0
+    elif noisy == False: 
         noise_level = 0
     else:
         noise_level = 1
@@ -192,7 +199,7 @@ def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose
         optimizer = None
     else:
         lengthscale_val = np.ones(train_param.shape[1])
-#         kernel.k2.noise_level_bounds = "fixed"
+        kernel.k2.noise_level_bounds = "fixed"
         optimizer = "fmin_l_bfgs_b"
 
     kernel.k1.length_scale = lengthscale_val
