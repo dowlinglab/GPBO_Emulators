@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from scipy.stats import qmc
 from sklearn.model_selection import LeaveOneOut
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, Matern
+from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel
 
 from .bo_functions_generic import round_time, train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs, train_GP_scikit
 from .CS2_bo_plotters import save_csv, save_fig, plot_xy
@@ -26,10 +26,10 @@ from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, value_num, skip_param_types = 0, kernel_func = "RBF", set_lengthscale = None, train_iter = 300, initialize = 1, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False, package = "gpytorch"):  
+def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, value_num, skip_param_types = 0, kernel_func = "RBF", set_lengthscale = None, noisy_lenscl = False, train_iter = 300, initialize = 1, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False, package = "gpytorch"):  
     """
     Compare GP models to True/Simulation Values
-    
+  
     Parameters:
     -----------
         all_data: ndarray, contains all data for GP
@@ -88,17 +88,23 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
         model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func) 
         lenscl_final, lenscl_noise_final, outputscale_final = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose, set_lenscl = set_lengthscale, initialize = initialize, rand_seed = False)
-        print("Lengthscale", np.round(lenscl_final,4))
-        print("Noise for lengthscale", np.round(lenscl_noise_final,4))
-        print("Outputscale", np.round(outputscale_final,4))
+        
+        outputscale_final_print = '%.3e' % outputscale_final
+
+        print("Outputscale", outputscale_final_print)
 #     print('lengthscale: %.3f   noise: %.3f'% (model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()) )
 #     print(type(model.covar_module.base_kernel.lengthscale.item()), type(model.likelihood.noise.item()))
 
     elif package == "scikit_learn":
         likelihood = None
-        lenscl_final, model = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, initialize, rand_seed = False)
-        print("Lengthscale", np.round(np.array(lenscl_final),4))
-        lenscl_noise_final = 0 #Need to find a way to back out this parameter
+        lenscl_final, lenscl_noise_final, model = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, initialize, rand_seed = False, noisy = noisy_lenscl)
+    
+    #Print noise and lengthscale hps
+    lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
+    lenscl_noise_print = '%.3e' % lenscl_noise_final
+    
+    print("Noise for lengthscale", lenscl_noise_print)
+    print("Lengthscale", lenscl_print)
     
     #Evaluate at true value or close to a training point doing a sensitivity analysis
     if eval_Train == False:
@@ -322,11 +328,14 @@ def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, 
     #Make a new plot for each X Coordinate and parameter value tested
     #loop over Xexp values
     for k in range(y_sim_data.shape[0]):
+        lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
+        half = int(len(lenscl_print)/2)
         #Define a title for the whole plot based on lengthscale and lengthscale noise values
-        if lenscl_noise_final != "": 
-            title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(np.round(lenscl_final,3)) + ' & ' + r'$\sigma_{\ell} = $' + str(np.round(lenscl_noise_final,5))
+        if lenscl_noise_final != "":  
+            lenscl_noise_print = '%.3e' % lenscl_noise_final
+            title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(lenscl_print[:half]) + '\n' + str(lenscl_print[half:]) + ' & ' + r'$\sigma_{\ell} = $' + lenscl_noise_print
         else:
-            title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(np.round(lenscl_final,3))
+            title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(lenscl_print[:half]) + '\n' + str(lenscl_print[half:])
             
         #Loop over parameter values
         for i in range(y_sim_data.shape[1]):
@@ -343,11 +352,9 @@ def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, 
             #Set plot details        
         #     plt.legend(loc = "best")
             plt.title(title_str)
-            plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0, loc = "upper left")
-            plt.tight_layout()
             plt.xlabel(r'$' + param_dict[i] +'$', fontsize=16, fontweight='bold')
             plt.ylabel("Muller Potential", fontsize=16, fontweight='bold')
-
+            plt.legend(loc="upper left", bbox_to_anchor=(1.05, 1), borderaxespad=0)
             plt.xticks(fontsize=16)
             plt.yticks(fontsize=16)
             plt.tick_params(direction="in",top=True, right=True)
@@ -355,6 +362,7 @@ def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, 
             plt.locator_params(axis='x', nbins=5)
             plt.minorticks_on() # turn on minor ticks
             plt.tick_params(which="minor",direction="in",top=True, right=True)
+            plt.tight_layout()
 #             plt.grid(True)
 
             #Save CSVs and Figures
@@ -454,7 +462,7 @@ def path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime = None
     kernel_type = "/" + str(kernel)
     
     if param != "":
-        param = "/" + str(param)
+        param = "-" + str(param)
             
     plot = val_title        
       
@@ -470,7 +478,7 @@ def path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime = None
     else:
         path_org = path_org + "/CSV_Data"
         
-    path_end = CS + trn_iter + org_TP_str + pckg + kernel_type + len_scl + X_value + plot + param  
+    path_end = CS + trn_iter + org_TP_str + pckg + kernel_type + len_scl + plot + X_value + param  
 
     if CutBounds == True:
         cut_bounds = "_CB"

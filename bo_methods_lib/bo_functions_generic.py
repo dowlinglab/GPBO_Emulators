@@ -18,7 +18,7 @@ from itertools import combinations
 from itertools import permutations
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, Matern
+from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel
 
 from .CS2_bo_plotters import plot_org_train
 
@@ -526,7 +526,8 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) #Multivariate dist based on 1xn_train^2 tensor
 
-def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose=False, set_lenscl = None, initialize = 1, rand_seed = False):
+def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose=False, 
+                    set_lenscl = None, initialize = 1, rand_seed = False, noisy = False):
     """
     Trains the GP model and finds hyperparameters with the scikit learn package
     
@@ -547,32 +548,57 @@ def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose
     else:
         random_state = None
         
+    #Fix noise to 0 when optimizing lengthscale or you want the noise to be 0
+    if set_lenscl == None:
+        noise_level = 0
+    elif noisy == False: 
+        noise_level = 0
+    else:
+        noise_level = 1    
+
+    noise_kern = WhiteKernel(noise_level=noise_level, noise_level_bounds=(1e-05, 10)) #bounds = "fixed"
+    
+    if kern == "RBF":
+        kernel = RBF(length_scale_bounds=(1e-2, 1e2)) + noise_kern # RBF
+    elif kern == "Mat_32":
+        kernel = Matern(length_scale_bounds=(1e-05, 10000000.0), nu=1.5) + noise_kern #Matern 3/2
+    else:
+        kernel = Matern(length_scale_bounds=(1e-05, 10000000.0), nu=2.5) + noise_kern#Matern 5/2
+
     if set_lenscl != None:
-        lengthscale_val = set_lenscl
+        lengthscale_val = np.ones(train_param.shape[1])*set_lenscl
+        kernel.k1.length_scale_bounds = "fixed"
+        kernel.k2.noise_level_bounds = "fixed" #Always fix kernel noise to 1 or 0
         optimizer = None
     else:
         lengthscale_val = np.ones(train_param.shape[1])
+        kernel.k2.noise_level_bounds = "fixed" #Always fix kernel noise to 1 or 0
         optimizer = "fmin_l_bfgs_b"
-        
-    if kern == "RBF":
-        kernel = RBF(length_scale=lengthscale_val, length_scale_bounds=(1e-2, 1e2)) # RBF
-    elif kern == "Mat_32":
-        kernel = Matern(length_scale=lengthscale_val, length_scale_bounds=(1e-05, 10000000.0), nu=1.5) #Matern 3/2
-    else:
-        kernel = Matern(length_scale=lengthscale_val, length_scale_bounds=(1e-05, 10000000.0), nu=2.5) #Matern 5/2
 
+    kernel.k1.length_scale = lengthscale_val
     gaussian_process = GaussianProcessRegressor(kernel=kernel, alpha=noise_std**2, n_restarts_optimizer=initialize, 
                                                 random_state = random_state, optimizer = optimizer)
     #Train GP
     gaussian_process.fit(train_param, train_data)
-
-    lenscl_final = kernel.theta
+    
+    #Pull out kernel parameters after GP training
+    opt_kern_params = gaussian_process.kernel_
+    lenscl_final = opt_kern_params.k1.length_scale
+    lenscl_noise_final = opt_kern_params.k2.noise_level
+    
+    #Print them nicely
+    lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
+    lenscl_noise_print = '%.3e' % lenscl_noise_final
+    
     if verbose == True:
         if set_lenscl is not None:
-            print("Lengthscale Set To: " + str(np.round(np.array(lenscl_final),4)), "\n")
+            print("Lengthscale Set To: ", lenscl_print)
+            print("Noise Set To: ", lenscl_noise_print, "\n")
         else:
-            print("Lengthscale is optimized using MLE to " + str(np.round(np.array(lenscl_final),4)), "\n" )  
-    return lenscl_final, gaussian_process
+            print("Lengthscale is optimized using MLE to ", lenscl_print) 
+            print("Noise is optimized using MLE to ", lenscl_noise_print, "\n")
+            
+    return lenscl_final, lenscl_noise_final, gaussian_process
     
 def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False, set_lenscl = None, initialize = 1, rand_seed = False):
     """

@@ -16,6 +16,10 @@ mpl.rcParams['figure.dpi'] = 300
 import warnings
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
+# from warnings import simplefilter
+# from sklearn.exceptions import ConvergenceWarning
+# simplefilter("ignore", category=ConvergenceWarning)
+
 #Set Date and Time
 dateTimeObj = round_time()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
