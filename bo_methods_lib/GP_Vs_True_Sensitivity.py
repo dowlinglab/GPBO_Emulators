@@ -536,8 +536,8 @@ def path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime = None
 #         path_org = "../"+DateTime #Will send to the Datetime folder outside of CS1
         path_org = DateTime #Will send to the Datetime folder outside of CS1
     else:
-        path_org = "Test_Figs2"
-#         path_org = "Test_Figs"
+#         path_org = "Test_Figs2"
+        path_org = "Test_Figs"
         
 #         path_org = "Test_Figs"+"/Sep_Analysis2"+"/Figures"
     if is_figure == True:
