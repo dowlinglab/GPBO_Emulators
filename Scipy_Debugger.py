@@ -93,6 +93,7 @@ initialize = 5 #Number of times to restart GP training
 noise_std = 0.1 #Noise assocuated with data
 lenscl_w_noise = True #Whether or not the lengthscale parameter will also have noise
 lengthscales = [1e-2, 0.1, 1, 10, 100, 1e3, None] #lengthscale of the kernel (None means it will be optimized)
+# lengthscales = [None] #lengthscale of the kernel (None means it will be optimized)
 # set_lenscl = None #lengthscale of the kernel (None means it will be optimized)
 verbose = True
 rand_seed = False #Whether or not a random seed it used for RNG events
@@ -184,9 +185,9 @@ def train_GP_scikit(train_param, train_data, noise_std, kern = "Mat_52", verbose
         random_state = None
     
     #Fix noise to 0 when optimizing lengthscale or you want the noise to be 0
-    if set_lenscl == None:
-        noise_level = 0
-    elif noisy == False: 
+#     if set_lenscl == None:
+#         noise_level = 0
+    if noisy == False: 
         noise_level = 0
     else:
         noise_level = 1
