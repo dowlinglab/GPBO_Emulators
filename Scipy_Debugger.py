@@ -11,7 +11,7 @@ from bo_methods_lib.GP_Vs_True_Param_Sens import mul_plot_param
 from bo_methods_lib.CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, Matern
+from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel
 
 import matplotlib as mpl
 mpl.rcParams['figure.dpi'] = 300
@@ -91,7 +91,7 @@ kernel_func = "Mat_52" #Kernel function to use
 train_iter = 300 #Maximum GP training iterations
 initialize = 5 #Number of times to restart GP training
 noise_std = 0.1 #Noise assocuated with data
-lenscl_w_noise = False #Whether or not the lengthscale parameter will also have noise
+lenscl_w_noise = True #Whether or not the lengthscale parameter will also have noise
 lengthscales = [1e-2, 0.1, 1, 10, 100, 1e3, None] #lengthscale of the kernel (None means it will be optimized)
 # set_lenscl = None #lengthscale of the kernel (None means it will be optimized)
 verbose = True
@@ -118,6 +118,14 @@ Xexp = exp_data[:,1:exp_d+1]
 Yexp = exp_data[:,-1]
 Xexp = clean_1D_arrays(Xexp)
 m = Xexp.shape[1]
+
+#Set meshgrid values and define a meshgrid over X_space
+p = 20
+X1 =  np.linspace(bounds_x[0,0],bounds_x[1,0],p) 
+X2 =  np.linspace(bounds_x[0,1],bounds_x[1,1],p) 
+X_mesh = np.array(np.meshgrid(X1, X2)) 
+#Generate the same points as X_mesh in a 2D array
+X_space = gen_x_set(LHS = False, n_points = p, dimensions = exp_d, bounds = bounds_x)
 
 #Pull training data from CSV
 t_use = int(t*n)
