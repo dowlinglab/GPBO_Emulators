@@ -1,0 +1,22 @@
+Date and Time:  06-Apr-2023 (19:40:00)
+Date and Time Saved:  2023/04/06/19-40
+Case Study:  2.2
+Number of Training Thetas:  200
+Number of Experimental Data Points:  25
+GP Emulating Function Output (T) or SSE (F)?  True
+Scaling of Objective Function?  obj
+Bounds On X Cut (T) or Normal (F)?  True
+Evaluating Near Test Point (T) or True Parameter Set (F)?  True
+GP Modeling Package:  scikit_learn
+GP Kernel lengthscale(s):  [None]
+GP Kernel noise (1 if True, 0 if False):  True
+GP Training Iterations:  300
+GP Training Restarts:  5
+Training Data Noise st.dev:  0.1
+Evaluation Parameter Set tensor([-0.9174, -0.6857, -1.1302,  1.9244, -1.3743, -0.3783, 14.3070,  1.7016])
+Xexp Point numbers (starting from 1, not 0):  [ 2  7 13 18 21] 
+
+GP Kernel lengthscale(s):  None
+Lengthscale is optimized using MLE to  ['2.734e-01', '8.498e+03', '2.940e+04', '3.450e+00', '4.174e+00', '1.382e+04', '2.935e+04', '3.356e+00', '2.043e-01', '1.809e-01']
+Noise is optimized using MLE to  1.000e+00 
+
