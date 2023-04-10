@@ -108,13 +108,16 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
     
     #Evaluate at true value or close to a training point doing a sensitivity analysis
     if eval_Train == False:
-        eval_p_base = torch.tensor(true_p)
+        eval_theta_num = 0
+        eval_p_base = torch.tensor(true_p)   
     else:
-        eval_p_base = train_p[0,0:q]
+        eval_theta_num = 0
+        eval_p_base = train_p[eval_theta_num,0:q]
     print("Base Theta Train for Movies:", np.round(eval_p_base.numpy(),6) )
     
     #Define X_space
     x_space_points = [1,6,12,17,20]
+    train_xspace_set = np.array([data_train[m + eval_theta_num*n,1:] for m in x_space_points])
     X_space= np.array([Xexp[m] for m in x_space_points])
     
     #Create list to save evaluated arrays in and arrays to store GP mean/stdev and true predictions in
@@ -145,6 +148,8 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
             new_eval_p = values[j]
             #Change the value to the exact point except for 1 variable that is rounded to 2 sig figs after modification by a percent
             eval_p[i] = torch.tensor(float('%.2g' % float(new_eval_p)))
+            #Or just do the exact value
+#             eval_p[i] = torch.tensor(float(new_eval_p))
             #Append evaluated value to this list only on 1st iteration of k
             eval_p_df.append(list(eval_p.numpy()))
             #Loop over Xspace Values: #Note. X_space defined as Xexp points we want to test
@@ -159,12 +164,13 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
     #Plot GP vs y_sim predictions for each Xexp Value and save data
     all_data_to_plot = [y_sim_all, GP_mean_all, GP_stdev_all] 
 #     print(y_sim_all.shape)
-    mul_plot_param(all_data_to_plot, set_lengthscale, train_iter, t, Case_Study, CutBounds, X_space, x_space_points, param_dict, values_list, val_num_map, lenscl_final, "", kernel_func, DateTime, Xexp, save_csvs, save_figure, package)
+    mul_plot_param(all_data_to_plot, set_lengthscale, train_iter, t, Case_Study, CutBounds, X_space, x_space_points, param_dict, values_list, val_num_map, lenscl_final, train_xspace_set,  "", kernel_func, DateTime, Xexp, save_csvs, save_figure, package)
     
     #Save all evaluated parameter values to a csv
     eval_p_df = pd.DataFrame(eval_p_df, columns = list(param_dict.values()))
     eval_p_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/eval_p_df", CutBounds = CutBounds, kernel = kernel_func, package = package)
-    save_csv(eval_p_df, eval_p_df_path, ext = "npy")
+    if save_csvs == True:
+        save_csv(eval_p_df, eval_p_df_path, ext = "npy")
     
     return
 
@@ -289,7 +295,7 @@ def eval_GP_emulator(theta_set, X_space, true_model_coefficients, model, likelih
     
     return GP_mean, GP_stdev, y_sim 
 
-def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, X_space, x_space_points, param_dict, values_list, val_num_map, lenscl_final, lenscl_noise_final = "", kernel = "RBF", DateTime = None, X_train = None, save_csvs = False, save_figure = False, package = ""):
+def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, X_space, x_space_points, param_dict, values_list, val_num_map, lenscl_final, train_xspace_set, lenscl_noise_final = "", kernel = "RBF", DateTime = None, X_train = None, save_csvs = False, save_figure = False, package = "", plot_one_param = None):
     '''
     Plots comparison of y_sim, GP_mean, and GP_stdev
     Parameters
@@ -304,6 +310,7 @@ def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, 
         Case_Study: int, float, the number of the case study to be evaluated. Default is 1, other option is 2.2
         CutBounds: bool, Used for naming. Set True if bounds are cut from original values. Default False
         lenscl_final: "" or ndarray, The final lengthscale used by the GP
+        train_xspace_set: ndarray, The base parameter set, state point, and y values, at which the GP was evaluated
         lenscl_noise_final: "" or ndarray, The noise of the final lengthscale used by the GP
         kernel: str, defines which kernel function was used. Default RBF
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
@@ -314,8 +321,7 @@ def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, 
         param: str, part of the path to save the CSV data for each piece of this figure. Which parameter is being plotted/saved
         percentile: str, part of the path to save the CSV data for each piece of this figure. Which percentile is being plotted/saved
         package: str, Determines whether gpytorch or scikit learn will be used to build the GP model. Default "gpytorch"
-        tot_lev: ndarray or list, the values at which to set levels for the heat maps
-        sparse_grid: True/False, True/False: Determines whether a sparse grid or approximation is used for the GP emulator
+        plot_one_param: None or int, if you only want to plot one parameter, define the integer associated w/ that parameter
      
     Returns
     -------
@@ -337,12 +343,22 @@ def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, 
         else:
             title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(lenscl_print[:half]) + '\n' + str(lenscl_print[half:])
             
+        #None if looping over all parameters, use y_sim_data.shape[1], only loop over 1 specific value otherwise
+        if plot_one_param != None:
+            range_val = 1   
+        else:
+            range_val = y_sim_data.shape[1]
+            
         #Loop over parameter values
-        for i in range(y_sim_data.shape[1]):
+        for i in range(range_val):
+            #Set i as the integer value corresponding to the parameter you want to plot if applicable
+            if plot_one_param != None:
+                i = plot_one_param   
             #Create figure
-            plt.figure(figsize = (6.4,4))
-
+            fig = plt.figure(figsize = (6.4,4))
+            #Add plot values
             plt.plot(values_list[i], GP_mean_data[k,i], label = "GP mean")
+            plt.scatter(train_xspace_set[k,i], train_xspace_set[k,-1], label = "Training", color = "red", marker = "*")
             plt.plot(values_list[i], y_sim_data[k,i], label = "Y Sim")
             plt.fill_between(values_list[i],
                             GP_mean_data[k,i] - 1.96 * GP_stdev_data[k,i],
@@ -362,6 +378,8 @@ def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, 
             plt.locator_params(axis='x', nbins=5)
             plt.minorticks_on() # turn on minor ticks
             plt.tick_params(which="minor",direction="in",top=True, right=True)
+            parm_val_txt = ("Param Values: " + str(train_xspace_set[k,0:len(param_dict)].round(decimals=3)))
+            plt.text(0.5, -0.01, parm_val_txt, ha='center', wrap=True, transform = fig.transFigure)
             plt.tight_layout()
 #             plt.grid(True)
 

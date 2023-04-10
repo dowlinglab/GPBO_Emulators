@@ -85,14 +85,14 @@ package = "scikit_learn" #Package training the GP model
 t = 200 #Number of parameter training sets
 # percentiles = np.linspace(-1.0,1.0,41)
 percentiles = np.linspace(0,0,1) #Percent by which to deviate from a given parameter set
-value_num = 100 #Number of parameter values for each parameter to evaluate within the bounds
+value_num = 101 #Number of parameter values for each parameter to evaluate within the bounds
 d = len(true_p) #Dimensionality of parameter space
 kernel_func = "Mat_52" #Kernel function to use
 train_iter = 300 #Maximum GP training iterations
 initialize = 5 #Number of times to restart GP training
 noise_std = 0.1 #Noise assocuated with data
-lenscl_w_noise = True #Whether or not the lengthscale parameter will also have noise
-lengthscales = [1e-2, 0.1, 1, 10, 100, 1e3, None] #lengthscale of the kernel (None means it will be optimized)
+lenscl_w_noise = False #Whether or not the lengthscale parameter will also have noise
+lengthscales = [0.1, 1, 10] #lengthscale of the kernel (None means it will be optimized)
 # lengthscales = [None] #lengthscale of the kernel (None means it will be optimized)
 # set_lenscl = None #lengthscale of the kernel (None means it will be optimized)
 verbose = True
@@ -136,14 +136,16 @@ X_train = torch.tensor(all_data[:,1:-m+1]).float() #8 or 10 (emulator) parameter
 Y_train = train_y = torch.tensor(all_data[:,-1]).float()
 
 #Set parameter set to evaluate at
+eval_theta_num = 0
 if eval_Train == False:
     eval_p_base = true_p #True parameter set
 else:
-    eval_p_base = X_train[0,:-exp_d] #Parameter set corresponding to first training point
+    eval_p_base = X_train[eval_theta_num,:-exp_d] #Parameter set corresponding to first training point
 
 #Define X_space points to test for predictions
 x_set_points = [1,6,12,17,20] #These correspond to the Xexp point
-X_set= np.array([Xexp[m] for m in x_set_points])
+X_set= np.array([Xexp[m] for m in x_set_points]) #Array od X_Space Points
+train_xspace_set = np.array([all_data[m + eval_theta_num*n,1:] for m in x_set_points]) #Define array of X_set training data
 Xspace_is_Xexp = False
 
 print("Case Study: ", CS)
@@ -344,8 +346,10 @@ def Compare_GP_True_Param_Sens(eval_p_base, X_set, value_num, bounds_p, Constant
         for j in range(len(values)):   
             # Evaluate at the original point for each parameter and swap a parameter value for a value within the bounds
             new_eval_p = values[j]
-            #Change the value to the exact point except for 1 variable that is rounded to 2 sig figs after modification by a percent
-            eval_p[i] = torch.tensor(float('%.2g' % float(new_eval_p)))
+#             #Change the value to the exact point except for 1 variable that is rounded to 2 sig figs after modification by a percent
+#             eval_p[i] = torch.tensor(float('%.2g' % float(new_eval_p)))
+            #Change to true value
+            eval_p[i] = torch.tensor(float(new_eval_p))
             #Append evaluated value to this list only on 1st iteration of k
             eval_p_df.append(list(eval_p.numpy()))
             #Loop over Xspace Values: #Note. X_space defined as Xexp points we want to test
@@ -396,5 +400,5 @@ for lenscl in lengthscales:
                    lenscl_final, lenscl_noise_final, kernel_func, DateTime, Xexp, save_csvs, save_figure, Mul_title, package = package)
 
     mul_plot_param(all_data_to_plot, lenscl, train_iter, t, CS, Bound_Cut, X_set, x_set_points, 
-                   param_dict, values_list, val_num_map, lenscl_final, lenscl_noise_final, kernel_func, DateTime, Xexp, save_csvs, 
-                   save_figure, package)
+                   param_dict, values_list, val_num_map, lenscl_final, train_xspace_set, lenscl_noise_final, kernel_func, DateTime, Xexp,
+                   save_csvs, save_figure, package)

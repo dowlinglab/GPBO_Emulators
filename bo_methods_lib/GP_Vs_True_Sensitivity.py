@@ -121,7 +121,8 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     
     #Save the values of the meshgrid for this run to a CSV
     X_space_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds, kernel = kernel_func, package = package)
-    save_csv(X_space, X_space_path, ext = "npy")
+    if save_csvs == True:
+        save_csv(X_space, X_space_path, ext = "npy")
     
     #Evaluate at true value or close to a training point doing a sensitivity analysis
     #Loop over number of parameters
@@ -162,7 +163,8 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
             Exp_Preds_df.index += 1
             #Save to csv
             Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j], kernel = kernel_func, package = package)
-            save_csv(Exp_Preds_df, Exp_Preds_df_path, ext = "csv")
+            if save_csvs == True:
+                save_csv(Exp_Preds_df, Exp_Preds_df_path, ext = "csv")
         
             #Plot Values
             if Case_Study == 2.2:
@@ -201,7 +203,8 @@ lenscl_noise_final, kernel_func, DateTime, Xexp, save_csvs, save_figure, Mul_tit
     #Save all evaluated parameter values to a csv
     eval_p_df = pd.DataFrame(eval_p_df, columns = list(param_dict.values()))
     eval_p_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/eval_p_df", CutBounds = CutBounds, kernel = kernel_func, package = package)
-    save_csv(eval_p_df, eval_p_df_path, ext = "npy")
+    if save_csvs == True:
+        save_csv(eval_p_df, eval_p_df_path, ext = "npy")
     return
 
 def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model, likelihood, verbose, skip_param_types = 0, noise_std = 0.1, CS = 1, Xspace_is_Xexp = False):
