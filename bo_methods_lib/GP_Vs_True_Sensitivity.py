@@ -26,7 +26,7 @@ from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, percentiles, skip_param_types = 0, kernel_func = "RBF", set_lengthscale = None, noisy_lenscl = False, train_iter = 300, initialize = 1, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False, package = "gpytorch"):  
+def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, percentiles, skip_param_types = 0, kernel_func = "RBF", set_lengthscale = None, outputscl = False, train_iter = 300, initialize = 1, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False, package = "gpytorch"):  
     """
     Compare GP models to True/Simulation Values
     
@@ -86,9 +86,10 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     #Define model and likelihood
     if package == "gpytorch":
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func) 
-        lenscl_final, lenscl_noise_final, outputscale_final = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose, set_lenscl = set_lengthscale, initialize = initialize, rand_seed = False)
-        
+        model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func, outputscl = outputscl) 
+        hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl,
+                                          initialize, train_iter, rand_seed)
+        lenscl_final, lenscl_noise_final, outputscale_final = hyperparameters
         outputscale_final_print = '%.3e' % outputscale_final
 
         print("Outputscale", outputscale_final_print)
@@ -97,8 +98,9 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 
     elif package == "scikit_learn":
         likelihood = None
-        lenscl_final, lenscl_noise_final, model = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, initialize, rand_seed = False, noisy = noisy_lenscl)
-    
+        model_params  = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, initialize, rand_seed = False)
+        lenscl_final, lenscl_noise_final, model = model_params
+        
     #Print noise and lengthscale hps
     lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
     lenscl_noise_print = '%.3e' % lenscl_noise_final
@@ -120,7 +122,7 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     print("Base Theta Train for Movies:", np.round(eval_p_base.numpy(),6) )
     
     #Save the values of the meshgrid for this run to a CSV
-    X_space_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds, kernel = kernel_func, package = package)
+    X_space_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds, kernel = kernel_func, package = package, outputscl = outputscl)
     if save_csvs == True:
         save_csv(X_space, X_space_path, ext = "npy")
     
@@ -162,7 +164,7 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
             #Fix index to have correctly labeled Xexp point
             Exp_Preds_df.index += 1
             #Save to csv
-            Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j], kernel = kernel_func, package = package)
+            Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j], kernel = kernel_func, package = package, outputscl = outputscl)
             if save_csvs == True:
                 save_csv(Exp_Preds_df, Exp_Preds_df_path, ext = "csv")
         
@@ -195,14 +197,14 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
                 
                 #Make heat maps
                 Muller_plotter(X_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, lenscl_final,
-lenscl_noise_final, kernel_func, DateTime, Xexp, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j], package = package)
+lenscl_noise_final, kernel_func, DateTime, Xexp, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j], package = package, outputscl = outputscl)
 
             elif Case_Study == 1:
                 plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison")
                 
     #Save all evaluated parameter values to a csv
     eval_p_df = pd.DataFrame(eval_p_df, columns = list(param_dict.values()))
-    eval_p_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/eval_p_df", CutBounds = CutBounds, kernel = kernel_func, package = package)
+    eval_p_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/eval_p_df", CutBounds = CutBounds, kernel = kernel_func, package = package, outputscl = outputscl)
     if save_csvs == True:
         save_csv(eval_p_df, eval_p_df_path, ext = "npy")
     return
@@ -335,7 +337,7 @@ def eval_GP_emulator_x_space(theta_set, X_space, true_model_coefficients, model,
     
     return GP_mean, GP_stdev, y_sim 
 
-def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, lenscl_final = "", lenscl_noise_final = "", kernel = "RBF", DateTime = None, X_train = None, save_csvs = False, save_figure = False, Mul_title = "", param = "", percentile = "", package = "", tot_lev = [40,40,75]):
+def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, lenscl_final = "", lenscl_noise_final = "", kernel = "RBF", DateTime = None, X_train = None, save_csvs = False, save_figure = False, Mul_title = "", param = "", percentile = "", package = "", outputscl = "", tot_lev = [40,40,75]):
     '''
     Plots comparison of y_sim, GP_mean, and GP_stdev
     Parameters
@@ -450,13 +452,13 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_i
         #For each values being plotted
         for i in range(len(z)):
             #Create a path
-            z_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = Mul_title[i], param = param, percentile = percentile, kernel = kernel, package = package)
+            z_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = Mul_title[i], param = param, percentile = percentile, kernel = kernel, package = package, outputscl = outputscl)
             #Save path to list
             z_paths.append(z_path)  
          #Create paths for minima, saddle, and x training points   
-        min_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[0], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "",  package = "")
-        sad_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[1], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "",  package = "")
-        x_trn_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[2], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "",  package = "")
+        min_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[0], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "",  package = "", outputscl = "")
+        sad_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[1], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "",  package = "", outputscl = "")
+        x_trn_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[2], CutBounds = CutBounds, Mul_title = "", param = "", percentile = "",  package = "", outputscl = "")
         # Create a list of items to save and corresponding path names
         csv_item_list = z + [minima, saddle, X_train]
         make_csv_list = z_paths + [min_path, sad_path, x_trn_path]
@@ -466,7 +468,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_i
 
     #Save figure or show and close figure
     if save_figure == True:
-        path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = True, CutBounds = CutBounds, Mul_title = "/Mul_Comp_Figs", param = param, percentile = percentile, kernel = kernel, package = package)
+        path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = True, CutBounds = CutBounds, Mul_title = "/Mul_Comp_Figs", param = param, percentile = percentile, kernel = kernel, package = package, outputscl = outputscl)
         save_fig(path, ext='png', close=True, verbose=False) 
     else:
         plt.show()
@@ -475,7 +477,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_i
     plt.close()
     return plt.show()
 
-def path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime = None, is_figure = True, csv_end = None, CutBounds = False, Mul_title = "", param = "", percentile = "", kernel = "", package = ""):
+def path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime = None, is_figure = True, csv_end = None, CutBounds = False, Mul_title = "", param = "", percentile = "", kernel = "", package = "", outputscl = ""):
     """
     names a path based on given parameters
     
@@ -524,6 +526,9 @@ def path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime = None
         
     CS = "/CS_" + str(Case_Study) 
     kernel_type = "/" + str(kernel)
+    
+    if outputscl == True:
+        kernel_type = kernel_type + "_w_ops"
     
     if param != "":
         param = "/" + str(param)

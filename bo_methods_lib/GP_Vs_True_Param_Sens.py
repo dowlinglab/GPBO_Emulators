@@ -86,9 +86,10 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
     #Define model and likelihood
     if package == "gpytorch":
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func) 
-        lenscl_final, lenscl_noise_final, outputscale_final = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=verbose, set_lenscl = set_lengthscale, initialize = initialize, rand_seed = False)
-        
+        model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func, outputscl = outputscl) 
+        hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl,
+                                          initialize, train_iter, rand_seed)
+        lenscl_final, lenscl_noise_final, outputscale_final = hyperparameters
         outputscale_final_print = '%.3e' % outputscale_final
 
         print("Outputscale", outputscale_final_print)
@@ -97,8 +98,9 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
 
     elif package == "scikit_learn":
         likelihood = None
-        lenscl_final, lenscl_noise_final, model = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, initialize, rand_seed = False, noisy = noisy_lenscl)
-    
+        model_params = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, initialize, rand_seed = False)
+        lenscl_final, lenscl_noise_final, model = model_params
+        
     #Print noise and lengthscale hps
     lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
     lenscl_noise_print = '%.3e' % lenscl_noise_final
