@@ -74,7 +74,7 @@ train_iter = 1000 #Tried 1000 and 300
 noise_std = 0.1
 pckg_list = ["gpytorch"]
 # pckg_list = ["gpytorch", "scikit_learn"]
-kernel_func = ["Mat_52"]
+kernel_func = "Mat_52"
 # kernel_func = ["RBF", "Mat_32", "Mat_52"]
 initialize = 10
 outputscl = [True, False]
@@ -110,7 +110,7 @@ print("Scaling of Objective Function? ", obj)
 print("Bounds On X Cut (T) or Normal (F)? ", Bound_Cut)
 print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
 print("GP Training Iterations (Gpytorch only): ", train_iter)
-print("GP Kernel Function: ", kernel_func)
+# print("GP Kernel Function: ", kernel_func)
 print("GP Kernel lengthscale: ", set_lengthscale)
 print("GP Training Restarts (when lengthscale not set): ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
@@ -127,7 +127,7 @@ for package in pckg_list:
         all_data_doc = find_train_doc_path(emulator, obj, d, t_use, bound_cut = Bound_Cut)
         print("All Data Path: ", all_data_doc)
         for op_scl in outputscl:
-            print("GP Kernel has outputscale?: ", outputscl)
+            print("GP Kernel has outputscale?: ", op_scl)
             all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
             scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, 
                           bounds_p, percentiles, skip_param_types, kernel_func, set_lengthscale, 

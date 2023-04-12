@@ -128,7 +128,7 @@ def scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, true_model_coefficie
     print("Base Theta Train for Movies:", np.round(eval_p_base.numpy(),6) )
     
     #Save the values of the meshgrid for this run to a CSV
-    X_space_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds, kernel = kernel_func, package = package)
+    X_space_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/X_space_unmeshed", CutBounds = CutBounds, kernel = kernel_func, package = package, outputscl = outputscl)
     if save_csvs == True:
         save_csv(X_space, X_space_path, ext = "npy")
     
@@ -176,7 +176,7 @@ def scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, true_model_coefficie
             #Fix index to have correctly labeled Xexp point
             Exp_Preds_df.index += 1
             #Save to csv
-            Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j], kernel = kernel_func, package = package)
+            Exp_Preds_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, Mul_title = "/Exp_Preds", param = param_dict[i], percentile = pct_num_map[j], kernel = kernel_func, package = package, outputscl = outputscl)
             if save_csvs == True:
                 save_csv(Exp_Preds_df, Exp_Preds_df_path, ext = "csv")
         
@@ -209,7 +209,7 @@ def scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, true_model_coefficie
                 
                 #Make heat maps
                 Muller_plotter(X_mesh, z, minima, saddle, title, set_lengthscale, train_iter, t, Case_Study, CutBounds, lenscl_final,
-lenscl_noise_final, kernel_func, DateTime, Xexp, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j], package = package)
+lenscl_noise_final, kernel_func, DateTime, Xexp, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j], package = package, outputscl = outputscl)
 
             elif Case_Study == 1:
                 plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison")
@@ -220,7 +220,7 @@ lenscl_noise_final, kernel_func, DateTime, Xexp, save_csvs, save_figure, Mul_tit
                 
     #Save all evaluated parameter values to a csv
     eval_p_df = pd.DataFrame(eval_p_df, columns = list(param_dict.values()))
-    eval_p_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/eval_p_df", CutBounds = CutBounds, kernel = kernel_func, package = package)
+    eval_p_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/eval_p_df", CutBounds = CutBounds, kernel = kernel_func, package = package, outputscl = outputscl)
     if save_csvs == True:
         save_csv(eval_p_df, eval_p_df_path, ext = "npy")
     return
