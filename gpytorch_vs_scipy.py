@@ -32,7 +32,7 @@ print("Date and Time Saved: ", DateTime)
 #Need to run at a and b, need 2 arrays to test that this will work
 CS = 2.2
 Bound_Cut = True
-eval_Train = True
+eval_Train = False
 
 Constants = np.array([[-200,-100,-170,15],
                       [-1,-1,-6.5,0.7],
