@@ -564,16 +564,25 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
     if isinstance(train_param, np.ndarray)==True:
         train_param = torch.tensor(train_param) #1xn
     if isinstance(train_data, np.ndarray)==True:
-        train_data = torch.tensor(train_data) #1xn
-
-    #Set lengthscale if it exists
+        train_data = torch.tensor(train_data) #1xn 
+    
+    # Set which parameters to optimized. Optimize all parameters if set_lenscl is none, and optimize all but lengthscale otherwise   
+    all_params = set(model.parameters()) #Make a set of all parameters in the model    
+    #If we are setting a lengthscale
     if set_lenscl is not None:
-        if torch.is_tensor(set_lenscl) is False:
-            set_lenscl = torch.tensor([set_lenscl])
+        #Define a vectorized lengthscale
+        raw_lenscl = np.ones(train_param.shape[1])*set_lenscl
+        #Define a param as the lengthscale param
         if outputscl == True:
-            model.covar_module.base_kernel.lengthscale = set_lenscl
+            lenscl_parm = model.covar_module.base_kernel.lengthscale
         else:
-            model.covar_module.lengthscale = set_lenscl
+            lenscl_parm = model.covar_module.lengthscale
+        
+        #Remove lengthscale from opt list       
+        final_params = list(all_params - {lenscl_parm})           
+    #Otherwise optimize everything
+    else: 
+        final_params = all_params
         
     #Set Noise Parameters
     #Fix noise to 0 when optimizing lengthscale or you want the noise to be 0
@@ -588,18 +597,6 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
     model.train()
     #Puts the likelihood in training mode
     likelihood.train()
-    
-    # Set which parameters to optimized. Optimize all parameters if set_lenscl is none, and optimize all but lengthscale otherwise
-    all_params = set(model.parameters()) #Make a set of all parameters in the model
-    if set_lenscl is not None: #If we are setting the lengthscale...
-        #Remove lengthscale from opt list and the noise too
-        if outputscl == True:
-            raw_lenscl = model.covar_module.base_kernel.raw_lengthscale
-        else:
-            raw_lenscl = model.covar_module.raw_lengthscale
-        final_params = list(all_params - {raw_lenscl})   
-    else: #Otherwise optimize everything but noise
-        final_params = all_params
 
     # Use the adam optimizer
         #algorithm for first-order gradient-based optimization of stochastic objective functions
@@ -615,66 +612,79 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
  
     #Create lists of loss, lengthscales and outputscales
     loss_list = np.zeros((initialize))
-    lenscl_list = np.zeros((initialize, train_param.shape[1]))
-    output_list =  np.zeros((initialize))
+    lenscl_list = np.ones((initialize, train_param.shape[1]))
+    output_list =  np.ones((initialize))
     
-    for j in range(initialize):
-        optimizer.zero_grad() 
-        for i in range(training_iter): #0-299
-            # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
+    #Don't do any hp optimization if there's no outputscale and the lengthscale is set
+    if set_lenscl != None and outputscl == False:
+        #Define best hps as the set hps, w/ an outputscale of 1
+        best_hyperparameters = [raw_lenscl, noise_level, output_list[0]]
+
+    #Optimize lengthscales, outputscales, or both    
+    else:
+        #Loop ove number of training initializations
+        for j in range(initialize):
+            #Zero gradients
             optimizer.zero_grad() 
-            # Output from model
-            output = model(train_param) # A multivariate norm of a 1 x n_train^2 tensor
-            # Calc loss and backprop gradients
-            #Minimizing -logMLL lets us fit hyperparameters
-            loss = -mll(output, train_data) #A number (tensor)
-            #computes dloss/dx for every parameter x which has requires_grad=True. 
-            #These are accumulated into x.grad for every parameter x
-            loss.backward()
-            #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
-            #x += -lr * x.grad
-            optimizer.step()
-            if outputscl == True:
-                output_list[j] = model.covar_module.outputscale.item()
-                lenscl_run = model.covar_module.base_kernel.lengthscale
-            else:
-                lenscl_run = model.covar_module.lengthscale
-            loss_list[j] = loss
-            lenscl_run_save = lenscl_run.detach().numpy().flatten()
-            lenscl_list[j] = lenscl_run_save
-            
-        #Print results from Restart
-        if verbose == True:
-            if outputscl == True:
-                print('Restart %d Iters %d - Loss: %.3f noise: %.3e   output scale: %.3f '% (
-                     j+1, training_iter, loss.item(), model.likelihood.noise.item(), model.covar_module.outputscale.item()
-                    ))
-            else:
-                print('Restart %d Iters %d - Loss: %.3f noise: %.3e   '% (
-                     j+1, training_iter, loss.item(), model.likelihood.noise.item()
-                    ))
-            lenscl_run_print = ['%.3e' % lenscl_run_save[k] for k in range(lenscl_run_save.shape[0])]
-            print("Lengthscale: ", lenscl_run_print, "\n" )
-        
-    #Set hyperparameters to their best values
-    argmin_loss = np.argmin(loss_list)
-    if len(np.array([argmin_loss])) > 1:
-        argmin_loss = argmin_loss[0]
-        
-    best_hyperparameters = [lenscl_list[argmin_loss], noise_level, output_list[argmin_loss]]
-    
+            #Loop over number of training iterations
+            for i in range(training_iter): #0-299
+                # Zero gradients from previous iteration - Prevents past gradients from influencing the next iteration
+                optimizer.zero_grad() 
+                # Output from model
+                output = model(train_param) # A multivariate norm of a 1 x n_train^2 tensor
+                # Calc loss and backprop gradients
+                #Minimizing -logMLL lets us fit hyperparameters
+                loss = -mll(output, train_data) #A number (tensor)
+                #computes dloss/dx for every parameter x which has requires_grad=True. 
+                #These are accumulated into x.grad for every parameter x
+                loss.backward()
+                #optimizer.step updates the value of x using the gradient x.grad. For example, the SGD optimizer performs:
+                #x += -lr * x.grad
+                optimizer.step()
+                #Save lengthscales and outputscale if applicable
+                if outputscl == True:
+                    output_list[j] = model.covar_module.outputscale.item()
+                    lenscl_run = model.covar_module.base_kernel.lengthscale
+                else:
+                    lenscl_run = model.covar_module.lengthscale
+                #Save loss, and lengthscale for each run to a list    
+                loss_list[j] = loss
+                lenscl_run_save = lenscl_run.detach().numpy().flatten()
+                lenscl_list[j] = lenscl_run_save
+
+            #Print results from Restart
+            if verbose == True:
+                if outputscl == True:
+                    print('Restart %d Iters %d - Loss: %.3f noise: %.3e   output scale: %.3f '% (
+                         j+1, training_iter, loss.item(), model.likelihood.noise.item(), model.covar_module.outputscale.item()
+                        ))
+                else:
+                    print('Restart %d Iters %d - Loss: %.3f noise: %.3e   '% (
+                         j+1, training_iter, loss.item(), model.likelihood.noise.item()
+                        ))
+                lenscl_run_print = ['%.3e' % lenscl_run_save[k] for k in range(lenscl_run_save.shape[0])]
+                print("Lengthscale: ", lenscl_run_print, "\n" )
+
+        #Set hyperparameters to their best values
+        #Find lowest value of loss
+        argmin_loss = np.argmin(loss_list)
+        if len(np.array([argmin_loss])) > 1:
+            argmin_loss = argmin_loss[0]
+        #define best hyperparameter set based on lowest loss run
+        best_hyperparameters = [lenscl_list[argmin_loss], noise_level, output_list[argmin_loss]]
+
     #Make hyperparameters (hps) tensors if they aren't already
     for hp in best_hyperparameters:
         if torch.is_tensor(hp) is False:
             hp = torch.tensor(hp)
-
+                
     #Set hps according to best values
     if outputscl == True:
         model.covar_module.base_kernel.lengthscale = best_hyperparameters[0]
         model.covar_module.outputscale = best_hyperparameters[2]
     else:
         model.covar_module.lengthscale = best_hyperparameters[0]
-    
+       
     #Print lengthscale and intialized lengthscale of best restart if verbose
 #     print("Init. Lengthscale of Best Restart \n", np.round(init_lenscl_list[argmin_loss],4) )
     model_lengthscale = best_hyperparameters[0]
