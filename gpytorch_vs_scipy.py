@@ -9,7 +9,7 @@ from scipy.stats import qmc
 from bo_methods_lib.GP_Vs_True_Sensitivity import Compare_GP_True_Movie
 from bo_methods_lib.scikit_gpytorch_debug import scikit_gpytorch_mul_maps
 # from bo_methods_lib.GP_Validation import LOO_Analysis
-from bo_methods_lib.bo_functions_generic import round_time, gen_theta_set,gen_x_set, find_train_doc_path, set_ep, clean_1D_arrays
+from bo_methods_lib.bo_functions_generic import round_time, gen_theta_set, gen_x_set, find_train_doc_path, set_ep, clean_1D_arrays
 
 import matplotlib as mpl
 mpl.rcParams['figure.dpi'] = 300
@@ -39,7 +39,7 @@ print("Date and Time Saved: ", DateTime)
 CS = 2.2
 
 Bound_Cut = True
-eval_Train = False
+eval_Train = True
 
 Constants = np.array([[-200,-100,-170,15],
                       [-1,-1,-6.5,0.7],
@@ -80,13 +80,13 @@ t = 200
 percentiles = np.linspace(0,0,1)
 d = len(true_p)
 kernel_func = "Mat_52"
-pckg_list = ["scikit_learn"]
+pckg_list = ["scikit_learn", "gpytorch"]
 train_iter = 300
 initialize = 10
 noise_std = 0.01
 outputscl = [False, True]
 set_lengthscale = np.linspace(1e-6,1.0,2)
-set_lengthscale = 1
+set_lengthscale = None
 verbose = False
 norm = False
 
