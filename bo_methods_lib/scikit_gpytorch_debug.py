@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from scipy.stats import qmc
 from sklearn.model_selection import LeaveOneOut
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel
+from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
 
 from .bo_functions_generic import round_time, train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs, train_GP_scikit
 from bo_methods_lib.GP_Vs_True_Sensitivity import eval_GP_x_space, eval_GP_emulator_x_space, Muller_plotter, path_name_gp_val
@@ -95,23 +95,24 @@ def scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, true_model_coefficie
                                           initialize, train_iter, rand_seed)
         
         lenscl_final, lenscl_noise_final, outputscale_final = hyperparameters
-        outputscale_final_print = '%.3e' % outputscale_final
-
-        print("Outputscale", outputscale_final_print)
+        
 #     print('lengthscale: %.3f   noise: %.3f'% (model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()) )
 #     print(type(model.covar_module.base_kernel.lengthscale.item()), type(model.likelihood.noise.item()))
 
     elif package == "scikit_learn":
         likelihood = None
-        model_params = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, initialize, rand_seed= rand_seed)
-        lenscl_final, lenscl_noise_final, model = model_params
+        model_params = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl, initialize, 
+                                       rand_seed= rand_seed)
+        lenscl_final, lenscl_noise_final, outputscale_final, model = model_params
         
     #Print noise and lengthscale hps
     lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
     lenscl_noise_print = '%.3e' % lenscl_noise_final
+    outputscale_final_print = '%.3e' % outputscale_final
     
     print("Lengthscale", lenscl_print)
     print("Noise for lengthscale", lenscl_noise_print)
+    print("Outputscale", outputscale_final_print)
     
     #Create list to save evaluated arrays in
     eval_p_df = []

@@ -18,7 +18,7 @@ from itertools import combinations
 from itertools import permutations
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel
+from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
 
 from .CS2_bo_plotters import plot_org_train
 
@@ -502,8 +502,8 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
         else:
             self.covar_module = gpytorch.kernels.RBFKernel(ard_num_dims = num_dims)
             
-        if outputscl == True:
-            self.covar_module = gpytorch.kernels.ScaleKernel(self.covar_module) 
+        #Define an outputscale
+        self.covar_module = gpytorch.kernels.ScaleKernel(self.covar_module) 
             
     def forward(self, x):
         """
@@ -568,24 +568,25 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
     
     # Set which parameters to optimized. Optimize all parameters if set_lenscl is none, and optimize all but lengthscale otherwise   
     all_params = set(model.parameters()) #Make a set of all parameters in the model    
+    final_params = all_params
     #If we are setting a lengthscale
     if set_lenscl != None:
         #Define a vectorized lengthscale
         raw_lenscl = np.ones(train_param.shape[1])*set_lenscl
         #Define a param as the lengthscale param
-        if outputscl == True:
-            lenscl_parm = model.covar_module.base_kernel.lengthscale
-        else:
-            lenscl_parm = model.covar_module.lengthscale
-        
+        lenscl_parm = model.covar_module.base_kernel.lengthscale       
         lenscl_parm = torch.tensor(raw_lenscl)
         
         #Remove lengthscale from opt list       
-        final_params = list(all_params - {lenscl_parm}) 
+        final_params -= {lenscl_parm}
         
-    #Otherwise optimize everything
-    else: 
-        final_params = all_params
+    #Set outputscale to 1 if outputscl = False
+    if outputscl == False:
+        op_scl = model.covar_module.outputscale 
+        op_scl = torch.tensor(1)
+        final_params -= {op_scl}
+    
+    final_params = list(final_params)   
         
     #Set Noise Parameters
     #Fix noise to 0 when optimizing lengthscale or you want the noise to be 0
@@ -645,14 +646,14 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
                 #x += -lr * x.grad
                 optimizer.step()
                 #Save lengthscales and outputscale if applicable
+                lenscl_run = model.covar_module.base_kernel.lengthscale
+                lenscl_run_save = lenscl_run.detach().numpy().flatten()
                 if outputscl == True:
-                    output_list[j] = model.covar_module.outputscale.item()
-                    lenscl_run = model.covar_module.base_kernel.lengthscale
+                    output_list[j] = model.covar_module.outputscale.item()    
                 else:
-                    lenscl_run = model.covar_module.lengthscale
+                    output_list[j] = 1
                 #Save loss, and lengthscale for each run to a list    
                 loss_list[j] = loss
-                lenscl_run_save = lenscl_run.detach().numpy().flatten()
                 if set_lenscl != None:
                     lenscl_list[j] = raw_lenscl
                 else:
@@ -685,11 +686,8 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
             hp = torch.tensor(hp)
                 
     #Set hps according to best values
-    if outputscl == True:
-        model.covar_module.base_kernel.lengthscale = best_hyperparameters[0]
-        model.covar_module.outputscale = best_hyperparameters[2]
-    else:
-        model.covar_module.lengthscale = best_hyperparameters[0]
+    model.covar_module.base_kernel.lengthscale = best_hyperparameters[0]
+    model.covar_module.outputscale = best_hyperparameters[2]
        
     #Print lengthscale and intialized lengthscale of best restart if verbose
 #     print("Init. Lengthscale of Best Restart \n", np.round(init_lenscl_list[argmin_loss],4) )
@@ -704,7 +702,7 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
     return best_hyperparameters   
 
 def train_GP_scikit(train_param, train_data, noise_std = 0, kern = "Mat_52", verbose=False, 
-                    set_lenscl = None, initialize = 1, rand_seed = False):
+                    set_lenscl = None, outputscl = False, initialize = 1, rand_seed = False):
     """
     Trains the GP model and finds hyperparameters with the scikit learn package
     
@@ -730,27 +728,37 @@ def train_GP_scikit(train_param, train_data, noise_std = 0, kern = "Mat_52", ver
         noise_level = 0
     else:
         noise_level = noise_std   
-
-    noise_kern = WhiteKernel(noise_level=noise_level, noise_level_bounds=(1e-05, 10)) #bounds = "fixed"
+    #Always fix kernel noise to 0.01 or 0
+    noise_kern = WhiteKernel(noise_level=noise_level, noise_level_bounds= "fixed") #bounds = "fixed"
     
     if kern == "RBF":
-        kernel = RBF(length_scale_bounds=(1e-2, 1e2)) + noise_kern # RBF
+        kernel = ConstantKernel(constant_value=1 )*RBF(length_scale_bounds=(1e-2, 1e2)) + noise_kern # RBF
     elif kern == "Mat_32":
-        kernel = Matern(length_scale_bounds=(1e-05, 10000000.0), nu=1.5) + noise_kern #Matern 3/2
+        kernel = ConstantKernel(constant_value=1)*Matern(length_scale_bounds=(1e-05, 10000000.0), nu=1.5) + noise_kern #Matern 3/2
     else:
-        kernel = Matern(length_scale_bounds=(1e-05, 10000000.0), nu=2.5) + noise_kern#Matern 5/2
+        kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-5,100))*Matern(length_scale_bounds=(1e-05, 10000000.0), nu=2.5) + noise_kern#Matern 5/2
 
+    #If setting lengthscale, ensure lengthscale values are fixed, otherwise initialize them at 1
     if set_lenscl != None:
         lengthscale_val = np.ones(train_param.shape[1])*set_lenscl
-        kernel.k1.length_scale_bounds = "fixed"
-        kernel.k2.noise_level_bounds = "fixed" #Always fix kernel noise to 0.01 or 0
-        optimizer = None
+        kernel.k1.k2.length_scale_bounds = "fixed"
     else:
         lengthscale_val = np.ones(train_param.shape[1])
-        kernel.k2.noise_level_bounds = "fixed" #Always fix kernel noise to 0.01 or 0
+    
+    #Set model lengthscale
+    kernel.k1.k2.length_scale = lengthscale_val
+    
+    #Set outputscl kernel to be optimized if necessary
+    if outputscl == False: 
+            kernel.k1.k1.constant_value_bounds = "fixed"
+    
+    #Don't optimize anything if lengthscale and outputscale are being set
+    if set_lenscl != None and outputscl == False:
+        optimizer = None
+    else:
         optimizer = "fmin_l_bfgs_b"
-
-    kernel.k1.length_scale = lengthscale_val
+    
+    #Define model
     gaussian_process = GaussianProcessRegressor(kernel=kernel, alpha=noise_std**2, n_restarts_optimizer=initialize, 
                                                 random_state = random_state, optimizer = optimizer)
     #Train GP
@@ -758,21 +766,24 @@ def train_GP_scikit(train_param, train_data, noise_std = 0, kern = "Mat_52", ver
     
     #Pull out kernel parameters after GP training
     opt_kern_params = gaussian_process.kernel_
-    lenscl_final = opt_kern_params.k1.length_scale
+    outputscl_final = opt_kern_params.k1.k1.constant_value
+    lenscl_final = opt_kern_params.k1.k2.length_scale
     lenscl_noise_final = opt_kern_params.k2.noise_level
     
     #Print them nicely
     lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
     lenscl_noise_print = '%.3e' % lenscl_noise_final
+    opscl_print = '%.3e' % outputscl_final
     
     if verbose == True:
         if set_lenscl is not None:
             print("Lengthscale Set To: ", lenscl_print)
         else:
             print("Lengthscale is optimized using MLE to ", lenscl_print) 
-        print("Noise set to ", lenscl_noise_print, "\n")
+        print("Noise set to ", lenscl_noise_print)
+        print("Outputscale set to ", opscl_print, "\n")
             
-    return lenscl_final, lenscl_noise_final, gaussian_process
+    return lenscl_final, lenscl_noise_final, outputscl_final, gaussian_process
 
 # def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False):
 #     """
