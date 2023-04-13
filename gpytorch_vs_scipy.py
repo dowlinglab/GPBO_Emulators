@@ -6,7 +6,9 @@ import torch
 from datetime import datetime, timedelta
 from scipy.stats import qmc
 
+from bo_methods_lib.GP_Vs_True_Sensitivity import Compare_GP_True_Movie
 from bo_methods_lib.scikit_gpytorch_debug import scikit_gpytorch_mul_maps
+# from bo_methods_lib.GP_Validation import LOO_Analysis
 from bo_methods_lib.bo_functions_generic import round_time, gen_theta_set,gen_x_set, find_train_doc_path, set_ep, clean_1D_arrays
 
 import matplotlib as mpl
@@ -14,6 +16,10 @@ mpl.rcParams['figure.dpi'] = 300
 
 import warnings
 warnings.simplefilter("ignore", category=RuntimeWarning)
+
+from warnings import simplefilter
+from sklearn.exceptions import ConvergenceWarning
+simplefilter("ignore", category=ConvergenceWarning)
 
 # from warnings import simplefilter
 # from sklearn.exceptions import ConvergenceWarning
@@ -31,6 +37,7 @@ print("Date and Time Saved: ", DateTime)
 #Set Parameters
 #Need to run at a and b, need 2 arrays to test that this will work
 CS = 2.2
+
 Bound_Cut = True
 eval_Train = False
 
@@ -68,22 +75,24 @@ else:
                          [ 2,  2]])
 
 # print(Theta_True)
-t_list = [200]
+t = 200
+# percentiles = np.linspace(-1.0,1.0,41)
+percentiles = np.linspace(0,0,1)
 d = len(true_p)
-train_iter = 1000 #Tried 1000 and 300
-noise_std = 0.1
-pckg_list = ["gpytorch"]
-# pckg_list = ["gpytorch", "scikit_learn"]
 kernel_func = "Mat_52"
-# kernel_func = ["RBF", "Mat_32", "Mat_52"]
+pckg_list = ["gpytorch"]
+train_iter = 300
 initialize = 10
-outputscl = [True, False]
+noise_std = 0.01
+outputscl = [False, True]
+set_lengthscale = np.linspace(1e-6,1.0,2)
 set_lengthscale = 1
-# set_lengthscale = [0.1, 1, 5, 10, None]
-emulator = True
-obj = "obj"
 verbose = False
+norm = False
 
+obj = "obj"
+
+emulator =  True
 save_figure = True
 save_csvs = True
 
@@ -99,11 +108,15 @@ Xexp = exp_data[:,1:exp_d+1]
 Yexp = exp_data[:,-1]
 
 Xexp = clean_1D_arrays(Xexp)
-# percentiles = np.linspace(-1.0,1.0,41)
-percentiles = np.linspace(0,0,1) #Use this to only look at the value very close to (or at) the training data
+
+#Define GP Testing space
+p=20
+# print(bounds_x)
+X_space = gen_x_set(LHS = False, n_points = p, dimensions = exp_d, bounds = bounds_x)
+# print(X_space[-5:,:])
 
 print("Case Study: ", CS)
-print("Number of Training Thetas: ", t_list[0])
+print("Number of Training Thetas: ", t)
 print("Number of Experimental Data Points: ", n)
 print("GP Emulating Function Output (T) or SSE (F)? ", emulator)
 print("Scaling of Objective Function? ", obj)
@@ -115,6 +128,7 @@ print("GP Kernel lengthscale: ", set_lengthscale)
 print("GP Training Restarts (when lengthscale not set): ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
 print("Percentiles: ", percentiles)
+print("\n")
 
 #Define GP Testing space
 p=20
@@ -122,15 +136,14 @@ X_space = gen_x_set(LHS = False, n_points = p, dimensions = exp_d, bounds = boun
 
 for package in pckg_list:
     print("GP Training Package: ", package)
-    for t in t_list:
-        t_use = int(t*n)
-        all_data_doc = find_train_doc_path(emulator, obj, d, t_use, bound_cut = Bound_Cut)
-        print("All Data Path: ", all_data_doc)
-        for op_scl in outputscl:
-            print("GP Kernel has outputscale?: ", op_scl)
-            all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
-            scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, 
+    t_use = int(t*n)
+    all_data_doc = find_train_doc_path(emulator, obj, d, t_use, bound_cut = Bound_Cut)
+    all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
+    print("All Data Path: ", all_data_doc)
+    for op_scl in outputscl:
+        print("GP Kernel has outputscale?: ", op_scl)
+        scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, 
                           bounds_p, percentiles, skip_param_types, kernel_func, set_lengthscale, 
                           op_scl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, 
                           save_figure, eval_Train, Bound_Cut, package = package)
-            print("\n")
+        print("\n")

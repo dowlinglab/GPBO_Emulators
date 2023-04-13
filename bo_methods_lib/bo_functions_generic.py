@@ -569,7 +569,7 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
     # Set which parameters to optimized. Optimize all parameters if set_lenscl is none, and optimize all but lengthscale otherwise   
     all_params = set(model.parameters()) #Make a set of all parameters in the model    
     #If we are setting a lengthscale
-    if set_lenscl is not None:
+    if set_lenscl != None:
         #Define a vectorized lengthscale
         raw_lenscl = np.ones(train_param.shape[1])*set_lenscl
         #Define a param as the lengthscale param
@@ -578,8 +578,11 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
         else:
             lenscl_parm = model.covar_module.lengthscale
         
+        lenscl_parm = torch.tensor(raw_lenscl)
+        
         #Remove lengthscale from opt list       
-        final_params = list(all_params - {lenscl_parm})           
+        final_params = list(all_params - {lenscl_parm}) 
+        
     #Otherwise optimize everything
     else: 
         final_params = all_params
@@ -650,7 +653,10 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
                 #Save loss, and lengthscale for each run to a list    
                 loss_list[j] = loss
                 lenscl_run_save = lenscl_run.detach().numpy().flatten()
-                lenscl_list[j] = lenscl_run_save
+                if set_lenscl != None:
+                    lenscl_list[j] = raw_lenscl
+                else:
+                    lenscl_list[j] = lenscl_run_save
 
             #Print results from Restart
             if verbose == True:
