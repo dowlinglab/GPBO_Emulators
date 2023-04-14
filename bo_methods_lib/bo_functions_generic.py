@@ -732,7 +732,7 @@ def train_GP_scikit(train_param, train_data, noise_std = 0, kern = "Mat_52", ver
     noise_kern = WhiteKernel(noise_level=noise_level, noise_level_bounds= "fixed") #bounds = "fixed"
     
     if kern == "RBF":
-        kernel = ConstantKernel(constant_value=1 )*RBF(length_scale_bounds=(1e-2, 1e2)) + noise_kern # RBF
+        kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))*RBF(length_scale_bounds=(1e-2, 1e2)) + noise_kern #RBF
     elif kern == "Mat_32":
         kernel = ConstantKernel(constant_value=1)*Matern(length_scale_bounds=(1e-05, 10000000.0), nu=1.5) + noise_kern #Matern 3/2
     else:
@@ -762,10 +762,10 @@ def train_GP_scikit(train_param, train_data, noise_std = 0, kern = "Mat_52", ver
     gaussian_process = GaussianProcessRegressor(kernel=kernel, alpha=noise_std**2, n_restarts_optimizer=initialize, 
                                                 random_state = random_state, optimizer = optimizer)
     #Train GP
-    gaussian_process.fit(train_param, train_data)
+    fit_gp = gaussian_process.fit(train_param, train_data)
     
     #Pull out kernel parameters after GP training
-    opt_kern_params = gaussian_process.kernel_
+    opt_kern_params = fit_gp.kernel_
     outputscl_final = opt_kern_params.k1.k1.constant_value
     lenscl_final = opt_kern_params.k1.k2.length_scale
     lenscl_noise_final = opt_kern_params.k2.noise_level
@@ -783,7 +783,7 @@ def train_GP_scikit(train_param, train_data, noise_std = 0, kern = "Mat_52", ver
         print("Noise set to ", lenscl_noise_print)
         print("Outputscale set to ", opscl_print, "\n")
             
-    return lenscl_final, lenscl_noise_final, outputscl_final, gaussian_process
+    return lenscl_final, lenscl_noise_final, outputscl_final, fit_gp
 
 # def train_GP_model(model, likelihood, train_param, train_data, iterations=500, verbose=False):
 #     """
