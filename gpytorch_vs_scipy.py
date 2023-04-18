@@ -146,7 +146,7 @@ X_space = gen_x_set(LHS = False, n_points = p, dimensions = exp_d, bounds = boun
 for package in pckg_list:
     print("GP Training Package: ", package)
     t_use = int(t*n)
-    all_data_doc = find_train_doc_path(emulator, obj, d, t_use, Bound_Cut, dense)
+    all_data_doc = find_train_doc_path(emulator, obj, d, t_use, Bound_Cut, denseX)
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
     print("All Data Path: ", all_data_doc)
     for lenscl in set_lengthscale:
