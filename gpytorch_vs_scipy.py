@@ -40,6 +40,7 @@ CS = 2.2
 
 Bound_Cut = True
 eval_Train = True
+denseX = True
 
 Constants = np.array([[-200,-100,-170,15],
                       [-1,-1,-6.5,0.7],
@@ -56,7 +57,10 @@ if CS == 2.2:
     if Bound_Cut == True:
         bounds_x = np.array([[-1.0, 0.0],
                             [   0.5, 1.5]])
-        n = 25 #Number of experimental data points to use
+        if denseX == True:
+            n = 30
+        else:
+            n = 25 #Number of experimental data points to use
     else:    
         bounds_x = np.array([[-1.5, -0.5],
                      [   1,    2]])
@@ -86,7 +90,7 @@ initialize = 10
 noise_std = 0.01
 outputscl = [False, True]
 set_lengthscale = np.linspace(1e-6,1.0,2)
-set_lengthscale = None
+set_lengthscale = [None, 0.1, 1]
 verbose = False
 norm = False
 
@@ -100,9 +104,14 @@ if Bound_Cut == True:
     cut_bounds = '_cut_bounds'
 else:
     cut_bounds = ""
+    
+if denseX == True:
+    dense = "_dense"
+else:
+    dense = ""
 
 #Pull Experimental data from CSV
-exp_data_doc = 'Input_CSVs/Exp_Data/d='+str(exp_d)+'/n='+str(n)+cut_bounds+'.csv'
+exp_data_doc = 'Input_CSVs/Exp_Data/d='+str(exp_d)+'/n='+str(n)+cut_bounds+dense+'.csv'
 exp_data = np.array(pd.read_csv(exp_data_doc, header=0,sep=","))
 Xexp = exp_data[:,1:exp_d+1]
 Yexp = exp_data[:,-1]
@@ -123,8 +132,7 @@ print("Scaling of Objective Function? ", obj)
 print("Bounds On X Cut (T) or Normal (F)? ", Bound_Cut)
 print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
 print("GP Training Iterations (Gpytorch only): ", train_iter)
-# print("GP Kernel Function: ", kernel_func)
-print("GP Kernel lengthscale: ", set_lengthscale)
+print("GP Kernel Function: ", kernel_func)
 print("GP Training Restarts (when lengthscale not set): ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
 print("Percentiles: ", percentiles)
@@ -137,13 +145,15 @@ X_space = gen_x_set(LHS = False, n_points = p, dimensions = exp_d, bounds = boun
 for package in pckg_list:
     print("GP Training Package: ", package)
     t_use = int(t*n)
-    all_data_doc = find_train_doc_path(emulator, obj, d, t_use, bound_cut = Bound_Cut)
+    all_data_doc = find_train_doc_path(emulator, obj, d, t_use, Bound_Cut, dense)
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
     print("All Data Path: ", all_data_doc)
-    for op_scl in outputscl:
-        print("GP Kernel has outputscale?: ", op_scl)
-        scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, 
-                          bounds_p, percentiles, skip_param_types, kernel_func, set_lengthscale, 
-                          op_scl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, 
-                          save_figure, eval_Train, Bound_Cut, package = package)
-        print("\n")
+    for lenscl in set_lengthscale:
+        print("GP Kernel lengthscale: ", lenscl)
+        for op_scl in outputscl:
+            print("GP Kernel has outputscale?: ", op_scl)
+            scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, 
+                              bounds_p, percentiles, skip_param_types, kernel_func, lenscl, 
+                              op_scl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, 
+                              save_figure, eval_Train, Bound_Cut, package = package)
+            print("\n")

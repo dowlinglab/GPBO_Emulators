@@ -405,7 +405,7 @@ def test_train_split(all_data, sep_fact=1, runs = 1, shuffle_seed = None):
     return train_data, test_data
 #     return torch.tensor(train_data),torch.tensor(test_data)
 
-def find_train_doc_path(emulator, obj, d, t, bound_cut = False):
+def find_train_doc_path(emulator, obj, d, t, bound_cut = False, denseX = True):
     """
     Finds the document that contains the correct training data based on the GP objective function, number of dimensions, and number of training inputs
     
@@ -433,6 +433,9 @@ def find_train_doc_path(emulator, obj, d, t, bound_cut = False):
     
     if bound_cut == True:
         all_data_doc += "_cut_bounds" 
+        
+    if denseX == True:
+        all_data_doc += "_dense" 
         
     all_data_doc += ".csv"
             
