@@ -85,7 +85,16 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
     
     #Define model and likelihood
     if package == "gpytorch":
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        #If the noise is larger than 0.01, set it appropriately, otherwise use a regular GaussianLikelihood noise and set it manually 
+        noise = torch.tensor(noise_std**2)
+        if noise_std >= 0.01:
+            noise = torch.ones(train_p.shape[0])*noise_std**2
+            likelihood = gpytorch.likelihoods.FixedNoiseGaussianLikelihood(noise=noise, learn_additional_noise=False)
+        else:
+            likelihood = gpytorch.likelihoods.GaussianLikelihood(noise_constraint=gpytorch.constraints.Positive())
+            likelihood.noise = noise  # Some small value. Try 1e-4
+            likelihood.noise_covar.raw_noise.requires_grad_(False)  # Mark that we don't want to train the noise
+            
         model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func, outputscl = outputscl) 
         hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl,
                                           initialize, train_iter, rand_seed)
@@ -200,7 +209,7 @@ def Compare_GP_True_Movie(all_data, X_space, Xexp, Yexp, true_model_coefficients
 lenscl_noise_final, kernel_func, DateTime, Xexp, save_csvs, save_figure, Mul_title = Mul_title, param = param_dict[i], percentile = pct_num_map[j], package = package, outputscl = outputscl)
 
             elif Case_Study == 1:
-                plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison")
+                plot_xy(X_space, Xexp, Yexp, None ,GP_mean, y_sim,title = "XY Comparison") 
                 
     #Save all evaluated parameter values to a csv
     eval_p_df = pd.DataFrame(eval_p_df, columns = list(param_dict.values()))

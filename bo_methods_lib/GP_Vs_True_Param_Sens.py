@@ -85,7 +85,16 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
     
     #Define model and likelihood
     if package == "gpytorch":
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        #If the noise is larger than 0.01, set it appropriately, otherwise use a regular GaussianLikelihood noise and set it manually 
+        noise = torch.tensor(noise_std**2)
+        if noise_std >= 0.01:
+            noise = torch.ones(train_p.shape[0])*noise_std**2
+            likelihood = gpytorch.likelihoods.FixedNoiseGaussianLikelihood(noise=noise, learn_additional_noise=False)
+        else:
+            likelihood = gpytorch.likelihoods.GaussianLikelihood(noise_constraint=gpytorch.constraints.Positive())
+            likelihood.noise = noise  # Some small value. Try 1e-4
+            likelihood.noise_covar.raw_noise.requires_grad_(False)  # Mark that we don't want to train the noise
+            
         model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func, outputscl = outputscl) 
         hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl,
                                           initialize, train_iter, rand_seed)
@@ -149,9 +158,9 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
             # Evaluate at the original point for each parameter and swap a parameter value for a value within the bounds
             new_eval_p = values[j]
             #Change the value to the exact point except for 1 variable that is rounded to 2 sig figs after modification by a percent
-            eval_p[i] = torch.tensor(float('%.2g' % float(new_eval_p)))
+#             eval_p[i] = torch.tensor(float('%.2g' % float(new_eval_p)))
             #Or just do the exact value
-#             eval_p[i] = torch.tensor(float(new_eval_p))
+            eval_p[i] = torch.tensor(float(new_eval_p))
             #Append evaluated value to this list only on 1st iteration of k
             eval_p_df.append(list(eval_p.numpy()))
             #Loop over Xspace Values: #Note. X_space defined as Xexp points we want to test
