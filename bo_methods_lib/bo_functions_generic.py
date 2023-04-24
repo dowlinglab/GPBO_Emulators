@@ -441,7 +441,7 @@ def find_train_doc_path(emulator, obj, d, t, bound_cut = False, denseX = True):
             
     return all_data_doc
 
-class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
+class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise unless you do
     """
     The base class for any Gaussian process latent function to be used in conjunction
     with exact inference.
@@ -526,7 +526,7 @@ class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise
         #Defines the mean of the GP based off of x
         mean_x = self.mean_module(x) #1xn_train
         #Defines the covariance matrix based off of x
-        covar_x = self.covar_module(x) #n_train x n_train covariance matrix
+        covar_x = self.covar_module(x) #This is an n_train x n_train covariance matrix
         #Constructs a multivariate normal random variable, based on mean and covariance. 
             #Can be multivariate, or a batch of multivariate normals
             #Returns multivariate normal distibution gives the mean and covariance of the GP        
@@ -590,16 +590,13 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
         final_params -= {op_scl}
     
     final_params = list(final_params)   
-        
-    #Set Noise Parameters
-    #Fix noise to 0 when optimizing lengthscale or you want the noise to be 0
-    if noise_std == 0: 
-        noise_level = 0
+    
+    if len(likelihood.noise) > 1:
+        noise_level = likelihood.noise[0]
     else:
-        noise_level = noise_std
-
-    likelihood.noise_covar.noise =  torch.tensor(noise_level**2)
-   
+        noise_level = likelihood.noise
+#     print("noise is: ", likelihood.noise)
+    
     #Puts the model in training mode
     model.train()
     #Puts the likelihood in training mode
@@ -665,12 +662,12 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
             #Print results from Restart
             if verbose == True:
                 if outputscl == True:
-                    print('Restart %d Iters %d - Loss: %.3f noise: %.3e   output scale: %.3f '% (
-                         j+1, training_iter, loss.item(), model.likelihood.noise.item(), model.covar_module.outputscale.item()
+                    print('Restart %d Iters %d - Loss: %.3e   output scale: %.3f '% (
+                         j+1, training_iter, loss.item(), model.covar_module.outputscale.item()
                         ))
                 else:
-                    print('Restart %d Iters %d - Loss: %.3f noise: %.3e   '% (
-                         j+1, training_iter, loss.item(), model.likelihood.noise.item()
+                    print('Restart %d Iters %d - Loss:   '% (
+                         j+1, training_iter, loss.item()
                         ))
                 lenscl_run_print = ['%.3e' % lenscl_run_save[k] for k in range(lenscl_run_save.shape[0])]
                 print("Lengthscale: ", lenscl_run_print, "\n" )
@@ -890,7 +887,7 @@ def calc_GP_outputs(model,likelihood,test_param):
     """
     #Assert statements check that inputs are correct types and lengths
     assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+#     assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     #https://www.geeksforgeeks.org/type-isinstance-python/
 
     #Converts test parameters to tensors if they are a numpy arrays
@@ -902,11 +899,16 @@ def calc_GP_outputs(model,likelihood,test_param):
         #Disabling gradient calculation is useful for inference, 
         #when you are sure that you will not call Tensor.backward(). It will reduce memory consumption
         #Note: Can't use np operations on tensors where requires_grad = True
-    #gpytorch.settings.fast_pred_var() 
+    #gpytorch.settings.fast_pred_var() noise_var
         #Use this for improved performance when computing predictive variances. 
         #Good up to 10,000 data points
     #Predicts data points for model (sse) by sending the model through the likelihood
-        observed_pred = likelihood(model(test_param)) #1 x n_test
+        #If using Fixed noise, apply fixed noise to the testing data too.
+        if isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.FixedNoiseGaussianLikelihood) == True:
+            noise_var = likelihood.noise[0]
+            observed_pred = likelihood(model(test_param), noise=torch.ones(test_param.shape[0])*noise_var) #1 x n_test
+        else:
+            observed_pred = likelihood(model(test_param))
 
     #Calculates model mean  
     model_mean = observed_pred.mean #1 x n_test

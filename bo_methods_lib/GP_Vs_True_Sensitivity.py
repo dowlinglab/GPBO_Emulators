@@ -243,7 +243,7 @@ def eval_GP_x_space(theta_set, X_space, train_y, true_model_coefficients, model,
     if likelihood != None:
         #Assert correct likelihood and model  types
         assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-        assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
+        assert isinstance(likelihood, (gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood, gpytorch.likelihoods.gaussian_likelihood.FixedNoiseGaussianLikelihood)) == True, "Likelihood must be Gaussian"
         #Put model and likelihood in evaluation mode
         model.eval()
         likelihood.eval()
@@ -384,7 +384,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_i
     #Define a title for the whole plot based on lengthscale and lengthscale noise values
     lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
     half = int(len(lenscl_print)/2)
-    if lenscl_noise_final != "": 
+    if lenscl_noise_final != "":
         lenscl_noise_print = '%.3e' % lenscl_noise_final
         title_str = r'$\ell = $' + str(lenscl_print[:half]) + '\n' +  str(lenscl_print[half:]) + ' & ' + r'$\sigma_{\ell} = $' + lenscl_noise_print
     else:

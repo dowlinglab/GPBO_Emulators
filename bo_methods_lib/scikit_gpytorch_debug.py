@@ -87,9 +87,16 @@ def scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, true_model_coefficie
     
     #Define model and likelihood
     if package == "gpytorch":
-#         likelihood = gpytorch.likelihoods.FixedNoiseGaussianLikelihood(noise = torch.tensor(noise_level**2))
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        #noise = torch.tensor(np.ones(train_p.shape[0])*noise_level**2))
+        #If the noise is larger than 0.01, set it appropriately, otherwise use a regular GaussianLikelihood noise and set it manually 
+        noise = torch.tensor(noise_std**2)
+        if noise_std >= 0.01:
+            noise = torch.ones(train_p.shape[0])*noise_std**2
+            likelihood = gpytorch.likelihoods.FixedNoiseGaussianLikelihood(noise=noise, learn_additional_noise=False)
+        else:
+            likelihood = gpytorch.likelihoods.GaussianLikelihood(noise_constraint=gpytorch.constraints.Positive())
+            likelihood.noise = noise  # Some small value. Try 1e-4
+            likelihood.noise_covar.raw_noise.requires_grad_(False)  # Mark that we don't want to train the noise
+            
         model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func, outputscl = outputscl) 
         hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl,
                                           initialize, train_iter, rand_seed)
@@ -107,6 +114,9 @@ def scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, true_model_coefficie
         
     #Print noise and lengthscale hps
     lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
+#     if len(lenscl_noise_final) > 1:
+#         lenscl_noise_print = ['%.3e' % lenscl_noise_final[i] for i in range(len(lenscl_noise_final))]
+#     else:
     lenscl_noise_print = '%.3e' % lenscl_noise_final
     outputscale_final_print = '%.3e' % outputscale_final
     
@@ -168,6 +178,8 @@ def scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, true_model_coefficie
             #Make pandas df of values evaluated at training points and set indecies to start at 1 and save it as npy
             #Calculate APE for training points
             APE_Exp_Preds = 100*abs((y_sim_Xexp - GP_mean_Xexp)/y_sim_Xexp)
+            MAPE = np.average(APE_Exp_Preds)
+            print("MAPE: ", MAPE)
             #Put Xexp, GP prediction, true values, and APE in a list 
             Exp_Preds = [Xexp[:,x] for x in range(m)] + [y_sim_Xexp, GP_mean_Xexp, GP_stdev_Xexp, APE_Exp_Preds]
             #Convert list to array

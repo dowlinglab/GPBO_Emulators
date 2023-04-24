@@ -39,8 +39,8 @@ print("Date and Time Saved: ", DateTime)
 CS = 2.2
 
 Bound_Cut = True
-eval_Train = True
 denseX = True
+eval_Train = True
 
 Constants = np.array([[-200,-100,-170,15],
                       [-1,-1,-6.5,0.7],
@@ -83,14 +83,14 @@ t = 200
 # percentiles = np.linspace(-1.0,1.0,41)
 percentiles = np.linspace(0,0,1)
 d = len(true_p)
-kernel_func = "Mat_52"
-pckg_list = ["scikit_learn", "gpytorch"]
+kernel_func = ["Mat_52"]
+pckg_list = ["gpytorch"]
 train_iter = 300
 initialize = 10
-noise_std = 0.01
+noise_std = 0.01 #Numerically 0 (1e-7) or actual noise 0.01
 outputscl = [False, True]
 set_lengthscale = np.linspace(1e-6,1.0,2)
-set_lengthscale = [None, 0.1, 1]
+set_lengthscale = [0.1, 1, None]
 verbose = False
 norm = False
 
