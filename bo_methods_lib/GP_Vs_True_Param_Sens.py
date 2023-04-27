@@ -26,14 +26,14 @@ from .CS2_create_data import gen_y_Theta_GP, calc_y_exp, create_y_data
 ###Load data
 ###Get constants
 ##Note: X and Y should be 400 points long generated from meshgrid values and calc_y_exp :)
-def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, value_num, skip_param_types = 0, kernel_func = "RBF", set_lengthscale = None, noisy_lenscl = False, train_iter = 300, initialize = 1, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False, package = "gpytorch"):  
+def Compare_GP_True_Param_Sens(all_data, x_space_points, eval_theta_num, Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, value_num, skip_param_types = 0, kernel_func = "RBF", set_lengthscale = None, outputscl = False, train_iter = 300, initialize = 1, noise_std = 0.1, verbose = False, DateTime = None, save_csvs = True, save_figure= False, eval_Train = False, CutBounds = False, package = "gpytorch"):  
     """
     Compare GP models to True/Simulation Values
   
     Parameters:
     -----------
         all_data: ndarray, contains all data for GP
-        X_space: ndarray, The p^2 x dim(x) meshgrid points for X over which to evaluate the GP
+        x_space_points: list or ndarray, The experimental data point indecies for X over which to evaluate the GP
         Xexp: ndarray, The experimental data for y (the true value)
         Yexp: ndarray, The experimental data for y (the true value)
         true_model_coefficients: ndarray, The array containing the true values of the problem (may be the same as true_p)
@@ -62,11 +62,10 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
         
     """
     #Define constants for dimensions of x (m), number of exp data points (n), number of parameters to be regressed (q), and data length (t)
+    rand_seed = False
     param_dict = {0 : 'a_1', 1 : 'a_2', 2 : 'a_3', 3 : 'a_4',
               4 : 'b_1', 5 : 'b_2', 6 : 'b_3', 7 : 'b_4'}
     n, m = Xexp.shape
-    p_sq = len(X_space)
-    p = int(np.sqrt(p_sq))
     q = true_p.shape[0]
     t = len(all_data)
     
@@ -98,36 +97,35 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
         model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func, outputscl = outputscl) 
         hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl,
                                           initialize, train_iter, rand_seed)
+        
         lenscl_final, lenscl_noise_final, outputscale_final = hyperparameters
-        outputscale_final_print = '%.3e' % outputscale_final
-
-        print("Outputscale", outputscale_final_print)
+        
 #     print('lengthscale: %.3f   noise: %.3f'% (model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()) )
 #     print(type(model.covar_module.base_kernel.lengthscale.item()), type(model.likelihood.noise.item()))
 
     elif package == "scikit_learn":
         likelihood = None
-        model_params = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, initialize, rand_seed = False)
-        lenscl_final, lenscl_noise_final, model = model_params
+        model_params = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl, initialize, 
+                                       rand_seed= rand_seed)
+        lenscl_final, lenscl_noise_final, outputscale_final, model = model_params
         
     #Print noise and lengthscale hps
     lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
     lenscl_noise_print = '%.3e' % lenscl_noise_final
+    outputscale_final_print = '%.3e' % outputscale_final
     
-    print("Noise for lengthscale", lenscl_noise_print)
     print("Lengthscale", lenscl_print)
-    
+    print("Noise for lengthscale", lenscl_noise_print)
+    print("Outputscale", outputscale_final_print)
+
     #Evaluate at true value or close to a training point doing a sensitivity analysis
     if eval_Train == False:
-        eval_theta_num = 0
         eval_p_base = torch.tensor(true_p)   
     else:
-        eval_theta_num = 0
         eval_p_base = train_p[eval_theta_num,0:q]
     print("Base Theta Train for Movies:", np.round(eval_p_base.numpy(),6) )
     
-    #Define X_space
-    x_space_points = [1,6,12,17,20]
+    #Define X_space for param sensitivity testing
     train_xspace_set = np.array([data_train[m + eval_theta_num*n,1:] for m in x_space_points])
     X_space= np.array([Xexp[m] for m in x_space_points])
     
@@ -175,11 +173,12 @@ def Compare_GP_True_Param_Sens(all_data, X_space, Xexp, Yexp, true_model_coeffic
     #Plot GP vs y_sim predictions for each Xexp Value and save data
     all_data_to_plot = [y_sim_all, GP_mean_all, GP_stdev_all] 
 #     print(y_sim_all.shape)
-    mul_plot_param(all_data_to_plot, set_lengthscale, train_iter, t, Case_Study, CutBounds, X_space, x_space_points, param_dict, values_list, val_num_map, lenscl_final, train_xspace_set,  "", kernel_func, DateTime, Xexp, save_csvs, save_figure, package)
+    mul_plot_param(all_data_to_plot, set_lengthscale, train_iter, t, Case_Study, CutBounds, X_space, x_space_points, param_dict, values_list, val_num_map, lenscl_final, train_xspace_set, lenscl_noise_final, outputscale_final, kernel_func, DateTime, Xexp, save_csvs, save_figure, package)
     
     #Save all evaluated parameter values to a csv
     eval_p_df = pd.DataFrame(eval_p_df, columns = list(param_dict.values()))
     eval_p_df_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/eval_p_df", CutBounds = CutBounds, kernel = kernel_func, package = package)
+    train_xspace_set_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "/train_xspace_data", CutBounds = CutBounds, kernel = kernel_func, package = package)
     if save_csvs == True:
         save_csv(eval_p_df, eval_p_df_path, ext = "npy")
     
@@ -306,7 +305,7 @@ def eval_GP_emulator(theta_set, X_space, true_model_coefficients, model, likelih
     
     return GP_mean, GP_stdev, y_sim 
 
-def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, X_space, x_space_points, param_dict, values_list, val_num_map, lenscl_final, train_xspace_set, lenscl_noise_final = "", kernel = "RBF", DateTime = None, X_train = None, save_csvs = False, save_figure = False, package = "", plot_one_param = None):
+def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, X_space, x_space_points, param_dict, values_list, val_num_map, lenscl_final, train_xspace_set, lenscl_noise_final, outputscale_final, kernel = "RBF", DateTime = None, X_train = None, save_csvs = False, save_figure = False, package = "", plot_one_param = None):
     '''
     Plots comparison of y_sim, GP_mean, and GP_stdev
     Parameters
@@ -348,11 +347,9 @@ def mul_plot_param(data, set_lengthscale, train_iter, t, Case_Study, CutBounds, 
         lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
         half = int(len(lenscl_print)/2)
         #Define a title for the whole plot based on lengthscale and lengthscale noise values
-        if lenscl_noise_final != "":  
-            lenscl_noise_print = '%.3e' % lenscl_noise_final
-            title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(lenscl_print[:half]) + '\n' + str(lenscl_print[half:]) + ' & ' + r'$\sigma_{\ell} = $' + lenscl_noise_print
-        else:
-            title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(lenscl_print[:half]) + '\n' + str(lenscl_print[half:])
+        lenscl_noise_print = '%.3e' % lenscl_noise_final
+        ops_print = '%.3e' % outputscale_final
+        title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(lenscl_print[:half]) + '\n' + str(lenscl_print[half:]) + "\n" + r'$\sigma_{\ell} = $' + lenscl_noise_print + ' & ' + r'$\tau = $' + ops_print
             
         #None if looping over all parameters, use y_sim_data.shape[1], only loop over 1 specific value otherwise
         if plot_one_param != None:
