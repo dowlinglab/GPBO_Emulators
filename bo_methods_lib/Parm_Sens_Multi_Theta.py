@@ -331,13 +331,13 @@ def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_St
                     outputscl_org = opscls[ax_idx, train_idx]
                     opscl_print = '%.3e' % outputscl_org
                     t_prnt = str(t[train_idx])
-                    ax[ax_idx].scatter(train_xspace_set[k,i], train_xspace_set[k,-1], label = "Train - " +  t_prnt + " TP", marker = "*", color = colors[train_idx], s = 80)
+                    ax[ax_idx].scatter(train_xspace_set[k,i], train_xspace_set[k,-1], label = "Train - " +  t_prnt + " TP", marker = "*", color = colors[-1], s = 80)
                     ax[ax_idx].plot(values_list[i], GP_mean_data[k,i], label =str(t[train_idx]) + " TP, " + "ops = " + str(opscl_print), color = colors[train_idx])
                     ax[ax_idx].fill_between(values_list[i],
                                     GP_mean_data[k,i] - 1.96 * GP_stdev_data[k,i],
                                     GP_mean_data[k,i] + 1.96 * GP_stdev_data[k,i],
                                     alpha=0.3, color = colors[train_idx])
-                    ax[ax_idx].plot(values_list[i], y_sim_data[k,i], linestyle = "--", label = "Y Sim - " + str(t[train_idx]) + " TP", color = colors[train_idx])
+                    ax[ax_idx].plot(values_list[i], y_sim_data[k,i], linestyle = "--", label = "Y Sim - " + str(t[train_idx]) + " TP", color = colors[-1])
 
                 #Set plot details        
             #     plt.legend(loc = "best")
