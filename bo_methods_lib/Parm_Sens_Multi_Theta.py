@@ -81,12 +81,11 @@ def Param_Sens_Multi_Theta(all_data, x_space_points, eval_theta_idxs, Xexp, Yexp
     
     #Loop over all theta evaluation points
     for eval_theta_idx in range(len(eval_theta_idxs)):
-        eval_p_base = all_data[0][int(eval_theta_idxs[0]*n),1:q]
+        eval_p_base = all_data[0][int(eval_theta_idxs[eval_theta_idx]*n),1:q+1]
         print("Theta Train for Sensitivity:", np.round(eval_p_base,6) )
         #Loop over training data sets
         for train_idx in range(len(all_data)):
             data = all_data[train_idx]  
-            eval_p_base = data[int(eval_theta_idx*n),1:q]
             #Perform Parameter sensitivity analysis
             param_sens_data_res = Param_Sens_Analysis(data, x_space_points, eval_theta_idxs[eval_theta_idx], Xexp, Yexp, true_model_coefficients, true_p, Case_Study, bounds_p, value_num, skip_param_types, kernel_func, set_lengthscale, outputscl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, save_figure, eval_Train, CutBounds, package)
             train_xspace_set, all_data_to_plot, lenscl_final, lenscl_noise_final, outputscale_final, values_list = param_sens_data_res
@@ -289,6 +288,7 @@ def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_St
     lenscl_noise_final = noises[0,0]
     lenscl_noise_print = '%.3e' % lenscl_noise_final
     half = int(len(lenscl_print)/2)
+    t_save = '_'.join(map(str, t))
     
     all_ones = np.all(opscls == 1)
     outputscl = not all_ones
@@ -368,18 +368,20 @@ def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_St
                 #For each values being plotted
                 for j in range(len(mul_vals)):
                     #Create a path
-                    mul_val_path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, X_val = k, val_title = mul_val_title[j], param = param_dict[i], kernel = kernel, package = package, outputscl = outputscl)
+                    mul_val_path = path_name_gp_val(set_lengthscale, train_iter, t_save, Case_Study, DateTime, is_figure = False, csv_end = "", CutBounds = CutBounds, X_val = k, val_title = mul_val_title[j], param = param_dict[i], kernel = kernel, package = package, outputscl = outputscl)
                     #Save path to list
                     mul_val_paths.append(mul_val_path) 
 
                 csv_item_list_vals = mul_vals
                 make_csv_list_vals = mul_val_paths
                 for j in range(len(make_csv_list_vals)):
+#                     print(make_csv_list_vals[j])
                     save_csv(csv_item_list_vals[j], make_csv_list_vals[j], ext = "npy")
 
             #Save figure or show and close figure
             if save_figure == True:
-                path = path_name_gp_val(set_lengthscale, train_iter, t, Case_Study, DateTime, is_figure = True, CutBounds = CutBounds, X_val = k, val_title = "/Param_Sens_Multi_Theta", param = param_dict[i], kernel = kernel, package = package, outputscl = outputscl)
+                path = path_name_gp_val(set_lengthscale, train_iter, t_save, Case_Study, DateTime, is_figure = True, CutBounds = CutBounds, X_val = k, val_title = "/Param_Sens_Multi_Theta", param = param_dict[i], kernel = kernel, package = package, outputscl = outputscl)
+#                 print(path)
                 save_fig(path, ext='png', close=True, verbose=False) 
             else:
                 plt.show()
@@ -387,8 +389,8 @@ def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_St
 
     #Create paths for x training points and values
     if save_csvs == True:
-        csv_ends = ["/x_set_param_data", "/Param_Values", "X_space"]
-        param_val_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[1], CutBounds = CutBounds, X_val = "", val_title = "", param = "", kernel = "", package = "", outputscl = "")
+        csv_ends = ["x_set_param_data", "Param_Values", "X_space"]
+        eval_theta_data_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[0], CutBounds = CutBounds, X_val = "", val_title = "", param = "", kernel = "", package = "", outputscl = "")
         param_val_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[1], CutBounds = CutBounds, X_val = "", val_title = "", param = "", kernel = "", package = "", outputscl = "")
         x_spc_path = path_name_gp_val("", "", "", Case_Study, DateTime, is_figure = False, csv_end = csv_ends[2], CutBounds = CutBounds, X_val = "", val_title = "", param = "", kernel = "", package = "", outputscl = "")
         # Create a list of extra items to save and corresponding path names
@@ -396,6 +398,7 @@ def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_St
         make_csv_list = [eval_theta_data_path, param_val_path, x_spc_path]
         #Save values as CSVs
         for i in range(len(make_csv_list)):
+#             print(make_csv_list[i])
             save_csv(csv_item_list[i], make_csv_list[i], ext = "npy")
 
     return plt.show()
