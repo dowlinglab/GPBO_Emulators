@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
 import numpy as np
 import math
 from scipy.stats import norm
@@ -1115,7 +1116,9 @@ def get_sparse_grids(dim,output=0,depth=3, rule="gauss-hermite", verbose = False
         #If verbose is true print the sparse grid
         for i in range(len(points_p)):
             plt.scatter(points_p[i,0], points_p[i,1])
-            plt.title('Sparse Grid of'+rule)
+            plt.title('Sparse Grid of '+rule)
+            plt.xlabel(r"$\theta_1$")
+            plt.ylabel(r"$\theta_2$")
         plt.show()
     return points_p, weights_p
 

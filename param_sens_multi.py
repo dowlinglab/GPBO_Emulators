@@ -81,7 +81,7 @@ else:
 t_list = [20, 200, 600, 1000]
 d = len(true_p)
 kernel_func = "Mat_52"
-pckg_list = "scikit_learn"
+package = "scikit_learn"
 train_iter = 300
 initialize = 10
 noise_std = 0.01 #Numerically 0 (1e-4**2) or actual noise 0.01
@@ -119,7 +119,7 @@ value_num = 101 #Number of parameter values for each parameter to evaluate withi
 x_space_points = [2,12,23,26]
 
 print("Case Study: ", CS)
-print("Number of Training Thetas: ", t)
+print("Number of Training Thetas: ", t_list)
 print("Number of Experimental Data Points: ", n)
 print("GP Emulating Function Output (T) or SSE (F)? ", emulator)
 print("Scaling of Objective Function? ", obj)
@@ -129,15 +129,12 @@ print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
 print("GP Training Package: ", package)
 print("GP Training Iterations (Gpytorch only): ", train_iter)
 print("GP Kernel Function: ", kernel_func)
-print("GP Kernel lengthscale: ", lenscl)
+print("GP Kernel lengthscale: ", set_lengthscale)
 print("GP Training Restarts (when lengthscale/outputscale not set): ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
-print("Percentiles: ", percentiles)
+print("Number of Values per Parameter: ", value_num)
+print("Xexp Points Indecies Evaluated: ", x_space_points)
 print("\n")
-
-#Define GP Testing space
-p=20
-X_space = gen_x_set(LHS = False, n_points = p, dimensions = exp_d, bounds = bounds_x)
 
 #Create empty list to store data values in for each number of training points
 all_data_list = []
