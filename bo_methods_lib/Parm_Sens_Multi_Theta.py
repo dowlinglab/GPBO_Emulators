@@ -324,7 +324,7 @@ def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_St
             for ax_idx in range(eval_thetas):    
             #Add plot values
                 #Loop over all training data values
-                colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
+                colors = ["tab:blue", "tab:orange", "tab:green", "tab:purple", "tab:red"]
                 for train_idx in range(param_sens_data.shape[1]):
                     y_sim_data, GP_mean_data, GP_stdev_data = param_sens_data[ax_idx, train_idx]
                     train_xspace_set = eval_theta_data[ax_idx, train_idx]
@@ -337,7 +337,7 @@ def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_St
                                     GP_mean_data[k,i] - 1.96 * GP_stdev_data[k,i],
                                     GP_mean_data[k,i] + 1.96 * GP_stdev_data[k,i],
                                     alpha=0.3, color = colors[train_idx])
-                    ax[ax_idx].plot(values_list[i], y_sim_data[k,i], linestyle = "--", label = "Y Sim - " + str(t[train_idx]) + " TP", color = colors[-1])
+                ax[ax_idx].plot(values_list[i], y_sim_data[k,i], linestyle = "--", label = "Y Sim", color = colors[-1])
 
                 #Set plot details        
             #     plt.legend(loc = "best")
