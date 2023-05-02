@@ -167,7 +167,7 @@ def Param_Sens_Analysis(data, x_space_points, eval_theta_num, Xexp, Yexp, true_m
             likelihood.noise_covar.raw_noise.requires_grad_(False)  # Mark that we don't want to train the noise
             
         model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func, outputscl = outputscl) 
-        hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl,
+        hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, verbose, set_lengthscale, outputscl,
                                           initialize, train_iter, rand_seed)
         
         lenscl_final, lenscl_noise_final, outputscale_final = hyperparameters

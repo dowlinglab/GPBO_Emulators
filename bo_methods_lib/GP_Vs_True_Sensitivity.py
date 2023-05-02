@@ -413,7 +413,7 @@ def Muller_plotter(test_mesh, z, minima, saddle, title, set_lengthscale, train_i
         
         #Create a colormap and colorbar for each subplot
         cs_fig = ax[i].contourf(xx, yy,z[i], levels = 900, cmap = "jet")
-        if np.amax(z[i]) < 1e-1 or np.amax(z[i]) > 1000:
+        if np.amax(abs(z[i])) < 1e-1 or np.amax(abs(z[i])) > 1000:
             cbar = plt.colorbar(cs_fig, ax = ax[i], format='%.2e')
         else:
             cbar = plt.colorbar(cs_fig, ax = ax[i], format = '%2.2f')
