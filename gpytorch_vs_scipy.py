@@ -87,9 +87,8 @@ kernel_func = "Mat_52"
 pckg_list = ["gpytorch"]
 train_iter = 300
 initialize = 10
-noise_std = 1e-4 #Numerically 0 (1e-4**2) or actual noise 0.01
-outputscl = [False, True]
-set_lengthscale = np.linspace(1e-6,1.0,2)
+noise_std = 0.01 #Numerically 0 (1e-4**2) or actual noise 0.01
+outputscl = True
 set_lengthscale = [0.1, 1, None]
 verbose = False
 norm = False
@@ -134,6 +133,7 @@ print("Dense Grid for Xexp?", denseX)
 print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
 print("GP Training Iterations (Gpytorch only): ", train_iter)
 print("GP Kernel Function: ", kernel_func)
+ print("GP Kernel has outputscale?: ", op_scl)
 print("GP Training Restarts (when lengthscale not set): ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
 print("Percentiles: ", percentiles)
@@ -151,10 +151,8 @@ for package in pckg_list:
     print("All Data Path: ", all_data_doc)
     for lenscl in set_lengthscale:
         print("GP Kernel lengthscale: ", lenscl)
-        for op_scl in outputscl:
-            print("GP Kernel has outputscale?: ", op_scl)
-            scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, 
-                              bounds_p, percentiles, skip_param_types, kernel_func, lenscl, 
-                              op_scl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, 
-                              save_figure, eval_Train, Bound_Cut, package = package)
-            print("\n")
+        scikit_gpytorch_mul_maps(all_data, X_space, Xexp, Yexp, Constants, true_p, CS, 
+                          bounds_p, percentiles, skip_param_types, kernel_func, lenscl, 
+                          outputscl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, 
+                          save_figure, eval_Train, Bound_Cut, package = package)
+        print("\n")

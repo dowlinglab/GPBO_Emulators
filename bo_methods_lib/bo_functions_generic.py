@@ -603,12 +603,9 @@ def train_GP_model(model, likelihood, train_param, train_data, noise_std = 0, ke
     #Puts the likelihood in training mode
     likelihood.train()
 
-    # Use the adam optimizer
-        #algorithm for first-order gradient-based optimization of stochastic objective functions
-        # The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. 
-        #The hyper-parameters have intuitive interpretations and typically require little tuning.
-        #lr default is 0.001
-    optimizer = torch.optim.Adam(final_params, lr=0.1) #Needs GaussianLikelihood parameters, and a learning rate
+    # Use the L-BFGS optimizer for small datasets and ADAM for large ones
+#     optimizer = torch.optim.Adam(final_params, lr=0.1) #Needs GaussianLikelihood parameters, and a learning rate
+    optimizer = torch.optim.LBFGS(final_params) #Needs GaussianLikelihood parameters
 
     ## Calculate"Loss" for GPs
     #The marginal log likelihood (the evidence: quantifies joint probability of the data under the prior)
