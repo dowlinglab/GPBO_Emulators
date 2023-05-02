@@ -61,7 +61,11 @@ def Param_Sens_Multi_Theta(all_data, x_space_points, eval_theta_idxs, Xexp, Yexp
     --------
         None, prints/saves data and figues
         
-    """   
+    """ 
+    assert isinstance(outputscl, bool)==True, "Outputscl must be a boolean!"
+    assert isinstance(kernel_func, str) == True, "kernel_func must be a string!"
+    assert isinstance(eval_Train, bool)==True, "eval_Train must be a boolean!"
+    
     param_dict = {0 : 'a_1', 1 : 'a_2', 2 : 'a_3', 3 : 'a_4',
               4 : 'b_1', 5 : 'b_2', 6 : 'b_3', 7 : 'b_4'}
     n, m = Xexp.shape
@@ -167,8 +171,7 @@ def Param_Sens_Analysis(data, x_space_points, eval_theta_num, Xexp, Yexp, true_m
             likelihood.noise_covar.raw_noise.requires_grad_(False)  # Mark that we don't want to train the noise
             
         model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func, outputscl = outputscl) 
-        hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, verbose, set_lengthscale, outputscl,
-                                          initialize, train_iter, rand_seed)
+        hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, verbose, set_lengthscale, outputscl, initialize, train_iter)
         
         lenscl_final, lenscl_noise_final, outputscale_final = hyperparameters
         

@@ -150,6 +150,6 @@ for op_scl in outputscl:
     print("GP Kernel has outputscale?: ", op_scl)
     Param_Sens_Multi_Theta(all_data_list, x_space_points, eval_theta_num, Xexp, Yexp, Constants, true_p, CS, 
                            bounds_p, value_num, skip_param_types, kernel_func, set_lengthscale, 
-                           outputscl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, 
+                           op_scl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, 
                            save_figure, eval_Train, Bound_Cut, package = package)
     print("\n")
