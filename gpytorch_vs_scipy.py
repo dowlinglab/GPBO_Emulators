@@ -84,12 +84,12 @@ t = 200
 percentiles = np.linspace(0,0,1)
 d = len(true_p)
 kernel_func = "Mat_52"
-pckg_list = ["gpytorch"]
-train_iter = 300
+pckg_list = ["gpytorch", "scikit_learn"]
+train_iter = 500
 initialize = 10
 noise_std = 0.01 #Numerically 0 (1e-4**2) or actual noise 0.01
 outputscl = True
-set_lengthscale = [0.1, 1, None]
+set_lengthscale = [1, None]
 verbose = False
 norm = False
 
@@ -133,7 +133,7 @@ print("Dense Grid for Xexp?", denseX)
 print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
 print("GP Training Iterations (Gpytorch only): ", train_iter)
 print("GP Kernel Function: ", kernel_func)
-print("GP Kernel has outputscale?: ", outputscl)
+print("GP Kernel Has Trained outputscale?: ", outputscl)
 print("GP Training Restarts (when lengthscale not set): ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
 print("Percentiles: ", percentiles)
