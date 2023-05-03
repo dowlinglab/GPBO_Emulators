@@ -374,7 +374,7 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
                 model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
             else:
                 #Evaluate GP given parameter set theta and state point value
-                model_mean, model_variance = model.predict(eval_point, return_std=True)
+                model_mean, model_variance = model.predict(eval_point[0:1], return_std=True)
             
             GP_mean[k] = model_mean
             GP_var[k] = model_variance               

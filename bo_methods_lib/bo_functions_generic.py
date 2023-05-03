@@ -123,7 +123,7 @@ def normalize_bounds(x, newRange=np.array([0, 1])): #x is an array. Default rang
         print(norm_new)
         return norm_new  
     
-def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
+def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None, seed = 9):
     """
     Generates theta_set from either a meshgrid search or and LHS
     
@@ -153,7 +153,7 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
                 theta_set[:,i] = normalize_bounds(theta_set[:,i], newRange = (bounds[:,i]))       
     else:
         #Generate LHS sample
-        theta_set = LHS_Design(n_points**2, dimensions, seed = 9, bounds = bounds)
+        theta_set = LHS_Design(n_points**2, dimensions, seed, bounds = bounds)
     return theta_set
 
 def gen_x_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
@@ -1069,9 +1069,12 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=1, obj
     
     #Coverts y_target to ndarray of type float32         
     #Checks that GP mean, GP_var, and y_target are all float 32
+    if isinstance(pred_mean, (np.ndarray) ) == True and len(pred_mean) < 2:
+        pred_mean = np.float32(pred_mean[0]) 
+        pred_var = np.float32(pred_var[0]) 
     if type(y_target) != type(pred_mean):
         y_target = np.float32(y_target) 
-#     print(type(y_target), type(pred_mean))
+#     print(type(y_target), type(pred_mean), type(pred_var))
     assert type(pred_mean) == type(pred_var) == type(y_target), "y_target, pred_mean, and pred_var must be floats"
     
     #Defines standard devaition
