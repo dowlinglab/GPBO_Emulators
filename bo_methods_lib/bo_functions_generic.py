@@ -730,7 +730,7 @@ def train_GP_model(model, likelihood, train_param, train_data, verbose=False, se
     
     # Use the L-BFGS optimizer for small datasets and ADAM for large ones
 #     optimizer = torch.optim.Adam(final_params, lr=0.001) #Needs GaussianLikelihood parameters, and a learning rate
-    optimizer = torch.optim.LBFGS(final_params, line_search_fn='strong_wolfe') #Needs GaussianLikelihood parameters 
+    optimizer = torch.optim.LBFGS(final_params, lr = 0.001, line_search_fn='strong_wolfe') #Needs GaussianLikelihood parameters 
     
     #Optimize lengthscales, outputscales, or both    
     #Don't do any hp optimization if there's no outputscale and the lengthscale is set
