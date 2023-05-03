@@ -21,7 +21,7 @@ import Tasmanian
 from .CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
 # from .CS1_create_data import create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
 
-from .bo_functions_generic import LHS_Design, set_ep, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays, norm_unnorm
+from .bo_functions_generic import LHS_Design, set_ep, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays, norm_unnorm, train_GP_scikit
 
 from .normalize import normalize_x, normalize_p_data, normalize_p_set, normalize_p_true, normalize_constants, normalize_general, normalize_p_bounds
 
@@ -333,8 +333,6 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
         GP_var_all: ndarray, Array of GP mean variances.
     """
     #Asserts that inputs are correct
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert len(Xexp)==len(Yexp), "Experimental data must have same length"
     
     #Define variables for length of Xexp (n), dimensionality of parameter set (q), and length of parameter set (len_set)
@@ -368,9 +366,15 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
             point = point + x_point_data
             point = np.array(point)  
             eval_point = torch.from_numpy(np.array([point])).float()
-            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-            model_mean = GP_Outputs[3].numpy()[0] #1xn
-            model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+            if likelihood != None: 
+                #Evaluate GP given parameter set theta and state point value
+                #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
+                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+                model_mean = GP_Outputs[3].numpy()[0] #1xn
+                model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+            else:
+                #Evaluate GP given parameter set theta and state point value
+                model_mean, model_variance = model.predict(eval_point, return_std=True)
             
             GP_mean[k] = model_mean
             GP_var[k] = model_variance               
@@ -440,9 +444,7 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
         
     """
         #Asserts that inputs are correct
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert verbose==True or verbose==False, "Verbose must be bool"
     
     #Calculate and save best error
@@ -477,10 +479,17 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
         eval_point = torch.tensor(np.array([point])).float()
 #         print(eval_point)
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-        #Save GP outputs
-        model_sse = GP_Outputs[3].numpy()[0] #1xn
-        model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+         #If there is a likelihood, we are using gpytorch. Otherwise, we're using scikit learn
+        if likelihood != None: 
+            #Evaluate GP given parameter set theta and state point value
+            #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
+            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+            model_sse = GP_Outputs[3].numpy()[0] #1xn
+            model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+        else:
+            #Evaluate GP given parameter set theta and state point value
+            model_sse, model_variance = model.predict(eval_point, return_std=True)
+
 #             if verbose == True:
 #                 print("Point",eval_point)
 #                 print("Model Mean",model_sse)
@@ -654,9 +663,7 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
         
     """
     #Asserts that inputs are correct
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
     assert isinstance(train_sse, np.ndarray) or torch.is_tensor(train_sse) == True, "Train_sse must be ndarray or torch.tensor"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert ei_sse_choice == "neg_ei" or ei_sse_choice == "sse", "ei_sse_choice must be string 'ei' or 'sse'"
     assert verbose==True or verbose==False, "Verbose must be True/False"
     
@@ -672,9 +679,15 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
 #         point = theta_guess
 #         eval_point = np.array([point])
         #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
-        GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-        model_sse = GP_Outputs[3].numpy()[0] #1xn 
-        model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+        if likelihood != None: 
+            #Evaluate GP given parameter set theta and state point value
+            #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
+            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+            model_sse = GP_Outputs[3].numpy()[0] #1xn
+            model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+        else:
+            #Evaluate GP given parameter set theta and state point value
+            model_sse, model_variance = model.predict(eval_point, return_std=True)
 
         #Calculate best error and sse
         best_error = -max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
@@ -706,9 +719,15 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
             eval_point = torch.from_numpy(np.array([point])).float()
             #Eval GP
             #Note: eval_point[0:1] is used to avoid a shape error when calling function calc_GP_outputs
-            GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
-            model_mean = GP_Outputs[3].numpy()[0] #1xn
-            model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+            if likelihood != None: 
+                #Evaluate GP given parameter set theta and state point value
+                #Note: eval_point[0:1] prevents a shape error from arising when calc_GP_outputs is called
+                GP_Outputs = calc_GP_outputs(model, likelihood, eval_point[0:1])
+                model_mean = GP_Outputs[3].numpy()[0] #1xn
+                model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
+            else:
+                #Evaluate GP given parameter set theta and state point value
+                model_mean, model_variance = model.predict(eval_point, return_std=True)
             
             #Save GP Outputs
             GP_mean[k] = model_mean
@@ -765,8 +784,6 @@ def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,
     """
     #Assert statements to ensure no bugs
     assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert len(theta0_b) == len(theta0_o), "Initial guesses must be the same length."
     
     #Define dimensionality (q) and length (len_set) of theta_set
@@ -832,30 +849,34 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
         eval_components: ndarray, The componenets evaluate by the GP. ei, sse, var, stdev, f_best, (z_term, ei_term_1, ei_term_2, CDF, PDF, gp_mean_all, gp_var_all)
     """
     assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
-    assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
-    assert isinstance(likelihood, gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood) == True, "Likelihood must be Gaussian"
     assert verbose==True or verbose==False, "Verbose must be True/False"
 
     #Ensure train_y is a tensor
     if isinstance(train_y, np.ndarray)==True:
         train_y = torch.tensor(train_y) #1xn
+        
+    #If there is a likelihood, we are using gpytorch. Otherwise, we're using scikit learn
+    if likelihood != None:
+        #Assert correct likelihood and model  types
+        assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
+        assert isinstance(likelihood, (gpytorch.likelihoods.gaussian_likelihood.GaussianLikelihood, gpytorch.likelihoods.gaussian_likelihood.FixedNoiseGaussianLikelihood)) == True, "Likelihood must be Gaussian"
+        #Put model and likelihood in evaluation mode
+        model.eval()
+        likelihood.eval()
     
-    #Set hyperparameters
-    if set_lengthscale is not None:
-        if verbose == True:
-            print("Lengthscale Set To: " + set_lengthscale)
-        outputscale = torch.tensor([1])
-        lengthscale = torch.tensor([set_lengthscale])
-        noise = torch.tensor([0.1])
+#     #Set hyperparameters
+#     if set_lengthscale is not None:
+#         if verbose == True:
+#             print("Lengthscale Set To: " + set_lengthscale)
+#         outputscale = torch.tensor([1])
+#         lengthscale = torch.tensor([set_lengthscale])
+#         noise = torch.tensor([0.1])
 
-        model.likelihood.noise = noise
-        model.covar_module.base_kernel.lengthscale =lengthscale
-        model.covar_module.outputscale = outputscale
-    
-    model.eval()
-    #Puts likelihood in evaluation mode
-    likelihood.eval()
-    
+#         model.likelihood.noise = noise
+#         model.covar_module.base_kernel.lengthscale =lengthscale
+#         model.covar_module.outputscale = outputscale
+
+   
     #Evaluate GP based on error emulator or property emulator
     if emulator == False:
         eval_components = eval_GP_basic_set(theta_set, train_y, model, likelihood, explore_bias, verbose)
@@ -865,7 +886,7 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
     
     return eval_components
 
-def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, set_lengthscale, true_model_coefficients, param_dict, bounds_p, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = False, norm_scalers = None, case_study = 1):
+def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients, param_dict, bounds_p, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = False, norm_scalers = None, case_study = 1):
     """
     Performs BO iterations
     
@@ -885,7 +906,11 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         run: int, The iteration of the number of times new training points have been picked
         sparse_grid: bool: Determines whether a sparse grid or approximation is used for the GP emulator
         emulator: bool, Determines if GP will model the function or the function error
+        package: str ("gpytorch" or  "scikit_learn") determines which package to use for GP hyperaparameter optimization
+        kernel: str ("Mat_52", Mat_32" or "RBF") Determines which GP Kerenel to use
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        outputscl: bool, Determines whether utfutscale is trained
+        initialize: int, number of times to restart GP training
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         bounds_p: ndarray, The bounds for searching for Theta_True.
@@ -995,13 +1020,37 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
 #             test_p = torch.from_numpy(test_p.astype(np.float32))
             
         #Redefine likelihood and model based on new training data
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
-#         print(type(train_p), type(train_y), train_p.shape, train_y.shape)
-        model = ExactGPModel(train_p, train_y, likelihood)
+        #Define model and likelihood
+        if package == "gpytorch":
+            #If the noise is larger than 0.01, set it appropriately, otherwise use a regular GaussianLikelihood noise and set it manually 
+            noise = torch.tensor(noise_std**2)
+            if noise_std >= 0.01:
+                noise = torch.ones(train_p.shape[0])*noise_std**2
+                likelihood = gpytorch.likelihoods.FixedNoiseGaussianLikelihood(noise=noise, learn_additional_noise=False)
+            else:
+                likelihood = gpytorch.likelihoods.GaussianLikelihood(noise_constraint=gpytorch.constraints.Positive())
+                likelihood.noise = noise  # Some small value. Try 1e-4
+                likelihood.noise_covar.raw_noise.requires_grad_(False)  # Mark that we don't want to train the noise
+
+            model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel, outputscl = outputscl) 
+            hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, verbose, set_lengthscale, outputscl, initialize, train_iter)
+
+            lenscl_final, lenscl_noise_final, outputscale_final = hyperparameters
+
+    #     print('lengthscale: %.3f   noise: %.3f'% (model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()) )
+    #     print(type(model.covar_module.base_kernel.lengthscale.item()), type(model.likelihood.noise.item()))
+
+        elif package == "scikit_learn":
+            likelihood = None
+            model_params = train_GP_scikit(train_p, train_y, noise_std, kernel, verbose,set_lengthscale,outputscl, initialize,rand_seed=9)
+            lenscl_final, lenscl_noise_final, outputscale_final, model = model_params
+#         likelihood = gpytorch.likelihoods.GaussianLikelihood()
+# #         print(type(train_p), type(train_y), train_p.shape, train_y.shape)
+#         model = ExactGPModel(train_p, train_y, likelihood)
         
         #Train GP
 #         print(train_p.dtype, train_y.dtype, theta_set.dtype)
-        train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
+#         train_GP = train_GP_model(model, likelihood, train_p, train_y, train_iter, verbose=False)
         
         #Set Exploration parameter
 #         explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
@@ -1180,7 +1229,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
               
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt, All_Max_EI, gp_mean_all_mat, gp_var_all_mat, time_per_iter
 
-def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator,set_lengthscale, true_model_coefficients, param_dict, bounds_p, bounds_x, verbose = False, save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = True, case_study = 1):
+def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients, param_dict, bounds_p, bounds_x, verbose = False, save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = True, case_study = 1):
     """
     Performs BO iterations with runs. A run contains of choosing different initial training data.
     
@@ -1200,7 +1249,11 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         runs: int, The number of times to choose new training points
         sparse_grid: Determines whether a sparse grid or approximation is used for the GP emulator
         emulator: bool, Determines if GP will model the function or the function error
+        package: str ("gpytorch" or  "scikit_learn") determines which package to use for GP hyperaparameter optimization
+        kernel: str ("Mat_52", Mat_32" or "RBF") Determines which GP Kerenel to use
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        outputscl: bool, Determines whether utfutscale is trained
+        initialize: int, number of times to restart GP training
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         bounds_p: ndarray, The bounds for searching for Theta_True.
@@ -1321,7 +1374,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
 #         print(np.allclose(Theta_True_unscl, Theta_True, rtol=1e-7))
                              
         #Run BO Iteration
-        BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, set_lengthscale, true_model_coefficients_scl, param_dict, bounds_p_scl, verbose, save_fig, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)
+        BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients_scl, param_dict, bounds_p_scl, verbose, save_fig, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)
         
         #Add all SSE/theta results at each BO iteration for that run
         Theta_Best_matrix[i,:,:] = BO_results[0]
