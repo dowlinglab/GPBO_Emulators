@@ -440,13 +440,6 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
     var = np.zeros(len_set)
     stdev = np.zeros(len_set)
 
-    #Save values for EI component terms if verbose == True
-    if verbose == True:
-        z_term = np.zeros(len_set)
-        ei_term_1 = np.zeros(len_set)
-        ei_term_2 = np.zeros(len_set)
-        CDF = np.zeros(len_set)
-        PDF = np.zeros(len_set)
     #Loop over theta combos in theta_set
     for i in range(len_set):
         #Choose and evaluate point

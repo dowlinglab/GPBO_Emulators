@@ -339,7 +339,7 @@ def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_St
                                     GP_mean_data[k,i] - 1.96 * GP_stdev_data[k,i],
                                     GP_mean_data[k,i] + 1.96 * GP_stdev_data[k,i],
                                     alpha=0.3, color = colors[train_idx])
-                ax[ax_idx].scatter(train_xspace_set[k,i], train_xspace_set[k,-1], label = "Training", marker = "*", color = colors[-1], s = 80)
+                ax[ax_idx].scatter(train_xspace_set[k,i], train_xspace_set[k,-1], label = "Training", marker ="*", color= colors[-1], s=80)
                 ax[ax_idx].plot(values_list[i], y_sim_data[k,i], linestyle = "--", label = "Y Sim", color = colors[-1])
 
                 #Set plot details        
