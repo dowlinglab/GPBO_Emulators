@@ -67,7 +67,7 @@ def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, 
 #     print(theta_b, theta_o)
     return theta_b, theta_o
 
-def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, bounds_p, sep_fact = 1, skip_param_types = 0, normalize = False, norm_scalers = None):
+def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, save_CSV, param_dict, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, bounds_p, sep_fact = 1, skip_param_types = 0, normalize = False, norm_scalers = None):
     """
     Evaluates all combinations of theta pairs to make heat maps
     
@@ -93,6 +93,7 @@ def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp
         sparse_grid: bool, bool: Determines whether a sparse grid or approximation is used for the GP emulator
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_fig: bool, Determines whether figures will be saved
+        save_CSV: bool, Determines whether CSVs will be saved
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
         run: int or None, The iteration of the number of times new training points have been picked
@@ -123,10 +124,10 @@ def eval_all_theta_pairs(dimensions, theta_set, n_points, Theta_True, Xexp, Yexp
         #Finds the name of the parameters that correspond to each index. There will only ever be 2 here since the purpose of the function called here is to plot in 2D
         param_names_list = [param_dict[indecies[0]], param_dict[indecies[1]]]
         #Evaluate and plot each set of values over a grid
-        eval_and_plot_GP_over_grid(theta_set, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, sep_fact, skip_param_types, normalize, norm_scalers)
+        eval_and_plot_GP_over_grid(theta_set, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, save_CSV, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, sep_fact, skip_param_types, normalize, norm_scalers)
     return
     
-def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, sep_fact, skip_param_types = 0, normalize = False, norm_scalers = None):
+def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, save_CSV, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, true_model_coefficients, sep_fact, skip_param_types = 0, normalize = False, norm_scalers = None):
     '''
     Makes heat maps given a combination of theta pairs
     
@@ -152,6 +153,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         sparse_grid: bool, bool: Determines whether a sparse grid or approximation is used for the GP emulator
         set_lengthscale: float or None, The value of the lengthscale hyperparameter or None if hyperparameters will be updated at training
         save_fig: bool, Determines whether figures will be saved
+        save_CSV: bool, Determines whether CSVs will be saved
         param_names_list: list, list of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         bo_iter: int or None, Determines if figures are save, and if so, which iteration they are
         run: int or None, The iteration of the number of times new training points have been picked
@@ -263,7 +265,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
     Theta_True = np.array([Theta_True[indecies[0]], Theta_True[indecies[1]]])
     
     #Plot and save figures for EI
-    value_plotter(theta_mesh, list_of_plot_variables[0], Theta_True, theta_o, theta_b, train_p_plot, titles[0],titles_save[0], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, normalize = normalize)
+    value_plotter(theta_mesh, list_of_plot_variables[0], Theta_True, theta_o, theta_b, train_p_plot, titles[0],titles_save[0], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
 
     #Ensure that a plot of SSE (and never ln(SSE)) is drawn
     if obj == "LN_obj" and emulator == False:
@@ -272,7 +274,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         plot_sse = np.log(list_of_plot_variables[1])
 
     #Plot and save figures for SSE
-    value_plotter(theta_mesh, plot_sse, Theta_True, theta_o, theta_b, train_p_plot, titles[1], titles_save[1], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, normalize = normalize)
+    value_plotter(theta_mesh, plot_sse, Theta_True, theta_o, theta_b, train_p_plot, titles[1], titles_save[1], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
 
     #Plot and save other figures
     #Loop over remaining variables to be saved and plotted
@@ -285,7 +287,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         if isinstance(component, (np.float32, np.float64)) == False:
             if title not in ['GP Mean','GP Variance']: 
 #                 print(type(component), component.shape)
-                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p_plot, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, normalize = normalize)
+                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p_plot, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
         elif isinstance(component, (np.float32, np.float64)) == True and title == "Best_Error" :
             Best_Error_Found = np.round(component,4)
             if verbose == True:
@@ -807,7 +809,7 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
     
     return eval_components
 
-def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients, param_dict, bounds_p, verbose = False,save_fig=False, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = False, norm_scalers = None, case_study = 1):
+def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, run, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients, param_dict, bounds_p, verbose = False,save_fig=False, save_CSV = True, tot_runs = 1, DateTime=None, test_p = None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = False, norm_scalers = None, case_study = 1):
     """
     Performs BO iterations
     
@@ -837,6 +839,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         bounds_p: ndarray, The bounds for searching for Theta_True.
         verbose: bool, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: bool, Determines whether figures will be saved. Default False
+        save_CSV: bool, Determines whether CSVs will be saved. Default True
         tot_runs: The total number of runs to perform. Default 1
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         test_p: None, tensor, or ndarray, The testing parameter space data. Default None
@@ -946,7 +949,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         
         #Evaluate all pairs of theta if necessary
         if eval_all_pairs == True:
-            eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, bounds_p, sep_fact, skip_param_types, normalize, norm_scalers)
+            eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, save_CSV, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, bounds_p, sep_fact, skip_param_types, normalize, norm_scalers)
         
         #Evaluate GP for best EI theta set
         torch_theta_b = torch.tensor(np.array([theta_b]))
@@ -1087,7 +1090,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
               
     return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt, All_Max_EI, gp_mean_all_mat, gp_var_all_mat, time_per_iter
 
-def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients, param_dict, bounds_p, bounds_x, verbose = False, save_fig=False, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = True, case_study = 1):
+def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explore_bias, Xexp, Yexp, noise_std, obj, runs, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients, param_dict, bounds_p, bounds_x, verbose = False, save_fig=False, save_CSV = True, shuffle_seed = None, DateTime=None, sep_fact = 1, LHS = False, skip_param_types = 0, eval_all_pairs = False, normalize = True, case_study = 1):
     """
     Performs BO iterations with runs. A run contains of choosing different initial training data.
     
@@ -1118,6 +1121,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         bounds_x: ndarray, The bounds of Xexp
         verbose: bool, Determines whether z_term, ei_term_1, ei_term_2, CDF, and PDF terms are saved, Default = False
         save_fig: bool, Determines whether figures will be saved. Default False
+        save_CSV: bool, Determines whether CSVs will be saved. Default True
         shuffle_seed, int, number of seed for shuffling training data. Default is None. 
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         sep_fact: float, Between 0 and 1. Determines fraction of all data that will be used to train the GP. Default is 1.
@@ -1202,7 +1206,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
             bounds_p_scl, train_p_scl, test_p_scl, bounds_x_scl, Xexp_scl, theta_set_scl, Theta_True_scl, true_model_coefficients_scl =  bounds_p, train_p, test_p, bounds_x, Xexp, theta_set, Theta_True, true_model_coefficients
                              
         #Run BO Iteration
-        BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients_scl, param_dict, bounds_p_scl, verbose, save_fig, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)
+        BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients_scl, param_dict, bounds_p_scl, verbose, save_fig, save_CSV, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)
         
         #Add all SSE/theta results at each BO iteration for that run
         Theta_Best_matrix[i,:,:] = BO_results[0]
@@ -1232,15 +1236,15 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     #Plot all SSE/theta results for each BO iteration for all runs
     if runs >= 1:
         plot_Theta(Theta_Opt_matrix, Theta_True, t, obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, param_dict, BO_iters,
-                   runs, DateTime, sep_fact = sep_fact, normalize = normalize)
+                   runs, DateTime, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
         plot_Theta_min(Theta_Opt_abs_matrix, Theta_True, t, obj,ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_dict,
-                       BO_iters, runs, DateTime, sep_fact = sep_fact, normalize = normalize) 
+                       BO_iters, runs, DateTime, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize) 
         
-    plot_obj(SSE_matrix, t, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact, normalize = normalize)
+    plot_obj(SSE_matrix, t, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, BO_iters, runs, DateTime, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
     plot_obj_abs_min(SSE_matrix_abs_min, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, 
-                     sep_fact = sep_fact, normalize = normalize)
+                     sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
     plot_EI_abs_max(EI_matrix_abs_max, emulator, ep0, sparse_grid, set_lengthscale, t, obj, save_fig, BO_iters, runs, DateTime, 
-                    sep_fact = sep_fact, normalize = normalize)
+                    sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
           
     
     #Find point corresponding to absolute minimum SSE and max(-ei) at that point
