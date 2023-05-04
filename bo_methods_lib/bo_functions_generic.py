@@ -95,9 +95,10 @@ def clean_1D_arrays(array, param_clean = False):
     """
     #If array is not 2D, if it is a parameter 1D array, give it shape (1, len(array)) otherwise give it shape (len(array),1)
     if not len(array.shape) > 1:
-        array = array.reshape(-1,1)
         if param_clean == True:
             array = array.reshape(1,-1)
+        else:
+            array = array.reshape(-1,1)
     return array
 
 def normalize_bounds(x, newRange=np.array([0, 1])): #x is an array. Default range is between zero and one
@@ -354,7 +355,30 @@ def set_ep(emulator, obj, sparse):
 #     reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
 #     lhs_design = list(reader) #Creates list from CSV
 #     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
-#     return param_space     
+#     return param_space
+
+def train_test_type():
+    """
+    Breaks data into training and testing data based on whether a type 1 or type 2 GPBO is being used
+    """
+    #Note: This function is currectly usused
+    if emulator == True:
+        train_p = train_data[:,1:(q+m+1)]
+        test_p = test_data[:,1:(q+m+1)]
+    else:
+        train_p = train_data[:,1:(q+1)]
+        test_p = test_data[:,1:(q+1)]
+
+    train_y = train_data[:,-1]
+    test_y = test_data[:,-1]
+    assert len(train_p) == len(train_y), "Training data must be the same length"
+
+    if emulator == True:
+        assert len(train_p.T) ==q+m, "train_p must have the same number of dimensions as the value of q+m"
+    else:
+        assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
+
+    return train_p, train_y, test_p, test_y
 
 def test_train_split(all_data, sep_fact=1, runs = 1, shuffle_seed = None):
     """
@@ -441,6 +465,53 @@ def find_train_doc_path(emulator, obj, d, t, bound_cut = False, denseX = True):
     all_data_doc += ".csv"
             
     return all_data_doc
+
+def define_GP_model(package, noise_std, train_p, train_y, kernel, set_lengthscale, outputscl, initialize, train_iter, verbose):
+    """
+    Defines a model/likelihood for GP training and trains the GP model
+    Parameters
+    ----------
+        package: str ("gpytorch" or  "scikit_learn") determines which package to use for GP hyperaparameter optimization
+        noise_std: float, int: The standard deviation of the noise
+        train_p: tensor or ndarray, The training parameter space data
+        train_y: tensor or ndarray, The training y data
+        kernel: str ("Mat_52", Mat_32" or "RBF") Determines which GP Kerenel to use
+        set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        outputscl: bool, Determines whether utfutscale is trained
+        initialize: int, number of times to restart GP training
+        train_iter: int, number of training iterations to run. Default is 300
+        verbose: bool, Determines whether to print hyperparameter values
+    
+    Returns
+    -------
+        final_params: ndarray, List containing values of hyperparameters that will be optimized
+        lenscl_parm: torch.tensor, tensor containing lengthscale
+        noise_level: torch.tensor, tensor containing noise level of likelihood
+        op_scl: torch.tensor, tensor containing outputscale
+    
+    """
+    if package == "gpytorch":
+        #If the noise is larger than 0.01, set it appropriately, otherwise use a regular GaussianLikelihood noise and set it manually 
+        noise = torch.tensor(noise_std**2)
+        if noise_std >= 0.01:
+            noise = torch.ones(train_p.shape[0])*noise_std**2
+            likelihood = gpytorch.likelihoods.FixedNoiseGaussianLikelihood(noise=noise, learn_additional_noise=False)
+        else:
+            likelihood = gpytorch.likelihoods.GaussianLikelihood(noise_constraint=gpytorch.constraints.Positive())
+            likelihood.noise = noise  # Some small value. Try 1e-4
+            likelihood.noise_covar.raw_noise.requires_grad_(False)  # Mark that we don't want to train the noise
+
+        model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel, outputscl = outputscl) 
+        hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, verbose, set_lengthscale, outputscl, initialize, train_iter)
+
+        lenscl_final, lenscl_noise_final, outputscale_final = hyperparameters
+
+    elif package == "scikit_learn":
+        likelihood = None
+        model_params = train_GP_scikit(train_p, train_y, noise_std, kernel, verbose,set_lengthscale,outputscl, initialize,rand_seed=9)
+        lenscl_final, lenscl_noise_final, outputscale_final, model = model_params
+    
+    return model, likelihood, lenscl_final, lenscl_noise_final, outputscale_final
 
 class ExactGPModel(gpytorch.models.ExactGP): #Exact GP does not add noise unless you do
     """
@@ -1084,8 +1155,6 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=1, obj
     if obj == "obj":
         with np.errstate(divide = 'warn'):
             #Creates upper and lower bounds and described by Alex Dowling's Derivation
-#             bound_a = ((y_target - pred_mean) +np.sqrt(error_best - explore_bias))/pred_stdev #1xn
-#             bound_b = ((y_target - pred_mean) -np.sqrt(error_best - explore_bias))/pred_stdev #1xn
             bound_a = ((y_target - pred_mean) +np.sqrt(error_best*explore_bias))/pred_stdev #1xn
             bound_b = ((y_target - pred_mean) -np.sqrt(error_best*explore_bias))/pred_stdev #1xn
             bound_lower = np.min([bound_a,bound_b])
@@ -1093,14 +1162,11 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=1, obj
 
             #Creates EI terms in terms of Alex Dowling's Derivation
             ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
-#             ei_term1_comp2 = (error_best - explore_bias) - (y_target - pred_mean)**2 #1xn
             ei_term1_comp2 = (error_best*explore_bias) - (y_target - pred_mean)**2 #1xn
-#             print(ei_term1_comp1, ei_term1_comp2)
 
             ei_term2_comp1 = 2*(y_target - pred_mean)*pred_stdev #1xn
             ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
             ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
-#             print(ei_eta_upper, ei_eta_lower)
             ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
 
             ei_term3_comp1 = bound_upper*ei_eta_upper #1xn
@@ -1108,41 +1174,28 @@ def calc_ei_emulator(error_best,pred_mean,pred_var,y_target, explore_bias=1, obj
 
             ei_term3_comp3 = (1/2)*math.erf(bound_upper/np.sqrt(2)) #1xn
             ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2)) #1xn  
-#             print(ei_term3_comp3, ei_term3_comp4)
 
             ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
             ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4 #1xn
-#             print(ei_term3_psi_upper, ei_term3_psi_lower)
             ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
 
             ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
             ei_term3 = -pred_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
-#             print(ei_term1, ei_term2, ei_term3)
             EI = ei_term1 + ei_term2 + ei_term3 #1xn
     else:
-#         print("It's working")
         with np.errstate(divide = 'warn'):
             #Creates upper and lower bounds and described by Alex Dowling's Derivation
-#             bound_a = ((y_target - pred_mean) +np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
-#             bound_b = ((y_target - pred_mean) -np.sqrt(np.exp(error_best - explore_bias)))/pred_stdev #1xn
             bound_a = ((y_target - pred_mean) +np.sqrt(np.exp(error_best*explore_bias)))/pred_stdev #1xn
             bound_b = ((y_target - pred_mean) -np.sqrt(np.exp(error_best*explore_bias)))/pred_stdev #1xn
             bound_lower = np.min([bound_a,bound_b])
             bound_upper = np.max([bound_a,bound_b])
             
             args = (error_best, pred_mean, pred_stdev, y_target, explore_bias)
-#             print(bound_lower,bound_upper)
-#             print(error_best, pred_mean, pred_stdev, y_target, explore_bias)
-            #This first way is very slow
-#             ei, abs_err = integrate.quad(ei_approx_ln_term, bound_lower, bound_upper, args = args) 
-            #This 2nd way throws the error -> too many values to unpack (expected 3) even though 3 values are being unpacked unless you do it like this and not, EI, abs_err, infordict =
             ei_term_1 = (error_best*explore_bias)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
             ei_term_2_out = integrate.quad(ei_approx_ln_term, bound_lower, bound_upper, args = args, full_output = 1)
             ei_term_2 = (-2)*ei_term_2_out[0] 
-#             ei_term_2 = (-1)*ei_term_2_out[0] 
             term_2_abs_err = ei_term_2_out[1]
             EI = ei_term_1 + ei_term_2
-#             print(EI)
    
     ei = EI         
     return ei
@@ -1284,7 +1337,5 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=1, verbose=False):
     else:
         #Sets ei to zero if standard deviation is zero
         ei = 0
-    if verbose == True:
-        return ei,z, ei_term_1,ei_term_2,norm.cdf(z),norm.pdf(z)
-    else:
-        return ei
+
+    return ei
