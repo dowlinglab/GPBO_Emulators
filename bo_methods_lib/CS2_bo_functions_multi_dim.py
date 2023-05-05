@@ -565,7 +565,7 @@ def argmax_multiple(argmax, train_p, theta_set):
             max_distance_sq = distance_sq
             argmax_best = np.array([point])
             
-    return argmax_best
+    return argmax_best.flatten()
              
 ##FOR USE WITH SCIPY##################################################################
 def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias=1, ei_sse_choice = "neg_ei", verbose=False, obj = "obj", skip_param_types = 0, norm_scalers = None):
