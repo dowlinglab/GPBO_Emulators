@@ -1218,7 +1218,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     
     #Calculate median time
     median_time_per_iter = np.median(time_per_iter_matrix[np.nonzero(time_per_iter_matrix)])
-    print("Median BO Iteration Time: ", median_time_per_iter)
+    print("Median BO Iteration Time (s): ", median_time_per_iter)
         
     #Plot all SSE/theta results for each BO iteration for all runs
     if runs >= 1:
