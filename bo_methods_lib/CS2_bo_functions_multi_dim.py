@@ -510,11 +510,16 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p):
     #Only use argmax_multiple algorithm when >1 points have the max ei
     if len(argmax) > 1:
         argmax = argmax_multiple(argmax, train_p, theta_set)
-
-    argmax = int(argmax) #Use an integer to call from theta_set to ensure correct shapes of Theta_Best
-    #Find theta value corresponding to argmax(EI) and ensure only parameter values are saved
-    Theta_Best = theta_set[argmax]
-    Theta_Best = Theta_Best[0:q]
+    try:
+        argmax = int(argmax) #Use an integer to call from theta_set to ensure correct shapes of Theta_Best
+        #Find theta value corresponding to argmax(EI) and ensure only parameter values are saved
+        Theta_Best = theta_set[argmax]
+        Theta_Best = Theta_Best[0:q]
+    except:
+        print("argmax ", argmax, "argmax type ", type(argmax), "argmax shape ", argmax.shape, "argmin ", argmin, "argmin type ", type(argmin), "argmin shape ", argmin.shape, "theta set shape ", theta_set.shape, "train_p.shape ", train_p.shape, "ei shape", ei.shape)
+        Theta_Best = theta_set[argmax]
+        Theta_Best = Theta_Best[0:q]
+        print("t best shape ", Theta_Best.shape, " t opt shape ", Theta_Opt_GP.shape)
     return Theta_Best, Theta_Opt_GP
 
 def argmax_multiple(argmax, train_p, theta_set):
@@ -560,7 +565,7 @@ def argmax_multiple(argmax, train_p, theta_set):
             max_distance_sq = distance_sq
             argmax_best = np.array([point])
             
-    return int(argmax_best)
+    return argmax_best
              
 ##FOR USE WITH SCIPY##################################################################
 def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias=1, ei_sse_choice = "neg_ei", verbose=False, obj = "obj", skip_param_types = 0, norm_scalers = None):
