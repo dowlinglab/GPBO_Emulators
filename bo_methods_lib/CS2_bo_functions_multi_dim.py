@@ -57,12 +57,11 @@ def optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, 
        theta_o: ndarray, The point where the ei is maximized in theta space   
     """
     #Could modify to check every point
-#     print(skip_param_types)
     #Find initial guess for theta_b and theta_o based on theta_set
+    #Could this be the issue? That theta_set is not large enough to get good starting guesses?
     theta0_b, theta0_o = find_opt_and_best_arg(theta_set, sse, ei, train_p)
 #     print(theta0_b, theta0_o)
     #Use scipy to find the true values of theta_b and theta_o
-#     print(theta_set.dtype, theta0_b.dtype,theta0_o.dtype)
     theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj, bounds_p, skip_param_types, norm_scalers)
 #     print(theta_b, theta_o)
     return theta_b, theta_o
@@ -340,7 +339,7 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
     GP_var_all = np.zeros((len_set,n))
     
     ##Calculate Best Error
-    # Loop over theta 1
+    # Loop over each theta
     for i in range(len_set):
         #Caclulate best error and initialize arrays to store GP mean and variance in
         best_error = eval_GP_emulator_BE(Xexp, Yexp, train_p, true_model_coefficients, emulator, "obj", skip_param_types, norm_scalers)
@@ -364,7 +363,8 @@ def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, 
                 model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
             else:
                 #Evaluate GP given parameter set theta and state point value
-                model_mean, model_variance = model.predict(eval_point[0:1], return_std=True)
+                model_mean, model_std = model.predict(eval_point[0:1], return_std=True)
+                model_variance = model_std**2
             
             GP_mean[k] = model_mean
             GP_var[k] = model_variance               
@@ -457,7 +457,8 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
             model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
         else:
             #Evaluate GP given parameter set theta and state point value
-            model_sse, model_variance = model.predict(eval_point, return_std=True)
+            model_sse, model_std = model.predict(eval_point, return_std=True)
+            model_variance = model_std**2
             
         sse[i] = model_sse
         var[i] = model_variance
@@ -466,7 +467,7 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
     
     return ei, sse, var, stdev, best_error #Prints just the value
 
-def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to fix setting of points yet
+def find_opt_and_best_arg(theta_set, sse, ei, train_p):
     """
     Finds the Theta value where min(sse) or min(-ei) is true using argmax and argmin
     
@@ -494,7 +495,6 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
     #ensures that only one point is used if multiple points yield a minimum
     #pick only one value if 2 values are both the minimum
     if len(argmin) > 1:
-#         print("Multiple Argmin")
         rand_ind = np.random.randint(np.max(argmin.shape)) #Chooses a random point with the minimum value
         argmin = np.array([argmin[rand_ind]])
     argmin = int(argmin) #Use an integer to call from theta_set to ensure correct shapes of Theta_Opt_GP
@@ -509,17 +509,12 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
     #ensures that only one point is used if multiple points yield a maximum
     #Only use argmax_multiple algorithm when >1 points have the max ei
     if len(argmax) > 1:
-#         print("Multiple Argmax")
         argmax = argmax_multiple(argmax, train_p, theta_set)
 
     argmax = int(argmax) #Use an integer to call from theta_set to ensure correct shapes of Theta_Best
     #Find theta value corresponding to argmax(EI) and ensure only parameter values are saved
     Theta_Best = theta_set[argmax]
     Theta_Best = Theta_Best[0:q]
-    
-#     print(sse[argmin])   
-#     print(Theta_Best)
-#     print(Theta_Opt_GP)
     return Theta_Best, Theta_Opt_GP
 
 def argmax_multiple(argmax, train_p, theta_set):
@@ -545,12 +540,8 @@ def argmax_multiple(argmax, train_p, theta_set):
     argmax_best = np.zeros(1)
     
     #Create avg x y pt for training data for only values of parameters to be regressed
-#     train_T12_avg = np.average(train_p, axis =0)
-    train_T12_avg = np.average(train_p, axis =0)
+    train_T12_avg = np.average(train_p, axis = 0)
     train_T12_avg = train_T12_avg[0:q] #Only save the values corresponding to parameters
-#     print(q)
-#     print(train_T12_avg)
-#     print(theta_set[0])
 
     #Check each point in argmax with all training points and find max distance
     #Loop over all coord points
@@ -627,7 +618,8 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
             model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
         else:
             #Evaluate GP given parameter set theta and state point value
-            model_sse, model_variance = model.predict(eval_point, return_std=True)
+            model_sse, model_std = model.predict(eval_point, return_std=True)
+            model_variance = model_std**2
 
         #Calculate best error and sse
         best_error = -max(-train_sse) #Negative sign because -max(-train_sse) = min(train_sse)
@@ -664,7 +656,8 @@ def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, 
                 model_variance= GP_Outputs[1].detach().numpy()[0] #1xn
             else:
                 #Evaluate GP given parameter set theta and state point value
-                model_mean, model_variance = model.predict(eval_point, return_std=True)
+                model_mean, model_std = model.predict(eval_point, return_std=True)
+                model_variance = model_std**2
             
             #Save GP Outputs
             GP_mean[k] = model_mean
@@ -748,8 +741,8 @@ def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,
     argmts_best = ((train_y, train_p, Xexp, Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias, ei_sse_choice1, verbose, obj, skip_param_types, norm_scalers))
     argmts_opt =  ((train_y, train_p, Xexp, Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias, ei_sse_choice2, verbose, obj, skip_param_types, norm_scalers))
 
-    Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b,bounds=bnds, method = "L-BFGS-B", args=argmts_best)
-    Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_o,bounds=bnds,method = "L-BFGS-B",args=argmts_opt)
+    Best_Solution = optimize.minimize(eval_GP_scipy, theta0_b, bounds=bnds, method = "L-BFGS-B", args=argmts_best)
+    Opt_Solution = optimize.minimize(eval_GP_scipy, theta0_o, bounds=bnds, method = "L-BFGS-B", args=argmts_opt)
     
     #save best and optimal values and return them
     theta_b = Best_Solution.x
@@ -786,13 +779,12 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
         eval_components: ndarray, The componenets evaluate by the GP. ei, sse, var, stdev, f_best, (z_term, ei_term_1, ei_term_2, CDF, PDF, gp_mean_all, gp_var_all)
     """
     assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
-    assert verbose==True or verbose==False, "Verbose must be True/False"
 
     #Ensure train_y is a tensor
     if isinstance(train_y, np.ndarray)==True:
         train_y = torch.tensor(train_y) #1xn
         
-    #If there is a likelihood, we are using gpytorch. Otherwise, we're using scikit learn
+    #If there is a likelihood, we are using gpytorch and we must put the model in eval mode. Otherwise, we're using scikit learn
     if likelihood != None:
         #Assert correct likelihood and model  types
         assert isinstance(model,ExactGPModel) == True, "Model must be the class ExactGPModel"
@@ -805,7 +797,6 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
     if emulator == False:
         eval_components = eval_GP_basic_set(theta_set, train_y, model, likelihood, explore_bias, verbose)
     else:
-#         eval_components = eval_GP_emulator_tot(Xexp,Yexp, theta_mesh, model, likelihood, sparse_grid, explore_bias, verbose)
         eval_components = eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, sparse_grid, emulator, explore_bias, verbose, train_p, obj, skip_param_types, norm_scalers)
     
     return eval_components
@@ -868,12 +859,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     """
     
     #Assert Statments
-    assert all(isinstance(i, int) for i in [BO_iters, train_iter]), "BO_iters and train_iter must be integers"
     assert len(train_p) == len(train_y), "Training data must be the same length"
-    assert len(Xexp) == len(Yexp), "Experimental data must have the same length"
-    assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
-    assert verbose==True or verbose==False, "Verbose must be bool"
-    assert emulator==True or emulator==False, "Verbose must be bool"
 
     #Find values of dimensions of Xexp (m), number of experimental data (n), dimensionality of theta (q), and number of data (t)
     m = Xexp.shape[1] #Dimensions of X
@@ -934,7 +920,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
 #         explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
         explore_bias = ep_init #Sets ep to the multiplicative scaler between 0.1 and 1
         
-        #Evaluate GP to find sse and ei for optimization step
+        #Evaluate GP to find sse and ei for optimization step at each theta in the LHS
         eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj, skip_param_types, norm_scalers)
 
         #If the emulator approach is used, gp_mean_all and gp_var_all are saved, and there are no internal EI parameters to report
@@ -944,11 +930,11 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         else:
             ei,sse,var,stdev,best_error = eval_components
 
-        #solve for opt and best based on theta_set
+        #solve for opt and best based on the highest ei and lowest sse from the GP evaluations of theta_set
         theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, bounds_p, skip_param_types, norm_scalers)
-#         print(Theta_True, theta_o)
+#         print(theta_b, theta_o)
         
-        #Evaluate all pairs of theta if necessary
+        #Evaluate all pairs of theta to make heat maps if necessary
         if eval_all_pairs == True:
             eval_all_theta_pairs(q, theta_set, data_points, Theta_True, Xexp, Yexp, theta_o, theta_b, train_p, train_y, model, likelihood, verbose, obj, ep0, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, save_CSV, param_dict, i, run, BO_iters, tot_runs, DateTime, t,  true_model_coefficients, bounds_p, sep_fact, skip_param_types, normalize, norm_scalers)
         
@@ -967,15 +953,15 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             ei_best,sse_best,var_best,stdev_best,best_error_best = eval_components_best
             gp_mean_all_mat[i] = sse_best
             gp_var_all_mat[i] = var_best
-
-        #Write code to save these values
-#         print(ei,sse,var,stdev,best_error)
-        
+     
         #Save Figures
         #Update timer
         timeend = time.time()
         time_per_iter[i] +=  (timeend - timestart)
               
+        #Write code to save these values
+#         print(ei,sse,var,stdev,best_error)
+        
         #Update timer
         timestart = time.time()
 
@@ -1004,21 +990,20 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         
         #Calculate GP SSE and save value
         ln_error_mag = np.log(np.sum((y_GP_Opt-Yexp)**2)) 
+        All_SSE[i] = ln_error_mag
         
         if verbose == True:
             print("Magnitude of ln(SSE) given Theta_Opt = ",theta_o_unscl, "is", "{:.4e}".format(ln_error_mag))
             print("Scipy Theta Best = ",theta_b_unscl)
             print("Scipy Theta Opt = ",theta_o_unscl)
 
-        All_SSE[i] = ln_error_mag
-        
         #Save best value of SSE for plotting          
         if i == 0:
         #At the first iteration, the minimum SSE is the only SSE and the min theta is the first theta
             All_SSE_abs_min[i] = ln_error_mag
             All_Theta_abs_Opt[i] = theta_o_unscl
             improvement = False
-#             All_SSE_abs_min[i] = sse_opt
+
         #Otherwise, the minimum SSE and theta_o that correspond are determined by the ln_error_mag
         else:
         #If ln_error_mag is smaller than before it is the new best value, otherwise it remains the same
@@ -1061,16 +1046,17 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         timeend = time.time()
         time_per_iter[i] +=  (timeend - timestart)
         
-        df_list = [train_p_unscl, test_p_unscl]
-        df_list_ends = ["Train_p", "Test_p"]
-        fxn = "value_plotter"
-        title_save_TT = "Train_Test_Data"
-        
-        for j in range(len(df_list)):
-            array_df = pd.DataFrame(df_list[j])
-            path_csv = path_name(emulator, explore_bias, sparse_grid, fxn, set_lengthscale, t, obj, None, i, title_save_TT, run, tot_iter=Total_BO_iters, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[j], normalize = normalize)
-#             print(path_csv)
-            save_csv(array_df, path_csv, ext = "npy") #Note: Iter 3 means the TPs used in calculations for iter 3 to determine iter 4
+        if save_CSV == True:
+            df_list = [train_p_unscl, test_p_unscl]
+            df_list_ends = ["Train_p", "Test_p"]
+            fxn = "value_plotter"
+            title_save_TT = "Train_Test_Data"
+
+            for j in range(len(df_list)):
+                array_df = pd.DataFrame(df_list[j])
+                path_csv = path_name(emulator, explore_bias, sparse_grid, fxn, set_lengthscale, t, obj, None, i, title_save_TT, run, tot_iter=Total_BO_iters, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[j], normalize = normalize)
+    #             print(path_csv)
+                save_csv(array_df, path_csv, ext = "npy") #Note: Iter 3 means the TPs used in calculations for iter 3 to determine iter 4
         
         #Update timer
         timestart = time.time()
@@ -1114,7 +1100,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         package: str ("gpytorch" or  "scikit_learn") determines which package to use for GP hyperaparameter optimization
         kernel: str ("Mat_52", Mat_32" or "RBF") Determines which GP Kerenel to use
         set_lengthscale: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
-        outputscl: bool, Determines whether utfutscale is trained
+        outputscl: bool, Determines whether outputscale is trained
         initialize: int, number of times to restart GP training
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
@@ -1142,13 +1128,14 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     
     """
     #Assert statements
-    assert all(isinstance(i, int) for i in [BO_iters, t,runs,train_iter]), "BO_iters, t, runs, and train_iter must be integers"
+    assert all(isinstance(i, int) for i in [BO_iters, t,runs,train_iter, skip_param_types, runs, initialize]), "integer variables must be integers"
+#     print(type(emulator), type(verbose), type(eval_all_pairs), type(outputscl), type(sparse_grid), type(normalize))
+    assert all(isinstance(i, (bool, np.bool_)) for i in [emulator, verbose, eval_all_pairs, outputscl, sparse_grid, normalize]), "Boolean variables must be booleans"
     assert BO_iters > 0, "Number of BO Iterations must be greater than 0!"
     assert len(Xexp) == len(Yexp), "Experimental data must have the same length"
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
-    assert verbose==True or verbose==False, "Verbose must be bool"
-    assert emulator==True or emulator==False, "Verbose must be bool"
-    assert isinstance(runs, int) == True, "Number of runs must be an integer"
+    assert package == "scikit_learn" or package == "gpytorch", "Package must be scikit_learn or gpytorch"
+    assert isinstance(kernel, str) == True, "kernel_func must be a string!"
     
     #Find values of dimensions of Xexp (m), number of experimental data (n), dimensionality of theta (q), and number of data (t)
     m = Xexp.shape[1]
@@ -1223,16 +1210,15 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
 #         print(time_per_iter_matrix)
         
     #Save GP mean and Var and time/iter here
-    fxn_name_list = ["GP_mean_vals", "GP_var_vals", "time_per_iter"]
-    fxn_data_list = [GP_mean_matrix, GP_var_matrix, time_per_iter_matrix]
-    for i in range(len(fxn_name_list)):
-        save_misc_data(fxn_data_list[i], fxn_name_list[i], t, obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, tot_iter=BO_iters, tot_runs=runs, DateTime=DateTime, sep_fact = sep_fact, normalize = normalize)
+    if save_CSV == True:
+        fxn_name_list = ["GP_mean_vals", "GP_var_vals", "time_per_iter"]
+        fxn_data_list = [GP_mean_matrix, GP_var_matrix, time_per_iter_matrix]
+        for i in range(len(fxn_name_list)):
+            save_misc_data(fxn_data_list[i], fxn_name_list[i], t, obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, tot_iter=BO_iters, tot_runs=runs, DateTime=DateTime, sep_fact = sep_fact, normalize = normalize)
     
     #Calculate median time
     median_time_per_iter = np.median(time_per_iter_matrix[np.nonzero(time_per_iter_matrix)])
-    if verbose == True:
-        print(median_time_per_iter)
-#     print( GP_var_matrix)
+    print("Median BO Iteration Time: ", median_time_per_iter)
         
     #Plot all SSE/theta results for each BO iteration for all runs
     if runs >= 1:

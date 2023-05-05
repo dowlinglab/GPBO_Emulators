@@ -801,7 +801,7 @@ def train_GP_model(model, likelihood, train_param, train_data, verbose=False, se
     
     # Use the L-BFGS optimizer for small datasets and ADAM for large ones
 #     optimizer = torch.optim.Adam(final_params, lr=0.001) #Needs GaussianLikelihood parameters, and a learning rate
-    optimizer = torch.optim.LBFGS(final_params, lr = 0.001, line_search_fn='strong_wolfe') #Needs GaussianLikelihood parameters 
+    optimizer = torch.optim.LBFGS(final_params, lr = 0.001, line_search_fn='strong_wolfe')
     
     #Optimize lengthscales, outputscales, or both    
     #Don't do any hp optimization if there's no outputscale and the lengthscale is set
@@ -1271,10 +1271,9 @@ def eval_GP_sparse_grid(Xexp, Yexp, GP_mean, GP_stdev, best_error, ep, verbose =
         for j in range(n):
             SSE_Temp += (Yexp[j] - GP_mean[j] - GP_stdev[j]*points_p[i,j])**2
 #             SSE_Temp += (Yexp[j] - GP_mean[j] - ep - GP_stdev[j]*points_p[i,j])**2 #If there is an ep, need to add
-        #Apply max operator  
-        min_list = [SSE_Temp - (best_error*ep),0]
-        EI_Temp += weights_p[i]*(-np.min(min_list))
-#         EI_Temp += weights_p[i]*(-np.min([SSE_Temp - (best_error*ep),0]))
+        #Apply max operator (equivalent to max[SSE_Temp - (best_error*ep),0])
+        min_list = [SSE_Temp - (best_error*ep),0] 
+        EI_Temp += weights_p[i]*(-np.min(min_list)) 
     return EI_Temp
 
 def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=1, verbose=False):
