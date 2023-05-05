@@ -723,6 +723,7 @@ def find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,
     #If X is one dimensional, reshape it to the correct dimensions)
     if bounds_p.shape[1] == 1:
         bnds = bnds.reshape((q,2))
+        
     
     #Un-normalize values if necessary and transpose bounds to get into correct form
     if norm_scalers is not None:
