@@ -1,0 +1,40 @@
+Date and Time:  04-May-2023 (15:34:07)
+Case Study:  2.2
+Bounds On X Cut (T) or Normal (F)?  True
+Dense Grid for Xexp? True
+Number of Training Thetas:  200
+Number of Experimental Data Points:  30
+GP Training Package:  scikit_learn
+GP Training Iterations (Gpytorch only):  300
+GP Kernel Function:  Mat_52
+GP Kernel lengthscale:  1
+GP Kernel Has Trained outputscale?:  True
+GP Training Restarts (when lengthscale not set):  5
+Training Data Noise st.dev:  0.01
+Runs: 3
+BO Iterations: 30
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+Norm: False
+/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/sklearn/gaussian_process/_gpr.py:432: UserWarning: Predicted variances smaller than 0. Setting those variances to 0.
+  warnings.warn(
+-------------------
+GP Emulating Function Output (T) or SSE (F)? True
+______________________________
+Sparse Grid?: False
+Scaling of Objective Function?  obj
+-  -  -  -  -  -  -  -  -  -  -
+Separation Factor Train/Test: 1
+Lengthscale Set To: 1
+Explore Bias Multiplier: 1.0
+Traceback (most recent call last):
+  File "/scratch365/mcarlozo/Toy_Problem/GPBO_CS2_emul_obj.py", line 166, in <module>
+    results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,true_p,train_iter,ep, Xexp, Yexp,
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py", line 1209, in bo_iter_w_runs
+    BO_results = bo_iter(BO_iters,train_p_scl,train_y,theta_set_scl,Theta_True_scl,train_iter,explore_bias, Xexp_scl, Yexp, noise_std, obj, i, sparse_grid, emulator, package, kernel, set_lengthscale, outputscl, initialize, true_model_coefficients_scl, param_dict, bounds_p_scl, verbose, save_fig, save_CSV, runs, DateTime, test_p_scl, sep_fact = sep_fact, LHS = LHS, skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, normalize = normalize, norm_scalers = norm_scalers, case_study = case_study)
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py", line 947, in bo_iter
+    theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, bounds_p, skip_param_types, norm_scalers)
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py", line 66, in optimize_theta_set
+    theta_b, theta_o = find_opt_best_scipy(Xexp, Yexp, theta_set, true_model_coefficients, train_y,train_p, theta0_b,theta0_o,sse,ei,model,likelihood,explore_bias,emulator,sparse_grid,verbose,obj, bounds_p, skip_param_types, norm_scalers)
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/CS2_bo_functions_multi_dim.py", line 723, in find_opt_best_scipy
+    assert len(theta0_b) == len(theta0_o), "Initial guesses must be the same length."
+AssertionError: Initial guesses must be the same length.

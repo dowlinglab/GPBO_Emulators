@@ -483,25 +483,25 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
         Theta_Opt_GP: ndarray, The point where the objective function is minimized in theta_mesh
        
     """    
-
     #Define dimensionality (q) and length (len_set) of theta_set
+    theta_set = clean_1D_arrays(theta_set, param_clean = True)
     len_set, q = theta_set.shape
-    
+
     #Point that the GP thinks is best has the lowest SSE
     #Find point in sse matrix where sse is lowest (argmin(SSE))
     argmin = np.array(np.where(np.isclose(sse, np.amin(sse),rtol=abs(np.amin(sse)*1e-6))==True))[0]
-    
+
     #ensures that only one point is used if multiple points yield a minimum
     #pick only one value if 2 values are both the minimum
     if len(argmin) > 1:
 #         print("Multiple Argmin")
         rand_ind = np.random.randint(np.max(argmin.shape)) #Chooses a random point with the minimum value
         argmin = np.array([argmin[rand_ind]])
-#     print(argmin)
+    argmin = int(argmin) #Use an integer to call from theta_set to ensure correct shapes of Theta_Opt_GP
     #Find theta value corresponding to argmin(SSE) and ensure only parameter values are saved
     Theta_Opt_GP = theta_set[argmin]
     Theta_Opt_GP = Theta_Opt_GP[0:q]
-    
+
     #calculates best theta value
     #Find point in ei matrix where ei is highest (argmax(EI))
     argmax = np.array(np.where(np.isclose(ei, np.amax(ei),rtol=abs(np.amax(ei)*1e-6))==True))[0]
@@ -511,7 +511,8 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p): #Not quite sure how to f
     if len(argmax) > 1:
 #         print("Multiple Argmax")
         argmax = argmax_multiple(argmax, train_p, theta_set)
-            
+
+    argmax = int(argmax) #Use an integer to call from theta_set to ensure correct shapes of Theta_Best
     #Find theta value corresponding to argmax(EI) and ensure only parameter values are saved
     Theta_Best = theta_set[argmax]
     Theta_Best = Theta_Best[0:q]
@@ -568,7 +569,7 @@ def argmax_multiple(argmax, train_p, theta_set):
             max_distance_sq = distance_sq
             argmax_best = np.array([point])
             
-    return argmax_best
+    return int(argmax_best)
              
 ##FOR USE WITH SCIPY##################################################################
 def eval_GP_scipy(theta_guess, train_sse, train_p, Xexp,Yexp, theta_set, model, likelihood, emulator, sparse_grid, true_model_coefficients, explore_bias=1, ei_sse_choice = "neg_ei", verbose=False, obj = "obj", skip_param_types = 0, norm_scalers = None):
