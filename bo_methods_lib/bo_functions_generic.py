@@ -157,7 +157,7 @@ def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None, seed
         theta_set = LHS_Design(n_points**2, dimensions, seed, bounds = bounds)
     return theta_set
 
-def gen_x_set(LHS = True, n_points = 10, dimensions = 2, bounds = None):
+def gen_x_set(LHS = True, n_points = 10, dimensions = 2, bounds = None, seed = 9):
     """
     Generates theta_set from either a meshgrid search or and LHS
     
@@ -339,46 +339,28 @@ def set_ep(emulator, obj, sparse):
                 ep = 1
     return ep
 
-# def LHS_Design(csv_file):
+# def train_test_type():
 #     """
-#     Creates LHS Design based on a CSV
-#     Parameters
-#     ----------
-#         csv_file: str, the name of the file containing the LHS design from Matlab. Values should not be scaled between 0 and 1.
-#     Returns
-#     -------
-#         param_space: ndarray , the parameter space that will be used with the GP
+#     Breaks data into training and testing data based on whether a type 1 or type 2 GPBO is being used
 #     """
-#     #Asserts that the csv filename is a string
-#     assert isinstance(csv_file, str)==True, "csv_file must be a sting containing the name of the file"
-    
-#     reader = csv.reader(open(csv_file), delimiter=",") #Reads CSV containing nx3 LHS design
-#     lhs_design = list(reader) #Creates list from CSV
-#     param_space = np.array(lhs_design).astype("float") #Turns LHS design into a useable python array (nx3)
-#     return param_space
+#     #Note: This function is currectly usused
+#     if emulator == True:
+#         train_p = train_data[:,1:(q+m+1)]
+#         test_p = test_data[:,1:(q+m+1)]
+#     else:
+#         train_p = train_data[:,1:(q+1)]
+#         test_p = test_data[:,1:(q+1)]
 
-def train_test_type():
-    """
-    Breaks data into training and testing data based on whether a type 1 or type 2 GPBO is being used
-    """
-    #Note: This function is currectly usused
-    if emulator == True:
-        train_p = train_data[:,1:(q+m+1)]
-        test_p = test_data[:,1:(q+m+1)]
-    else:
-        train_p = train_data[:,1:(q+1)]
-        test_p = test_data[:,1:(q+1)]
+#     train_y = train_data[:,-1]
+#     test_y = test_data[:,-1]
+#     assert len(train_p) == len(train_y), "Training data must be the same length"
 
-    train_y = train_data[:,-1]
-    test_y = test_data[:,-1]
-    assert len(train_p) == len(train_y), "Training data must be the same length"
+#     if emulator == True:
+#         assert len(train_p.T) ==q+m, "train_p must have the same number of dimensions as the value of q+m"
+#     else:
+#         assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
 
-    if emulator == True:
-        assert len(train_p.T) ==q+m, "train_p must have the same number of dimensions as the value of q+m"
-    else:
-        assert len(train_p.T) ==q, "train_p must have the same number of dimensions as the value of q"
-
-    return train_p, train_y, test_p, test_y
+#     return train_p, train_y, test_p, test_y
 
 def test_train_split(all_data, sep_fact=1, runs = 1, shuffle_seed = None):
     """
@@ -1290,12 +1272,6 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=1, verbose=False):
     Returns
     -------
         ei: float, The expected improvement of a given point
-        If verbose == True
-            z: float, The z value of the point
-            ei_term_1: float, The first term of the ei equation
-            ei_term_2: float, The second term of the ei equation
-            norm.cdf(z): float, The CDF of the point
-            norm.pdf(z): float, The PDF of the point
     """
         #Checks for equal lengths
 #     assert isinstance(f_best, (np.float64,int))==True or torch.is_tensor(f_best)==True, "f_best must be a float or int"

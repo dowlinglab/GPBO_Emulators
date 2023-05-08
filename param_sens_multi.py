@@ -83,10 +83,10 @@ d = len(true_p)
 kernel_func = "Mat_52"
 package = "scikit_learn"
 train_iter = 300
-initialize = 10
+initialize = 3
 noise_std = 0.01 #Numerically 0 (1e-4**2) or actual noise 0.01
-outputscl = [False, True]
-set_lengthscale = 1
+outputscl = True
+set_lengthscale = None
 verbose = False
 norm = False
 
@@ -129,6 +129,7 @@ print("Evaluating Near Test Point (T) or True Parameter Set (F)? ", eval_Train)
 print("GP Training Package: ", package)
 print("GP Training Iterations (Gpytorch only): ", train_iter)
 print("GP Kernel Function: ", kernel_func)
+print("GP Kernel has outputscale?: ", outputscl)
 print("GP Kernel lengthscale: ", set_lengthscale)
 print("GP Training Restarts (when lengthscale/outputscale not set): ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
@@ -146,10 +147,8 @@ for t in t_list:
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=","))
     all_data_list.append(all_data)
 
-for op_scl in outputscl:
-    print("GP Kernel has outputscale?: ", op_scl)
-    Param_Sens_Multi_Theta(all_data_list, x_space_points, eval_theta_num, Xexp, Yexp, Constants, true_p, CS, 
-                           bounds_p, value_num, skip_param_types, kernel_func, set_lengthscale, 
-                           op_scl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, 
-                           save_figure, eval_Train, Bound_Cut, package = package)
-    print("\n")
+Param_Sens_Multi_Theta(all_data_list, x_space_points, eval_theta_num, Xexp, Yexp, Constants, true_p, CS, 
+                       bounds_p, value_num, skip_param_types, kernel_func, set_lengthscale, 
+                       outputscl, train_iter, initialize, noise_std, verbose, DateTime, save_csvs, 
+                       save_figure, eval_Train, Bound_Cut, package = package)
+print("\n")

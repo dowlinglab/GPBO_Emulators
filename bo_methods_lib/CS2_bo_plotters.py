@@ -1142,7 +1142,7 @@ def value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p,title,title
             path_csv = path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_combo, Bo_iter, title_save, run, tot_iter=tot_iter, tot_runs=tot_runs, DateTime=DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + df_list_ends[i], normalize = normalize)
             save_csv(array_df, path_csv, ext = "npy")
     
-    if tot_iter > 1:
+    if tot_iter >= 1:
 #         plt.title(title+" BO iter "+str(Bo_iter+1), weight='bold',fontsize=16)
         
 #         t = t = str(t - Bo_iter )

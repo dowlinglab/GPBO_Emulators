@@ -17,7 +17,7 @@ from sklearn.model_selection import LeaveOneOut
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel
 
-from .bo_functions_generic import round_time, train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs, train_GP_scikit
+from .bo_functions_generic import define_GP_model, round_time, train_GP_model, ExactGPModel, find_train_doc_path, clean_1D_arrays, set_ep, calc_GP_outputs, train_GP_scikit
 from .GP_Vs_True_Param_Sens import eval_GP, eval_GP_emulator, path_name_gp_val
 from .CS2_bo_plotters import save_csv, save_fig, plot_xy
     
@@ -159,39 +159,13 @@ def Param_Sens_Analysis(data, x_space_points, eval_theta_num, Xexp, Yexp, true_m
     X_train = train_p[:,-m:]
     
     #Define model and likelihood
-    if package == "gpytorch":
-        #If the noise is larger than 0.01, set it appropriately, otherwise use a regular GaussianLikelihood noise and set it manually 
-        noise = torch.tensor(noise_std**2)
-        if noise_std >= 0.01:
-            noise = torch.ones(train_p.shape[0])*noise_std**2
-            likelihood = gpytorch.likelihoods.FixedNoiseGaussianLikelihood(noise=noise, learn_additional_noise=False)
-        else:
-            likelihood = gpytorch.likelihoods.GaussianLikelihood(noise_constraint=gpytorch.constraints.Positive())
-            likelihood.noise = noise  # Some small value. Try 1e-4
-            likelihood.noise_covar.raw_noise.requires_grad_(False)  # Mark that we don't want to train the noise
-            
-        model = ExactGPModel(train_p, train_y, likelihood, kernel = kernel_func, outputscl = outputscl) 
-        hyperparameters  = train_GP_model(model, likelihood, train_p, train_y, verbose, set_lengthscale, outputscl, initialize, train_iter)
-        
-        lenscl_final, lenscl_noise_final, outputscale_final = hyperparameters
-        
-#     print('lengthscale: %.3f   noise: %.3f'% (model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()) )
-#     print(type(model.covar_module.base_kernel.lengthscale.item()), type(model.likelihood.noise.item()))
-
-    elif package == "scikit_learn":
-        likelihood = None
-        model_params = train_GP_scikit(train_p, train_y, noise_std, kernel_func, verbose, set_lengthscale, outputscl, initialize, 
-                                       rand_seed= rand_seed)
-        lenscl_final, lenscl_noise_final, outputscale_final, model = model_params
+    gp_model_params = define_GP_model(package, noise_std, train_p, train_y, kernel_func, set_lengthscale, outputscl, initialize, train_iter, True)
+    model, likelihood, lenscl_final, lenscl_noise_final, outputscale_final = gp_model_params
         
     #Print noise and lengthscale hps
     lenscl_print = ['%.3e' % lenscl_final[i] for i in range(len(lenscl_final))]
     lenscl_noise_print = '%.3e' % lenscl_noise_final
     outputscale_final_print = '%.3e' % outputscale_final
-    
-#     print("Lengthscale", lenscl_print)
-#     print("Noise for lengthscale", lenscl_noise_print)
-#     print("Outputscale", outputscale_final_print)
 
     #Evaluate at true value or close to a training point doing a sensitivity analysis
     if eval_Train == False:
@@ -205,6 +179,43 @@ def Param_Sens_Analysis(data, x_space_points, eval_theta_num, Xexp, Yexp, true_m
     X_space= np.array([Xexp[m] for m in x_space_points])
     
     #Create list to save evaluated arrays in and arrays to store GP mean/stdev and true predictions in
+    all_data_to_plot = np.zeros((3, len(x_space_points), q, value_num))
+    GP_mean_all, GP_stdev_all, y_sim_all, values_array = eval_over_xspace(eval_p_base, bounds_p, value_num, X_space, train_y, true_model_coefficients, model, likelihood, verbose, skip_param_types, noise_std, Case_Study)
+                
+    #Save data and send necessary items to outer loop
+    all_data_to_plot[0,:, :, :],all_data_to_plot[1,:, :, :], all_data_to_plot[2,:, :, :]  = y_sim_all, GP_mean_all, GP_stdev_all
+        
+    return train_xspace_set, all_data_to_plot, lenscl_final, lenscl_noise_final, outputscale_final, values_array
+
+def eval_over_xspace(eval_p_base, bounds_p, value_num, X_space, train_y, true_model_coefficients, model, likelihood, verbose, skip_param_types = 0, noise_std =  0.01, Case_Study = 2.2):
+    """
+    Evaluates Muller potential sensitivity w.r.t theta values
+    
+     Parameters:
+    -----------
+        eval_p_base: ndarray, contains the parameter set for which to evaluate the GP
+        bounds_p: ndarray, defines the bounds of the parameter space values (unused now, may use to define values later)
+        value_num: int, defines the number of values of each parameter to test for the graph
+        X_space: ndarray, The experimental data point array for X over which to evaluate the GP
+        train_y: ndarray, The output variable training data
+        true_model_coefficients: ndarray, The array containing the true values of the problem (may be the same as true_p)
+        model: bound method, The model that the GP is bound by
+        likelihood: bound method, The likelihood of the GP model. In this case, must be Gaussian
+        verbose: bool, Determines activeness of print statement, Default = False
+        skip_param_types: int, The offset of which parameter types (A - y0) that are being guessed. Default 0
+        Case_Study: int, float, the number of the case study to be evaluated. Default is 2.2, other option is 1         
+    
+    Returns:
+    --------
+        GP_mean_all: ndarray, Array of GP mean values
+        GP_stdev_all: ndarray, Array of GP stdev values
+        y_sim_all: ndarray, Array of Ysim values
+        values_array, ndarray, Array of all values evalauted
+    
+    """
+    q = bounds_p.shape[1]
+    ##Evaluate parameter sets at each Xspace value
+    #Loop over all parameters
     GP_mean_all = np.zeros((len(X_space), q, value_num) )
     GP_stdev_all = np.zeros((len(X_space), q, value_num) )
     y_sim_all = np.zeros((len(X_space), q, value_num) )
@@ -212,11 +223,8 @@ def Param_Sens_Analysis(data, x_space_points, eval_theta_num, Xexp, Yexp, true_m
     #Create list to save evaluated parameter sets and values in
     eval_p_df = []
     values_list = [] 
-    all_data_to_plot = np.zeros((3, len(x_space_points), q, value_num))
     values_array = np.zeros((len(eval_p_base), value_num))
     
-    ##Evaluate parameter sets at each Xspace value
-    #Loop over all parameters
     for i in range(len(eval_p_base)):   
         #Clone the base value
         eval_p = eval_p_base.clone()
@@ -246,12 +254,10 @@ def Param_Sens_Analysis(data, x_space_points, eval_theta_num, Xexp, Yexp, true_m
                 #Get GP predictions and true values
                 GP_mean_Xexp, GP_stdev_Xexp, y_sim_Xexp = eval_components_Xexp
                 #Append GP mean, GP_stdev, and true values to arrays outside of loop
-                GP_mean_all[k,i,j], GP_stdev_all[k,i,j], y_sim_all[k,i,j] = GP_mean_Xexp, GP_stdev_Xexp, y_sim_Xexp  
-                
-    #Save data and send necessary items to outer loop
-    all_data_to_plot[0,:, :, :],all_data_to_plot[1,:, :, :], all_data_to_plot[2,:, :, :]  = y_sim_all, GP_mean_all, GP_stdev_all
+                GP_mean_all[k,i,j], GP_stdev_all[k,i,j], y_sim_all[k,i,j] = GP_mean_Xexp, GP_stdev_Xexp, y_sim_Xexp 
+    
+    return GP_mean_all, GP_stdev_all, y_sim_all, values_array
         
-    return train_xspace_set, all_data_to_plot, lenscl_final, lenscl_noise_final, outputscale_final, values_array
 
 def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_Study, CutBounds, X_space, x_space_points, param_dict, values_list, val_num_map, lenscls, eval_theta_data, noises, opscls, kernel = "RBF", DateTime = None, X_train = None, save_csvs = False, save_figure = False, package = "", plot_one_param = None):
     '''
@@ -316,7 +322,8 @@ def mul_plot_param_many(param_sens_data, set_lengthscale, train_iter, t, Case_St
             ax = axes.reshape(eval_thetas)
                 
             #Define plot title
-            title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(lenscl_print[:half]) + '\n' + str(lenscl_print[half:]) + "\n" + r'$\sigma_{\ell} = $' + lenscl_noise_print
+#             title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\ell = $' + str(lenscl_print[:half]) + '\n' + str(lenscl_print[half:]) + "\n" + r'$\sigma_{\ell} = $' + lenscl_noise_print
+            title_str = "Xexp Point " + str(x_space_points[k]+1) + '\n' + r'$\sigma_{\ell} = $' + lenscl_noise_print
             fig.suptitle(title_str)
             
             #Set i as the integer value corresponding to the parameter you want to plot if applicable
