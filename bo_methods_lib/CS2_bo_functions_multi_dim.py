@@ -791,7 +791,7 @@ def find_opt_and_best_arg(theta_set, sse, ei, train_p):
 
     #calculates best theta value
     #Find point in ei matrix where ei is highest (argmax(EI))
-    argmax = np.array(np.where(np.isclose(ei, np.amax(ei),rtol=abs(np.amax(ei)*1e-6))==True))[0]
+    argmax = np.array(np.where(np.isclose(ei, np.nanmax(ei),rtol=abs(np.nanmax(ei)*1e-6))==True))[0]
 
     #ensures that only one point is used if multiple points yield a maximum
     #Only use argmax_multiple algorithm when >1 points have the max ei
