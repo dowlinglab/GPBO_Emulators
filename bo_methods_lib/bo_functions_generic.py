@@ -362,7 +362,7 @@ def set_ep(emulator, obj, sparse):
 
 #     return train_p, train_y, test_p, test_y
 
-def test_train_split(all_data, sep_fact=1, runs = 1, shuffle_seed = None):
+def test_train_split(all_data, run = 1, sep_fact=1, shuffle_seed = None, tot_runs = 15):
     """
     Splits y data into training and testing data
     
@@ -382,17 +382,12 @@ def test_train_split(all_data, sep_fact=1, runs = 1, shuffle_seed = None):
     assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
     
     #Shuffles Random Data
-#     if sep_fact 
-    if shuffle_seed is not None:
-        if runs > 1:
-            #Set seed to run number
-            np.random.seed(runs)
-#             for i in range(runs):
-#                 np.random.seed(i+1)
-#             print(i)
-        else:
-            #Set seed to number specified by shuffle seed
-            np.random.seed(shuffle_seed)
+    if tot_runs > 1:
+        #Set seed to run number
+        np.random.seed(run)
+    elif shuffle_seed is not None:
+        #Set seed to number specified by shuffle seed
+        np.random.seed(shuffle_seed)
     
     #Shuffle data
     np.random.shuffle(all_data) 
