@@ -270,8 +270,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     t = int(len(train_p)) + int(len(test_p)) #Original length of all data
 
     #Find number of data points and set a parameter for the original exploration bias
-    data_points = int(np.sqrt(len(theta_set)))
-#     print(data_points)
+    data_points = int(len(theta_set))
     ep0 = explore_bias
     
     #Set arrays to track values for every BO iteration
@@ -508,7 +507,6 @@ def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficient
         eval_components: ndarray, The componenets evaluate by the GP. ei, sse, var, stdev, f_best, (z_term, ei_term_1, ei_term_2, CDF, PDF, gp_mean_all, gp_var_all)
     """
     assert isinstance(train_y, np.ndarray) or torch.is_tensor(train_y) == True, "Train_sse must be ndarray or torch.tensor"
-
     #Ensure train_y is a tensor
     if isinstance(train_y, np.ndarray)==True:
         train_y = torch.tensor(train_y) #1xn
@@ -988,7 +986,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
     
     Parameters:
     -----------
-        theta_set_org: ndarray, The original set of theta values to look at from a mashgrid or LHS
+        theta_set_org: ndarray, The original set of theta values to look at from a meshgrid or LHS
         indecies: ndarray, The 2 indecies referring to column/parameter types that will be plotted
         n_points: int, The number of points in each vector of parameter space
         Theta_True: ndarray, A 2x1 containing the true input parameters
@@ -1038,17 +1036,33 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
     
     #Create a set that has the 2 columns changing, but eveything else is based on theta_opt value
     theta_set = theta_set_org.clone()
+    sqrt_npts = int(np.sqrt(n_points))
+    theta_set_org_scl = np.array(theta_set_org)
+    Theta1_lin_scl = np.linspace(np.min(theta_set_org_scl[:,indecies[0]]),np.nanmax(theta_set_org_scl[:,indecies[0]]), sqrt_npts)
+    Theta2_lin_scl = np.linspace(np.min(theta_set_org_scl[:,indecies[1]]),np.nanmax(theta_set_org_scl[:,indecies[1]]), sqrt_npts)
+    theta_mesh_scl = np.array(np.meshgrid(Theta1_lin_scl, Theta2_lin_scl))
+    theta_vals_scl = np.array(theta_mesh_scl).T.reshape(-1,2)
     
     #Loop over all dimenisons (columns) in theta_set_org
     for i in range(theta_set_org.shape[1]):
         #If the column index is the same as either of the indecies we want to change, overwrite theta_set with those values
         if i == indecies[0]:
-            theta_set[:,i] = theta_set_org[:,i]
+            theta_set[:,i] = torch.tensor(theta_vals_scl[:,0])
         elif i == indecies[1]:
-            theta_set[:,i] = theta_set_org[:,i]
+            theta_set[:,i] = torch.tensor(theta_vals_scl[:,1])
         #If the column is not changing, use the theta_o value
         else:
             theta_set[:,i] = theta_o[i]
+            
+    #     for i in range(theta_set_org.shape[1]):
+#         #If the column index is the same as either of the indecies we want to change, overwrite theta_set with those values
+#         if i == indecies[0]:
+#             theta_set[:,i] = theta_set_org[:,i]
+#         elif i == indecies[1]:
+#             theta_set[:,i] = theta_set_org[:,i]
+#         #If the column is not changing, use the theta_o value
+#         else:
+#             theta_set[:,i] = theta_o[i]
                
     #Evaluate GP at new points
     eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types, norm_scalers = norm_scalers)
@@ -1068,7 +1082,7 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         #Reshape plotting variables that are not floats to the correct shapes for plotting. 
         # Note: Only best error will fall outside of this if statement
         if isinstance(list_of_plot_variables[i], (np.float64, np.float32)) == False:
-            list_of_plot_variables[i] = list_of_plot_variables[i].reshape((n_points, -1)).T
+            list_of_plot_variables[i] = list_of_plot_variables[i].reshape((sqrt_npts, -1)).T
         else:
             #Any list variable that is only 1 value will not be plotted and doesn't need to be reshaped
             list_of_plot_variables[i] = list_of_plot_variables[i]
@@ -1104,8 +1118,8 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
             
     #Generate meshgrid and theta_set from unnormalized meshgrid 
     theta_set_org = np.array(theta_set_org)
-    Theta1_lin = np.linspace(np.min(theta_set_org[:,indecies[0]]),np.max(theta_set_org[:,indecies[0]]), n_points)
-    Theta2_lin = np.linspace(np.min(theta_set_org[:,indecies[1]]),np.max(theta_set_org[:,indecies[1]]), n_points)
+    Theta1_lin = np.linspace(np.min(theta_set_org[:,indecies[0]]),np.max(theta_set_org[:,indecies[0]]), sqrt_npts)
+    Theta2_lin = np.linspace(np.min(theta_set_org[:,indecies[1]]),np.max(theta_set_org[:,indecies[1]]), sqrt_npts)
     theta_mesh = np.array(np.meshgrid(Theta1_lin, Theta2_lin)) 
     
     #Build training data for new model

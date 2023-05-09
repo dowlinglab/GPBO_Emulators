@@ -121,7 +121,6 @@ def normalize_bounds(x, newRange=np.array([0, 1])): #x is an array. Default rang
         return(norm) # wanted range is the same as norm
     else: #elif newRange.all() != np.array([0, 1]).all():
         norm_new = norm * (newRange[1] - newRange[0]) + newRange[0] #scale to a different range. 
-        print(norm_new)
         return norm_new  
     
 def gen_theta_set(LHS = True, n_points = 10, dimensions = 2, bounds = None, seed = 9):

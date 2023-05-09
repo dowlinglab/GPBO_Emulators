@@ -22,7 +22,7 @@ from warnings import simplefilter
 from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
 #----------------------------------------------
-CS = 2.2
+CS = 1
 Bound_Cut = True
 denseX = True
 
@@ -36,50 +36,63 @@ DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
 #Set Parameters
 #Need to run at a and b, need 2 arrays to test that this will work
-Constants = np.array([[-200,-100,-170,15],
-                      [-1,-1,-6.5,0.7],
-                      [0,0,11,0.6],
-                      [-10,-10,-6.5,0.7],
-                      [1,0,-0.5,-1],
-                      [0,0.5,1.5,1]])
+if CS == 2.2:
+    Bound_Cut = True
+    denseX = True
+    Constants = np.array([[-200,-100,-170,15],
+                          [-1,-1,-6.5,0.7],
+                          [0,0,11,0.6],
+                          [-10,-10,-6.5,0.7],
+                          [1,0,-0.5,-1],
+                          [0,0.5,1.5,1]])
 
-skip_param_types = 1 #This is what changes for subpoint
-true_p = Constants[skip_param_types:skip_param_types+2].flatten()
-param_dict = {0 : 'a_1', 1 : 'a_2', 2 : 'a_3', 3 : 'a_4',
-              4 : 'b_1', 5 : 'b_2', 6 : 'b_3', 7 : 'b_4'}
-exp_d = 2
+    skip_param_types = 1 #This is what changes for subpoint
+    true_p = Constants[skip_param_types:skip_param_types+2].flatten()
+    param_dict = {0 : 'a_1', 1 : 'a_2', 2 : 'a_3', 3 : 'a_4',
+                  4 : 'b_1', 5 : 'b_2', 6 : 'b_3', 7 : 'b_4'}
+    exp_d = 2
 
-if Bound_Cut == True:
-    bounds_x = np.array([[-1.0, 0.0],
-                        [   0.5, 1.5]])
-    if denseX == True:
-        n = 30
-    else:
-        n = 25 #Number of experimental data points to use
-else:    
-    bounds_x = np.array([[-1.5, -0.5],
-                 [   1,    2]])
-    n = 27 #Number of experimental data points to use
-bounds_p = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
-               [ 2,  2,   0,  2,  2,  2, 15,  2]])
+    if Bound_Cut == True:
+        bounds_x = np.array([[-1.0, 0.0],
+                            [   0.5, 1.5]])
+        if denseX == True:
+            n = 30
+        else:
+            n = 25 #Number of experimental data points to use
+    else:    
+        bounds_x = np.array([[-1.5, -0.5],
+                     [   1,    2]])
+        n = 27 #Number of experimental data points to use
+    bounds_p = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
+                   [ 2,  2,   0,  2,  2,  2, 15,  2]])
+else:
+    Bound_Cut = False
+    denseX = False
+    Constants = true_p = np.array([1,-1])
+    skip_param_types = 0
+    param_dict = {0 : '\\theta_1', 1 : '\\theta_2'}
+    exp_d = 1
+    n = 5
+    bounds_x = np.array([[-2], [2]])
+    bounds_p = np.array([[-2, -2],
+                         [ 2,  2]])
 
 d = len(true_p)
-BO_iters = 30
-runs = 3
+BO_iters = 100
+runs = 15
 train_iter = 300
 noise_std = 0.01
 shuffle_seed = 9
 sep_fact = [1]
-set_lengthscale = 1
+set_lengthscale = None
 explore_bias = 1
 
-skip_param_types = 1
 eval_all_pairs = True
-eval_all_pairs = False
+# eval_all_pairs = False
 package = "scikit_learn"
 kernel = "Mat_52"
 outputscl = True 
-initialize = 5
+initialize = 10
 
 obj = np.array(["obj"])
 emulator = np.array([True])
@@ -108,11 +121,11 @@ Xexp = clean_1D_arrays(Xexp)
 
 #Define GP Testing space
 LHS = True
-p_train = 200
+p_train = 20
 p=20
 bounds_p = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
                    [ 2,  2,   0,  2,  2,  2, 15,  2]])
-theta_mesh = gen_theta_set(LHS = LHS, n_points = p, dimensions = d, bounds = bounds_p)
+theta_mesh = gen_theta_set(LHS = LHS, n_points = p, dimensions = d, bounds = bounds_p, seed =1)
 
 print("Case Study: ", CS)
 print("Bounds On X Cut (T) or Normal (F)? ", Bound_Cut)
@@ -167,8 +180,8 @@ for norm in normalize:
                                                  noise_std, obj_func, runs, sparse, emul, package, kernel, set_lengthscale, outputscl, 
                                                  initialize, Constants, param_dict, bounds_p, bounds_x, verbose, save_fig, save_CSV,
                                                  shuffle_seed, DateTime, sep_fact = sep_fact[i], LHS = LHS, 
-                                                 skip_param_types = skip_param_types, eval_all_pairs = eval_all_pairs, 
-                                                 normalize = norm, case_study = CS)
+                                                 skip_param_types =skip_param_types, eval_all_pairs = eval_all_pairs, normalize = norm,
+                                                 case_study = CS)
                     print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2], 
                               "during run", results[1], "at BO iteration", results[0])
                     print("At this point, the highest EI occurs at \u03B8 =", results[4])
