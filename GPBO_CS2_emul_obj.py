@@ -78,8 +78,8 @@ else:
                          [ 2,  2]])
 
 d = len(true_p)
-BO_iters = 100
-runs = 15
+BO_iters = 10
+runs = 3
 train_iter = 300
 noise_std = 0.01
 shuffle_seed = 9
@@ -92,7 +92,7 @@ eval_all_pairs = True
 package = "scikit_learn"
 kernel = "Mat_52"
 outputscl = True 
-initialize = 10
+initialize = 3
 
 obj = np.array(["obj"])
 emulator = np.array([True])
@@ -121,10 +121,8 @@ Xexp = clean_1D_arrays(Xexp)
 
 #Define GP Testing space
 LHS = True
-p_train = 20
+p_train = 200
 p=20
-bounds_p = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
-                   [ 2,  2,   0,  2,  2,  2, 15,  2]])
 theta_mesh = gen_theta_set(LHS = LHS, n_points = p, dimensions = d, bounds = bounds_p, seed =1)
 
 print("Case Study: ", CS)

@@ -78,7 +78,7 @@ else:
                          [ 2,  2]])
 
 # print(Theta_True)
-t_list = [20, 200, 600, 1000]
+t_list = [20, 200, 600]
 d = len(true_p)
 kernel_func = "Mat_52"
 package = "scikit_learn"

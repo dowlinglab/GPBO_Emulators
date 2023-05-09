@@ -123,8 +123,6 @@ Xexp = clean_1D_arrays(Xexp)
 LHS = True
 p_train = 20
 p=20
-bounds_p = np.array([[-2, -2, -10, -2, -2, -2,  5, -2],
-                   [ 2,  2,   0,  2,  2,  2, 15,  2]])
 theta_mesh = gen_theta_set(LHS = LHS, n_points = p, dimensions = d, bounds = bounds_p, seed =1)
 
 print("Case Study: ", CS)
