@@ -84,7 +84,7 @@ runs = 15
 train_iter = 300
 noise_std = 0.01
 shuffle_seed = 9
-sep_fact = [1]
+sep_fact = np.linspace(0.1,1.0,10)
 set_lengthscale = None
 explore_bias = 1
 
@@ -93,9 +93,9 @@ eval_all_pairs = True
 package = "scikit_learn"
 kernel = "Mat_52"
 outputscl = True 
-initialize = 10
+initialize = 5
 
-obj = np.array(["obj"])
+obj = np.array(["LN_obj"])
 emulator = np.array([False])
 sparse_grid = np.array([False])
 normalize = [False]

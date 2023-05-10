@@ -84,7 +84,7 @@ runs = 15
 train_iter = 300
 noise_std = 0.01
 shuffle_seed = 9
-sep_fact = [1]
+sep_fact = np.linspace(0.1,1.0,10)
 set_lengthscale = None
 explore_bias = 1
 
@@ -93,9 +93,9 @@ eval_all_pairs = True
 package = "scikit_learn"
 kernel = "Mat_52"
 outputscl = True 
-initialize = 10
+initialize = 5
 
-obj = np.array(["LN_obj"])
+obj = np.array(["obj"])
 emulator = np.array([True])
 sparse_grid = np.array([False])
 normalize = [False]
@@ -122,7 +122,7 @@ Xexp = clean_1D_arrays(Xexp)
 
 #Define GP Testing space
 LHS = True
-p_train = 20
+p_train = 200
 p=20
 theta_mesh = gen_theta_set(LHS = LHS, n_points = p, dimensions = d, bounds = bounds_p, seed =1)
 
