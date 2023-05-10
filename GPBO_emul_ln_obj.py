@@ -33,6 +33,7 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
+DateTime = "2023/05/10/09-16"
 # DateTime = None ##For Testing
 
 #Set Parameters
@@ -122,7 +123,7 @@ Xexp = clean_1D_arrays(Xexp)
 
 #Define GP Testing space
 LHS = True
-p_train = 200
+p_train = 20
 p=20
 theta_mesh = gen_theta_set(LHS = LHS, n_points = p, dimensions = d, bounds = bounds_p, seed =1)
 
