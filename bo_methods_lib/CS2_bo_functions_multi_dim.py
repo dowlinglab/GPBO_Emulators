@@ -1134,7 +1134,10 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
     Theta_True = np.array([Theta_True[indecies[0]], Theta_True[indecies[1]]])
     
     #Plot and save figures for EI
-    value_plotter(theta_mesh, list_of_plot_variables[0], Theta_True, theta_o, theta_b, train_p_plot, titles[0],titles_save[0], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
+    try:
+        value_plotter(theta_mesh, list_of_plot_variables[0], Theta_True, theta_o, theta_b, train_p_plot, titles[0],titles_save[0], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
+    except:
+        pass
 
     #Ensure that a plot of SSE (and never ln(SSE)) is drawn
     if obj == "LN_obj" and emulator == False:
@@ -1143,7 +1146,10 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         plot_sse = np.log(list_of_plot_variables[1])
 
     #Plot and save figures for SSE
-    value_plotter(theta_mesh, plot_sse, Theta_True, theta_o, theta_b, train_p_plot, titles[1], titles_save[1], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
+    try:
+        value_plotter(theta_mesh, plot_sse, Theta_True, theta_o, theta_b, train_p_plot, titles[1], titles_save[1], obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
+    except:
+        pass
 
     #Plot and save other figures
     #Loop over remaining variables to be saved and plotted
@@ -1156,7 +1162,10 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         if isinstance(component, (np.float32, np.float64)) == False:
             if title not in ['GP Mean','GP Variance']: 
 #                 print(type(component), component.shape)
-                value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p_plot, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
+                try:
+                    value_plotter(theta_mesh, component, Theta_True, theta_o, theta_b, train_p_plot, title, title_save, obj, ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_names_list, bo_iter, run, BO_iters, tot_runs, DateTime, t, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
+                except:
+                    pass
         elif isinstance(component, (np.float32, np.float64)) == True and title == "Best_Error" :
             Best_Error_Found = np.round(component,4)
             if verbose == True:
