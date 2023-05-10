@@ -16,6 +16,7 @@ mpl.rcParams['figure.dpi'] = 300
 #Ignore warnings caused by "nan" values
 import warnings
 warnings.simplefilter("ignore", category=RuntimeWarning)
+warnings.simplefilter("ignore", category=UserWarning)
 
 #Ignore warning from scikit learn hp tuning
 from warnings import simplefilter
