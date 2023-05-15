@@ -154,7 +154,7 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_comb
         else:
             method = "/Approx"
             
-    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Param_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis", "plot_Theta_min":"/Param_Conv_min", "plot_EI_abs_max":"/Max_EI_Conv", "GP_mean_vals":"/GP_mean_vals", "GP_var_vals":"/GP_var_vals", "time_per_iter":"/time_per_iter"}
+    fxn_dict = {"plot_obj":"/SSE_Conv" , "plot_Theta":"/Param_Conv" , "plot_obj_abs_min":"/Min_SSE_Conv" , "plot_org_train":"/org_TP", "value_plotter":"/"+ str(title_save), "plot_sep_fact_min":"/Sep_Analysis", "plot_Theta_min":"/Param_Conv_min", "plot_EI_abs_max":"/Max_EI_Conv", "GP_mean_vals":"/GP_mean_vals", "GP_var_vals":"/GP_var_vals", "time_per_iter":"/time_per_iter", "hyperparameter_vals":"/hyperparameter_vals"}
     plot = fxn_dict[fxn]
     
     if mesh_combo is not None:
