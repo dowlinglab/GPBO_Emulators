@@ -99,11 +99,13 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     dim = m+q #dimensions in a CSV
     #Read data from a csv
     all_data = np.array(pd.read_csv(all_data_doc, header=0,sep=",")) 
+    GP_dimensions = all_data.shape[1] - 2 #All columns - index and y data columns
     
     #Initialize Theta and SSE matricies
     Theta_Opt_matrix = np.zeros((runs,BO_iters,q))
     Theta_Opt_abs_matrix = np.zeros((runs,BO_iters,q))
     Theta_Best_matrix = np.zeros((runs,BO_iters,q))
+    hyperparam_matrix = np.zeros((runs,BO_iters,GP_dimensions+1))
     SSE_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     EI_matrix = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
     EI_matrix_abs_max = np.zeros((runs,BO_iters)) #Saves ln(SSE) values
@@ -123,6 +125,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         train_data, test_data = test_train_split(all_data, int(i), sep_fact = sep_fact, shuffle_seed=shuffle_seed, tot_runs = runs)
         train_p, train_y = train_data[:,1:-1], train_data[:,-1]
         test_p, test_y = test_data[:,1:-1], test_data[:,-1]
+        GP_dimensions = train_p.shape[1]
 
         assert len(train_p) == len(train_y), "Training data must be the same length"
         if emulator == True:
@@ -158,12 +161,13 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
         GP_mean_matrix[i,:,:] = BO_results[7]
         GP_var_matrix[i,:,:] = BO_results[8]
         time_per_iter_matrix[i,:] = BO_results[9]
-#         print(time_per_iter_matrix)
+        hyperparam_matrix[i,:,:] = BO_results[10]
+#     print(hyperparam_matrix)
         
     #Save GP mean and Var and time/iter here
     if save_CSV == True:
-        fxn_name_list = ["GP_mean_vals", "GP_var_vals", "time_per_iter"]
-        fxn_data_list = [GP_mean_matrix, GP_var_matrix, time_per_iter_matrix]
+        fxn_name_list = ["GP_mean_vals", "GP_var_vals", "time_per_iter", "hyperparameter_vals"]
+        fxn_data_list = [GP_mean_matrix, GP_var_matrix, time_per_iter_matrix, hyperparam_matrix]
         for i in range(len(fxn_name_list)):
             save_misc_data(fxn_data_list[i], fxn_name_list[i], t, obj, explore_bias, emulator, sparse_grid, set_lengthscale, save_fig, tot_iter=BO_iters, tot_runs=runs, DateTime=DateTime, sep_fact = sep_fact, normalize = normalize)
     
@@ -172,7 +176,7 @@ def bo_iter_w_runs(BO_iters,all_data_doc,t,theta_set,Theta_True,train_iter,explo
     print("Median BO Iteration Time (s): ", median_time_per_iter)
         
     #Plot all SSE/theta results for each BO iteration for all runs
-    if runs >= 1:
+    if runs >= 1 and BO_iters > 1:
         plot_Theta(Theta_Opt_matrix, Theta_True, t, obj,ep0, emulator, sparse_grid,  set_lengthscale, save_fig, param_dict, BO_iters,
                    runs, DateTime, sep_fact = sep_fact, save_CSV = save_CSV, normalize = normalize)
         plot_Theta_min(Theta_Opt_abs_matrix, Theta_True, t, obj,ep0, emulator, sparse_grid, set_lengthscale, save_fig, param_dict,
@@ -264,10 +268,10 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     assert len(train_p) == len(train_y), "Training data must be the same length"
 
     #Find values of dimensions of Xexp (m), number of experimental data (n), dimensionality of theta (q), and number of data (t)
-    m = Xexp.shape[1] #Dimensions of X
-    n = len(Xexp) #Length of experimental data
+    n, m = Xexp.shape #Dimensions of X
     q = len(Theta_True) #Number of parameters to regress
     t = int(len(train_p)) + int(len(test_p)) #Original length of all data
+    GP_dimensions = train_p.shape[1]
 
     #Find number of data points and set a parameter for the original exploration bias
     data_points = int(len(theta_set))
@@ -277,6 +281,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
     All_Theta_Best = np.zeros((BO_iters,q)) 
     All_Theta_abs_Opt = np.zeros((BO_iters,q))
     All_Theta_Opt = np.zeros((BO_iters,q)) 
+    All_hyperparams = np.zeros((BO_iters,GP_dimensions+1))
     All_SSE = np.zeros(BO_iters) #Will save ln(SSE) values
     All_SSE_abs_min = np.zeros(BO_iters) #Will save ln(SSE) values  
     All_Max_EI = np.zeros(BO_iters) #Used in stopping criteria
@@ -316,7 +321,11 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         #Define model and likelihood
         gp_model_params = define_GP_model(package, noise_std, train_p, train_y, kernel, set_lengthscale, outputscl, initialize, train_iter, verbose)
         model, likelihood, lenscl_final, lenscl_noise_final, outputscale_final = gp_model_params
-        
+#         print(type(outputscale_final), type(lenscl_final))
+#         print(lenscl_final, outputscale_final)
+        hyperparam_array = np.append(lenscl_final, np.float(outputscale_final))
+#         print(hyperparam_array.shape, All_hyperparams.shape)
+        All_hyperparams[i,:] = hyperparam_array
         #Set Exploration parameter
 #         explore_bias = explore_parameter(i, explore_bias, mean_of_var, best_error_num, ep_o = ep_init, ep_method = "Constant") #Defaulting to exp method
         explore_bias = ep_init #Sets ep to the multiplicative scaler between 0.1 and 1
@@ -476,7 +485,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
         timeend = time.time()
         time_per_iter[i] +=  (timeend - timestart)
               
-    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt, All_Max_EI, gp_mean_all_mat, gp_var_all_mat, time_per_iter
+    return All_Theta_Best, All_Theta_Opt, All_SSE, All_SSE_abs_min, Total_BO_iters, All_Theta_abs_Opt, All_Max_EI, gp_mean_all_mat, gp_var_all_mat, time_per_iter, All_hyperparams
 
 # def eval_GP(theta_mesh, train_y, explore_bias, Xexp, Yexp, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale):  
 def eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p = None, obj = "obj", skip_param_types = 0, norm_scalers = None):
