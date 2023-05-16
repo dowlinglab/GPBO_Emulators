@@ -193,7 +193,10 @@ def path_name(emulator, ep, sparse_grid, fxn, set_lengthscale, t, obj, mesh_comb
     else:
         path_org = path_org + "/CSV_Data"
         
-    path_end = Emulator + method + org_TP_str + obj_str + exp_str + len_scl + sep_fact_str + run_str+ plot + Bo_itr_str + mesh_title   
+    if fxn == "many_value_plotter":
+        path_end =  Emulator + method + org_TP_str + obj_str + exp_str + len_scl + sep_fact_str + "/multi_maps" + mesh_title + plot + run_str + Bo_itr_str.replace('/', '_')
+    else: 
+        path_end = Emulator + method + org_TP_str + obj_str + exp_str + len_scl + sep_fact_str + run_str+ plot + Bo_itr_str + mesh_title   
     
     if fxn in ["value_plotter", "plot_org_train", "many_value_plotter"]:
         path = path_org + path_end      
