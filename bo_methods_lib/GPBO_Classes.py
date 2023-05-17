@@ -49,7 +49,7 @@ class Case_Study:
         """
         # Constructor method
         self.method_name = method_name
-    def define_method(self) #Is there a better way to do this?
+    def define_method(self):
         """
         Returns:
         ---------
@@ -82,7 +82,7 @@ class GPBO_Methods:
         """
         # Constructor method
         self.method_name = method_name
-    def define_method(self)
+    def define_method(self):
         """
         Parameters:
         -----------
@@ -108,7 +108,6 @@ class Parameters_And_State_Points:
 
     """
     # Class variables and attributes
-    #How to account for different bound shapes easily?
     def __init__(self, bounds_p, bounds_x):
         """
         Parameters
@@ -184,7 +183,6 @@ class Parameter_Sets(Parameters_And_State_Points):
     
     """
     # Class variables and attributes
-    #How to account for different bound shapes easily?
     def __init__(self, Case_Study, Method, bounds_p, bounds_x):
         """
         Parameters
@@ -256,7 +254,7 @@ class Parameter_Sets(Parameters_And_State_Points):
         # Code logic goes here
         pass
     
-    def optimize_set(self, param_set, Yexp, train_data, model, likelihood, Method, Case_Study, ep, derived_val_name):
+    def optimize_set(self, param_set, Yexp, train_data, model, likelihood, Method, Case_Study, ep, derived_val):
         """
         Optimizes theta set to find best SSE or EI
         
@@ -270,7 +268,7 @@ class Parameter_Sets(Parameters_And_State_Points):
         Method: class, The method with which to evaluate the GP
         Case_Study: class, The case study which the method is applied to
         ep: float, The exploration bias used for calculation of EI
-        derived_val_name: str, Either "SSE" or "EI". The value we want to optimize over theta
+        derived_val: ndarray, either "SSE" or "EI". The array values we want to optimize over theta
         ---------
         point: ndarray, the original parameter set or state point renormalized based on the original bounds
         """
@@ -316,6 +314,59 @@ class Parameter_Sets(Parameters_And_State_Points):
         # Code logic goes here
         pass
     
+class Hyperparameters:
+    """
+    The base class for any best error
+    
+    Methods
+    --------------
+    __init__
+    calc_be()
+
+    """
+    # Class variables and attributes
+    
+    def __init__(self, hp_name, constant):
+        """
+        Parameters
+        ----------
+        hp_name: str, The name associated with the hyperparameter
+        constant: bool, Whether the hyperparameter is a constant (T) or will be optimized (F)
+        
+        """
+        # Constructor method
+        self.hp_name = hp_name
+        self.constant = constant
+        self.value = value
+        
+    def set_hps(self, value = 1):
+        """
+        Evaluates value of hyperparameters
+        
+        Parameters:
+        -----------
+        value: int, If constant, value of the hyperparameter, If not constant, starting value of the hyperparameter
+        
+        Returns:
+        ---------
+        hyperparam: float or ndarray, A model hyperparameter
+        """
+        #Logic
+    
+    def print_hps(self, hyperparam):
+        """
+        prints evaluated value of hyperparameters
+        
+        Parameters:
+        -----------
+        hyperparam: float or ndarray, A model hyperparameter
+        
+        Returns:
+        ---------
+        hyperparam_pp: str, The hyperparameter as a string rounded appropriately
+        """
+        #Logic 
+        
 class Exploration_Bias(ep_bias = 1):
     """
     The base class for any Exploration Parameter
@@ -342,7 +393,7 @@ class Exploration_Bias(ep_bias = 1):
         self.ep_calc_method = ep_calc_method
         self.ep = ep
         
-    def calc_ep(self, Bo_iter, ep, mean_of_var, best_error, ep_inc = 1.5, ep_f = 0.01, improvement = False)
+    def calc_ep(self, Bo_iter, ep, mean_of_var, best_error, ep_inc = 1.5, ep_f = 0.01, improvement = False):
         """
         Evaluates value of exploration parameter at each BO iteration
         
@@ -360,7 +411,7 @@ class Exploration_Bias(ep_bias = 1):
         ---------
         ep: float, The current value of exploration bias
         """
-        #Logic for determining obj, sparse_grid, and emulator
+        #Logic
         
 class Best_Error:
     """
@@ -381,9 +432,8 @@ class Best_Error:
         method_name, str, The name associated with the method being tested
         """
         # Constructor method
-        #What would I even initialize?
         
-    def calc_be(self, Method, Case_Study, train_data, Xexp, Yexp)
+    def calc_be(self, Method, Case_Study, train_data, Xexp, Yexp):
         """
         Evaluates value of exploration parameter at each BO iteration
         
@@ -399,9 +449,9 @@ class Best_Error:
         ---------
         best_error: float, The best error of the GP model
         """
-        #Logic for determining obj, sparse_grid, and emulator
+        #Logic for determining be 
         
-class GP_Derived_Parameters:
+class GP_Derived_Values:
     """
     The base class for parameters derived from GP predictions GP stdev and GP mean
     
@@ -422,7 +472,7 @@ class GP_Derived_Parameters:
         # Constructor method
         self.derived_val_name = derived_val_name
         
-    def calc_EI(self, Method, train_data, Xexp, Yexp, model_mean, model_variance, ep)
+    def calc_EI(self, Method, train_data, Xexp, Yexp, model_mean, model_variance, ep):
         """
         Evaluates value of expected improvement
         
@@ -441,7 +491,7 @@ class GP_Derived_Parameters:
         ei: float, The expected improvement of the given values
         """
         
-    def find_argmax_param_set(self, param_set, derived_val)
+    def find_argmax_param_set(self, param_set, derived_val):
         """
         Evaluates value of expected improvement
         
@@ -455,7 +505,7 @@ class GP_Derived_Parameters:
         argmax_param_set: ndarray, The parameter sets associated with the argmax of the derived property value
         """    
         
-    def calc_sse(self, Method, train_data, Xexp, Yexp, model_mean)
+    def calc_sse(self, Method, train_data, Xexp, Yexp, model_mean):
         """
         Evaluates value of exploration parameter at each BO iteration
 
@@ -472,7 +522,7 @@ class GP_Derived_Parameters:
         sse: float, The sse of the given values
         """
         
-    def find_argmin_param_set(self, param_set, derived_val)
+    def find_argmin_param_set(self, param_set, derived_val):
         """
         Evaluates value of expected improvement
         
@@ -485,3 +535,11 @@ class GP_Derived_Parameters:
         ---------
         argmin_param_set: ndarray, The parameter sets associated with the argmin of the derived property value
         """ 
+        
+# QUESTIONS:
+#     1) What is the best way to save csvs of the necessary data? How can I write that to a class such that each function doesn't need 100 parameters?
+#     2) Is there a better way to define the Best_Error/GP_Derived_Values classes together? As it is, what would I initialize for Best_Error?
+#     3) What is the best way to deal with the shape differences between standard and emulator BO?
+#     4) When do I use a function vs a class?
+#     5) Where would I add a method for GP validation? Parameter_Set?
+#     6) Which class should creating data be part of?
