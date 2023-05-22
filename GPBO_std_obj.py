@@ -33,6 +33,7 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 print("Date and Time: ", timestampStr)
 # DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M-%S%p")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
+# DateTime = "2023/05/22/14-27"
 # DateTime = None ##For Testing
 
 #Set Parameters

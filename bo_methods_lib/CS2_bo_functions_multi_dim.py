@@ -1185,6 +1185,11 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
                     pass
         elif isinstance(component, (np.float32, np.float64)) == True and title == "Best_Error" :
             Best_Error_Found = np.round(component,4)
+            if save_CSV == True:
+                mesh_combo_name = str(param_names_list[0]) + "-" + str(param_names_list[1])
+                path_be_csv = path_name(emulator, ep0, sparse_grid, "value_plotter", set_lengthscale, t, obj, mesh_combo_name, bo_iter, "best_error", run, BO_iters, tot_runs, DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + "best_error", normalize = normalize)
+                save_csv(component, path_be_csv, ext = "npy")
+        
             if verbose == True:
                 print("Best Error is:", Best_Error_Found)
     return
