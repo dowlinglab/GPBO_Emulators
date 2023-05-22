@@ -84,7 +84,7 @@ runs = 1
 train_iter = 300
 noise_std = 0.01
 shuffle_seed = 9
-sep_fact = np.linspace(0.1,1.0,10)
+sep_fact = np.linspace(1.0,1.0,1)
 set_lengthscale = [1, None]
 explore_bias = 1
 

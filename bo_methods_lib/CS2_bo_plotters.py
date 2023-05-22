@@ -1206,8 +1206,10 @@ def many_value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p, title
     fxn = "many_value_plotter"
     mesh_combo = str(param_names_list[0]) + "-" + str(param_names_list[1])
     q=len(p_true)
-    if len(levels) == 1:
-        tot_lev = levels*len(z)
+    if levels is None:
+        tot_lev = None
+    elif len(levels) == 1:
+        tot_lev = levels*len(z) 
     else:
         tot_lev = levels
     #Define figures and x and y data
@@ -1247,8 +1249,9 @@ def many_value_plotter(test_mesh, z, p_true, p_GP_opt, p_GP_best, train_p, title
             cbar = plt.colorbar(cs_fig, ax = ax[i], format = '%2.2f')
         
         #Create a line contour for each colormap
-        cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
-        ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=10, inline=1)
+        if levels is not None:
+            cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+            ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=10, inline=1)
     
         #plot true, best, and training values
         ax[i].scatter(p_true[0],p_true[1], color="blue", label = "True argmin" + r'$(e(\theta))$', s=100, marker = (5,1))
