@@ -1308,3 +1308,60 @@ def calc_ei_basic(f_best,pred_mean,pred_var, explore_bias=1, verbose=False):
         ei = 0
 
     return ei
+
+def calc_ei_basic_all_terms(f_best,pred_mean,pred_var, explore_bias=1, verbose=False):
+    """ 
+    Calculates the expected improvement of the 2 input parameter GP
+    Parameters
+    ----------
+        f_best: float, the best predicted sse encountered
+        pred_mean: tensor, model mean
+        pred_var, tensor, model variance
+        explore_bias: float, the numerical bias towards exploration, 1 is the default
+        verbose: bool: Determines whether z and ei terms are printed. Default False
+    
+    Returns
+    -------
+        ei: float, The expected improvement of a given point
+    """
+        #Checks for equal lengths
+#     assert isinstance(f_best, (np.float64,int))==True or torch.is_tensor(f_best)==True, "f_best must be a float or int"
+#     assert isinstance(pred_mean, (np.float64,int))==True, "pred_mean and pred_var must be the same length"
+#     assert isinstance(pred_var, (np.float64,int))==True, "pred_mean and pred_var must be the same length"
+    
+    #Converts tensors to np arrays and defines standard deviation
+    if torch.is_tensor(pred_mean)==True:
+        pred_mean = pred_mean.numpy() #1xn
+    if torch.is_tensor(explore_bias)==True:
+        explore_bias = explore_bias.numpy() #1xn
+    if torch.is_tensor(pred_var)==True:
+        pred_var = pred_var.detach().numpy() #1xn
+    pred_stdev = np.sqrt(pred_var) #1xn_test
+#     print("stdev",pred_stdev)
+    #Checks that all standard deviations are positive
+    if pred_stdev > 0:
+        #Calculates z-score based on Ke's formula
+#         z = (pred_mean - f_best - explore_bias)/pred_stdev #scaler
+        z = (f_best*explore_bias - pred_mean)/pred_stdev #scaler
+#         z = (pred_mean - f_best*explore_bias)/pred_stdev #scaler
+        
+        #Calculates ei based on Ke's formula
+        #Explotation term
+#         ei_term_1 = (pred_mean - f_best - explore_bias)*norm.cdf(z) #scaler
+        ei_term_1 = (f_best*explore_bias - pred_mean)*norm.cdf(z) #scaler
+#         ei_term_1 = (pred_mean - f_best*explore_bias)*norm.cdf(z) #scaler
+        #Exploration Term
+        ei_term_2 = pred_stdev*norm.pdf(z) #scaler
+        ei = ei_term_1 +ei_term_2 #scaler
+#         if verbose == True:
+#             print("z",z)
+#             print("Exploitation Term",ei_term_1)
+#             print("CDF", norm.cdf(z))
+#             print("Exploration Term",ei_term_2)
+#             print("PDF", norm.pdf(z))
+#             print("EI",ei,"\n")
+    else:
+        #Sets ei to zero if standard deviation is zero
+        ei = 0
+
+    return z, norm.cdf(z), norm.pdf(z), ei_term_1, ei_term_2

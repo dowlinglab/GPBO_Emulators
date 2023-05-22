@@ -21,7 +21,7 @@ import Tasmanian
 # from .CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
 from .CS1_create_data import create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
 
-from .bo_functions_generic import LHS_Design, set_ep, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays, norm_unnorm, train_GP_scikit, define_GP_model
+from .bo_functions_generic import LHS_Design, set_ep, test_train_split, find_train_doc_path, ExactGPModel, train_GP_model, calc_GP_outputs, explore_parameter, ei_approx_ln_term, calc_ei_emulator, get_sparse_grids, eval_GP_sparse_grid, calc_ei_basic, train_test_plot_preparation, clean_1D_arrays, norm_unnorm, train_GP_scikit, define_GP_model, calc_ei_basic_all_terms
 
 from .normalize import normalize_x, normalize_p_data, normalize_p_set, normalize_p_true, normalize_constants, normalize_general, normalize_p_bounds
 
@@ -338,7 +338,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             ei,sse,var,stdev,best_error,gp_mean_all, gp_var_all = eval_components
         #If emulator is false, gp_mean_all and gp_var_all are redundant, because they are the same as sse and var. 
         else:
-            ei,sse,var,stdev,best_error = eval_components
+            ei,sse,var,stdev,best_error, ei_components = eval_components
 
         #solve for opt and best based on the highest ei and lowest sse from the GP evaluations of theta_set
         theta_b, theta_o = optimize_theta_set(Xexp, Yexp, theta_set, true_model_coefficients, train_y, train_p, sse, ei, model, likelihood, explore_bias, emulator, sparse_grid, verbose, obj, bounds_p, skip_param_types, norm_scalers)
@@ -360,7 +360,7 @@ def bo_iter(BO_iters,train_p,train_y,theta_set,Theta_True,train_iter,explore_bia
             gp_var_all_mat[i] = gp_var_all_best
         #If emulator is false, eval_GP does not return the individual parameters important in the calculation of EI and gp_mean_all and gp_var_all are redundant, because they are the same as sse and var. 
         else:
-            ei_best,sse_best,var_best,stdev_best,best_error_best = eval_components_best
+            ei_best,sse_best,var_best,stdev_best,best_error_best, ei_components = eval_components_best
             gp_mean_all_mat[i] = sse_best
             gp_var_all_mat[i] = var_best
      
@@ -613,7 +613,8 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
     sse = np.zeros(len_set)
     var = np.zeros(len_set)
     stdev = np.zeros(len_set)
-
+    ei_components = np.zeros((5, len_set)) #z, norm.pdf(z), norm.cdf(z), ei_term_1, ei_term_2
+    
     #Loop over theta combos in theta_set
     for i in range(len_set):
         #Choose and evaluate point
@@ -624,8 +625,9 @@ def eval_GP_basic_set(theta_set, train_sse, model, likelihood, explore_bias=0.0,
         var[i] = model_variance
         stdev[i] = np.sqrt(model_variance) 
         ei[i] = calc_ei_basic(best_error, model_mean, model_variance, explore_bias, verbose)
-    
-    return ei, sse, var, stdev, best_error #Prints just the value
+        ei_components[:,i] = calc_ei_basic_all_terms(best_error, model_mean, model_variance, explore_bias, verbose)
+        
+    return ei, sse, var, stdev, best_error, ei_components #Prints just the value
         
                 
 def eval_GP_emulator_set(Xexp, Yexp, theta_set, true_model_coefficients, model, likelihood, sparse_grid, emulator, explore_bias = 1, verbose = False, train_p = None, obj = "obj", skip_param_types = 0, norm_scalers = None):
@@ -1075,16 +1077,16 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
                
     #Evaluate GP at new points
     eval_components = eval_GP(theta_set, train_y, explore_bias, Xexp, Yexp, true_model_coefficients, model, likelihood, verbose, emulator, sparse_grid, set_lengthscale, train_p, obj = obj, skip_param_types = skip_param_types, norm_scalers = norm_scalers)
-    
     #Determine which parameters will be plotted given the method type. Save parameters to plot to a list    
     if emulator == True:
         #If the emulator approach is used, gp_mean_all and gp_var_all are saved, and there are no internal EI parameters to report
         ei,sse,var,stdev,best_error,gp_mean_all, gp_var_all = eval_components
         list_of_plot_variables = [ei,sse,var,stdev,best_error,gp_mean_all,gp_var_all]
     else:
-        #If emulator is false, eval_GP does not return the individual parameters important in the calculation of EI and gp_mean_all and gp_var_all are redundant, because they are the same as sse and var. 
-        ei,sse,var,stdev,best_error = eval_components
-        list_of_plot_variables = [ei,sse,var,stdev,best_error]
+        #If emulator is false, eval_GP retrns individual parameters important in the calculation of EI and gp_mean_all and gp_var_all are redundant, because they are the same as sse and var. 
+        ei,sse,var,stdev,best_error, ei_components = eval_components
+        z, CDF, PDF, ei_term_1, ei_term_2 = ei_components
+        list_of_plot_variables = [ei,sse,var,stdev,best_error, z, CDF, PDF, ei_term_1, ei_term_2]
     
     #Loop over all plotting variables
     for i in range(len(list_of_plot_variables)):
@@ -1098,8 +1100,8 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
             
     #Set titles for plots
     if emulator == False:
-        titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2','\sigma','Best_Error','z','EI_term_1','EI_term_2','CDF','PDF']  
-        titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error","z","ei_term_1","ei_term_2","CDF","PDF"] 
+        titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2','\sigma','Best_Error','z','CDF','PDF','EI_term_1','EI_term_2']  
+        titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error","z","CDF","PDF","ei_term_1","ei_term_2"] 
     else:
         titles = ['E(I(\\theta))','log(e(\\theta))','\sigma^2', '\sigma', 'Best_Error', 'GP Mean', 'GP Variance']  
         titles_save = ["EI","ln(SSE)","Var","StDev","Best_Error", "GP_Mean", "GP_Var"] 
@@ -1161,6 +1163,12 @@ def eval_and_plot_GP_over_grid(theta_set_org, indecies, n_points, Theta_True, Xe
         pass
 
     #Plot and save other figures
+    #Save theta_mesh as a CSV 
+    if save_CSV == True:
+        mesh_combo_name = str(param_names_list[0]) + "-" + str(param_names_list[1])
+        path_t_mesh_csv = path_name(emulator, ep0, sparse_grid, "value_plotter", set_lengthscale, t, obj, mesh_combo_name, bo_iter, "theta_mesh", run, BO_iters, tot_runs, DateTime, sep_fact = sep_fact, is_figure = False, csv_end = "/" + "theta_mesh", normalize = normalize)
+        save_csv(theta_mesh, path_t_mesh_csv, ext = "npy")
+        
     #Loop over remaining variables to be saved and plotted
     for j in range(len(list_of_plot_variables)-2):
         #Define a component to be plotted and find the title to save it by

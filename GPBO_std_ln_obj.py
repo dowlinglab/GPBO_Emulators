@@ -79,20 +79,20 @@ else:
                          [ 2,  2]])
 
 d = len(true_p)
-BO_iters = 100
-runs = 15
+BO_iters = 15
+runs = 1
 train_iter = 300
 noise_std = 0.01
 shuffle_seed = 9
 sep_fact = np.linspace(0.1,1.0,10)
-set_lengthscale = 1
+set_lengthscale = [1, None]
 explore_bias = 1
 
 eval_all_pairs = True
 # eval_all_pairs = False
 package = "scikit_learn"
 kernel = "Mat_52"
-outputscl = False 
+outputscl = [False, True]
 initialize = 5
 
 obj = np.array(["LN_obj"])
@@ -134,8 +134,6 @@ print("Number of Experimental Data Points: ", n)
 print("GP Training Package: ", package)
 print("GP Training Iterations (Gpytorch only): ", train_iter)
 print("GP Kernel Function: ", kernel)
-print("GP Kernel lengthscale: ", set_lengthscale)
-print("GP Kernel Has Trained outputscale?: ", outputscl)
 print("GP Training Restarts (when lengthscale not set): ", initialize)
 print("Training Data Noise st.dev: ", noise_std)
 print("Runs:", runs)
@@ -173,16 +171,17 @@ for norm in normalize:
     #                 explore_bias = set_ep(emul, obj_func, sparse)
                     ep = torch.tensor([float(explore_bias)])
                     print("Separation Factor Train/Test:", str(np.round(sep_fact[i],3)))
-                    print("Lengthscale Set To:", set_lengthscale)
-                    print("Explore Bias Multiplier:", str(np.round(float(ep),3)))
-                    results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,true_p,train_iter,ep, Xexp, Yexp,
-                                                 noise_std, obj_func, runs, sparse, emul, package, kernel, set_lengthscale, outputscl, 
-                                                 initialize, Constants, param_dict, bounds_p, bounds_x, verbose, save_fig, save_CSV,
-                                                 shuffle_seed, DateTime, sep_fact = sep_fact[i], LHS = LHS, 
-                                                 skip_param_types =skip_param_types, eval_all_pairs = eval_all_pairs, normalize = norm,
-                                                 case_study = CS)
-                    print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2], 
-                              "during run", results[1], "at BO iteration", results[0])
-                    print("At this point, the highest EI occurs at \u03B8 =", results[4])
-                    print("True p: ", true_p)
-                    print("\n")
+                    for j in range(len(set_lengthscale)):
+                        print("GP Kernel lengthscale: ", set_lengthscale[j])
+                        print("GP Kernel Has Trained outputscale?: ", outputscl[j])
+                        print("Explore Bias Multiplier:", str(np.round(float(ep),3)))
+                        results = bo_iter_w_runs(BO_iters,all_data_doc,t,theta_mesh,true_p,train_iter,ep, Xexp, Yexp, noise_std, obj_func,
+                                                 runs, sparse, emul, package, kernel, set_lengthscale[j], outputscl[j], initialize, 
+                                                 Constants, param_dict, bounds_p, bounds_x, verbose, save_fig, save_CSV, shuffle_seed,
+                                                 DateTime, sep_fact = sep_fact[i], LHS = LHS, skip_param_types =skip_param_types, 
+                                                 eval_all_pairs = eval_all_pairs, normalize = norm,case_study = CS)
+                        print("The GP predicts the lowest SSE of", "{:.3e}".format(np.exp(results[3])), "occurs at \u03B8 =", results[2], 
+                                  "during run", results[1], "at BO iteration", results[0])
+                        print("At this point, the highest EI occurs at \u03B8 =", results[4])
+                        print("True p: ", true_p)
+                        print("\n")
