@@ -1,4 +1,4 @@
-# import numpy as np
+import numpy as np
 # import math
 # from scipy.stats import norm
 # from scipy import integrate
@@ -15,6 +15,7 @@
 # import os
 # import time
 # import Tasmanian
+from scipy.stats import qmc
 
 # #Notes: Change line below when changing test problems: 
 # # If line 21 is active, the 8D problem is used, if line 22 is active, the 2D problem is used
@@ -39,7 +40,8 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, true_params, true_model_coefficients, param_dict, skip_param_types, ep0, sep_fact, normalize, num_data, LHS_gen_theta, eval_all_pairs, package, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime):
+    def __init__(self, cs_name, true_params, true_model_coefficients, param_dict, skip_param_types, ep0, sep_fact, normalize, num_x_data,
+num_theta_data, num_data, LHS_gen_theta, x_data_vals, eval_all_pairs, package, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime):
         """
         Parameters
         ----------
@@ -51,8 +53,11 @@ class CaseStudyParameters:
         ep0: float, The original  exploration bias. Default 1
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         normalize: bool, Determines whether feature data will be normalized for problem analysis
-        num_data: int, number of available data for training/testing
+        num_x_data: int, number of available x data for training/testing
+        num_theta_data: int, number of available theta data for training/testing
+        num_data: int, number of available data for training/testing 
         LHS_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False). Default False
+        x_data_vals: ndarray or none: Values of X data. If none, these values must be generated
         eval_all_pairs: bool, determines whether all pairs of theta are evaluated to create heat maps. Default False
         package: str ("gpytorch" or  "scikit_learn") determines which package to use for GP hyperaparameter optimization
         noise_std: float, int: The standard deviation of the noise
@@ -77,8 +82,11 @@ class CaseStudyParameters:
         self.ep0 = ep0
         self.sep_fact = sep_fact
         self.normalize = normalize
+        self.num_x_data = num_x_data
+        self.num_theta_data = num_theta_data
         self.num_data = num_data
         self.LHS_gen_theta = LHS_gen_theta
+        self.x_data_vals = x_data_vals
         self.eval_all_pairs = eval_all_pairs
         self.bo_iter_tot = bo_iter_tot
         self.bo_run_tot = bo_run_tot
@@ -206,8 +214,9 @@ class Data:
         # Code logic goes here
         pass
 
-#Stopped Here. Work on this 5/24/23
-class GP_Emulator(CaseStudyParameters):
+#https://www.geeksforgeeks.org/inheritance-and-composition-in-python/
+#AD: Use composition instead of inheritance here, pass an instance of CaseStudyParameters to the init function
+class Type_1_GP_Emulator(CaseStudyParameters):
     """
     The base class for Gaussian Processes
     Parameters
@@ -229,7 +238,7 @@ class GP_Emulator(CaseStudyParameters):
         # Constructor method
         super().__init__(normalize, package, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter)
     
-    def type_1(self, param_set): #Where should I account for finding the SSE of these values?
+    def eval_gp(self, param_set): #Where should I account for finding the SSE of these values?
         """
         Evaluates GP model for a standard GPBO
         
@@ -243,7 +252,30 @@ class GP_Emulator(CaseStudyParameters):
         gp_var: tensor, The GP model's variance evaluated over param_set 
         
         """
-    def type_2(self, param_set, x_vals):
+        
+class Type_2_GP_Emulator(CaseStudyParameters):
+    """
+    The base class for Gaussian Processes
+    Parameters
+    
+    Methods
+    --------------
+    __init__
+    type_1
+    type_2
+    """
+    # Class variables and attributes
+    
+    def __init__(self):
+        """
+        Parameters
+        ----------
+        CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
+        """
+        # Constructor method
+        super().__init__(normalize, package, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter)
+    
+    def eval_gp(self, param_set, x_vals):
         """
         Evaluates GP model for an emulator GPBO
         
@@ -260,8 +292,8 @@ class GP_Emulator(CaseStudyParameters):
         sse_var: tensor, The sse variance derived from the GP model's variance evaluated over param_set 
         
         """
-        
-class Acquisition_Function(CaseStudyParameters):  
+##Again, composition instead of inheritance      
+class Expected_Improvement(CaseStudyParameters):  
     """
     The base class for acquisition functions
     Parameters
@@ -273,6 +305,7 @@ class Acquisition_Function(CaseStudyParameters):
     type_1_ei
     type_2_ei
     """
+    #AD Comment: What part of the acquisition function code can be generalized and what is specific to type1 and type2? 
     def __init__(self, ep, gp_mean, gp_var):
         """
         Parameters
@@ -305,7 +338,7 @@ class Acquisition_Function(CaseStudyParameters):
         best_error: float, the best error of the method
         
         """
-    def type_1_ei(self, param_set, best_error, Method):
+    def type_1(self, param_set, best_error, Method):
         """
         Calculates expected improvement of type 1 (standard) GPBO
         
@@ -320,7 +353,7 @@ class Acquisition_Function(CaseStudyParameters):
         ei: float, The expected improvement of the parameter set
         """
         
-    def type_2_ei(self, param_set, best_error, Method):
+    def type_2(self, param_set, best_error, Method):
         """
         Calculates expected improvement of type 2 (emulator) GPBO
         
@@ -335,8 +368,8 @@ class Acquisition_Function(CaseStudyParameters):
         ei: float, The expected improvement of the parameter set
         """
         
-    
-class GPBO_Driver(CaseStudyParameters):
+##Again, composition instead of inheritance       
+class GPBO_Driver:
     """
     The base class for running the GPBO Workflow
     Parameters
@@ -348,18 +381,57 @@ class GPBO_Driver(CaseStudyParameters):
     """
     # Class variables and attributes
     
-    def __init__(self):
+    def __init__(self, CaseStudyParameters):
         """
         Parameters
         ----------
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
-        super().__init__(cs_name, theta_true, true_model_coefficients, theta_dict, skip_param_types, ep0, sep_fact, normalize, num_data, LHS_gen_theta, eval_all_pairs,  package, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime)
+        self.CaseStudyParameters = CaseStudyParameters
         
-    def create_exp_data(self):
+    #Not sure how to generalize this between case studies for multiple dimensions for meshgrid method
+    def create_xtrain_data(self, bounds, gen_meth, seed):
         """
-        Creates experimental data based on x, theta_true, and the case study
+        Generates experimental x training data based off of x bounds, and an LHS generation number
+        
+        Parameters
+        ----------
+        bounds: ndarray, array of x bounds
+        gen_meth: str, ("LHS", "Meshgrid", or None). Determines whether x data will be generated from an LHS or meshgrid (for 2D X data)
+        
+        Returns:
+        --------
+        x_data: ndarray, a list of x data
+        """
+        exp_d = bounds.shape[1]
+        exp_l_bounds = bounds[0,:]
+        exp_u_bounds = bounds[1,:]
+        exp_sampler = qmc.LatinHypercube(d=exp_d, seed = seed)
+        exp_sample = exp_sampler.random(n=self.CaseStudyParameters.num_x_data)
+        exp_sample_corner = exp_sampler.random(n=self.CaseStudyParameters.num_x_data)
+        
+        if gen_meth == "LHS":
+            x_data = qmc.scale(exp_sample, exp_l_bounds, exp_u_bounds)
+        
+        elif gen_meth == "Meshgrid":
+            assert bounds.shape[1] == 2, "X must be 2D to use a meshgrid method"
+            #Create a linspace for the number of dimensions
+            closest_sq_root_int = int(np.sqrt(self.CaseStudyParameters.num_x_data))
+            X1 = np.linspace(exp_l_bounds[0], exp_u_bounds[0], closest_sq_root_int)
+            X2 = np.linspace(exp_l_bounds[1], exp_u_bounds[1], closest_sq_root_int)
+            x_data = np.array(np.meshgrid(X1, X2)).T.reshape(-1, len(exp_l_bounds))
+        
+        else:
+            assert self.CaseStudyParameters.x_data_vals is not None, "X must be provided if not generated"
+            assert self.CaseStudyParameters.x_data_vals.shape[1] == exp_d, "Provided X values must have the same dimension as bounds!"
+            x_data = self.CaseStudyParameters.x_data_vals
+            
+        return x_data
+        
+    def create_y_data(self):
+        """
+        Creates experimental y data based on x, theta_true, and the case study
         
         Parameters
         ----------
@@ -415,7 +487,7 @@ class GPBO_Driver(CaseStudyParameters):
         Theta_Opt: ndarray, Array of Optimal Theta values (as determined by min(sse)) for each iteration
         """
         
-    def eval_GP_over_grid(self, Method, bounds_p, x_vals, best_error)
+    def eval_GP_over_grid(self, Method, bounds_p, x_vals, best_error):
         """
         Evaluates GP for data values over a grid (GP Mean, GP var, EI, SSE)
         
