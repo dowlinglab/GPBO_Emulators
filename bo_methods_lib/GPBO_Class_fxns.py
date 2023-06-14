@@ -36,110 +36,36 @@ def vector_to_1D_array(array):
     """
     #If array is not 2D, give it shape (len(array), 1)
     if not len(array.shape) > 1:
-        array == array.reshape(-1,1)
+        array = array.reshape(-1,1)
     return array
 
 #How to pass the function given that inputs may be different?
-def calc_cs1_polynomial(theta_true, x):
+def calc_cs1_polynomial(true_model_coefficients, x):
     """
     Calculates the value of y for case study 1
     
     Parameters
     ----------
-    Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
+    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
     x: ndarray, The list of xs that will be used to generate y
     
     Returns
     --------
-    y: ndarray, The noiseless values of y given theta_true and x
+    y_poly: ndarray, The noiseless values of y given theta_true and x
     """
     
-    y =  theta_true[0]*x + theta_true[1]*x**2 +x**3
+    y_poly =  true_model_coefficients[0]*x + true_model_coefficients[1]*x**2 +x**3
     
-    return y
+    return y_poly
 
-def ll_calc_y_exp(calc_y_fxn, theta_true, x, noise_std, noise_mean=0,random_seed=6):
-    """
-    Creates y_data for any case study
-    
-    Parameters
-    ----------
-        calc_y_fxn: function, the function that calculates the experimental value of y
-        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
-        x: ndarray, The list of xs that will be used to generate y
-        noise_std: float, int: The standard deviation of the noise
-        noise_mean: float, int: The mean of the noise
-        random_seed: int: The random seed
-        
-    Returns:
-        y_exp: ndarray, The expected values of y given x data
-    """   
-    
-    #Asserts that test_T is a tensor with 2 columns
-    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
-    assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
-    
-    #Seed Random Noise (For Bug Testing)
-    if random_seed != None:
-        assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
-        np.random.seed(random_seed)
-        
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = np.random.normal(size=x.shape[0],loc = noise_mean, scale = noise_std) #1x n_x
-
-    # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
-    y_exp = calc_y_fxn(theta_true, x) + noise #1x n_x #Put this as an input
-  
-    return y_exp.flatten()
-
-def cs2_calc_y_exp(true_model_coefficients, x, noise_std, noise_mean=0,random_seed=9):
-    """
-    Creates y_data (Muller Potential) for the 2 input GP function
-    
-    Parameters
-    ----------
-        true_model_coefficients: ndarray, The array containing the true values of Muller constants
-        x: ndarray, The list of xs that will be used to generate y
-        noise_std: float, int: The standard deviation of the noise
-        noise_mean: float, int: The mean of the noise
-        random_seed: int: The random seed
-        
-    Returns:
-        y_exp: ndarray, The expected values of y given x data
-    """   
-   #Asserts that test_T is a tensor with 2 columns
-    x = vector_to_1D_array(x)
-    len_x = x.shape[0]
-    
-#     print(len_x)
-    #Seed Random Noise (For Bug Testing)
-    if random_seed != None:
-        assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
-        np.random.seed(random_seed)
-        
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
-    
-    # True function is Muller Potential
-    
-    y_exp = np.zeros(len_x)
-    
-    for i in range(len_x):
-#         print(true_model_coefficients.shape)
-        y_exp[i] = calc_muller(x[i], true_model_coefficients) + noise
-  
-    return y_exp
-
-
-
-def calc_muller(x, model_coefficients):
+def calc_muller(model_coefficients, x):
     """
     Caclulates the Muller Potential
     
     Parameters
     ----------
-        x: ndarray, Values of X
         model_coefficients: ndarray, The array containing the values of Muller constants
+        x: ndarray, Values of X
         noise: ndarray, Any noise associated with the model calculation
     
     Returns:
@@ -147,7 +73,7 @@ def calc_muller(x, model_coefficients):
         y_mul: float, value of Muller potential
     """
     #Reshape x to matrix form
-    x = vector_to_1D_array(x)
+    x = vector_to_1D_array(x) 
     assert x.shape[0] == 2, "Muller Potential x_data must be 2 dimensional"
     X1, X2 = x #Split x into 2 parts by splitting the rows
     
@@ -163,151 +89,119 @@ def calc_muller(x, model_coefficients):
     
     return y_mul
 
+def calc_y_exp(calc_y_fxn, true_model_coefficients, x, noise_std, noise_mean=0,random_seed=6):
+    """
+    Creates y_data for any case study
+    
+    Parameters
+    ----------
+        calc_y_fxn: function, the function that calculates the experimental value of y
+        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
+        x: ndarray, The list of xs that will be used to generate y
+        noise_std: float, int: The standard deviation of the noise
+        noise_mean: float, int: The mean of the noise
+        random_seed: int: The random seed
+        
+    Returns:
+        y_exp: ndarray, The expected values of y given x data
+    """   
+    #Asserts that test_T is a tensor with 2 columns
+    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
+    assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
+    
+    x = vector_to_1D_array(x)
+    len_x = x.shape[0]
+    
+    #Seed Random Noise (For Bug Testing)
+    if random_seed != None:
+        assert isinstance(random_seed,int) == True, "Seed number must be an integer or None"
+        np.random.seed(random_seed)
+        
+    #Creates noise values with a certain stdev and mean from a normal distribution
+    noise = np.random.normal(size=x.shape[0],loc = noise_mean, scale = noise_std) #1x n_x
+    
+    #Define an array to store y values in
+    y_exp = np.zeros(len_x)
+    
+    #Loop over x values and calculate y
+    for i in range(len_x):
+        y_exp[i] = calc_y_fxn(true_model_coefficients, x[i])
+    
+    #Add noise and flatten array
+    y_exp = y_exp + noise
+    y_exp = y_exp.flatten()
+  
+    return y_exp
 
-def cs1_calc_sse(sim_data, exp_data, obj = "obj"):
+def calc_y_sim(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies_to_consider):
+    """
+    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
+    Parameters
+    ----------
+        calc_y_fxn: function, The function used to evaluate the simulation
+        sim_data: Class, Class containing at least the theta_vals for simulation
+        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        true_model_coefficients: ndarray, The array containing the true values of Muller constants
+        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
+        
+    Returns
+    -------
+        y_data: ndarray, The simulated y training data
+    """
+    #Define an array to store y values in
+    y_sim = []
+    
+    #Loop over x values and calculate y
+    for i in range(sim_data.theta_vals.shape[0]):
+        #Create model coefficient from true space substituting in the values of param_space at the correct indecies
+        model_coefficients = true_model_coefficients
+        model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
+        for j in range(exp_data.x_vals.shape[0]):
+            #Create model coefficients
+            y_sim.append(calc_y_fxn(model_coefficients, exp_data.x_vals[j]))
+    
+    #Convert list to array and flatten array
+    y_sim = np.array(y_sim).flatten()
+    
+    return y_sim
+
+def calc_sse(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies_to_consider, obj = "obj"):
     """
     Creates y_data for the 2 input GP function
     
     Parameters
     ----------
+        calc_y_fxn: function, The function used to evaluate the simulation
         sim_data: Class, Class containing at least the theta_vals for simulation
         exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        true_model_coefficients: ndarray, The array containing the true values of Muller constants
+        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         
     Returns:
         sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
     """   
-    assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse" 
-
-    #Creates an array for train_sse that will be filled with the for loop
-    sum_error_sq = np.zeros((sim_data.theta_vals.shape[0]))
-
-    #Iterates over evey combination of theta to find the SSE for each combination
-    #For each point in train_T
-    for i in range(sim_data.theta_vals.shape[0]):
-        #Theta 1 and theta 2 represented by columns for this case study
-        theta_1 = sim_data.theta_vals[i,0] #n_train^2x1 
-        theta_2 = sim_data.theta_vals[i,1] #n_train^2x1
-        #Calc y_sim
-        y_sim = theta_1*exp_data.x_vals + theta_2*exp_data.x_vals**2 +exp_data.x_vals**3 #n_train^2 x n_x
-        #Clean y_sim and calculate sse or log(sse)
-        y_sim = y_sim.flatten()
-        sum_error_sq[i] = sum((y_sim - exp_data.y_vals)**2) #Scaler
-        
-    if obj == "LN_obj":
-        sum_error_sq = np.log(sum_error_sq) #Scaler
-    
-    
-    return sum_error_sq 
-
-def cs1_calc_y_sim(sim_data, exp_data):
-    """
-    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
-    Parameters
-    ----------
-        sim_data: Class, Class containing at least the theta_vals for simulation
-        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
-    Returns
-    -------
-        y_data: ndarray, The simulated y training data
-    """       
-    #Creates an array for train_data that will be filled with the for loop
-    y_data = [] #1 x n (row x col)
-    
-    #Used when multiple values of y are being calculated
-    #Iterates over evey combination of theta to find the expected y value for each combination
-    for i in range(sim_data.theta_vals.shape[0]):
-        #Theta1 and theta2 are defined as coulms of param_space
-        theta_1, theta_2 = sim_data.theta_vals[i] #1 x n
-        #Calculate y_data and append to list
-        y_vals = theta_1*exp_data.x_vals + theta_2*exp_data.x_vals**2 +exp_data.x_vals**3
-        y_data.append(y_vals) #Scaler
-        
-    #Flatten y_data
-    y_data = np.array(y_data).flatten()
-    
-    return y_data
-
-def cs2_calc_sse(sim_data, exp_data, true_model_coefficients, obj, indecies_to_consider, 
-                 noise_mean = 0, noise_std = 0, seed = None):
-    """
-    Creates y_data for the 2 input GP function
-    
-    Parameters
-    ----------
-        sim_data: Class, Class containing at least the theta_vals for simulation
-        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
-        true_model_coefficients: ndarray, The array containing the true values of Muller constants
-        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
-        noise_mean: float, int: The mean of the noise
-        noise_std: float, int: The standard deviation of the noise
-        seed: int: The random seed
-        
-    Returns:
-        sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
-    """  
-    #Will need assert statement
+    #Assert statement
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     
-    noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
+    #Calculate noise. Do we actually need noise here? The SSE is never a measured value
+#     noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
     
+    #How could I use calc_y_sim here rather than writing the same lines of code?
     sum_error_sq = np.zeros(sim_data.theta_vals.shape[0])
     #Iterates over evey combination of theta to find the SSE for each combination
     for i in range(sim_data.theta_vals.shape[0]):
+        #Create model coefficient from true space substituting in the values of param_space at the correct indecies
         model_coefficients = true_model_coefficients
         model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
         y_sim = np.zeros(exp_data.x_vals.shape[0])
-        #Loop over state points
         for j in range(exp_data.x_vals.shape[0]):
-            noise = np.random.normal(size= 1 ,loc = 0, scale = 0) #1x n_x
-            y_sim[j] = calc_muller(exp_data.x_vals[j], model_coefficients)
-        
+            #Create model coefficients
+            y_sim[j] = calc_y_fxn(model_coefficients, exp_data.x_vals[j])
+    
         sum_error_sq[i] = sum((y_sim - exp_data.y_vals)**2) #Scaler
         
     if obj == "LN_obj":
         sum_error_sq = np.log(sum_error_sq) #Scaler
-    
-    return sum_error_sq
-
-
-def cs2_calc_y_sim(sim_data, true_model_coefficients, indecies_to_consider, noise_mean = 0, noise_std = 0, seed = None):
-    """
-    Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
-    Parameters
-    ----------
-        sim_data: Class, Class containing at least the x_data and theta_vals for simulation
-        true_model_coefficients: ndarray, The array containing the true values of Muller constants
-        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
-        noise_mean: float, int: The mean of the noise
-        noise_std: float, int: The standard deviation of the noise
-        seed: int: The random seed
-    Returns
-    -------
-        y_sim: ndarray, The simulated y training data
-    """
-    #Assert statements check that the types defined in the doctring are satisfied
-    if seed != None:
-        assert isinstance(seed,int) == True, "Seed number must be an integer or None"
-        np.random.seed(seed)
         
-    #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
-    
-    #Generate empy list to store y_sim values
-    y_sim = []
-    #Loop over theta values
-    for i in range(sim_data.theta_vals.shape[0]):
-        #Loop over x values
-        for j in range(sim_data.x_vals.shape[0]):
-            #Create model coefficients
-            #Create model coefficient from true space substituting in the values of param_space at the correct indecies
-            model_coefficients = true_model_coefficients
-            model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
-            #Calculate the value of y_sim
-            y_sim.append(calc_muller(sim_data.x_vals[j], model_coefficients, noise))
-            
-    #Change list to np array
-    y_sim = np.array(y_sim).flatten()
-   
-    return y_sim
+    return sum_error_sq 

@@ -13,7 +13,7 @@ import numpy as np
 from scipy.stats import qmc
 import pandas as pd
 
-from .GPBO_Class_fxns import vector_to_1D_array, calc_muller, cs2_calc_y_exp, lhs_design, cs2_calc_sse, cs1_calc_sse, cs2_calc_y_sim, cs1_calc_y_sim
+from .GPBO_Class_fxns import vector_to_1D_array, calc_muller, calc_cs1_polynomial, lhs_design, calc_y_exp, calc_y_sim, calc_sse
 import itertools
 from itertools import combinations_with_replacement, combinations, permutations
 
@@ -486,9 +486,9 @@ class GPBO_Driver:
         #Note - Can only use this function after generating x data
         x_data = self.CaseStudyParameters.x_data_vals
         if self.CaseStudyParameters.cs_name == "CS1":
-            y_exp = cs1_calc_y_exp(true_p, x_data, noise_std, noise_mean, seed)   
+            y_exp = calc_y_exp(calc_cs1_polynomial, true_model_coefficients, x_data, noise_std, noise_mean, seed)   
         elif self.CaseStudyParameters.cs_name == "CS2":
-            y_exp = cs2_calc_y_exp(true_model_coefficients, x_data, noise_std, noise_mean, seed)
+            y_exp = calc_y_exp(calc_muller, true_model_coefficients, x_data, noise_std, noise_mean, seed)
         else:
             print("cs_name must be CS1 or CS2!")
         return y_exp
@@ -510,7 +510,7 @@ class GPBO_Driver:
         cs_name = self.CaseStudyParameters.cs_name
         gp_method = method.method_name
         obj = method.obj
-        indecies = self.CaseStudyParameters.indecies_to_consider
+        indecies_to_consider = self.CaseStudyParameters.indecies_to_consider
         noise_mean = self.CaseStudyParameters.noise_mean
         noise_std = self.CaseStudyParameters.noise_std
         true_model_coefficients = self.CaseStudyParameters.true_model_coefficients
@@ -519,19 +519,21 @@ class GPBO_Driver:
         if cs_name == "CS1":
             if gp_method in ["1A", "1B"]:
                 #Calculate sse for sim data
-                y_sim = cs1_calc_sse(sim_data, exp_data, obj)
+                y_sim = calc_sse(calc_cs1_polynomial, sim_data, exp_data, true_model_coefficients, indecies_to_consider, obj = "obj")
             else:
                 #Calculate y_sim for sim data
-                y_sim = cs1_calc_y_sim(sim_data, exp_data)
+#                 y_sim = cs1_calc_y_sim(sim_data, exp_data)
+                y_sim = calc_y_sim(calc_cs1_polynomial, sim_data, exp_data, true_model_coefficients, indecies_to_consider)
                 
         
         elif cs_name == "CS2":
             if gp_method in ["1A", "1B"]:
                 #Calculate sse for sim data. Need new functions
-                y_sim = cs2_calc_sse(sim_data, exp_data, true_model_coefficients, obj, indecies, noise_mean, noise_std, seed)
+                y_sim = calc_sse(calc_muller, sim_data, exp_data, true_model_coefficients, indecies_to_consider, obj = "obj")
             else:  
                 #Calculate y_sim for sim data. Need new functions
-                y_sim = cs2_calc_y_sim(sim_data, true_model_coefficients, indecies, noise_mean, noise_std, seed)
+#                 y_sim = cs2_calc_y_sim(sim_data, true_model_coefficients, indecies, noise_mean, noise_std, seed)
+                y_sim = calc_y_sim(calc_muller, sim_data, exp_data, true_model_coefficients, indecies_to_consider)
         
         else:
             raise ValueError("self.CaseStudyParameters.cs_name must be CS1 or CS2!")
