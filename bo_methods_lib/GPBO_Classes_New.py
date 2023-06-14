@@ -13,10 +13,9 @@ import numpy as np
 from scipy.stats import qmc
 import pandas as pd
 
-from .GPBO_Class_fxns import clean_1D_arrays, cs1_calc_y_exp, calc_muller, cs2_calc_y_exp, LHS_Design, cs2_calc_sse, cs1_calc_sse, cs2_calc_y_sim, cs1_calc_y_sim
+from .GPBO_Class_fxns import vector_to_1D_array, calc_muller, cs2_calc_y_exp, lhs_design, cs2_calc_sse, cs1_calc_sse, cs2_calc_y_sim, cs1_calc_y_sim
 import itertools
 from itertools import combinations_with_replacement, combinations, permutations
-from sklearn.preprocessing import MinMaxScaler
 
 # #Notes: Change line below when changing test problems: 
 # # If line 21 is active, the 8D problem is used, if line 22 is active, the 2D problem is used
@@ -56,7 +55,7 @@ class CaseStudyParameters:
         num_x_data: int, number of available x data for training/testing
         num_theta_data: int, number of available theta data for training/testing
         num_data: int, number of available data for training/testing 
-        LHS_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False). Default False
+        lhs_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False). Default False
         x_data_vals: ndarray or none: Values of X data. If none, these values must be generated
         eval_all_pairs: bool, determines whether all pairs of theta are evaluated to create heat maps. Default False
         package: str ("gpytorch" or  "scikit_learn") determines which package to use for GP hyperaparameter optimization
@@ -87,7 +86,7 @@ class CaseStudyParameters:
         self.num_x_data = num_x_data
         self.num_theta_data = num_theta_data
         self.num_data = num_data
-        self.LHS_gen_theta = LHS_gen_theta
+        self.lhs_gen_theta = LHS_gen_theta
         self.x_data_vals = x_data_vals
         self.eval_all_pairs = eval_all_pairs
         self.bo_iter_tot = bo_iter_tot
@@ -218,7 +217,7 @@ class Data:
         # Method definition
         # Code logic goes here
         #Define a scaler for normalization
-        bounds = clean_1D_arrays(bounds)
+        bounds = vector_to_1D_array(bounds)
         lower_bound = bounds[0]
         upper_bound = bounds[1]
         scaled_data = (data - lower_bound) / (upper_bound - lower_bound)
@@ -239,7 +238,7 @@ class Data:
         data: ndarray, the original data renormalized based on the original bounds
         """
         #Transform/unnormalize data (#How to generalize data to work for any variable type given?)
-        bounds = clean_1D_arrays(bounds)
+        bounds = vector_to_1D_array(bounds)
         lower_bound = bounds[0]
         upper_bound = bounds[1]
         data = scaled_data*(upper_bound - lower_bound) + lower_bound
@@ -459,7 +458,7 @@ class GPBO_Driver:
             
         elif gen_meth == "LHS":
             #Generate LHS sample
-            data = LHS_Design(n_points, dimensions, seed, bounds = bounds)
+            data = lhs_design(n_points, dimensions, seed, bounds = bounds)
         
         else:
             pass
@@ -494,23 +493,23 @@ class GPBO_Driver:
             print("cs_name must be CS1 or CS2!")
         return y_exp
         
-    def create_sim_data(self, Method, Sim_data, Exp_data):
+    def create_sim_data(self, method, sim_data, exp_data):
         """
         Creates simulation data based on x, theta_vals, the GPBO method, and the case study
         
         Parameters
         ----------
-        Method: class, fully defined methods class which determines which method will be used
-        Sim_data: Class, Class containing at least the theta_vals for simulation
-        Exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        method: class, fully defined methods class which determines which method will be used
+        sim_data: Class, Class containing at least the theta_vals for simulation
+        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
         
         Returns:
         --------
         Ysim: ndarray. Value of y given state points x and theta_vals
         """
         cs_name = self.CaseStudyParameters.cs_name
-        method = Method.method_name
-        obj = Method.obj
+        gp_method = method.method_name
+        obj = method.obj
         indecies = self.CaseStudyParameters.indecies_to_consider
         noise_mean = self.CaseStudyParameters.noise_mean
         noise_std = self.CaseStudyParameters.noise_std
@@ -518,21 +517,21 @@ class GPBO_Driver:
         seed =  self.CaseStudyParameters.seed
         
         if cs_name == "CS1":
-            if method in ["1A", "1B"]:
+            if gp_method in ["1A", "1B"]:
                 #Calculate sse for sim data
-                y_sim = cs1_calc_sse(Sim_data, Exp_data, obj)
+                y_sim = cs1_calc_sse(sim_data, exp_data, obj)
             else:
                 #Calculate y_sim for sim data
-                y_sim = cs1_calc_y_sim(Sim_data, Exp_data)
+                y_sim = cs1_calc_y_sim(sim_data, exp_data)
                 
         
         elif cs_name == "CS2":
-            if method in ["1A", "1B"]:
+            if gp_method in ["1A", "1B"]:
                 #Calculate sse for sim data. Need new functions
-                y_sim = cs2_calc_sse(Sim_data, Exp_data, true_model_coefficients, obj, indecies, noise_mean, noise_std, seed)
+                y_sim = cs2_calc_sse(sim_data, exp_data, true_model_coefficients, obj, indecies, noise_mean, noise_std, seed)
             else:  
                 #Calculate y_sim for sim data. Need new functions
-                y_sim = cs2_calc_y_sim(Sim_data, true_model_coefficients, indecies, noise_mean, noise_std, seed)
+                y_sim = cs2_calc_y_sim(sim_data, true_model_coefficients, indecies, noise_mean, noise_std, seed)
         
         else:
             raise ValueError("self.CaseStudyParameters.cs_name must be CS1 or CS2!")
@@ -594,23 +593,23 @@ class GPBO_Driver:
         
         """
         
-    def augment_train_data(self, Sim_data, Best_theta):
+    def augment_train_data(self, sim_data, best_theta):
         """
         Augments training data given a new point
 
         Parameters
         ----------
-        Sim_data: Class, Class containing at least the theta_vals and y data for simulations
-        Best_theta: Class, Class containing at least the best_theta value as defined by max(EI) and the corresponding y_sim value
+        sim_data: Class, Class containing at least the theta_vals and y data for simulations
+        best_theta: Class, Class containing at least the best_theta value as defined by max(EI) and the corresponding y_sim value
 
         Returns:
         --------
-        Sim_data: ndarray. The training parameter set with the augmented theta values
+        sim_data: ndarray. The training parameter set with the augmented theta values
         """
-        Sim_data.theta_vals = np.vstack((Sim_data.theta_vals, Best_theta.theta_vals)) #(q x t)
-        Sim_data.y_vals = np.concatenate((Sim_data.y_vals, Best_theta.y_vals)) #(q x t)
+        sim_data.theta_vals = np.vstack((sim_data.theta_vals, best_theta.theta_vals)) #(q x t)
+        sim_data.y_vals = np.concatenate((sim_data.y_vals, best_theta.y_vals)) #(q x t)
 
-        return Sim_data
+        return sim_data
 
     def run_bo_iter(self, train_data, test_data, param_set, x_vals, y_vals, GP_model, Method):
         """

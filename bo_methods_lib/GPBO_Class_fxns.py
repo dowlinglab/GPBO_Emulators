@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import qmc
 import pandas as pd
 
-def LHS_Design(num_points, dimensions, seed = None, bounds = None):
+def lhs_design(num_points, dimensions, seed = None, bounds = None):
     """
     Design LHS Samples
     
@@ -25,26 +25,46 @@ def LHS_Design(num_points, dimensions, seed = None, bounds = None):
 
     return LHS
 
-def clean_1D_arrays(array):
+def vector_to_1D_array(array):
     """
     Turns arrays that are shape (n,) into (n, 1) arrays
     
     Parameters:
-        array: ndarray, 1D array
+        array: ndarray, n dimensions
     Returns:
-        array: ndarray, 2D array with shape (n,1)
+        array: ndarray,  if n > 1, return original array. Otherwise, return 2D array with shape (-1,n)
     """
     #If array is not 2D, give it shape (len(array), 1)
     if not len(array.shape) > 1:
         array == array.reshape(-1,1)
     return array
 
-def cs1_calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
+#How to pass the function given that inputs may be different?
+def calc_cs1_polynomial(theta_true, x):
     """
-    Creates y_data for the 2 input GP function
+    Calculates the value of y for case study 1
     
     Parameters
     ----------
+    Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
+    x: ndarray, The list of xs that will be used to generate y
+    
+    Returns
+    --------
+    y: ndarray, The noiseless values of y given theta_true and x
+    """
+    
+    y =  theta_true[0]*x + theta_true[1]*x**2 +x**3
+    
+    return y
+
+def ll_calc_y_exp(calc_y_fxn, theta_true, x, noise_std, noise_mean=0,random_seed=6):
+    """
+    Creates y_data for any case study
+    
+    Parameters
+    ----------
+        calc_y_fxn: function, the function that calculates the experimental value of y
         Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
         x: ndarray, The list of xs that will be used to generate y
         noise_std: float, int: The standard deviation of the noise
@@ -58,7 +78,6 @@ def cs1_calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
     #Asserts that test_T is a tensor with 2 columns
     assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
     assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
-    assert len(Theta_True) ==2, "This function only has 2 unknowns, Theta_True can only contain 2 values."
     
     #Seed Random Noise (For Bug Testing)
     if random_seed != None:
@@ -67,53 +86,11 @@ def cs1_calc_y_exp(Theta_True, x, noise_std, noise_mean=0,random_seed=6):
         
     #Creates noise values with a certain stdev and mean from a normal distribution
     noise = np.random.normal(size=x.shape[0],loc = noise_mean, scale = noise_std) #1x n_x
-    #     if isinstance(x, np.ndarray):
-#         noise = np.random.normal(size=len(x),loc = noise_mean, scale = noise_std) #1x n_x
-#     else:
-#         noise = np.random.normal(size=1,loc = noise_mean, scale = noise_std) #1x n_x
+
     # True function is y=T1*x + T2*x^2 + x^3 with Gaussian noise
-    y_exp =  Theta_True[0]*x + Theta_True[1]*x**2 +x**3 + noise #1x n_x #Put this as an input
+    y_exp = calc_y_fxn(theta_true, x) + noise #1x n_x #Put this as an input
   
-    return y_exp
-
-
-def calc_muller(x, model_coefficients, noise = 0):
-    """
-    Caclulates the Muller Potential
-    
-    Parameters
-    ----------
-        x: ndarray, Values of X
-        model_coefficients: ndarray, The array containing the values of Muller constants
-        noise: ndarray, Any noise associated with the model calculation
-    
-    Returns:
-    --------
-        y_mul: float, value of Muller potential
-    """
-    #Reshape x to matrix form
-    x = clean_1D_arrays(x)
-    model_coefficients = clean_1D_arrays(model_coefficients)
-    X1, X2 = x
-    
-    #Separate all model parameters into their appropriate pieces
-    sublists = []
-    chunk_size = model_coefficients.shape[0] // 6 # Calculate the size of each sublist, 6 different parameters
-
-    for i in range(6):
-        start_index = i * chunk_size
-        end_index = (i + 1) * chunk_size
-        sublist = model_coefficients[start_index:end_index]
-        sublists.append(sublist)
-        
-    #Calculate Muller Potential
-    A, a, b, c, x0, y0 = sublists
-    Term1 = a*(X1 - x0)**2
-    Term2 = b*(X1 - x0)*(X2 - y0)
-    Term3 = c*(X2 - y0)**2
-    y_mul = np.sum(A*np.exp(Term1 + Term2 + Term3) ) + noise
-    
-    return y_mul
+    return y_exp.flatten()
 
 def cs2_calc_y_exp(true_model_coefficients, x, noise_std, noise_mean=0,random_seed=9):
     """
@@ -131,10 +108,7 @@ def cs2_calc_y_exp(true_model_coefficients, x, noise_std, noise_mean=0,random_se
         y_exp: ndarray, The expected values of y given x data
     """   
    #Asserts that test_T is a tensor with 2 columns
-    assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
-    assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
-    
-    x = clean_1D_arrays(x)
+    x = vector_to_1D_array(x)
     len_x = x.shape[0]
     
 #     print(len_x)
@@ -152,18 +126,52 @@ def cs2_calc_y_exp(true_model_coefficients, x, noise_std, noise_mean=0,random_se
     
     for i in range(len_x):
 #         print(true_model_coefficients.shape)
-        y_exp[i] = calc_muller(x[i], true_model_coefficients, noise)
+        y_exp[i] = calc_muller(x[i], true_model_coefficients) + noise
   
     return y_exp
 
-def cs1_calc_sse(Sim_data, Exp_data, obj = "obj"):
+
+
+def calc_muller(x, model_coefficients):
+    """
+    Caclulates the Muller Potential
+    
+    Parameters
+    ----------
+        x: ndarray, Values of X
+        model_coefficients: ndarray, The array containing the values of Muller constants
+        noise: ndarray, Any noise associated with the model calculation
+    
+    Returns:
+    --------
+        y_mul: float, value of Muller potential
+    """
+    #Reshape x to matrix form
+    x = vector_to_1D_array(x)
+    assert x.shape[0] == 2, "Muller Potential x_data must be 2 dimensional"
+    X1, X2 = x #Split x into 2 parts by splitting the rows
+    
+    #Separate all model parameters into their appropriate pieces
+    model_coefficients_reshape = model_coefficients.reshape(6, 4)
+        
+    #Calculate Muller Potential
+    A, a, b, c, x0, y0 = model_coefficients_reshape
+    term1 = a*(X1 - x0)**2
+    term2 = b*(X1 - x0)*(X2 - y0)
+    term3 = c*(X2 - y0)**2
+    y_mul = np.sum(A*np.exp(term1 + term2 + term3) )
+    
+    return y_mul
+
+
+def cs1_calc_sse(sim_data, exp_data, obj = "obj"):
     """
     Creates y_data for the 2 input GP function
     
     Parameters
     ----------
-        Sim_data: Class, Class containing at least the theta_vals for simulation
-        Exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        sim_data: Class, Class containing at least the theta_vals for simulation
+        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         
     Returns:
@@ -172,33 +180,33 @@ def cs1_calc_sse(Sim_data, Exp_data, obj = "obj"):
     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse" 
 
     #Creates an array for train_sse that will be filled with the for loop
-    sum_error_sq = np.zeros((Sim_data.theta_vals.shape[0]))
+    sum_error_sq = np.zeros((sim_data.theta_vals.shape[0]))
 
     #Iterates over evey combination of theta to find the SSE for each combination
     #For each point in train_T
-    for i in range(Sim_data.theta_vals.shape[0]):
+    for i in range(sim_data.theta_vals.shape[0]):
         #Theta 1 and theta 2 represented by columns for this case study
-        theta_1 = Sim_data.theta_vals[i,0] #n_train^2x1 
-        theta_2 = Sim_data.theta_vals[i,1] #n_train^2x1
+        theta_1 = sim_data.theta_vals[i,0] #n_train^2x1 
+        theta_2 = sim_data.theta_vals[i,1] #n_train^2x1
         #Calc y_sim
-        y_sim = theta_1*Exp_data.x_vals + theta_2*Exp_data.x_vals**2 +Exp_data.x_vals**3 #n_train^2 x n_x
+        y_sim = theta_1*exp_data.x_vals + theta_2*exp_data.x_vals**2 +exp_data.x_vals**3 #n_train^2 x n_x
         #Clean y_sim and calculate sse or log(sse)
         y_sim = y_sim.flatten()
+        sum_error_sq[i] = sum((y_sim - exp_data.y_vals)**2) #Scaler
         
-        if obj == "obj":
-            sum_error_sq[i] = sum((y_sim - Exp_data.y_vals)**2) #Scaler
-        else:
-            sum_error_sq[i] = np.log(sum((y_sim - Exp_data.y_vals)**2)) #Scaler
+    if obj == "LN_obj":
+        sum_error_sq = np.log(sum_error_sq) #Scaler
+    
     
     return sum_error_sq 
 
-def cs1_calc_y_sim(Sim_data, Exp_data):
+def cs1_calc_y_sim(sim_data, exp_data):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
     ----------
-        Sim_data: Class, Class containing at least the theta_vals for simulation
-        Exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        sim_data: Class, Class containing at least the theta_vals for simulation
+        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
     Returns
     -------
         y_data: ndarray, The simulated y training data
@@ -208,11 +216,11 @@ def cs1_calc_y_sim(Sim_data, Exp_data):
     
     #Used when multiple values of y are being calculated
     #Iterates over evey combination of theta to find the expected y value for each combination
-    for i in range(Sim_data.theta_vals.shape[0]):
+    for i in range(sim_data.theta_vals.shape[0]):
         #Theta1 and theta2 are defined as coulms of param_space
-        theta_1, theta_2 = Sim_data.theta_vals[i] #1 x n
+        theta_1, theta_2 = sim_data.theta_vals[i] #1 x n
         #Calculate y_data and append to list
-        y_vals = theta_1*Exp_data.x_vals + theta_2*Exp_data.x_vals**2 +Exp_data.x_vals**3
+        y_vals = theta_1*exp_data.x_vals + theta_2*exp_data.x_vals**2 +exp_data.x_vals**3
         y_data.append(y_vals) #Scaler
         
     #Flatten y_data
@@ -220,15 +228,15 @@ def cs1_calc_y_sim(Sim_data, Exp_data):
     
     return y_data
 
-def cs2_calc_sse(Sim_data, Exp_data, true_model_coefficients, obj, indecies_to_consider, 
+def cs2_calc_sse(sim_data, exp_data, true_model_coefficients, obj, indecies_to_consider, 
                  noise_mean = 0, noise_std = 0, seed = None):
     """
     Creates y_data for the 2 input GP function
     
     Parameters
     ----------
-        Sim_data: Class, Class containing at least the theta_vals for simulation
-        Exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        sim_data: Class, Class containing at least the theta_vals for simulation
+        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
@@ -244,31 +252,31 @@ def cs2_calc_sse(Sim_data, Exp_data, true_model_coefficients, obj, indecies_to_c
     
     noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
     
-    sum_error_sq = np.zeros(Sim_data.theta_vals.shape[0])
+    sum_error_sq = np.zeros(sim_data.theta_vals.shape[0])
     #Iterates over evey combination of theta to find the SSE for each combination
-    for i in range(Sim_data.theta_vals.shape[0]):
+    for i in range(sim_data.theta_vals.shape[0]):
         model_coefficients = true_model_coefficients
-        model_coefficients[indecies_to_consider] = Sim_data.theta_vals[i]
-        y_sim = np.zeros(Exp_data.x_vals.shape[0])
+        model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
+        y_sim = np.zeros(exp_data.x_vals.shape[0])
         #Loop over state points
-        for j in range(Exp_data.x_vals.shape[0]):
+        for j in range(exp_data.x_vals.shape[0]):
             noise = np.random.normal(size= 1 ,loc = 0, scale = 0) #1x n_x
-            y_sim[j] = calc_muller(Exp_data.x_vals[j], model_coefficients, noise)
-                
-        if obj == "obj":
-            sum_error_sq[i] = sum((y_sim - Exp_data.y_vals)**2) #Scaler
-        else:
-            sum_error_sq[i] = np.log(sum((y_sim - Exp_data.y_vals)**2)) #Scaler
+            y_sim[j] = calc_muller(exp_data.x_vals[j], model_coefficients)
+        
+        sum_error_sq[i] = sum((y_sim - exp_data.y_vals)**2) #Scaler
+        
+    if obj == "LN_obj":
+        sum_error_sq = np.log(sum_error_sq) #Scaler
     
     return sum_error_sq
 
 
-def cs2_calc_y_sim(Sim_data, true_model_coefficients, indecies_to_consider, noise_mean = 0, noise_std = 0, seed = None):
+def cs2_calc_y_sim(sim_data, true_model_coefficients, indecies_to_consider, noise_mean = 0, noise_std = 0, seed = None):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
     ----------
-        Sim_data: Class, Class containing at least the x_data and theta_vals for simulation
+        sim_data: Class, Class containing at least the x_data and theta_vals for simulation
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         noise_mean: float, int: The mean of the noise
@@ -289,15 +297,15 @@ def cs2_calc_y_sim(Sim_data, true_model_coefficients, indecies_to_consider, nois
     #Generate empy list to store y_sim values
     y_sim = []
     #Loop over theta values
-    for i in range(Sim_data.theta_vals.shape[0]):
+    for i in range(sim_data.theta_vals.shape[0]):
         #Loop over x values
-        for j in range(Sim_data.x_vals.shape[0]):
+        for j in range(sim_data.x_vals.shape[0]):
             #Create model coefficients
             #Create model coefficient from true space substituting in the values of param_space at the correct indecies
             model_coefficients = true_model_coefficients
-            model_coefficients[indecies_to_consider] = Sim_data.theta_vals[i]
+            model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
             #Calculate the value of y_sim
-            y_sim.append(calc_muller(Sim_data.x_vals[j], model_coefficients, noise))
+            y_sim.append(calc_muller(sim_data.x_vals[j], model_coefficients, noise))
             
     #Change list to np array
     y_sim = np.array(y_sim).flatten()
