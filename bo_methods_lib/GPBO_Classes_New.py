@@ -104,6 +104,80 @@ class CaseStudyParameters:
         self.retrain_GP = retrain_GP
         self.GP_train_iter = GP_train_iter
         self.seed = seed
+
+#Need to define and integrate this class
+def Simulator:
+    """
+    The base class for differet simulators. Defines a simulation
+    """
+    def __init__(self, dim_x, true_model_coefficients, param_dict, indecies_to_consider):
+        """
+        Parameters
+        ----------
+        dim_x: int, The number of dimensions of x
+        true_model_coefficients: ndarray, The array containing the true values of problem constants
+        param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
+        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
+        """
+        # Constructor method
+        self.dim_x = dim_x
+        self.dim_theta = len(indecies_to_consider) #Length of theta is equivalent to the number of indecies to consider
+        self.true_model_coefficients = true_model_coefficients
+        self.param_dict = param_dict
+        self.indecies_to_consider = indecies_to_consider
+    
+    def set_true_params(self):
+        """
+        Sets true parameter value array and the corresponding names based on parameter dictionary and indecies to consider
+        
+        Parameters
+        ----------
+        true_model_coefficients: ndarray, The array containing the true values of problem constants
+        param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
+        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
+        
+        Returns
+        -------
+        true_params: ndarray, The true parameter of the model
+        """
+        
+        true_params = true_model_coefficients[indecies_to_consider]
+        true_param_names = [param_dict[idx] for idx in indecies_to_consider]
+        
+        return true_params, true_param_names
+
+    def set_GP_training_dims(self):
+        """
+        Sets the number of GP training inputs based on method properties and data dimensions
+        
+        Parameters:
+        -----------
+        
+        Returns:
+        --------
+        GP_training_dims: int, number of GP inputs
+        """
+        if self.emulator == True:
+            GP_training_dims = self.dim_theta + self.dim_x
+        else:
+            GP_training_dims = self.dim_theta
+        
+        return GP_training_dims
+    
+    #Stoppe here
+    def set_calc_model(self, cs_name)
+        """
+        Sets the model for calculating y based off of the case study identifier.
+        
+        Parameters
+        ----------
+        cs_name: Class, The name/enumerator associated with the case study being evaluated
+        
+        Returns
+        -------
+        calc_y_fxn: function, the function used for calculation is case study cs_name.name
+        """
+        pass       
         
 class Method_name_enum(Enum):
     """
