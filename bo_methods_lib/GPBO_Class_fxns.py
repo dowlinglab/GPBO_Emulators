@@ -165,7 +165,7 @@ def calc_y_sim(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies
     
     return y_sim
 
-def calc_sse(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies_to_consider, obj = "obj"):
+def calc_sse(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies_to_consider, obj):
     """
     Creates y_data for the 2 input GP function
     
@@ -176,13 +176,14 @@ def calc_sse(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies_t
         exp_data: Class, Class containing at least the x_data and y_data for the experimental data
         true_model_coefficients: ndarray, The array containing the true values of Muller constants
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
-        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        obj: Class object of type ENUM. Determines whether objective fxn is sse or ln(sse)
         
     Returns:
         sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
     """   
     #Assert statement
-    assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
+    #How would I fix this assert statement to assert the correct typr?
+#     assert obj == "obj" or obj == "LN_obj", "Objective function choice, obj, MUST be sse or LN_sse"
     
     #Calculate noise. Do we actually need noise here? The SSE is never a measured value
 #     noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
@@ -201,7 +202,7 @@ def calc_sse(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies_t
     
         sum_error_sq[i] = sum((y_sim - exp_data.y_vals)**2) #Scaler
         
-    if obj == "LN_obj":
+    if obj.value == 2:
         sum_error_sq = np.log(sum_error_sq) #Scaler
         
     return sum_error_sq 
