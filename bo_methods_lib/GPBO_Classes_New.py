@@ -11,8 +11,10 @@ import numpy as np
 # import time
 # import Tasmanian
 from scipy.stats import qmc
+import pandas as pd
 
-from .GPBO_Class_fxns import clean_1D_arrays, cs1_calc_y_exp, calc_muller, cs2_calc_y_exp
+from .GPBO_Class_fxns import clean_1D_arrays, cs1_calc_y_exp, calc_muller, cs2_calc_y_exp, LHS_Design, cs2_calc_sse, cs1_calc_sse, cs2_calc_y_sim, cs1_calc_y_sim
+import itertools
 from itertools import combinations_with_replacement, combinations, permutations
 from sklearn.preprocessing import MinMaxScaler
 
@@ -47,7 +49,7 @@ class CaseStudyParameters:
         true_params: ndarray, The array containing the true parameter values for the problem (must be 1D)
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
-        indecies_to_consider: int, The indeciescorresponding to which parameter types (A - y0) are being guessed
+        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         ep0: float, The original  exploration bias. Default 1
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         normalize: bool, Determines whether feature data will be normalized for problem analysis
@@ -131,7 +133,25 @@ class GPBO_Methods:
         self.emulator = emulator
         self.obj = obj
         self.sparse_grid = sparse_grid
-        self.GP_training_dims = GP_training_dims
+    def set_GP_training_dims(self, x_data, theta_vals):
+        """
+        Sets the number of GP training inputs based on method properties and data dimensions
+        
+        Parameters:
+        -----------
+        x_data_vals: ndarray: Values of x data
+        theta_vals: ndarray, The arrays of theta_values
+        
+        Returns:
+        --------
+        GP_training_dims: int, number of GP inputs
+        """
+        if self.emulator == True:
+            GP_training_dims = (theta_vals.shape[1]) + (x_data.shape[1])
+        else:
+            GP_training_dims = (theta_vals.shape[1])
+        
+        return GP_training_dims
         
 class Data:
     """
@@ -182,8 +202,8 @@ class Data:
         # Method definition
         # Code logic goes here
         pass
-    
-    def normalize(self, bounds):
+    #What is the syntax to allow data to be any self parameter?
+    def normalize(self, data, bounds):
         """
         Normalizes data between 0 and 1
 
@@ -194,21 +214,18 @@ class Data:
         Returns:
         ---------
         scaled_data: ndarray, the data normalized between 1 and 0 based on the bounds
-        scaler: MinMaxScaler(), to scaler used to normalize data ##Can we set this as a parameter once it's calculated?
         """
         # Method definition
         # Code logic goes here
         #Define a scaler for normalization
-        scaler = MinMaxScaler()
-        #Fit scaler to data
-        scaler = scaler.fit(data) 
-        #Transform/normalize data (#How to generalize data to work for any variable type given?)
-        #How to include bounds in this framework?
-        scaled_data = scaler.transform(data)
-
-        return scaled_data, scaler
+        bounds = clean_1D_arrays(bounds)
+        lower_bound = bounds[0]
+        upper_bound = bounds[1]
+        scaled_data = (data - lower_bound) / (upper_bound - lower_bound)
+        
+        return scaled_data
     
-    def unnormalize(self, scaler, bounds):
+    def unnormalize(self, scaled_data, bounds):
         """
         Normalizes data back to original values 
         
@@ -222,7 +239,10 @@ class Data:
         data: ndarray, the original data renormalized based on the original bounds
         """
         #Transform/unnormalize data (#How to generalize data to work for any variable type given?)
-        data = scaler.inverse_transform(data)
+        bounds = clean_1D_arrays(bounds)
+        lower_bound = bounds[0]
+        upper_bound = bounds[1]
+        data = scaled_data*(upper_bound - lower_bound) + lower_bound
         
         return data
 
@@ -402,63 +422,55 @@ class GPBO_Driver:
         # Constructor method
         self.CaseStudyParameters = CaseStudyParameters
         
-    #Not sure how to generalize this between case studies for multiple dimensions for meshgrid method
-    def create_xtrain_data(self, bounds, gen_meth):
+    #Not sure how to generalize this between different params effectively
+    def create_param_data(self, n_points, bounds, gen_meth):
         """
-        Generates experimental x training data based off of x bounds, and an LHS generation number
+        Generates data based off of bounds, and an LHS generation number
         
         Parameters
         ----------
         bounds: ndarray, array of x bounds
-        gen_meth: str, ("LHS", "Meshgrid", or None). Determines whether x data will be generated from an LHS or meshgrid (for 2D X data)
+        gen_meth: str, ("LHS", "Meshgrid", or None). Determines whether x data will be generated with an LHS or meshgrid (for 2D X data)
         
         Returns:
         --------
         x_data: ndarray, a list of x data
+        
+        Notes: Meshgrid generated data will output n_points in each dimension, LHS generates n_points of data
         """
+        assert gen_meth == "LHS" or gen_meth == "Meshgrid", "gen_meth must be LHS or Meshgrid"
+        
         seed = self.CaseStudyParameters.seed
-        exp_d = bounds.shape[1]
-        exp_l_bounds = bounds[0,:]
-        exp_u_bounds = bounds[1,:]
-        exp_sampler = qmc.LatinHypercube(d=exp_d, seed = seed)
-        exp_sample = exp_sampler.random(n=self.CaseStudyParameters.num_x_data)
-        exp_sample_corner = exp_sampler.random(n=self.CaseStudyParameters.num_x_data)
+        dimensions = bounds.shape[1]
         
-        if gen_meth == "LHS":
-            x_data = qmc.scale(exp_sample, exp_l_bounds, exp_u_bounds)
-        
-        #Ideally generalize this to > 1 dimension. Need to get normalization right first
-#         #Generate mesh_grid data for theta_set in 2D
-#         #Define linspace for theta
-#         Theta = np.linspace(0,1,n_points)
-#         #Generate the equivalent of all meshgrid points
-#         df = pd.DataFrame(list(itertools.product(Theta, repeat=dimensions)))
-#         df2 = df.drop_duplicates()
-#         theta_set = df2.to_numpy()
-# #         print(theta_set)
-# #         print(theta_set.shape[1])
-#         #Normalize to bounds 
-#         if bounds is not None:
-#             for i in range(theta_set.shape[1]):
-#                 theta_set[:,i] = normalize_bounds(theta_set[:,i], newRange = (bounds[:,i]))
-                
-        elif gen_meth == "Meshgrid":
-            assert bounds.shape[1] == 2, "X must be 2D to use a meshgrid method"
-            #Create a linspace for the number of dimensions
-            closest_sq_root_int = int(np.sqrt(self.CaseStudyParameters.num_x_data))
-            X1 = np.linspace(exp_l_bounds[0], exp_u_bounds[0], closest_sq_root_int)
-            X2 = np.linspace(exp_l_bounds[1], exp_u_bounds[1], closest_sq_root_int)
-            x_data = np.array(np.meshgrid(X1, X2)).T.reshape(-1, len(exp_l_bounds))
+        if gen_meth == "Meshgrid":
+            #Generate mesh_grid data for theta_set in 2D
+            #Define linspace for theta
+            params = np.linspace(0,1, n_points)
+            #Generate the equivalent of all meshgrid points
+            df = pd.DataFrame(list(itertools.product(params, repeat=dimensions)))
+            df2 = df.drop_duplicates()
+            scaled_data = df2.to_numpy()
+            #Normalize to bounds 
+            if bounds is not None:
+                lower_bound = bounds[0]
+                upper_bound = bounds[1]
+                data = scaled_data*(upper_bound - lower_bound) + lower_bound  
+            
+        elif gen_meth == "LHS":
+            #Generate LHS sample
+            data = LHS_Design(n_points, dimensions, seed, bounds = bounds)
         
         else:
-            assert self.CaseStudyParameters.x_data_vals is not None, "X must be provided if not generated"
-            assert self.CaseStudyParameters.x_data_vals.shape[1] == exp_d, "Provided X values must have the same dimension as bounds!"
-            x_data = self.CaseStudyParameters.x_data_vals
+            pass
+#             assert self.CaseStudyParameters.x_data_vals is not None, "X must be provided if not generated"
+#             assert self.CaseStudyParameters.x_data_vals.shape[1] == exp_d, "Provided X values must have the same dimension as bounds!"
+#             sim_data = self.CaseStudyParameters.x_data_vals
         
-        #How do I make x_data an instance of the data class?
-        return x_data
+        #How do I make the data an instance of the data class?
+        return data
         
-    def create_y_data(self):
+    def create_y_exp_data(self):
         """
         Creates experimental y data based on x, theta_true, and the case study
         
@@ -482,13 +494,15 @@ class GPBO_Driver:
             print("cs_name must be CS1 or CS2!")
         return y_exp
         
-    def create_sim_data(self, Method):
+    def create_sim_data(self, Method, Sim_data, Exp_data):
         """
         Creates simulation data based on x, theta_vals, the GPBO method, and the case study
         
         Parameters
         ----------
         Method: class, fully defined methods class which determines which method will be used
+        Sim_data: Class, Class containing at least the theta_vals for simulation
+        Exp_data: Class, Class containing at least the x_data and y_data for the experimental data
         
         Returns:
         --------
@@ -497,25 +511,33 @@ class GPBO_Driver:
         cs_name = self.CaseStudyParameters.cs_name
         method = Method.method_name
         obj = Method.obj
+        indecies = self.CaseStudyParameters.indecies_to_consider
+        noise_mean = self.CaseStudyParameters.noise_mean
+        noise_std = self.CaseStudyParameters.noise_std
+        true_model_coefficients = self.CaseStudyParameters.true_model_coefficients
+        seed =  self.CaseStudyParameters.seed
         
         if cs_name == "CS1":
             if method in ["1A", "1B"]:
                 #Calculate sse for sim data
-                pass
+                y_sim = cs1_calc_sse(Sim_data, Exp_data, obj)
             else:
                 #Calculate y_sim for sim data
-                pass
+                y_sim = cs1_calc_y_sim(Sim_data, Exp_data)
                 
         
         elif cs_name == "CS2":
             if method in ["1A", "1B"]:
                 #Calculate sse for sim data. Need new functions
-                pass
+                y_sim = cs2_calc_sse(Sim_data, Exp_data, true_model_coefficients, obj, indecies, noise_mean, noise_std, seed)
             else:  
                 #Calculate y_sim for sim data. Need new functions
-                pass
+                y_sim = cs2_calc_y_sim(Sim_data, true_model_coefficients, indecies, noise_mean, noise_std, seed)
+        
         else:
             raise ValueError("self.CaseStudyParameters.cs_name must be CS1 or CS2!")
+            
+        return y_sim
             
     def train_GP(self, train_data, verbose = False):
         """
@@ -572,20 +594,24 @@ class GPBO_Driver:
         
         """
         
-    def augment_train_data(self, param_set, add_param_set):
+    def augment_train_data(self, Sim_data, Best_theta):
         """
         Augments training data given a new point
-        
+
         Parameters
         ----------
-        param_set: ndarray (n_train x n_dim), Array of training data
-        add_param_set: ndarray (1 x n_dim), New training data to augment
-        
+        Sim_data: Class, Class containing at least the theta_vals and y data for simulations
+        Best_theta: Class, Class containing at least the best_theta value as defined by max(EI) and the corresponding y_sim value
+
         Returns:
         --------
-        param_set: ndarray. The parameter set with the augmented values
+        Sim_data: ndarray. The training parameter set with the augmented theta values
         """
-        
+        Sim_data.theta_vals = np.vstack((Sim_data.theta_vals, Best_theta.theta_vals)) #(q x t)
+        Sim_data.y_vals = np.concatenate((Sim_data.y_vals, Best_theta.y_vals)) #(q x t)
+
+        return Sim_data
+
     def run_bo_iter(self, train_data, test_data, param_set, x_vals, y_vals, GP_model, Method):
         """
         Runs a single GPBO iteration
