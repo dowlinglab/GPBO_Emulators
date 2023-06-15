@@ -165,7 +165,6 @@ def calc_y_sim(CaseStudyParameters, SimulatorParams, sim_data, exp_data):
         for j in range(len_x):
             #Create model coefficients
             y_sim.append(calc_y_fxn(model_coefficients, exp_data.x_vals[j])) 
-#             print(sim_data.theta_vals[i], len_theta)
     
     #Convert list to array and flatten array
     y_sim = np.array(y_sim).flatten()

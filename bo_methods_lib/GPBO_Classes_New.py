@@ -98,7 +98,7 @@ class CaseStudyParameters:
         self.GP_train_iter = GP_train_iter
         self.seed = seed
 
-#Need to define and integrate this class
+#I'm having trouble defining how to update num_x_data, num_theta_data and dim_x depending on the situation. Especially when adding new data or when using the meshgrid options
 class SimulatorParams:
     """
     The base class for differet simulators. Defines a simulation
@@ -528,8 +528,7 @@ class Expected_Improvement(CaseStudyParameters):
         -------
         ei: float, The expected improvement of the parameter set
         """
-        
-##Again, composition instead of inheritance       
+             
 class GPBO_Driver:
     """
     The base class for running the GPBO Workflow
@@ -553,7 +552,6 @@ class GPBO_Driver:
         self.CaseStudyParameters = CaseStudyParameters
         self.SimulatorParams = SimulatorParams
         
-    #Not sure how to generalize this between different params effectively
     def create_param_data(self, n_points, bounds, gen_meth):
         """
         Generates data based off of bounds, and an LHS generation number
