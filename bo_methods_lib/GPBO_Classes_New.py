@@ -106,11 +106,11 @@ class CaseStudyParameters:
         self.seed = seed
 
 #Need to define and integrate this class
-def Simulator:
+def SimulatorParams:
     """
     The base class for differet simulators. Defines a simulation
     """
-    def __init__(self, dim_x, true_model_coefficients, param_dict, indecies_to_consider):
+    def __init__(self, num_x_data, num_theta_data, num_data, dim_x, true_model_coefficients, param_dict, indecies_to_consider):
         """
         Parameters
         ----------
@@ -121,6 +121,8 @@ def Simulator:
         """
         # Constructor method
         self.dim_x = dim_x
+        self.num_x_data = num_x_data
+        self.num_theta_data = num_theta_data
         self.dim_theta = len(indecies_to_consider) #Length of theta is equivalent to the number of indecies to consider
         self.true_model_coefficients = true_model_coefficients
         self.param_dict = param_dict
@@ -164,7 +166,21 @@ def Simulator:
         
         return GP_training_dims
     
-    #Stoppe here
+    def set_num_data(self)
+        """
+        Defines the total number of data the GP will have access to to train on
+        
+        Returns
+        -------
+        num_data: int, the number of data the GP will have access to
+        """
+        if self.emulator == True:
+            num_data = int(self.num_x_data*self.num_theta_data)
+        else:
+            num_data = int(self.num_theta_data)
+        
+        return num_data
+    
     def set_calc_model(self, cs_name)
         """
         Sets the model for calculating y based off of the case study identifier.
@@ -177,7 +193,15 @@ def Simulator:
         -------
         calc_y_fxn: function, the function used for calculation is case study cs_name.name
         """
-        pass       
+        if cs_name.value == 1:
+            calc_y_fxn = calc_cs1_polynomial
+        elif cs_name.value == 2:
+            calc_y_fxn = calc_muller
+        else:
+            raise ValueError("self.CaseStudyParameters.cs_name.value must be 1 or 2!")
+            
+        return calc_y_fxn
+            
         
 class Method_name_enum(Enum):
     """
@@ -234,6 +258,7 @@ class GPBO_Methods:
         self.emulator = emulator
         self.obj = obj
         self.sparse_grid = sparse_grid
+        
     def set_GP_training_dims(self, x_data, theta_vals):
         """
         Sets the number of GP training inputs based on method properties and data dimensions
