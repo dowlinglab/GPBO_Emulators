@@ -21,7 +21,7 @@ def lhs_design(num_points, dimensions, seed = None, bounds = None):
     LHS = sampler.random(n=num_points)
     
     if bounds is not None:
-        LHS = qmc.scale(LHS, bounds[0], bounds[1])
+        LHS = qmc.scale(LHS, bounds[0], bounds[1]) #Again, using this because I like that bounds can be different shapes
 
     return LHS
 
@@ -39,7 +39,6 @@ def vector_to_1D_array(array):
         array = array.reshape(-1,1)
     return array
 
-#How to pass the function given that inputs may be different?
 def calc_cs1_polynomial(true_model_coefficients, x):
     """
     Calculates the value of y for case study 1
@@ -89,28 +88,31 @@ def calc_muller(model_coefficients, x):
     
     return y_mul
 
-def calc_y_exp(calc_y_fxn, true_model_coefficients, x, noise_std, noise_mean=0,random_seed=6):
+def calc_y_exp(CaseStudyParameters, SimulatorParams):
     """
     Creates y_data for any case study
     
     Parameters
     ----------
-        calc_y_fxn: function, the function that calculates the experimental value of y
-        Theta_True: ndarray, The array containing the true values of Theta1 and Theta2
-        x: ndarray, The list of xs that will be used to generate y
-        noise_std: float, int: The standard deviation of the noise
-        noise_mean: float, int: The mean of the noise
-        random_seed: int: The random seed
+        CaseStudyParameters: class, class containing at least the theta_true, x_data, noise_mean, noise_std, and seed
+        SimulatorParams: Class, class containing at least calc_y_fxn
         
     Returns:
         y_exp: ndarray, The expected values of y given x data
     """   
+    noise_std = CaseStudyParameters.noise_std
+    noise_mean = CaseStudyParameters.noise_mean
+    x = CaseStudyParameters.x_data_vals
+    random_seed = CaseStudyParameters.seed
+    true_model_coefficients = CaseStudyParameters.true_model_coefficients
+    calc_y_fxn = SimulatorParams.calc_y_fxn
+    len_x = SimulatorParams.num_x_data
+    
     #Asserts that test_T is a tensor with 2 columns
     assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
     assert isinstance(noise_mean,(float,int)) == True, "The mean of the noise must be an integer ot float."
     
     x = vector_to_1D_array(x)
-    len_x = x.shape[0]
     
     #Seed Random Noise (For Bug Testing)
     if random_seed != None:
@@ -118,7 +120,7 @@ def calc_y_exp(calc_y_fxn, true_model_coefficients, x, noise_std, noise_mean=0,r
         np.random.seed(random_seed)
         
     #Creates noise values with a certain stdev and mean from a normal distribution
-    noise = np.random.normal(size=x.shape[0],loc = noise_mean, scale = noise_std) #1x n_x
+    noise = np.random.normal(size=len_x, loc = noise_mean, scale = noise_std) #1x n_x
     
     #Define an array to store y values in
     y_exp = np.zeros(len_x)
@@ -133,16 +135,15 @@ def calc_y_exp(calc_y_fxn, true_model_coefficients, x, noise_std, noise_mean=0,r
   
     return y_exp
 
-def calc_y_sim(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies_to_consider):
+def calc_y_sim(CaseStudyParameters, SimulatorParams, sim_data, exp_data):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
     ----------
-        calc_y_fxn: function, The function used to evaluate the simulation
+        CaseStudyParameters: class, class containing at least the theta_true, x_data, noise_mean, noise_std, and seed
+        SimulatorParams: Class, class containing at least calc_y_fxn
         sim_data: Class, Class containing at least the theta_vals for simulation
         exp_data: Class, Class containing at least the x_data and y_data for the experimental data
-        true_model_coefficients: ndarray, The array containing the true values of Muller constants
-        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         
     Returns
     -------
@@ -150,33 +151,38 @@ def calc_y_sim(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies
     """
     #Define an array to store y values in
     y_sim = []
-    
-    #Loop over x values and calculate y
-    for i in range(sim_data.theta_vals.shape[0]):
+    len_theta = len(sim_data.theta_vals) #Have to do it this way to be able to generalize between all the theta values and just 1 value
+    len_x = SimulatorParams.num_x_data
+    calc_y_fxn = SimulatorParams.calc_y_fxn
+    true_model_coefficients = CaseStudyParameters.true_model_coefficients
+    indecies_to_consider = SimulatorParams.indecies_to_consider
+    #Loop over all theta values
+    for i in range(len_theta):
         #Create model coefficient from true space substituting in the values of param_space at the correct indecies
         model_coefficients = true_model_coefficients
         model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
-        for j in range(exp_data.x_vals.shape[0]):
+        #Loop over x values and calculate y
+        for j in range(len_x):
             #Create model coefficients
-            y_sim.append(calc_y_fxn(model_coefficients, exp_data.x_vals[j]))
+            y_sim.append(calc_y_fxn(model_coefficients, exp_data.x_vals[j])) 
+#             print(sim_data.theta_vals[i], len_theta)
     
     #Convert list to array and flatten array
     y_sim = np.array(y_sim).flatten()
     
     return y_sim
 
-def calc_sse(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies_to_consider, obj):
+def calc_sse(CaseStudyParameters, SimulatorParams, Method, sim_data, exp_data):
     """
     Creates y_data for the 2 input GP function
     
     Parameters
     ----------
-        calc_y_fxn: function, The function used to evaluate the simulation
+        CaseStudyParameters: class, class containing at least the theta_true, x_data, noise_mean, noise_std, and seed
+        SimulatorParams: Class, class containing at least calc_y_fxn
+        method: class, fully defined methods class which determines which method will be used
         sim_data: Class, Class containing at least the theta_vals for simulation
-        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
-        true_model_coefficients: ndarray, The array containing the true values of Muller constants
-        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
-        obj: Class object of type ENUM. Determines whether objective fxn is sse or ln(sse)
+        exp_data: Class, Class containing at least the x_data and y_data for the experimental data     
         
     Returns:
         sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
@@ -187,16 +193,22 @@ def calc_sse(calc_y_fxn, sim_data, exp_data, true_model_coefficients, indecies_t
     
     #Calculate noise. Do we actually need noise here? The SSE is never a measured value
 #     noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
+    len_theta = len(sim_data.theta_vals) #Have to do it this way to be able to generalize between all the theta values and just 1 value
+    len_x = SimulatorParams.num_x_data
+    calc_y_fxn = SimulatorParams.calc_y_fxn
+    true_model_coefficients = CaseStudyParameters.true_model_coefficients
+    indecies_to_consider = SimulatorParams.indecies_to_consider
+    obj = Method.obj
     
     #How could I use calc_y_sim here rather than writing the same lines of code?
-    sum_error_sq = np.zeros(sim_data.theta_vals.shape[0])
+    sum_error_sq = np.zeros(len_theta)
     #Iterates over evey combination of theta to find the SSE for each combination
-    for i in range(sim_data.theta_vals.shape[0]):
+    for i in range(len_theta):
         #Create model coefficient from true space substituting in the values of param_space at the correct indecies
         model_coefficients = true_model_coefficients
         model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
-        y_sim = np.zeros(exp_data.x_vals.shape[0])
-        for j in range(exp_data.x_vals.shape[0]):
+        y_sim = np.zeros(len_x)
+        for j in range(len_x):
             #Create model coefficients
             y_sim[j] = calc_y_fxn(model_coefficients, exp_data.x_vals[j])
     

@@ -29,6 +29,9 @@ from itertools import combinations_with_replacement, combinations, permutations
 
 # from .CS2_bo_plotters import value_plotter, plot_xy, plot_Theta, plot_Theta_min, plot_obj, plot_obj_abs_min, plot_3GP_performance, plot_sep_fact_min, save_fig, save_csv, path_name, plot_EI_abs_max, save_misc_data
 # from CS2_bo_plotters import plot_org_train
+
+
+#Question: Which parameters in SimulatorParams vs CaseStudyParameters?
 class CaseStudyParameters:
     """
     The base class for any GPBO Case Study and Evaluation
@@ -41,7 +44,7 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, true_params, true_model_coefficients, param_dict, indecies_to_consider, ep0, sep_fact, normalize, num_x_data, num_theta_data, num_data, LHS_gen_theta, x_data_vals, eval_all_pairs, package, noise_mean, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
+    def __init__(self, cs_name, true_params, true_model_coefficients, param_dict, ep0, sep_fact, normalize, x_data_vals, eval_all_pairs, package, noise_mean, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
         """
         Parameters
         ----------
@@ -49,14 +52,9 @@ class CaseStudyParameters:
         true_params: ndarray, The array containing the true parameter values for the problem (must be 1D)
         true_model_coefficients: ndarray, The array containing the true values of problem constants
         param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
-        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         ep0: float, The original  exploration bias. Default 1
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         normalize: bool, Determines whether feature data will be normalized for problem analysis
-        num_x_data: int, number of available x data for training/testing
-        num_theta_data: int, number of available theta data for training/testing
-        num_data: int, number of available data for training/testing 
-        lhs_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False). Default False
         x_data_vals: ndarray or none: Values of X data. If none, these values must be generated
         eval_all_pairs: bool, determines whether all pairs of theta are evaluated to create heat maps. Default False
         package: str ("gpytorch" or  "scikit_learn") determines which package to use for GP hyperaparameter optimization
@@ -80,14 +78,9 @@ class CaseStudyParameters:
         self.true_params = true_params
         self.true_model_coefficients = true_model_coefficients
         self.param_dict = param_dict
-        self.indecies_to_consider = indecies_to_consider
         self.ep0 = ep0
         self.sep_fact = sep_fact
         self.normalize = normalize
-        self.num_x_data = num_x_data
-        self.num_theta_data = num_theta_data
-        self.num_data = num_data
-        self.lhs_gen_theta = LHS_gen_theta
         self.x_data_vals = x_data_vals
         self.eval_all_pairs = eval_all_pairs
         self.bo_iter_tot = bo_iter_tot
@@ -106,82 +99,85 @@ class CaseStudyParameters:
         self.seed = seed
 
 #Need to define and integrate this class
-def SimulatorParams:
+class SimulatorParams:
     """
     The base class for differet simulators. Defines a simulation
     """
-    def __init__(self, num_x_data, num_theta_data, num_data, dim_x, true_model_coefficients, param_dict, indecies_to_consider):
+    def __init__(self, num_x_data, num_theta_data, num_data, dim_x, indecies_to_consider, lhs_gen_theta, calc_y_fxn):
         """
         Parameters
         ----------
+        num_x_data: int, number of available x data for training/testing
+        num_theta_data: int, number of available theta data for training/testing
+        num_data: int, number of available data for training/testing 
         dim_x: int, The number of dimensions of x
-        true_model_coefficients: ndarray, The array containing the true values of problem constants
-        param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
+        lhs_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False). Default False
         """
         # Constructor method
         self.dim_x = dim_x
         self.num_x_data = num_x_data
         self.num_theta_data = num_theta_data
+        self.num_data = num_data
         self.dim_theta = len(indecies_to_consider) #Length of theta is equivalent to the number of indecies to consider
-        self.true_model_coefficients = true_model_coefficients
-        self.param_dict = param_dict
         self.indecies_to_consider = indecies_to_consider
+        self.lhs_gen_theta = lhs_gen_theta
+        self.calc_y_fxn = calc_y_fxn
     
-    def set_true_params(self):
+    def set_num_theta_data(self, gen_meth):
+        """
+        Set the number of theta_data given gen_meth
+        """
+        if gen_meth.value == 1:
+            self.num_theta_data = self.num_theta_data
+        elif gen_meth.value == 2:
+            self.num_theta_data = self.num_theta_data**2
+        else:
+            raise ValueError("gen_meth.value must be 1 or 2!")
+            
+            
+    def set_true_params(self, CaseStudyParameters):
         """
         Sets true parameter value array and the corresponding names based on parameter dictionary and indecies to consider
         
         Parameters
         ----------
-        true_model_coefficients: ndarray, The array containing the true values of problem constants
-        param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
+        CaseStudyParameters: class, class containing at least the true_model_coefficients and param_dict
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         
         Returns
         -------
         true_params: ndarray, The true parameter of the model
         """
+        true_model_coefficients = CaseStudyParameters.true_model_coefficients
+        param_dict = CaseStudyParameters.param_dict
+        indecies_to_consider = self.indecies_to_consider
         
         true_params = true_model_coefficients[indecies_to_consider]
         true_param_names = [param_dict[idx] for idx in indecies_to_consider]
         
         return true_params, true_param_names
-
-    def set_GP_training_dims(self):
-        """
-        Sets the number of GP training inputs based on method properties and data dimensions
-        
-        Parameters:
-        -----------
-        
-        Returns:
-        --------
-        GP_training_dims: int, number of GP inputs
-        """
-        if self.emulator == True:
-            GP_training_dims = self.dim_theta + self.dim_x
-        else:
-            GP_training_dims = self.dim_theta
-        
-        return GP_training_dims
     
-    def set_num_data(self)
+    def set_num_data(self, Method):
         """
         Defines the total number of data the GP will have access to to train on
+        
+        Parameters
+        ----------
+        Method: class, fully defined methods class which determines which method will be used
         
         Returns
         -------
         num_data: int, the number of data the GP will have access to
         """
-        if self.emulator == True:
+        if Method.emulator == True:
             num_data = int(self.num_x_data*self.num_theta_data)
         else:
             num_data = int(self.num_theta_data)
         
         return num_data
     
-    def set_calc_model(self, cs_name)
+    def set_calc_model(self, cs_name):
         """
         Sets the model for calculating y based off of the case study identifier.
         
@@ -214,6 +210,14 @@ class Method_name_enum(Enum):
     B2 = 4
     C2 = 5
     #Note use Method_name_enum.enum.name to call "A1"
+    
+class Gen_meth_enum(Enum):
+    """
+    The base class for any GPBO Method names
+    
+    """
+    LHS = 1
+    MESHGRID = 2
     
 class Obj_enum(Enum):
     """
@@ -259,23 +263,22 @@ class GPBO_Methods:
         self.obj = obj
         self.sparse_grid = sparse_grid
         
-    def set_GP_training_dims(self, x_data, theta_vals):
+    def set_GP_training_dims(self, SimulatorParams):
         """
         Sets the number of GP training inputs based on method properties and data dimensions
         
         Parameters:
         -----------
-        x_data_vals: ndarray: Values of x data
-        theta_vals: ndarray, The arrays of theta_values
+        SimulatorParams: Class, class containing values associated with simulation parameters not covered in the GPBO_Method class
         
         Returns:
         --------
         GP_training_dims: int, number of GP inputs
         """
         if self.emulator == True:
-            GP_training_dims = (theta_vals.shape[1]) + (x_data.shape[1])
+            GP_training_dims = SimulatorParams.dim_theta + SimulatorParams.dim_x
         else:
-            GP_training_dims = (theta_vals.shape[1])
+            GP_training_dims = SimulatorParams.dim_theta
         
         return GP_training_dims
         
@@ -539,14 +542,16 @@ class GPBO_Driver:
     """
     # Class variables and attributes
     
-    def __init__(self, CaseStudyParameters):
+    def __init__(self, CaseStudyParameters, SimulatorParams):
         """
         Parameters
         ----------
+        SimulatorParams: Class, class containing values associated with simulation parameters not covered in the GPBO_Method class
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
         self.CaseStudyParameters = CaseStudyParameters
+        self.SimulatorParams = SimulatorParams
         
     #Not sure how to generalize this between different params effectively
     def create_param_data(self, n_points, bounds, gen_meth):
@@ -555,21 +560,20 @@ class GPBO_Driver:
         
         Parameters
         ----------
+        n_points: int, number of data to generate
         bounds: ndarray, array of x bounds
-        gen_meth: str, ("LHS", "Meshgrid", or None). Determines whether x data will be generated with an LHS or meshgrid (for 2D X data)
+        gen_meth: class (Gen_meth_enum), ("LHS", "Meshgrid"). Determines whether x data will be generated with an LHS or meshgrid
         
         Returns:
         --------
         x_data: ndarray, a list of x data
         
         Notes: Meshgrid generated data will output n_points in each dimension, LHS generates n_points of data
-        """
-        assert gen_meth == "LHS" or gen_meth == "Meshgrid", "gen_meth must be LHS or Meshgrid"
-        
+        """        
         seed = self.CaseStudyParameters.seed
-        dimensions = bounds.shape[1]
+        dimensions = bounds.shape[1] #Want to do it this way to make it general for either x or theta parameters
         
-        if gen_meth == "Meshgrid":
+        if gen_meth.value == 2:
             #Generate mesh_grid data for theta_set in 2D
             #Define linspace for theta
             params = np.linspace(0,1, n_points)
@@ -583,12 +587,12 @@ class GPBO_Driver:
                 upper_bound = bounds[1]
                 data = scaled_data*(upper_bound - lower_bound) + lower_bound  
             
-        elif gen_meth == "LHS":
+        elif gen_meth.value == 1:
             #Generate LHS sample
             data = lhs_design(n_points, dimensions, seed, bounds = bounds)
         
         else:
-            pass
+            raise ValueError("gen_meth.value must be 1 or 2!")
 #             assert self.CaseStudyParameters.x_data_vals is not None, "X must be provided if not generated"
 #             assert self.CaseStudyParameters.x_data_vals.shape[1] == exp_d, "Provided X values must have the same dimension as bounds!"
 #             sim_data = self.CaseStudyParameters.x_data_vals
@@ -603,22 +607,12 @@ class GPBO_Driver:
         Returns:
         --------
         Yexp: ndarray. Value of y given state points x and theta_true
-        """
-        true_p = self.CaseStudyParameters.true_params
-        noise_std = self.CaseStudyParameters.noise_std
-        noise_mean = self.CaseStudyParameters.noise_mean
-        true_model_coefficients = self.CaseStudyParameters.true_model_coefficients
-        seed = self.CaseStudyParameters.seed
-        cs_num = self.CaseStudyParameters.cs_name.value
-        #Is there an easier way to do this? Should I rename the functions such that none of the names are the same?
+        """        
+        CaseStudyParameters = self.CaseStudyParameters
+        SimulatorParams = self.SimulatorParams
+        
         #Note - Can only use this function after generating x data
-        x_data = self.CaseStudyParameters.x_data_vals
-        if cs_num == 1:
-            y_exp = calc_y_exp(calc_cs1_polynomial, true_model_coefficients, x_data, noise_std, noise_mean, seed)   
-        elif cs_num == 2:
-            y_exp = calc_y_exp(calc_muller, true_model_coefficients, x_data, noise_std, noise_mean, seed)
-        else:
-            raise ValueError("self.CaseStudyParameters.cs_name.value must be 1 or 2!")
+        y_exp = calc_y_exp(CaseStudyParameters, SimulatorParams)   
         
         return y_exp
         
@@ -636,37 +630,16 @@ class GPBO_Driver:
         --------
         Ysim: ndarray. Value of y given state points x and theta_vals
         """
-        cs_name = self.CaseStudyParameters.cs_name
-        cs_num = self.CaseStudyParameters.cs_name.value
+        CaseStudyParameters = self.CaseStudyParameters
+        SimulatorParams = self.SimulatorParams
         gp_method = method.method_name.value
-        obj = method.obj
-        indecies_to_consider = self.CaseStudyParameters.indecies_to_consider
-        noise_mean = self.CaseStudyParameters.noise_mean
-        noise_std = self.CaseStudyParameters.noise_std
-        true_model_coefficients = self.CaseStudyParameters.true_model_coefficients
-        seed =  self.CaseStudyParameters.seed
-        
-        if cs_num == 1:
-            if gp_method in [1,2]:
-                #Calculate sse for sim data
-                y_sim = calc_sse(calc_cs1_polynomial, sim_data, exp_data, true_model_coefficients, indecies_to_consider, obj)
-            else:
-                #Calculate y_sim for sim data
-#                 y_sim = cs1_calc_y_sim(sim_data, exp_data)
-                y_sim = calc_y_sim(calc_cs1_polynomial, sim_data, exp_data, true_model_coefficients, indecies_to_consider)
-                
-        
-        elif cs_num == 2:
-            if gp_method in [1, 2]:
-                #Calculate sse for sim data. Need new functions
-                y_sim = calc_sse(calc_muller, sim_data, exp_data, true_model_coefficients, indecies_to_consider, obj)
-            else:  
-                #Calculate y_sim for sim data. Need new functions
-#                 y_sim = cs2_calc_y_sim(sim_data, true_model_coefficients, indecies, noise_mean, noise_std, seed)
-                y_sim = calc_y_sim(calc_muller, sim_data, exp_data, true_model_coefficients, indecies_to_consider)
-        
+
+        if gp_method in [1,2]:
+            #Calculate sse for sim data
+            y_sim = calc_sse(CaseStudyParameters, SimulatorParams, method, sim_data, exp_data)
         else:
-            raise ValueError("self.CaseStudyParameters.cs_name.value must be 1 or 2!")
+            #Calculate y_sim for sim data
+            y_sim = calc_y_sim(CaseStudyParameters, SimulatorParams, sim_data, exp_data)
             
         return y_sim
             
