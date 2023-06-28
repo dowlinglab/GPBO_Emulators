@@ -112,7 +112,8 @@ class SimulatorParams:
         num_data: int, number of available data for training/testing 
         dim_x: int, The number of dimensions of x
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
-        lhs_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False). Default False
+        lhs_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False)
+        calc_y_fxn: None or function, The function to calculate ysim data with
         """
         # Constructor method
         self.dim_x = dim_x
