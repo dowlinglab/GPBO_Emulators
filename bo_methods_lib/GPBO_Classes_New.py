@@ -127,7 +127,7 @@ class Simulator:
             self.num_theta_data = self.num_theta_data**2
         else:
             raise ValueError("gen_meth.value must be 1 or 2!")            
-            
+        
     def set_true_params(self, CaseStudyParameters):
         """
         Sets true parameter value array and the corresponding names based on parameter dictionary and indecies to consider
@@ -157,6 +157,7 @@ class Simulator:
         Parameters
         ----------
         method: class, fully defined methods class which determines which method will be used
+        CaseStudyParameters: class, class containing at least the true_model_coefficients
         sim_data: Class, Class containing at least the theta_vals for simulation
         exp_data: Class, Class containing at least the x_data and y_data for the experimental data
         
@@ -482,21 +483,37 @@ class Type_1_GP_Emulator(CaseStudyParameters):
     Methods
     --------------
     __init__
-    type_1
-    type_2
+    eval_gp
     """
     # Class variables and attributes
     
-    def __init__(self):
+    def __init__(self, CaseStudyParameters):
         """
         Parameters
         ----------
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
-        super().__init__(normalize, package, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter)
+        self.CaseStudyParameters = CaseStudyParameters
     
-    def eval_gp(self, param_set): #Where should I account for finding the SSE of these values?
+    def calc_best_error(self, method, CaseStudyParameters, sim_data, exp_data):
+        """
+        Calculates the best error of the model
+        
+        Parameters
+        ----------
+        method: class, fully defined methods class which determines which method will be used
+        CaseStudyParameters: class, class containing at least the true_model_coefficients
+        sim_data: Class, Class containing at least the theta_vals for simulation
+        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        
+        Returns
+        -------
+        best_error: float, the best error of the method
+        
+        """
+        
+    def eval_gp(self, param_set):
         """
         Evaluates GP model for a standard GPBO
         
@@ -511,7 +528,7 @@ class Type_1_GP_Emulator(CaseStudyParameters):
         
         """
         
-class Type_2_GP_Emulator(CaseStudyParameters):
+class Type_2_GP_Emulator():
     """
     The base class for Gaussian Processes
     Parameters
@@ -519,19 +536,18 @@ class Type_2_GP_Emulator(CaseStudyParameters):
     Methods
     --------------
     __init__
-    type_1
-    type_2
+    eval_gp
     """
     # Class variables and attributes
     
-    def __init__(self):
+    def __init__(self, CaseStudyParameters):
         """
         Parameters
         ----------
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
-        super().__init__(normalize, package, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter)
+        self.CaseStudyParameters = CaseStudyParameters
     
     def eval_gp(self, param_set, x_vals):
         """
@@ -551,7 +567,7 @@ class Type_2_GP_Emulator(CaseStudyParameters):
         
         """
 ##Again, composition instead of inheritance      
-class Expected_Improvement(CaseStudyParameters):  
+class Expected_Improvement():  
     """
     The base class for acquisition functions
     Parameters
@@ -559,12 +575,11 @@ class Expected_Improvement(CaseStudyParameters):
     Methods
     --------------
     __init__
-    calc_best_error
     type_1_ei
     type_2_ei
     """
     #AD Comment: What part of the acquisition function code can be generalized and what is specific to type1 and type2? 
-    def __init__(self, ep, gp_mean, gp_var):
+    def __init__(self, ep, gp_mean, gp_var, CaseStudyParameters):
         """
         Parameters
         ----------
@@ -575,27 +590,11 @@ class Expected_Improvement(CaseStudyParameters):
         """
         
         # Constructor method
-        super().__init__(cs_name, theta_true, true_model_coefficients, theta_dict, skip_param_types, normalize)
+        self.CaseStudyParameters = CaseStudyParameters
         self.ep = ep
         self.gp_mean = gp_mean
         self.gp_var = gp_var
     
-    def calc_best_error(self, train_data, x_vals, y_vals, Method):
-        """
-        Calculates the best error of the model
-        
-        Parameters
-        ----------
-        train_data: ndarray, The training data
-        x_vals: ndarray, experimental state points (x data)
-        y_vals: ndarray, experimental output data (y data)
-        Method: class, fully defined methods class which determines which method will be used
-        
-        Returns
-        -------
-        best_error: float, the best error of the method
-        
-        """
     def type_1(self, param_set, best_error, Method):
         """
         Calculates expected improvement of type 1 (standard) GPBO
@@ -715,13 +714,45 @@ class GPBO_Driver:
         
         return y_exp
             
+    def train_test_split(self, sim_data):
+        """
+        Splits data into training and testing data
+
+        Parameters
+        ----------
+            sim_data: class, The simulated parameter space and y data
+        Returns:
+            train_data: ndarray, The training data
+            test_data: ndarray, The testing data
+
+        """
+        sep_fact = self.CaseStudyParameters.sep_fact
+        seed = self.CaseStudyParameters.seed
+        
+        #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
+        assert isinstance(sep_fact, (float, int))==True or torch.is_tensor(sep_fact)==True, "Separation factor must be a float or int"
+        assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
+        
+        theta_data = sim_data.theta_vals
+        x_data = sim_data.y_vals
+        y_data = sim_data.y_vals
+
+        #Shuffles Random Data
+        if shuffle_seed is not None:
+            #Set seed to number specified by shuffle seed
+            np.random.seed(shuffle_seed)
+
+        #How do I shuffle and split data given that my "data points" are not actually stored in arrays?
+        
+        return train_data, test_data
+    
     def train_GP(self, train_data, verbose = False):
         """
         Trains the GP model
         
         Parameters
         ----------
-        train_data: ndarray, The training data
+        train_data: instance of Data class, The training data
         verbose: bool, Whether to print hyperparameters. Default False.
         
         Returns
@@ -731,6 +762,7 @@ class GPBO_Driver:
         lenscl_final: ndarray, array of optimized lengthscale parameters
         outputscale_final: ndarray (1x1), array of optimized outputscale parameter
         """
+
         
     def optimize_acquisition_func(self, Method, param_set):
         """
