@@ -103,7 +103,7 @@ class SimulatorParams:
     """
     The base class for differet simulators. Defines a simulation
     """
-    def __init__(self, num_x_data, num_theta_data, num_data, dim_x, indecies_to_consider, lhs_gen_theta, calc_y_fxn):
+    def __init__(self, dim_x, indecies_to_consider, lhs_gen_theta, calc_y_fxn):
         """
         Parameters
         ----------
@@ -117,9 +117,6 @@ class SimulatorParams:
         """
         # Constructor method
         self.dim_x = dim_x
-        self.num_x_data = num_x_data
-        self.num_theta_data = num_theta_data
-        self.num_data = num_data
         self.dim_theta = len(indecies_to_consider) #Length of theta is equivalent to the number of indecies to consider
         self.indecies_to_consider = indecies_to_consider
         self.lhs_gen_theta = lhs_gen_theta
@@ -159,25 +156,9 @@ class SimulatorParams:
         
         return true_params, true_param_names
     
-    def set_num_data(self, Method):
-        """
-        Defines the total number of data the GP will have access to to train on
-        
-        Parameters
-        ----------
-        Method: class, fully defined methods class which determines which method will be used
-        
-        Returns
-        -------
-        num_data: int, the number of data the GP will have access to
-        """
-        if Method.emulator == True:
-            num_data = int(self.num_x_data*self.num_theta_data)
-        else:
-            num_data = int(self.num_theta_data)
-        
-        return num_data
     
+    #I strongly believe that this is more user friendly than having every user need to rewrite this whole class
+    #Case and point. Add your functions to GPBO_Class_fxns, give it a name (cs_name) and add the 2 lines of code below
     def set_calc_model(self, cs_name):
         """
         Sets the model for calculating y based off of the case study identifier.
@@ -195,9 +176,11 @@ class SimulatorParams:
         elif cs_name.value == 2:
             calc_y_fxn = calc_muller
         else:
-            raise ValueError("self.CaseStudyParameters.cs_name.value must be 1 or 2!")
+            raise ValueError("self.CaseStudyParameters.cs_name.value must exist!")
             
         return calc_y_fxn
+    
+    
             
         
 class Method_name_enum(Enum):
@@ -320,18 +303,109 @@ class Data:
         self.gp_var = gp_var
         self.hyperparams = hyperparams
         
-    def get_dims(self):
+    
+    def get_num_theta(self):
         """
-        Gets dimenisons of data
+        Defines the total number of theta data the GP will have access to to train on
+        
+        Parameters
+        ----------
+        Method: class, fully defined methods class which determines which method will be used
         
         Returns
-        ---------
-        len: int, length of data
-        dim: int, number of dimensions of data
+        -------
+        num_theta_data: int, the number of data the GP will have access to
         """
-        # Method definition
-        # Code logic goes here
-        pass
+        num_theta_data = len(self.theta_vals)
+        
+        return num_theta_data
+    
+    def get_dim_theta(self):
+        """
+        Defines the total dimensions of theta data the GP will have access to to train on
+        
+        Parameters
+        ----------
+        Method: class, fully defined methods class which determines which method will be used
+        
+        Returns
+        -------
+        num_theta_data: int, the number of data the GP will have access to
+        """
+        dim_theta_data = self.theta_vals.shape[1]
+        
+        return dim_theta_data
+    
+    def get_num_x_vals(self):
+        """
+        Defines the total number of x data the GP will have access to to train on
+        
+        Parameters
+        ----------
+        Method: class, fully defined methods class which determines which method will be used
+        
+        Returns
+        -------
+        num_x_data: int, the number of data the GP will have access to
+        """
+        num_x_data = len(self.x_vals)
+        
+        return num_x_data
+    
+    def get_dim_x_vals(self):
+        """
+        Defines the total dimensions of x data the GP will have access to to train on
+        
+        Parameters
+        ----------
+        Method: class, fully defined methods class which determines which method will be used
+        
+        Returns
+        -------
+        num_x_data: int, the number of data the GP will have access to
+        """
+        dim_x_data = self.x_vals.shape[1]
+        
+        return dim_x_data
+        
+    def get_num_gp_data(self, Method):
+        """
+        Defines the total number of data the GP will have access to to train on
+        
+        Parameters
+        ----------
+        Method: class, fully defined methods class which determines which method will be used
+        
+        Returns
+        -------
+        num_data: int, the number of data the GP will have access to
+        """
+        if Method.emulator == True:
+            num_gp_data = int(self.get_num_x_vals()*self.get_num_theta())
+        else:
+            num_gp_data = int(self.get_num_theta())
+        
+        return num_gp_data
+    
+    def get_dim_gp_data(self, Method):
+        """
+        Defines the total dimension of data the GP will have access to to train on
+        
+        Parameters
+        ----------
+        Method: class, fully defined methods class which determines which method will be used
+        
+        Returns
+        -------
+        num_data: int, the number of data the GP will have access to
+        """
+        if Method.emulator == True:
+            dim_gp_data = int(self.get_dim_x_vals() + self.get_dim_theta())
+        else:
+            dim_gp_data = int(self.get_dim_theta())
+        
+        return dim_gp_data
+    
     #What is the syntax to allow data to be any self parameter?
     def normalize(self, data, bounds):
         """
