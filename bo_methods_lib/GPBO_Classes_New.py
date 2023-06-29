@@ -108,7 +108,7 @@ class Simulator:
         dim_x: int, The number of dimensions of x
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         lhs_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False)
-        calc_y_fxn: None or function, The function to calculate ysim data with
+        calc_y_fxn: function, The function to calculate ysim data with
         """
         # Constructor method
         self.dim_x = dim_x
@@ -126,8 +126,7 @@ class Simulator:
         elif gen_meth.value == 2:
             self.num_theta_data = self.num_theta_data**2
         else:
-            raise ValueError("gen_meth.value must be 1 or 2!")
-            
+            raise ValueError("gen_meth.value must be 1 or 2!")            
             
     def set_true_params(self, CaseStudyParameters):
         """
@@ -150,31 +149,6 @@ class Simulator:
         true_param_names = [param_dict[idx] for idx in indecies_to_consider]
         
         return true_params, true_param_names
-    
-    
-    #I strongly believe that this is more user friendly than having every user need to rewrite this whole class
-    #Case and point. Add your functions to GPBO_Class_fxns.py, give it a name (cs_name) and add the 2 lines of elif statement below
-    def set_calc_model(self, cs_name):
-        """
-        Sets the model for calculating y based off of the case study identifier.
-        
-        Parameters
-        ----------
-        cs_name: Class, The name/enumerator associated with the case study being evaluated
-        
-        Returns
-        -------
-        calc_y_fxn: function, the function used for calculation is case study cs_name.name
-        """
-        #Note: Add your function name from GPBO_Class_fxns.py here
-        if cs_name.value == 1:
-            calc_y_fxn = calc_cs1_polynomial
-        elif cs_name.value == 2:
-            calc_y_fxn = calc_muller
-        else:
-            raise ValueError("self.CaseStudyParameters.cs_name.value must exist!")
-            
-        return calc_y_fxn
     
     def create_sim_data(self, method, CaseStudyParameters, sim_data, exp_data):
         """
@@ -199,8 +173,8 @@ class Simulator:
             #Calculate y_sim for sim data
             y_sim = calc_y_sim(CaseStudyParameters, self, sim_data, exp_data)
             
-        return y_sim       
-        
+        return y_sim 
+      
 class Method_name_enum(Enum):
     """
     The base class for any GPBO Method names
