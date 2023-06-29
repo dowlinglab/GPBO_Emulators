@@ -44,7 +44,7 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, true_params, true_model_coefficients, param_dict, ep0, sep_fact, normalize, x_data_vals, eval_all_pairs, package, noise_mean, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
+    def __init__(self, cs_name, true_params, true_model_coefficients, param_dict, ep0, sep_fact, normalize, eval_all_pairs, package, noise_mean, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
         """
         Parameters
         ----------
@@ -55,7 +55,6 @@ class CaseStudyParameters:
         ep0: float, The original  exploration bias. Default 1
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         normalize: bool, Determines whether feature data will be normalized for problem analysis
-        x_data_vals: ndarray or none: Values of X data. If none, these values must be generated
         eval_all_pairs: bool, determines whether all pairs of theta are evaluated to create heat maps. Default False
         package: str ("gpytorch" or  "scikit_learn") determines which package to use for GP hyperaparameter optimization
         noise_mean:float, int: The mean of the noise
@@ -81,7 +80,6 @@ class CaseStudyParameters:
         self.ep0 = ep0
         self.sep_fact = sep_fact
         self.normalize = normalize
-        self.x_data_vals = x_data_vals
         self.eval_all_pairs = eval_all_pairs
         self.bo_iter_tot = bo_iter_tot
         self.bo_run_tot = bo_run_tot
@@ -107,9 +105,6 @@ class Simulator:
         """
         Parameters
         ----------
-        num_x_data: int, number of available x data for training/testing
-        num_theta_data: int, number of available theta data for training/testing
-        num_data: int, number of available data for training/testing 
         dim_x: int, The number of dimensions of x
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         lhs_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False)

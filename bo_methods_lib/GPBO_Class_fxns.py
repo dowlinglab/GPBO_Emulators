@@ -105,7 +105,7 @@ def calc_y_exp(CaseStudyParameters, Simulator, exp_data):
     """   
     noise_std = CaseStudyParameters.noise_std
     noise_mean = CaseStudyParameters.noise_mean
-    x = CaseStudyParameters.x_data_vals
+    x = exp_data.x_vals
     random_seed = CaseStudyParameters.seed
     true_model_coefficients = CaseStudyParameters.true_model_coefficients
     calc_y_fxn = Simulator.calc_y_fxn
