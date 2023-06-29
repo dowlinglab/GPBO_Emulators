@@ -90,14 +90,14 @@ def calc_muller(model_coefficients, x):
     
     return y_mul
 
-def calc_y_exp(CaseStudyParameters, SimulatorParams, exp_data):
+def calc_y_exp(CaseStudyParameters, Simulator, exp_data):
     """
     Creates y_data for any case study
     
     Parameters
     ----------
         CaseStudyParameters: class, class containing at least the theta_true, x_data, noise_mean, noise_std, and seed
-        SimulatorParams: Class, class containing at least calc_y_fxn
+        Simulator: Class, class containing at least calc_y_fxn
         exp_data: instance of a class. Contains at least the experimental x data
         
     Returns:
@@ -108,7 +108,7 @@ def calc_y_exp(CaseStudyParameters, SimulatorParams, exp_data):
     x = CaseStudyParameters.x_data_vals
     random_seed = CaseStudyParameters.seed
     true_model_coefficients = CaseStudyParameters.true_model_coefficients
-    calc_y_fxn = SimulatorParams.calc_y_fxn
+    calc_y_fxn = Simulator.calc_y_fxn
     len_x = exp_data.get_num_x_vals()
     
     #Asserts that test_T is a tensor with 2 columns
@@ -138,13 +138,13 @@ def calc_y_exp(CaseStudyParameters, SimulatorParams, exp_data):
   
     return y_exp
 
-def calc_y_sim(CaseStudyParameters, SimulatorParams, sim_data, exp_data):
+def calc_y_sim(CaseStudyParameters, Simulator, sim_data, exp_data):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
     ----------
         CaseStudyParameters: class, class containing at least the theta_true, x_data, noise_mean, noise_std, and seed
-        SimulatorParams: Class, class containing at least calc_y_fxn
+        Simulator: Class, class containing at least calc_y_fxn
         sim_data: Class, Class containing at least the theta_vals for simulation
         exp_data: Class, Class containing at least the x_data and y_data for the experimental data
         
@@ -156,9 +156,9 @@ def calc_y_sim(CaseStudyParameters, SimulatorParams, sim_data, exp_data):
     y_sim = []
     len_theta = sim_data.get_num_theta() #Have to do it this way to be able to generalize between all the theta values and just 1 value
     len_x = sim_data.get_num_x_vals()
-    calc_y_fxn = SimulatorParams.calc_y_fxn
+    calc_y_fxn = Simulator.calc_y_fxn
     true_model_coefficients = CaseStudyParameters.true_model_coefficients
-    indecies_to_consider = SimulatorParams.indecies_to_consider
+    indecies_to_consider = Simulator.indecies_to_consider
     #Loop over all theta values
     for i in range(len_theta):
         #Create model coefficient from true space substituting in the values of param_space at the correct indecies
@@ -174,14 +174,14 @@ def calc_y_sim(CaseStudyParameters, SimulatorParams, sim_data, exp_data):
     
     return y_sim
 
-def calc_sse(CaseStudyParameters, SimulatorParams, Method, sim_data, exp_data):
+def calc_sse(CaseStudyParameters, Simulator, Method, sim_data, exp_data):
     """
     Creates y_data for the 2 input GP function
     
     Parameters
     ----------
         CaseStudyParameters: class, class containing at least the theta_true, x_data, noise_mean, noise_std, and seed
-        SimulatorParams: Class, class containing at least calc_y_fxn
+        Simulator: Class, class containing at least calc_y_fxn
         method: class, fully defined methods class which determines which method will be used
         sim_data: Class, Class containing at least the theta_vals for simulation
         exp_data: Class, Class containing at least the x_data and y_data for the experimental data     
@@ -197,9 +197,9 @@ def calc_sse(CaseStudyParameters, SimulatorParams, Method, sim_data, exp_data):
 #     noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
     len_theta = sim_data.get_num_theta() #Have to do it this way to be able to generalize between all the theta values and just 1 value
     len_x = sim_data.get_num_x_vals()
-    calc_y_fxn = SimulatorParams.calc_y_fxn
+    calc_y_fxn = Simulator.calc_y_fxn
     true_model_coefficients = CaseStudyParameters.true_model_coefficients
-    indecies_to_consider = SimulatorParams.indecies_to_consider
+    indecies_to_consider = Simulator.indecies_to_consider
     obj = Method.obj
     
     #How could I use calc_y_sim here rather than writing the same lines of code?

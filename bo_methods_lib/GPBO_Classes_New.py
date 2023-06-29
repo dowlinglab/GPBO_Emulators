@@ -31,7 +31,7 @@ from itertools import combinations_with_replacement, combinations, permutations
 # from CS2_bo_plotters import plot_org_train
 
 
-#Question: Which parameters in SimulatorParams vs CaseStudyParameters?
+#Question: Which parameters in Simulator vs CaseStudyParameters?
 class CaseStudyParameters:
     """
     The base class for any GPBO Case Study and Evaluation
@@ -99,7 +99,7 @@ class CaseStudyParameters:
         self.seed = seed
 
 #I'm having trouble defining how to update num_x_data, num_theta_data and dim_x depending on the situation. Especially when adding new data or when using the meshgrid options
-class SimulatorParams:
+class Simulator:
     """
     The base class for differet simulators. Defines a simulation
     """
@@ -254,7 +254,7 @@ class GPBO_Methods:
     """
     # Class variables and attributes
     
-    def __init__(self, method_name, emulator, obj, sparse_grid, GP_training_dims):
+    def __init__(self, method_name, emulator, obj, sparse_grid):
         """
         Parameters
         ----------
@@ -262,7 +262,6 @@ class GPBO_Methods:
         emulator: bool, Determines if GP will model the function or the function error
         obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
         sparse_grid: bool, Determines whether a sparse grid or approximation is used for the GP emulator
-        GP_training_dims: int, Number of features for GP
         """
         # Constructor method
         self.method_name = method_name
@@ -270,24 +269,50 @@ class GPBO_Methods:
         self.obj = obj
         self.sparse_grid = sparse_grid
         
-    def set_GP_training_dims(self, SimulatorParams):
+    def get_emulator(self):
         """
-        Sets the number of GP training inputs based on method properties and data dimensions
-        
-        Parameters:
-        -----------
-        SimulatorParams: Class, class containing values associated with simulation parameters not covered in the GPBO_Method class
+        Function to get emulator status based on method name
         
         Returns:
         --------
-        GP_training_dims: int, number of GP inputs
+        emulator, bool: Status of whether the GP emulates the function directly
         """
-        if self.emulator == True:
-            GP_training_dims = SimulatorParams.dim_theta + SimulatorParams.dim_x
-        else:
-            GP_training_dims = SimulatorParams.dim_theta
         
-        return GP_training_dims
+        if "2" in self.method_name.name:
+            emulator = True
+        else:
+            emulator = False
+        
+        return emulator
+    
+    def get_obj(self):
+        """
+        Function to get objective function status based on method name
+        
+        Returns:
+        --------
+        obj_enum, class instance: Determines whether log scaling is used
+        """
+        if "B" in self.method_name.name:
+            obj = Obj_enum(2)
+        else:
+            obj = Obj_enum(1)
+        return obj
+    
+    def get_sparse_grid(self):
+        """
+        Function to get sparse grid status based on method name
+        
+        Returns:
+        --------
+        sparse_grid: bool, Determines whether a sparse grid is used to evaluate the EI integral
+        """
+        if "C" in self.method_name.name:
+            sparse_grid = True
+        else:
+            sparse_grid = False
+        
+        return sparse_grid
         
 class Data:
     """
@@ -644,16 +669,16 @@ class GPBO_Driver:
     """
     # Class variables and attributes
     
-    def __init__(self, CaseStudyParameters, SimulatorParams):
+    def __init__(self, CaseStudyParameters, Simulator):
         """
         Parameters
         ----------
-        SimulatorParams: Class, class containing values associated with simulation parameters not covered in the GPBO_Method class
+        Simulator: Class, class containing values associated with simulation parameters not covered in the GPBO_Method class
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
         self.CaseStudyParameters = CaseStudyParameters
-        self.SimulatorParams = SimulatorParams
+        self.Simulator = Simulator
         
     def create_param_data(self, n_points, bounds, gen_meth):
         """
@@ -714,10 +739,10 @@ class GPBO_Driver:
         Yexp: ndarray. Value of y given state points x and theta_true
         """        
         CaseStudyParameters = self.CaseStudyParameters
-        SimulatorParams = self.SimulatorParams
+        Simulator = self.Simulator
         
         #Note - Can only use this function after generating x data
-        y_exp = calc_y_exp(CaseStudyParameters, SimulatorParams, exp_data)   
+        y_exp = calc_y_exp(CaseStudyParameters, Simulator, exp_data)   
         
         return y_exp
             
