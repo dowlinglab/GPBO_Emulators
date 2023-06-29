@@ -39,6 +39,8 @@ def vector_to_1D_array(array):
         array = array.reshape(-1,1)
     return array
 
+#Add your function here. SHould take theta_ref and x values
+
 def calc_cs1_polynomial(true_model_coefficients, x):
     """
     Calculates the value of y for case study 1
@@ -88,7 +90,7 @@ def calc_muller(model_coefficients, x):
     
     return y_mul
 
-def calc_y_exp(CaseStudyParameters, SimulatorParams):
+def calc_y_exp(CaseStudyParameters, SimulatorParams, exp_data):
     """
     Creates y_data for any case study
     
@@ -96,6 +98,7 @@ def calc_y_exp(CaseStudyParameters, SimulatorParams):
     ----------
         CaseStudyParameters: class, class containing at least the theta_true, x_data, noise_mean, noise_std, and seed
         SimulatorParams: Class, class containing at least calc_y_fxn
+        exp_data: instance of a class. Contains at least the experimental x data
         
     Returns:
         y_exp: ndarray, The expected values of y given x data
@@ -106,7 +109,7 @@ def calc_y_exp(CaseStudyParameters, SimulatorParams):
     random_seed = CaseStudyParameters.seed
     true_model_coefficients = CaseStudyParameters.true_model_coefficients
     calc_y_fxn = SimulatorParams.calc_y_fxn
-    len_x = SimulatorParams.num_x_data
+    len_x = exp_data.get_num_x_vals()
     
     #Asserts that test_T is a tensor with 2 columns
     assert isinstance(noise_std,(float,int)) == True, "The standard deviation of the noise must be an integer ot float."
@@ -151,8 +154,8 @@ def calc_y_sim(CaseStudyParameters, SimulatorParams, sim_data, exp_data):
     """
     #Define an array to store y values in
     y_sim = []
-    len_theta = len(sim_data.theta_vals) #Have to do it this way to be able to generalize between all the theta values and just 1 value
-    len_x = SimulatorParams.num_x_data
+    len_theta = sim_data.get_num_theta() #Have to do it this way to be able to generalize between all the theta values and just 1 value
+    len_x = sim_data.get_num_x_vals()
     calc_y_fxn = SimulatorParams.calc_y_fxn
     true_model_coefficients = CaseStudyParameters.true_model_coefficients
     indecies_to_consider = SimulatorParams.indecies_to_consider
@@ -192,8 +195,8 @@ def calc_sse(CaseStudyParameters, SimulatorParams, Method, sim_data, exp_data):
     
     #Calculate noise. Do we actually need noise here? The SSE is never a measured value
 #     noise = np.random.normal(size= 1 ,loc = noise_mean, scale = noise_std) #1x n_x
-    len_theta = len(sim_data.theta_vals) #Have to do it this way to be able to generalize between all the theta values and just 1 value
-    len_x = SimulatorParams.num_x_data
+    len_theta = sim_data.get_num_theta() #Have to do it this way to be able to generalize between all the theta values and just 1 value
+    len_x = sim_data.get_num_x_vals()
     calc_y_fxn = SimulatorParams.calc_y_fxn
     true_model_coefficients = CaseStudyParameters.true_model_coefficients
     indecies_to_consider = SimulatorParams.indecies_to_consider

@@ -158,7 +158,7 @@ class SimulatorParams:
     
     
     #I strongly believe that this is more user friendly than having every user need to rewrite this whole class
-    #Case and point. Add your functions to GPBO_Class_fxns, give it a name (cs_name) and add the 2 lines of code below
+    #Case and point. Add your functions to GPBO_Class_fxns.py, give it a name (cs_name) and add the 2 lines of elif statement below
     def set_calc_model(self, cs_name):
         """
         Sets the model for calculating y based off of the case study identifier.
@@ -171,6 +171,7 @@ class SimulatorParams:
         -------
         calc_y_fxn: function, the function used for calculation is case study cs_name.name
         """
+        #Note: Add your function name from GPBO_Class_fxns.py here
         if cs_name.value == 1:
             calc_y_fxn = calc_cs1_polynomial
         elif cs_name.value == 2:
@@ -180,8 +181,30 @@ class SimulatorParams:
             
         return calc_y_fxn
     
-    
+    def create_sim_data(self, method, CaseStudyParameters, sim_data, exp_data):
+        """
+        Creates simulation data based on x, theta_vals, the GPBO method, and the case study
+        
+        Parameters
+        ----------
+        method: class, fully defined methods class which determines which method will be used
+        sim_data: Class, Class containing at least the theta_vals for simulation
+        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        
+        Returns:
+        --------
+        Ysim: ndarray. Value of y given state points x and theta_vals
+        """
+        gp_method = method.method_name.value
+
+        if gp_method in [1,2]:
+            #Calculate sse for sim data
+            y_sim = calc_sse(CaseStudyParameters, self, method, sim_data, exp_data)
+        else:
+            #Calculate y_sim for sim data
+            y_sim = calc_y_sim(CaseStudyParameters, self, sim_data, exp_data)
             
+        return y_sim       
         
 class Method_name_enum(Enum):
     """
@@ -213,7 +236,7 @@ class Obj_enum(Enum):
     
 class CS_name_enum(Enum):
     """
-    The base class for any GPBO Method names
+    The base class for any GPBO case study names
     
     """
     CS1 = 1
@@ -332,7 +355,12 @@ class Data:
         -------
         num_theta_data: int, the number of data the GP will have access to
         """
-        dim_theta_data = self.theta_vals.shape[1]
+        if len(self.theta_vals) == 1:
+            theta_vals = self.theta_vals.reshape(1,-1)
+        else:
+            theta_vals = self.theta_vals
+            
+        dim_theta_data = theta_vals.shape[1]
         
         return dim_theta_data
     
@@ -364,7 +392,7 @@ class Data:
         -------
         num_x_data: int, the number of data the GP will have access to
         """
-        dim_x_data = self.x_vals.shape[1]
+        dim_x_data = vector_to_1D_array(self.x_vals).shape[1]
         
         return dim_x_data
         
@@ -673,9 +701,13 @@ class GPBO_Driver:
         #How do I make the data an instance of the data class?
         return data
         
-    def create_y_exp_data(self):
+    def create_y_exp_data(self, exp_data):
         """
         Creates experimental y data based on x, theta_true, and the case study
+        
+        Parameters:
+        -----------
+        exp_data: instance of a class. Contains at least the experimental x data
         
         Returns:
         --------
@@ -685,36 +717,9 @@ class GPBO_Driver:
         SimulatorParams = self.SimulatorParams
         
         #Note - Can only use this function after generating x data
-        y_exp = calc_y_exp(CaseStudyParameters, SimulatorParams)   
+        y_exp = calc_y_exp(CaseStudyParameters, SimulatorParams, exp_data)   
         
         return y_exp
-        
-    def create_sim_data(self, method, sim_data, exp_data):
-        """
-        Creates simulation data based on x, theta_vals, the GPBO method, and the case study
-        
-        Parameters
-        ----------
-        method: class, fully defined methods class which determines which method will be used
-        sim_data: Class, Class containing at least the theta_vals for simulation
-        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
-        
-        Returns:
-        --------
-        Ysim: ndarray. Value of y given state points x and theta_vals
-        """
-        CaseStudyParameters = self.CaseStudyParameters
-        SimulatorParams = self.SimulatorParams
-        gp_method = method.method_name.value
-
-        if gp_method in [1,2]:
-            #Calculate sse for sim data
-            y_sim = calc_sse(CaseStudyParameters, SimulatorParams, method, sim_data, exp_data)
-        else:
-            #Calculate y_sim for sim data
-            y_sim = calc_y_sim(CaseStudyParameters, SimulatorParams, sim_data, exp_data)
-            
-        return y_sim
             
     def train_GP(self, train_data, verbose = False):
         """
