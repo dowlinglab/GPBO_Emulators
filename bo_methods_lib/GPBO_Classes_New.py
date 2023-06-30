@@ -44,7 +44,7 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, package, noise_mean, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
+    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, noise_mean, noise_std, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
         """
         Parameters
         ----------
@@ -53,14 +53,8 @@ class CaseStudyParameters:
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         normalize: bool, Determines whether feature data will be normalized for problem analysis
         eval_all_pairs: bool, determines whether all pairs of theta are evaluated to create heat maps. Default False
-        package: str ("gpytorch" or  "scikit_learn") determines which package to use for GP hyperaparameter optimization
         noise_mean:float, int: The mean of the noise
         noise_std: float, int: The standard deviation of the noise
-        kernel: str ("Mat_52", Mat_32" or "RBF") Determines which GP Kerenel to use
-        set_lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
-        outputscl: bool, Determines whether utfutscale is trained
-        retrain_GP: int, number of times to restart GP training
-        GP_train_iter: int, number of training iterations to run. Default is 300
         bo_iter_tot: int, total number of BO iterations per restart
         bo_run_tot: int, total number of BO algorithm restarts
         save_fig: bool, Determines whether figures will be saved. Default False
@@ -80,14 +74,8 @@ class CaseStudyParameters:
         self.save_fig = save_fig
         self.save_data = save_data
         self.DateTime = DateTime
-        self.package = package
         self.noise_mean = noise_mean
         self.noise_std = noise_std
-        self.kernel = kernel
-        self.set_lenscl = set_lenscl
-        self.outputscl = outputscl
-        self.retrain_GP = retrain_GP
-        self.GP_train_iter = GP_train_iter
         self.seed = seed
 
 #I'm having trouble defining how to update num_x_data, num_theta_data and dim_x depending on the situation. Especially when adding new data or when using the meshgrid options
@@ -186,6 +174,14 @@ class Method_name_enum(Enum):
     B2 = 4
     C2 = 5
     #Note use Method_name_enum.enum.name to call "A1"
+
+class Kernel_enum(Enum):
+    """
+    Base class for kernel choices
+    """
+    MAT_52 = 1
+    MAT_32 = 2
+    RBF = 3
     
 class Gen_meth_enum(Enum):
     """
@@ -475,9 +471,7 @@ class Data:
         
         return data
 
-#https://www.geeksforgeeks.org/inheritance-and-composition-in-python/
-#AD: Use composition instead of inheritance here, pass an instance of CaseStudyParameters to the init function
-class Type_1_GP_Emulator(CaseStudyParameters):
+class GP_Emulator:
     """
     The base class for Gaussian Processes
     Parameters
@@ -489,14 +483,48 @@ class Type_1_GP_Emulator(CaseStudyParameters):
     """
     # Class variables and attributes
     
-    def __init__(self, CaseStudyParameters):
+    def __init__(self, CaseStudyParameters, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter):
+        """
+        Parameters
+        ----------
+        CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
+        kernel: enum class instance, Determines which GP Kerenel to use
+        set_lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        outputscl: float or None, Determines value of outputscale
+        retrain_GP: int, number of times to restart GP training
+        GP_train_iter: int, number of training iterations to run. Default is 300
+        
+        """
+        # Constructor method
+        self.CaseStudyParameters = CaseStudyParameters
+        self.kernel = kernel
+        self.set_lenscl = set_lenscl
+        self.outputscl = outputscl
+        self.retrain_GP = retrain_GP
+        self.GP_train_iter = GP_train_iter
+        
+#https://www.geeksforgeeks.org/inheritance-and-composition-in-python/
+#AD: Use composition instead of inheritance here, pass an instance of CaseStudyParameters to the init function
+class Type_1_GP_Emulator(GP_Emulator):
+    """
+    The base class for Gaussian Processes
+    Parameters
+    
+    Methods
+    --------------
+    __init__
+    eval_gp
+    """
+    # Class variables and attributes
+    
+    def __init__(self):
         """
         Parameters
         ----------
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
-        self.CaseStudyParameters = CaseStudyParameters
+        super().__init__(CaseStudyParameters, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter)
     
     def calc_best_error(self, method, CaseStudyParameters, sim_data, exp_data):
         """
@@ -530,7 +558,7 @@ class Type_1_GP_Emulator(CaseStudyParameters):
         
         """
         
-class Type_2_GP_Emulator():
+class Type_2_GP_Emulator(GP_Emulator):
     """
     The base class for Gaussian Processes
     Parameters
@@ -542,14 +570,14 @@ class Type_2_GP_Emulator():
     """
     # Class variables and attributes
     
-    def __init__(self, CaseStudyParameters):
+    def __init__(self):
         """
         Parameters
         ----------
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
-        self.CaseStudyParameters = CaseStudyParameters
+        super().__init__(CaseStudyParameters, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter)
     
     def eval_gp(self, param_set, x_vals):
         """
