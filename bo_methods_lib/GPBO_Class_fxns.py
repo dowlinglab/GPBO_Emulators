@@ -107,7 +107,7 @@ def calc_y_exp(CaseStudyParameters, Simulator, exp_data):
     noise_mean = CaseStudyParameters.noise_mean
     x = exp_data.x_vals
     random_seed = CaseStudyParameters.seed
-    true_model_coefficients = CaseStudyParameters.true_model_coefficients
+    true_model_coefficients = Simulator.theta_ref
     calc_y_fxn = Simulator.calc_y_fxn
     len_x = exp_data.get_num_x_vals()
     
@@ -157,7 +157,7 @@ def calc_y_sim(CaseStudyParameters, Simulator, sim_data, exp_data):
     len_theta = sim_data.get_num_theta() #Have to do it this way to be able to generalize between all the theta values and just 1 value
     len_x = sim_data.get_num_x_vals()
     calc_y_fxn = Simulator.calc_y_fxn
-    true_model_coefficients = CaseStudyParameters.true_model_coefficients
+    true_model_coefficients = Simulator.theta_ref
     indecies_to_consider = Simulator.indecies_to_consider
     #Loop over all theta values
     for i in range(len_theta):
@@ -198,7 +198,7 @@ def calc_sse(CaseStudyParameters, Simulator, Method, sim_data, exp_data):
     len_theta = sim_data.get_num_theta() #Have to do it this way to be able to generalize between all the theta values and just 1 value
     len_x = sim_data.get_num_x_vals()
     calc_y_fxn = Simulator.calc_y_fxn
-    true_model_coefficients = CaseStudyParameters.true_model_coefficients
+    true_model_coefficients = Simulator.theta_ref
     indecies_to_consider = Simulator.indecies_to_consider
     obj = Method.obj
     

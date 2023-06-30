@@ -44,14 +44,11 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, true_params, true_model_coefficients, param_dict, ep0, sep_fact, normalize, eval_all_pairs, package, noise_mean, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
+    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, package, noise_mean, noise_std, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
         """
         Parameters
         ----------
-        cs_name: Class, The name/enumerator associated with the case study being evaluated
-        true_params: ndarray, The array containing the true parameter values for the problem (must be 1D)
-        true_model_coefficients: ndarray, The array containing the true values of problem constants
-        param_dict: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
+        cs_name: Class, The name/enumerator associated with the case study being evaluated   
         ep0: float, The original  exploration bias. Default 1
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         normalize: bool, Determines whether feature data will be normalized for problem analysis
@@ -74,9 +71,6 @@ class CaseStudyParameters:
         """
         # Constructor method
         self.cs_name = cs_name
-        self.true_params = true_params
-        self.true_model_coefficients = true_model_coefficients
-        self.param_dict = param_dict
         self.ep0 = ep0
         self.sep_fact = sep_fact
         self.normalize = normalize
@@ -101,20 +95,23 @@ class Simulator:
     """
     The base class for differet simulators. Defines a simulation
     """
-    def __init__(self, dim_x, indecies_to_consider, lhs_gen_theta, calc_y_fxn):
+    def __init__(self, dim_x, indecies_to_consider, theta_ref, theta_names, calc_y_fxn):
         """
         Parameters
         ----------
         dim_x: int, The number of dimensions of x
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
-        lhs_gen_theta: bool, Whether theta_set will be generated from an LHS (True) set or a meshgrid (False)
+        theta_ref: ndarray, The array containing the true values of problem constants
+        theta_names: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         calc_y_fxn: function, The function to calculate ysim data with
         """
         # Constructor method
         self.dim_x = dim_x
         self.dim_theta = len(indecies_to_consider) #Length of theta is equivalent to the number of indecies to consider
         self.indecies_to_consider = indecies_to_consider
-        self.lhs_gen_theta = lhs_gen_theta
+        self.theta_ref = theta_ref
+        self.theta_names = theta_names
+        self.theta_true, self.theta_true_names = self.set_true_params()
         self.calc_y_fxn = calc_y_fxn
     
     def set_num_theta_data(self, gen_meth):
@@ -128,7 +125,7 @@ class Simulator:
         else:
             raise ValueError("gen_meth.value must be 1 or 2!")            
         
-    def set_true_params(self, CaseStudyParameters):
+    def set_true_params(self):
         """
         Sets true parameter value array and the corresponding names based on parameter dictionary and indecies to consider
         
@@ -141,12 +138,14 @@ class Simulator:
         -------
         true_params: ndarray, The true parameter of the model
         """
-        true_model_coefficients = CaseStudyParameters.true_model_coefficients
-        param_dict = CaseStudyParameters.param_dict
+        theta_ref = self.theta_ref
+        theta_names = self.theta_names
         indecies_to_consider = self.indecies_to_consider
         
-        true_params = true_model_coefficients[indecies_to_consider]
-        true_param_names = [param_dict[idx] for idx in indecies_to_consider]
+        assert all(0 <= idx <= len(theta_ref)-1 for idx in indecies_to_consider)==True, "indecies to consider must be in range of theta_ref"
+        
+        true_params = theta_ref[indecies_to_consider]
+        true_param_names = [theta_names[idx] for idx in indecies_to_consider]
         
         return true_params, true_param_names
     
@@ -224,7 +223,7 @@ class GPBO_Methods:
     """
     # Class variables and attributes
     
-    def __init__(self, method_name, emulator, obj, sparse_grid):
+    def __init__(self, method_name):
         """
         Parameters
         ----------
@@ -235,9 +234,9 @@ class GPBO_Methods:
         """
         # Constructor method
         self.method_name = method_name
-        self.emulator = emulator
-        self.obj = obj
-        self.sparse_grid = sparse_grid
+        self.emulator = self.get_emulator()
+        self.obj = self.get_obj()
+        self.sparse_grid = self.get_sparse_grid()
         
     def get_emulator(self):
         """
@@ -296,30 +295,33 @@ class Data:
     """
     # Class variables and attributes
     
-    def __init__(self, theta_vals, theta_true, x_vals, y_vals, gp_mean, gp_var, sse, ei, hyperparams):
+    def __init__(self, theta_vals, x_vals, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, y_vals, gp_mean, gp_var, sse, ei):
         """
         Parameters
         ----------
         theta_vals: ndarray, The arrays of theta_values
-        theta_true: ndarray, The array of true theta_values
         x_vals: ndarray, experimental state points (x data)
         y_vals: ndarray, experimental y data
+        bounds_theta_l: list, lower bounds of theta
+        bounds_x_l: list, lower bounds of x
+        bounds_theta_u: list, upper bounds of theta
+        bounds_x_u: list, upper bounds of x
         gp_mean: ndarray, GP mean prediction values associated with theta_vals and x_vals
         gp_var: ndarray, GP variance prediction values associated with theta_vals and x_vals
         sse: ndarray, sum of squared error values associated with theta_vals and x_vals
         ei: ndarray, expected improvement values associated with theta_vals and x_vals
-        hyperparams: ndarray, Array of lengthscale + outputscale values
         """
         # Constructor method
         self.theta_vals = theta_vals
-        self.theta_true = theta_true
         self.x_vals = x_vals
         self.y_vals = y_vals
+        self.bounds_theta = np.array([bounds_theta_l, bounds_theta_u])
+        self.bounds_x = np.array([bounds_x_l, bounds_x_u])        
         self.sse = sse
         self.ei = ei
         self.gp_mean = gp_mean
         self.gp_var = gp_var
-        self.hyperparams = hyperparams
+#         self.hyperparams = hyperparams
         
     
     def get_num_theta(self):
@@ -637,16 +639,81 @@ class GPBO_Driver:
     """
     # Class variables and attributes
     
-    def __init__(self, CaseStudyParameters, Simulator):
+    def __init__(self, CaseStudyParameters, Simulator, exp_data, sim_data):
         """
         Parameters
         ----------
         Simulator: Class, class containing values associated with simulation parameters not covered in the GPBO_Method class
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
+        exp_data: Instance of Data class, Class containing at least bounds for experimental data
+        sim_data: Instance of Data class
+        
         """
         # Constructor method
         self.CaseStudyParameters = CaseStudyParameters
         self.Simulator = Simulator
+        self.exp_data = exp_data
+        self.sim_data = sim_data
+        
+    def gen_exp_data(self, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, num_x_data, gen_meth_x):
+        """
+        Generates experimental data in an instance of the Data class
+        
+        Parameters
+        ----------
+        bounds_theta_l: list, lower bounds of theta
+        bounds_x_l: list, lower bounds of x
+        bounds_theta_u: list, upper bounds of theta
+        bounds_x_u: list, upper bounds of x
+        num_x_data: int, number of experiments
+        gen_meth_x: bool: Whether to generate X data with LHS or grid method
+        
+        Returns:
+        --------
+        exp_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        """
+        theta_true = self.Simulator.theta_true
+        exp_data = Data(theta_true, None, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, None, None, None, None, None)
+        exp_data.x_vals = vector_to_1D_array(self.create_param_data(num_x_data, exp_data.bounds_x, gen_meth_x))
+        exp_data.y_vals = self.create_y_exp_data(exp_data)
+        
+        self.exp_data = exp_data
+        
+        return exp_data
+        
+        
+    def gen_sim_data(self, num_theta_data, gen_meth_theta, num_x_data, gen_meth_x, share_x_from_exp = True):
+        """
+        Generates experimental data in an instance of the Data class
+        
+        Parameters
+        ----------
+        num_theta_data: int, number of theta values
+        gen_meth_theta: bool: Whether to generate theta data with LHS or grid method
+        num_x_data: int, number of experiments
+        gen_meth_x: bool: Whether to generate X data with LHS or grid method
+        share_x_from_exp:bool, whether to take same x as xexp data. Default True
+        
+        Returns:
+        --------
+        sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        """
+        bounds_theta = self.exp_data.bounds_theta
+        bounds_x = self.exp_data.bounds_x
+        
+        if not share_x_from_exp:
+            x_data = vector_to_1D_array(self.create_param_data(num_x_data, bounds_x, gen_meth_x))
+        else:
+            x_data = self.exp_data.x_vals
+     
+        sim_data = Data(None, x_data, bounds_theta[0], bounds_x[0], bounds_theta[1], bounds_x[1], None, None, None, None, None)
+        sim_data.theta_vals = vector_to_1D_array(self.create_param_data(num_theta_data, bounds_theta, gen_meth_theta))
+        sim_data.y_vals = self.create_y_exp_data(self.exp_data)
+        
+        self.sim_data = sim_data
+        
+        return sim_data
+        
         
     def create_param_data(self, n_points, bounds, gen_meth):
         """
@@ -655,7 +722,7 @@ class GPBO_Driver:
         Parameters
         ----------
         n_points: int, number of data to generate
-        bounds: ndarray, array of x bounds
+        bounds: array, array of parameter bounds
         gen_meth: class (Gen_meth_enum), ("LHS", "Meshgrid"). Determines whether x data will be generated with an LHS or meshgrid
         
         Returns:
