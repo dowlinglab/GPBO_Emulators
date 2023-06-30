@@ -138,7 +138,7 @@ def calc_y_exp(CaseStudyParameters, Simulator, exp_data):
   
     return y_exp
 
-def calc_y_sim(CaseStudyParameters, Simulator, sim_data, exp_data):
+def calc_y_sim(CaseStudyParameters, Simulator, sim_data):
     """
     Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
     Parameters
@@ -146,7 +146,6 @@ def calc_y_sim(CaseStudyParameters, Simulator, sim_data, exp_data):
         CaseStudyParameters: class, class containing at least the theta_true, x_data, noise_mean, noise_std, and seed
         Simulator: Class, class containing at least calc_y_fxn
         sim_data: Class, Class containing at least the theta_vals for simulation
-        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
         
     Returns
     -------
@@ -165,9 +164,9 @@ def calc_y_sim(CaseStudyParameters, Simulator, sim_data, exp_data):
         model_coefficients = true_model_coefficients
         model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
         #Loop over x values and calculate y
-        for j in range(len_x):
-            #Create model coefficients
-            y_sim.append(calc_y_fxn(model_coefficients, exp_data.x_vals[j])) 
+#         for j in range(len_x):
+        #Create model coefficients
+        y_sim.append(calc_y_fxn(model_coefficients, sim_data.x_vals[i])) 
     
     #Convert list to array and flatten array
     y_sim = np.array(y_sim).flatten()
@@ -212,7 +211,7 @@ def calc_sse(CaseStudyParameters, Simulator, Method, sim_data, exp_data):
         y_sim = np.zeros(len_x)
         for j in range(len_x):
             #Create model coefficients
-            y_sim[j] = calc_y_fxn(model_coefficients, exp_data.x_vals[j])
+            y_sim[j] = calc_y_fxn(model_coefficients, sim_data.x_vals[j])
     
         sum_error_sq[i] = sum((y_sim - exp_data.y_vals)**2) #Scaler
         
