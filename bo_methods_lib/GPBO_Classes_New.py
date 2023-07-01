@@ -83,7 +83,7 @@ class Simulator:
     """
     The base class for differet simulators. Defines a simulation
     """
-    def __init__(self, dim_x, indecies_to_consider, theta_ref, theta_names, calc_y_fxn):
+    def __init__(self, dim_x, indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, calc_y_fxn):
         """
         Parameters
         ----------
@@ -91,6 +91,10 @@ class Simulator:
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         theta_ref: ndarray, The array containing the true values of problem constants
         theta_names: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
+        bounds_theta_l: list, lower bounds of theta
+        bounds_x_l: list, lower bounds of x
+        bounds_theta_u: list, upper bounds of theta
+        bounds_x_u: list, upper bounds of x
         calc_y_fxn: function, The function to calculate ysim data with
         """
         # Constructor method
@@ -100,6 +104,9 @@ class Simulator:
         self.theta_ref = theta_ref
         self.theta_names = theta_names
         self.theta_true, self.theta_true_names = self.set_true_params()
+        #How to acount for this in the doctring?
+        self.bounds_theta = np.array([bounds_theta_l, bounds_theta_u])
+        self.bounds_x = np.array([bounds_x_l, bounds_x_u])
         self.calc_y_fxn = calc_y_fxn
     
     def set_num_theta_data(self, gen_meth):
@@ -306,17 +313,13 @@ class Data:
     """
     # Class variables and attributes
     
-    def __init__(self, theta_vals, x_vals, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, y_vals, gp_mean, gp_var, sse, ei):
+    def __init__(self, theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, ei):
         """
         Parameters
         ----------
         theta_vals: ndarray, The arrays of theta_values
         x_vals: ndarray, experimental state points (x data)
         y_vals: ndarray, experimental y data
-        bounds_theta_l: list, lower bounds of theta
-        bounds_x_l: list, lower bounds of x
-        bounds_theta_u: list, upper bounds of theta
-        bounds_x_u: list, upper bounds of x
         gp_mean: ndarray, GP mean prediction values associated with theta_vals and x_vals
         gp_var: ndarray, GP variance prediction values associated with theta_vals and x_vals
         sse: ndarray, sum of squared error values associated with theta_vals and x_vals
@@ -325,9 +328,7 @@ class Data:
         # Constructor method
         self.theta_vals = theta_vals
         self.x_vals = x_vals
-        self.y_vals = y_vals
-        self.bounds_theta = np.array([bounds_theta_l, bounds_theta_u])
-        self.bounds_x = np.array([bounds_x_l, bounds_x_u])        
+        self.y_vals = y_vals        
         self.sse = sse
         self.ei = ei
         self.gp_mean = gp_mean
@@ -447,7 +448,8 @@ class Data:
 
         Parameters
         ----------
-        bounds: ndarray, The unscaled bounds of the data
+        data: ndarray: The data you want to scale
+        bounds: ndarray, The bounds of the type of data you want to normalize
         
         Returns:
         ---------
@@ -470,7 +472,7 @@ class Data:
         Parameters
         ----------
         scaler: MinMaxScaler(), The scaler used to normalize the data
-        bounds: ndarray, The unscaled bounds of the data
+        bounds: ndarray, The bounds of the type of data you want to normalize
         
         Returns
         ---------
@@ -680,7 +682,7 @@ class GPBO_Driver:
     """
     # Class variables and attributes
     
-    def __init__(self, CaseStudyParameters, Simulator, exp_data, sim_data):
+    def __init__(self, CaseStudyParameters, Simulator, exp_data, sim_data, sse_sim_data):
         """
         Parameters
         ----------
@@ -696,7 +698,7 @@ class GPBO_Driver:
         self.exp_data = exp_data
         self.sim_data = sim_data
         
-    def gen_exp_data(self, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, num_x_data, gen_meth_x):
+    def gen_exp_data(self, num_x_data, gen_meth_x):
         """
         Generates experimental data in an instance of the Data class
         
@@ -713,9 +715,10 @@ class GPBO_Driver:
         --------
         exp_data: instance of a class filled in with experimental x and y data along with parameter bounds
         """
+        
         theta_true = self.Simulator.theta_true.reshape(1,-1)
-        exp_data = Data(theta_true, None, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, None, None, None, None, None)
-        exp_data.x_vals = vector_to_1D_array(self.create_param_data(num_x_data, exp_data.bounds_x, gen_meth_x))
+        exp_data = Data(theta_true, None, None, None, None, None, None)
+        exp_data.x_vals = vector_to_1D_array(self.create_param_data(num_x_data, self.Simulator.bounds_x, gen_meth_x))
         exp_data.y_vals = self.create_y_exp_data(exp_data)
         
         self.exp_data = exp_data
@@ -739,9 +742,11 @@ class GPBO_Driver:
         --------
         sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
         """
-        bounds_theta = self.exp_data.bounds_theta
-        bounds_x = self.exp_data.bounds_x
+        
         simulator = self.Simulator
+        theta_regress_idx = simulator.indecies_to_consider
+        bounds_theta = simulator.bounds_theta[:,theta_regress_idx]
+        bounds_x = simulator.bounds_x
         cs_params = self.CaseStudyParameters
         repeat_x = num_theta_data
         repeat_theta = num_x_data
@@ -758,8 +763,9 @@ class GPBO_Driver:
             repeat_theta = num_x_data**(self.exp_data.get_dim_x_vals())
      
         sim_theta_vals = vector_to_1D_array(self.create_param_data(num_theta_data, bounds_theta, gen_meth_theta))
-        sim_data = Data(None, None, bounds_theta[0], bounds_x[0], bounds_theta[1], bounds_x[1], None, None, None, None, None)
+        sim_data = Data(None, None, None, None, None, None, None)
         
+        #Is it ok to generate the type 1 d
         if "2" in method.method_name.name:
             sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis =0)
             sim_data.x_vals = np.vstack([x_data]*repeat_x) #sim_data.get_num_theta() #Faster way to do this?
