@@ -1,4 +1,5 @@
 import numpy as np
+import random
 # import math
 # from scipy.stats import norm
 # from scipy import integrate
@@ -184,6 +185,47 @@ class Simulator:
         sse = calc_sse(CaseStudyParameters, self, method, sim_data, exp_data)
 
         return sse
+    
+    #So SSE calculations will only work if you have the same x_data as your experimental data. This makes sense
+    #But how do we avoid the fact that X data can be generated with an LHS for the 3-Input GP and that that is used instead?
+    def sim_data_to_sse_sim_data(self, method, sim_data, exp_data):
+        """
+        Creates simulation data based on x, theta_vals, the GPBO method, and the case study
+
+        Parameters
+        ----------
+        method: class, fully defined methods class which determines which method will be used
+        sim_data: Class, Class containing at least the theta_vals for simulation
+        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+
+        Returns:
+        --------
+        sse: ndarray. Value of sse given state points x and theta_vals
+        """
+
+        #Calculate sse for sim data
+        len_theta = sim_data.get_num_theta()
+        len_x = exp_data.get_num_x_vals()
+        calc_y_fxn = self.calc_y_fxn
+        true_model_coefficients = self.theta_ref
+        indecies_to_consider = self.indecies_to_consider
+        obj = method.obj
+
+        #Make sse array equal length to the number of total unique thetas
+        sum_error_sq = []
+        #Define all y_sims
+        y_sim = sim_data.y_vals
+        #Iterates over evey combination of theta to find the SSE for each combination
+        
+        for i in range(0, len_theta, len_x):
+            sum_error_sq.append(sum((y_sim[i:i+len_x] - exp_data.y_vals)**2))#Scaler
+        
+        sum_error_sq = np.array(sum_error_sq)
+
+        if obj.value == 2:
+            sum_error_sq = np.log(sum_error_sq) #Scaler
+        
+        return sum_error_sq 
       
 class Method_name_enum(Enum):
     """
@@ -485,6 +527,39 @@ class Data:
         data = scaled_data*(upper_bound - lower_bound) + lower_bound
         
         return data
+    
+    def train_test_idx_split(self, CaseStudyParameters):
+        """
+        Splits data indecies into training and testing indecies
+
+        Parameters
+        ----------
+            CaseStudyParameters: class, class containing at least the seed and separation factor
+        Returns:
+            train_idx: ndarray, The training data indecies
+            test_idx: ndarray, The testing data indecies
+
+        """
+        sep_fact = CaseStudyParameters.sep_fact
+        shuffle_seed = CaseStudyParameters.seed
+        
+        #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
+        assert isinstance(sep_fact, (float, int))==True or torch.is_tensor(sep_fact)==True, "Separation factor must be a float or int"
+        assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
+        
+        len_theta = self.get_num_theta()
+        len_train_idc = int(len_theta*sep_fact)
+        all_idx = range(len_theta)
+
+        #Shuffles Random Data
+        if shuffle_seed is not None:
+            #Set seed to number specified by shuffle seed
+            np.random.seed(shuffle_seed)
+
+        train_idx = random.sample(all_idx, len_train_idc)
+        test_idx = list(set(all_idx) - set(train_idx))
+        
+        return train_idx, test_idx
 
 class GP_Emulator:
     """
@@ -541,22 +616,6 @@ class Type_1_GP_Emulator(GP_Emulator):
         # Constructor method
         super().__init__(CaseStudyParameters, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter)
     
-    def calc_best_error(self, method, CaseStudyParameters, sim_data, exp_data):
-        """
-        Calculates the best error of the model
-        
-        Parameters
-        ----------
-        method: class, fully defined methods class which determines which method will be used
-        CaseStudyParameters: class, class containing at least the true_model_coefficients
-        sim_data: Class, Class containing at least the theta_vals for simulation
-        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
-        
-        Returns
-        -------
-        best_error: float, the best error of the method
-        
-        """
         
     def eval_gp(self, param_set):
         """
@@ -762,22 +821,41 @@ class GPBO_Driver:
         if gen_meth_x.value == 2:
             repeat_theta = num_x_data**(self.exp_data.get_dim_x_vals())
      
+        #Generate all rows of simulation data
         sim_theta_vals = vector_to_1D_array(self.create_param_data(num_theta_data, bounds_theta, gen_meth_theta))
         sim_data = Data(None, None, None, None, None, None, None)
+        sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis =0)
+        sim_data.x_vals = np.vstack([x_data]*repeat_x) #sim_data.get_num_theta() #Faster way to do this?
+        sim_data.y_vals = simulator.create_sim_data(cs_params, sim_data)
+    
+
+#         sim_theta_vals = vector_to_1D_array(self.create_param_data(num_theta_data, bounds_theta, gen_meth_theta))
+#         sim_data = Data(None, None, None, None, None, None, None)
         
-        #Is it ok to generate the type 1 d
-        if "2" in method.method_name.name:
-            sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis =0)
-            sim_data.x_vals = np.vstack([x_data]*repeat_x) #sim_data.get_num_theta() #Faster way to do this?
-            sim_data.y_vals = simulator.create_sim_data(cs_params, sim_data)
-        else:
-            sim_data.theta_vals = sim_theta_vals
-            sim_data.x_vals = x_data #sim_data.get_num_theta() #Faster way to do this?
-            sim_data.y_vals = simulator.create_sse_sim_data(method, cs_params, sim_data, self.exp_data)     
+#         if "2" in method.method_name.name:
+#             sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis =0)
+#             sim_data.x_vals = np.vstack([x_data]*repeat_x) #sim_data.get_num_theta() #Faster way to do this?
+#             sim_data.y_vals = simulator.create_sim_data(cs_params, sim_data)
+#         else:
+#             sim_data.theta_vals = sim_theta_vals
+#             sim_data.x_vals = x_data #sim_data.get_num_theta() #Faster way to do this?
+#             sim_data.y_vals = simulator.create_sse_sim_data(method, cs_params, sim_data, self.exp_data)     
             
         self.sim_data = sim_data
         
-        return sim_data
+        #Is this acceptably written code or should I have another function with sse_sim_data as an output? Regardless, sim-data
+        #gets saved so I don't see a problem
+        if "2" in method.method_name.name: 
+            return sim_data
+        
+        else:
+            #Generate all rows of sse sim data. Used x_data from above as a filler (I think this will help later)
+            sim_sse_data = Data(sim_theta_vals, x_data, None, None, None, None, None)
+            sim_sse_data.y_vals = simulator.sim_data_to_sse_sim_data(method, sim_data, self.exp_data)
+            self.sim_sse_data = sim_sse_data
+            return sim_sse_data
+        
+#         return sim_data
         
         
     def create_param_data(self, n_points, bounds, gen_meth):
@@ -845,36 +923,29 @@ class GPBO_Driver:
         y_exp = calc_y_exp(CaseStudyParameters, Simulator, exp_data)   
         
         return y_exp
-            
-    def train_test_split(self, sim_data):
+    
+    #Where should I put this? Is there a better way of doing this also how should I ensure I only shuffle the sim data once? Also, how do I shuffle all 3 data objects at once in such a way that the placements aren't messed up?
+    def get_train_test_data(self, data_to_split, train_idx, test_idx):
         """
         Splits data into training and testing data
 
         Parameters
         ----------
-            sim_data: class, The simulated parameter space and y data
+            data_to_split: class, ndarray: The class containing the original data to generate training data from
+            train_idx: ndarray, The training data indecies
+            test_idx: ndarray, The testing data indecies
         Returns:
-            train_data: ndarray, The training data
-            test_data: ndarray, The testing data
+            train_data: ndarray, The training data indecies
+            test_data: ndarray, The testing data indecies
 
         """
-        sep_fact = self.CaseStudyParameters.sep_fact
-        seed = self.CaseStudyParameters.seed
+        shuffle_seed = self.CaseStudyParameters.seed
+        all_theta = data_to_split.theta_vals
+        all_x = data_to_split.x_vals
+        all_y = data_to_split.y_vals
         
-        #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
-        assert isinstance(sep_fact, (float, int))==True or torch.is_tensor(sep_fact)==True, "Separation factor must be a float or int"
-        assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
-        
-        theta_data = sim_data.theta_vals
-        x_data = sim_data.y_vals
-        y_data = sim_data.y_vals
-
-        #Shuffles Random Data
-        if shuffle_seed is not None:
-            #Set seed to number specified by shuffle seed
-            np.random.seed(shuffle_seed)
-
-        #How do I shuffle and split data given that my "data points" are not actually stored in arrays?
+        train_data = Data(all_theta[train_idx], all_x[train_idx], all_y[train_idx], None, None, None, None)
+        test_data = Data(all_theta[test_idx], all_x[test_idx], all_y[test_idx], None, None, None, None)
         
         return train_data, test_data
     
@@ -895,7 +966,20 @@ class GPBO_Driver:
         outputscale_final: ndarray (1x1), array of optimized outputscale parameter
         """
 
+    def calc_best_error(self, method):
+        """
+        Calculates the best error of the model
         
+        Parameters
+        ----------
+        method: class, fully defined methods class which determines which method will be used
+        
+        Returns
+        -------
+        best_error: float, the best error of the method
+        
+        """    
+    
     def optimize_acquisition_func(self, Method, param_set):
         """
         Optimizes the acquisition function
