@@ -15,7 +15,7 @@ from scipy.stats import qmc
 import pandas as pd
 from enum import Enum
 
-from .GPBO_Class_fxns import vector_to_1D_array, calc_muller, calc_cs1_polynomial, lhs_design, calc_y_exp, calc_y_sim, calc_sse
+from .GPBO_Class_fxns import vector_to_1D_array, calc_muller, calc_cs1_polynomial
 import itertools
 from itertools import combinations_with_replacement, combinations, permutations
 
@@ -45,7 +45,7 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, noise_mean, noise_std, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
+    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed):
         """
         Parameters
         ----------
@@ -75,20 +75,21 @@ class CaseStudyParameters:
         self.save_fig = save_fig
         self.save_data = save_data
         self.DateTime = DateTime
-        self.noise_mean = noise_mean
-        self.noise_std = noise_std
         self.seed = seed
+        #Set seed
+        if  self.seed != None:
+            assert isinstance(self.seed, int) == True, "Seed number must be an integer or None"
+            np.random.seed(self.seed)
 
 #I'm having trouble defining how to update num_x_data, num_theta_data and dim_x depending on the situation. Especially when adding new data or when using the meshgrid options
 class Simulator:
     """
     The base class for differet simulators. Defines a simulation
     """
-    def __init__(self, dim_x, indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, calc_y_fxn):
+    def __init__(self, indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, case_study_params, calc_y_fxn):
         """
         Parameters
         ----------
-        dim_x: int, The number of dimensions of x
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         theta_ref: ndarray, The array containing the true values of problem constants
         theta_names: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
@@ -96,32 +97,43 @@ class Simulator:
         bounds_x_l: list, lower bounds of x
         bounds_theta_u: list, upper bounds of theta
         bounds_x_u: list, upper bounds of x
+        noise_mean:float, int: The mean of the noise
+        noise_std: float, int: The standard deviation of the noise
+        case_study_params: instance of the CaseStudyParameters class
         calc_y_fxn: function, The function to calculate ysim data with
         """
         # Constructor method
-        self.dim_x = dim_x
+        self.dim_x = len(bounds_x_l)
         self.dim_theta = len(indecies_to_consider) #Length of theta is equivalent to the number of indecies to consider
         self.indecies_to_consider = indecies_to_consider
         self.theta_ref = theta_ref
         self.theta_names = theta_names
-        self.theta_true, self.theta_true_names = self.set_true_params()
+        self.theta_true, self.theta_true_names = self.__set_true_params()
         #How to acount for this in the doctring?
         self.bounds_theta = np.array([bounds_theta_l, bounds_theta_u])
         self.bounds_x = np.array([bounds_x_l, bounds_x_u])
+        self.noise_mean = noise_mean
+        self.noise_std = noise_std
+        self.case_study_params = case_study_params
         self.calc_y_fxn = calc_y_fxn
     
-    def set_num_theta_data(self, gen_meth):
+    def get_sim_num_theta_data(self, num_theta_data, gen_meth_theta):
         """
         Set the number of theta_data given gen_meth
-        """
-        if gen_meth.value == 1:
-            self.num_theta_data = self.num_theta_data
-        elif gen_meth.value == 2:
-            self.num_theta_data = self.num_theta_data**2
-        else:
-            raise ValueError("gen_meth.value must be 1 or 2!")            
         
-    def set_true_params(self):
+        Parameters
+        ----------
+        gen_meth_theta: Enum, Determines whether an LHS or grid sampling is used for theta params
+        """
+        if gen_meth_theta.value == 1:
+            num_theta_data = num_theta_data
+        elif gen_meth_theta.value == 2:
+            num_theta_data = num_theta_data**(self.dim_theta)
+        else:
+            raise ValueError("gen_meth.value must be 1 or 2!") 
+        return num_theta_data
+        
+    def __set_true_params(self):
         """
         Sets true parameter value array and the corresponding names based on parameter dictionary and indecies to consider
         
@@ -145,49 +157,239 @@ class Simulator:
         
         return true_params, true_param_names
     
-    def create_sim_data(self, CaseStudyParameters, sim_data):
+    def __grid_sampling(self, num_points, bounds):
         """
-        Creates simulation data based on x, theta_vals, the GPBO method, and the case study
+        Generates Grid sampled data
         
         Parameters
         ----------
-        method: class, fully defined methods class which determines which method will be used
-        CaseStudyParameters: class, class containing at least the true_model_coefficients
-        sim_data: Class, Class containing at least the theta_vals for simulation
-        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        num_points: int, number of points in LHS, should be greater than # of dimensions
+        bounds: ndarray, array containing upper and lower bounds of elements in LHS sample. Defaults of 0 and 1
         
         Returns:
-        --------
-        Ysim: ndarray. Value of y given state points x and theta_vals
+        ----------
+        grid_data: ndarray, (num_points)**bounds.shape[1] grid sample of data
+        
         """
-        #Calculate y_sim for sim data
-        y_sim = calc_y_sim(CaseStudyParameters, self, sim_data)
-            
-        return y_sim 
+        #Generate mesh_grid data for theta_set in 2D
+        #Define linspace for theta
+        params = np.linspace(0,1, num_points)
+        #Define dimensions of parameter
+        dimensions = bounds.shape[1]
+        #Generate the equivalent of all meshgrid points
+        df = pd.DataFrame(list(itertools.product(params, repeat=dimensions)))
+        df2 = df.drop_duplicates()
+        scaled_data = df2.to_numpy()
+        #Normalize to bounds 
+        lower_bound = bounds[0]
+        upper_bound = bounds[1]
+        grid_data = scaled_data*(upper_bound - lower_bound) + lower_bound 
+        return grid_data
     
-    def create_sse_sim_data(self, method, CaseStudyParameters, sim_data, exp_data):
+    def __lhs_sampling(self, num_points, bounds, seed):
         """
-        Creates simulation data based on x, theta_vals, the GPBO method, and the case study
+        Design LHS Samples
 
         Parameters
         ----------
-        method: class, fully defined methods class which determines which method will be used
-        CaseStudyParameters: class, class containing at least the true_model_coefficients
-        sim_data: Class, Class containing at least the theta_vals for simulation
-        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+            num_points: int, number of points in LHS, should be greater than # of dimensions
+            bounds: ndarray, array containing upper and lower bounds of elements in LHS sample. Defaults of 0 and 1
+            seed: int, seed of random generation
 
+        Returns
+        -------
+            LHS: ndarray, array of LHS sampling points with length (num_points) 
+        """
+        dimensions = bounds.shape[1]
+        sampler = qmc.LatinHypercube(d=dimensions, seed = seed)
+        lhs_data = sampler.random(n=num_points)
+
+        if bounds is not None:
+            lhs_data = qmc.scale(lhs_data, bounds[0], bounds[1]) #Again, using this because I like that bounds can be different shapes
+
+        return lhs_data
+    
+    def __create_param_data(self, num_points, bounds, gen_meth):
+        """
+        Generates data based off of bounds, and an LHS generation number
+        
+        Parameters
+        ----------
+        n_points: int, number of data to generate
+        bounds: array, array of parameter bounds
+        gen_meth: class (Gen_meth_enum), ("LHS", "Meshgrid"). Determines whether x data will be generated with an LHS or meshgrid
+        
         Returns:
         --------
-        sse: ndarray. Value of sse given state points x and theta_vals
+        x_data: ndarray, a list of x data
+        
+        Notes: Meshgrid generated data will output n_points in each dimension, LHS generates n_points of data
+        """        
+        rand_seed = self.case_study_params.seed
+        dimensions = bounds.shape[1] #Want to do it this way to make it general for either x or theta parameters
+        
+        if gen_meth.value == 2:
+            data = self.__grid_sampling(num_points, bounds) 
+            
+        elif gen_meth.value == 1:
+            #Generate LHS sample
+            data =  self.__lhs_sampling(num_points, bounds, rand_seed)
+        
+        else:
+            raise ValueError("gen_meth.value must be 1 or 2!")
+        
+        return data
+    
+    def gen_y_data(self, data, noise_mean, noise_std):
         """
+        Creates y_data (training data) based on the function theta_1*x + theta_2*x**2 +x**3
+        Parameters
+        ----------
+            CaseStudyParameters: class, class containing at least the theta_true, x_data, noise_mean, noise_std, and seed
+            Simulator: Class, class containing at least calc_y_fxn
+            sim_data: Class, Class containing at least the theta_vals for simulation
 
-        #Calculate sse for sim data
-        sse = calc_sse(CaseStudyParameters, self, method, sim_data, exp_data)
+        Returns
+        -------
+            y_data: ndarray, The simulated y training data
+        """        
+        #Define an array to store y values in
+        y_data = []
+        len_points = data.get_num_theta()
+        calc_y_fxn = self.calc_y_fxn
+        true_model_coefficients = self.theta_ref
+        indecies_to_consider = self.indecies_to_consider
+        #Loop over all theta values
+        for i in range(len_points):
+            #Create model coefficient from true space substituting in the values of param_space at the correct indecies
+            model_coefficients = true_model_coefficients.copy()
+            #Replace coefficients a specified indecies with their theta_val counterparts
+            #Note: I can't figure this out. Please help
+#             print(model_coefficients, type(model_coefficients), data.theta_vals[i], type(data.theta_vals[i]), indecies_to_consider)
+            model_coefficients[indecies_to_consider] = data.theta_vals[i]
+#             print(model_coefficients, type(model_coefficients), data.theta_vals[i], type(data.theta_vals[i]), indecies_to_consider)
+
+            #Loop over x values and calculate y
+    #         for j in range(len_x):
+            #Create model coefficients
+            y_data.append(calc_y_fxn(model_coefficients, data.x_vals[i])) 
+
+        #Convert list to array and flatten array
+        y_data = np.array(y_data).flatten()
+
+        #Creates noise values with a certain stdev and mean from a normal distribution
+        noise = np.random.normal(size=len(y_data), loc = noise_mean, scale = noise_std)
+
+        y_data = y_data + noise
+
+        return y_data
+    
+    def gen_sse_data(self, method, sim_data, exp_data):
+        """
+        Creates sse data directly for the 2 input GP function
+
+        Parameters
+        ----------
+            method: class, fully defined methods class which determines which method will be used
+            sim_data: Class, Class containing at least the theta_vals for simulation
+            exp_data: Class, Class containing at least the x_data and y_data for the experimental data     
+
+        Returns:
+            sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
+        """   
+        len_theta = sim_data.get_num_theta() #Have to do it this way to be able to generalize between all the theta values and just 1 valu
+        len_x = sim_data.get_num_x_vals()
+        calc_y_fxn = self.calc_y_fxn
+        true_model_coefficients = self.theta_ref
+        indecies_to_consider = self.indecies_to_consider
+        obj = method.obj
+
+        #How could I use calc_y_sim here rather than writing the same lines of code?
+        sse = np.zeros(len_theta)
+        #Iterates over evey combination of theta to find the SSE for each combination
+        for i in range(len_theta):
+            #Create model coefficient from true space substituting in the values of param_space at the correct indecies
+            model_coefficients = true_model_coefficients
+            model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
+            y_sim = np.zeros(len_x)
+            for j in range(len_x):
+                #Create model coefficients
+                y_sim[j] = calc_y_fxn(model_coefficients, sim_data.x_vals[j])
+
+            sse[i] = sum((y_sim - exp_data.y_vals)**2) #Scaler
+
+        if obj.value == 2:
+            sse = np.log(sum_error_sq) #Scaler
 
         return sse
+       
+    def gen_exp_data(self, num_x_data, gen_meth_x):
+        """
+        Generates experimental data in an instance of the Data class
+        
+        Parameters
+        ----------
+        bounds_theta_l: list, lower bounds of theta
+        bounds_x_l: list, lower bounds of x
+        bounds_theta_u: list, upper bounds of theta
+        bounds_x_u: list, upper bounds of x
+        num_x_data: int, number of experiments
+        gen_meth_x: bool: Whether to generate X data with LHS or grid method
+        
+        Returns:
+        --------
+        exp_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        """
+        x_vals = vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x))
+        theta_true = self.theta_true.reshape(1,-1)
+        theta_true_repeated = np.vstack([theta_true]*len(x_vals))
+        exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None)
+                             
+        exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std)
+        
+        return exp_data
     
-    #So SSE calculations will only work if you have the same x_data as your experimental data. This makes sense
-    #But how do we avoid the fact that X data can be generated with an LHS for the 3-Input GP and that that is used instead?
+    def gen_sim_data(self, method, num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, exp_data):
+        """
+        Generates experimental data in an instance of the Data class
+        
+        Parameters
+        ----------
+        num_theta_data: int, number of theta values
+        gen_meth_theta: bool: Whether to generate theta data with LHS or grid method
+        num_x_data: int, number of experiments
+        gen_meth_x: bool: Whether to generate X data with LHS or grid method
+        exp_data: instance of Data class containing parameter, x, and y experimental data
+        
+        Returns:
+        --------
+        sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        """
+        
+        theta_regress_idx = self.indecies_to_consider
+        bounds_theta = self.bounds_theta[:,theta_regress_idx]
+        bounds_x = self.bounds_x
+        
+        x_data = vector_to_1D_array(self.__create_param_data(num_x_data, bounds_x, gen_meth_x))
+            
+        #Infer how many times to repeat theta and x values given whether they were generated by LHS or a meshgrid
+        repeat_x = self.get_sim_num_theta_data(num_theta_data, gen_meth_theta)
+        repeat_theta = len(x_data)
+        
+        if gen_meth_theta.value == 2:
+            repeat_x = num_theta_data**(self.dim_theta)
+        if gen_meth_x.value == 2:
+            repeat_theta = num_x_data**(self.dim_x)
+     
+        #Generate all rows of simulation data
+        sim_theta_vals = vector_to_1D_array(self.__create_param_data(num_theta_data, bounds_theta, gen_meth_theta))
+        sim_data = Data(None, None, None, None, None, None, None)
+        sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis =0)
+        sim_data.x_vals = np.vstack([x_data]*repeat_x) #sim_data.get_num_theta() #Faster way to do this?
+        sim_data.y_vals = self.gen_y_data(sim_data, 0, 0)
+        
+        return sim_data
+    
     def sim_data_to_sse_sim_data(self, method, sim_data, exp_data):
         """
         Creates simulation data based on x, theta_vals, the GPBO method, and the case study
@@ -216,7 +418,7 @@ class Simulator:
         #Define all y_sims
         y_sim = sim_data.y_vals
         #Iterates over evey combination of theta to find the SSE for each combination
-        
+        #Note to do this Xexp and X must use the same values
         for i in range(0, len_theta, len_x):
             sum_error_sq.append(sum((y_sim[i:i+len_x] - exp_data.y_vals)**2))#Scaler
         
@@ -224,8 +426,12 @@ class Simulator:
 
         if obj.value == 2:
             sum_error_sq = np.log(sum_error_sq) #Scaler
+            
+        sim_sse_data = Data(sim_data.theta_vals, exp_data.x_vals, None, None, None, None, None)
+        sim_sse_data.y_vals = sum_error_sq
         
-        return sum_error_sq 
+        return sim_sse_data 
+ 
       
 class Method_name_enum(Enum):
     """
