@@ -283,45 +283,6 @@ class Simulator:
         y_data = y_data + noise
 
         return y_data
-    
-    def gen_sse_data(self, method, sim_data, exp_data):
-        """
-        Creates sse data directly for the 2 input GP function
-
-        Parameters
-        ----------
-            method: class, fully defined methods class which determines which method will be used
-            sim_data: Class, Class containing at least the theta_vals for simulation
-            exp_data: Class, Class containing at least the x_data and y_data for the experimental data     
-
-        Returns:
-            sum_error_sq: ndarray, The SSE or ln(SSE) values that the GP will be trained on
-        """   
-        len_theta = sim_data.get_num_theta() #Have to do it this way to be able to generalize between all the theta values and just 1 valu
-        len_x = sim_data.get_num_x_vals()
-        calc_y_fxn = self.calc_y_fxn
-        true_model_coefficients = self.theta_ref
-        indecies_to_consider = self.indecies_to_consider
-        obj = method.obj
-
-        #How could I use calc_y_sim here rather than writing the same lines of code?
-        sse = np.zeros(len_theta)
-        #Iterates over evey combination of theta to find the SSE for each combination
-        for i in range(len_theta):
-            #Create model coefficient from true space substituting in the values of param_space at the correct indecies
-            model_coefficients = true_model_coefficients
-            model_coefficients[indecies_to_consider] = sim_data.theta_vals[i]
-            y_sim = np.zeros(len_x)
-            for j in range(len_x):
-                #Create model coefficients
-                y_sim[j] = calc_y_fxn(model_coefficients, sim_data.x_vals[j])
-
-            sse[i] = sum((y_sim - exp_data.y_vals)**2) #Scaler
-
-        if obj.value == 2:
-            sse = np.log(sum_error_sq) #Scaler
-
-        return sse
        
     def gen_exp_data(self, num_x_data, gen_meth_x):
         """
@@ -349,7 +310,7 @@ class Simulator:
         
         return exp_data
     
-    def gen_sim_data(self, method, num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, exp_data):
+    def gen_sim_data(self, method, num_theta_data, num_x_data, gen_meth_theta, gen_meth_x):
         """
         Generates experimental data in an instance of the Data class
         
@@ -359,7 +320,6 @@ class Simulator:
         gen_meth_theta: bool: Whether to generate theta data with LHS or grid method
         num_x_data: int, number of experiments
         gen_meth_x: bool: Whether to generate X data with LHS or grid method
-        exp_data: instance of Data class containing parameter, x, and y experimental data
         
         Returns:
         --------
@@ -411,7 +371,6 @@ class Simulator:
         calc_y_fxn = self.calc_y_fxn
         true_model_coefficients = self.theta_ref
         indecies_to_consider = self.indecies_to_consider
-        obj = method.obj
 
         #Make sse array equal length to the number of total unique thetas
         sum_error_sq = []
@@ -424,10 +383,15 @@ class Simulator:
         
         sum_error_sq = np.array(sum_error_sq)
 
-        if obj.value == 2:
+        #objective function only explicitly log if using 1B
+        if method.method_name.name == "B1":
             sum_error_sq = np.log(sum_error_sq) #Scaler
-            
-        sim_sse_data = Data(sim_data.theta_vals, exp_data.x_vals, None, None, None, None, None)
+        
+        #For this dataset does it make more sense to have all theta and x values or just the unique thetas and x values?
+        unique_indexes = np.unique(sim_data.theta_vals, axis = 0, return_index=True)[1]
+        unique_theta_vals = np.array([sim_data.theta_vals[index] for index in sorted(unique_indexes)])
+#         sim_sse_data = Data(sim_data.theta_vals, exp_data.x_vals, None, None, None, None, None) #For all theta and x
+        sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None)
         sim_sse_data.y_vals = sum_error_sq
         
         return sim_sse_data 
