@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import qmc
 import pandas as pd
 
+def vector_to_1D_array(array):
     """
     Turns arrays that are shape (n,) into (n, 1) arrays
     
