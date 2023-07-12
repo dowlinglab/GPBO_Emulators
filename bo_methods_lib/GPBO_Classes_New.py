@@ -11,6 +11,8 @@ import random
 # import os
 # import time
 # import Tasmanian
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
 from scipy.stats import qmc
 import pandas as pd
 from enum import Enum
@@ -31,6 +33,121 @@ from itertools import combinations_with_replacement, combinations, permutations
 # from .CS2_bo_plotters import value_plotter, plot_xy, plot_Theta, plot_Theta_min, plot_obj, plot_obj_abs_min, plot_3GP_performance, plot_sep_fact_min, save_fig, save_csv, path_name, plot_EI_abs_max, save_misc_data
 # from CS2_bo_plotters import plot_org_train
 
+class Method_name_enum(Enum):
+    """
+    The base class for any GPBO Method names
+    
+    """
+    A1 = 1
+    B1 = 2
+    A2 = 3
+    B2 = 4
+    C2 = 5
+    #Note use Method_name_enum.enum.name to call "A1"
+
+class Kernel_enum(Enum):
+    """
+    Base class for kernel choices
+    """
+    MAT_52 = 1
+    MAT_32 = 2
+    RBF = 3
+    
+class Gen_meth_enum(Enum):
+    """
+    The base class for any GPBO Method names
+    
+    """
+    LHS = 1
+    MESHGRID = 2
+    
+class Obj_enum(Enum):
+    """
+    The base class for any GPBO Method names
+    
+    """
+    OBJ = 1
+    LN_OBJ = 2
+    
+class CS_name_enum(Enum):
+    """
+    The base class for any GPBO case study names
+    
+    """
+    CS1 = 1
+    CS2 = 2
+
+class GPBO_Methods:
+    """
+    The base class for any GPBO Method
+    Parameters
+    
+    Methods
+    --------------
+    __init__
+    
+    """
+    # Class variables and attributes
+    
+    def __init__(self, method_name):
+        """
+        Parameters
+        ----------
+        method_name, Class, The name associated with the method being tested. Enum type
+        emulator: bool, Determines if GP will model the function or the function error
+        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
+        sparse_grid: bool, Determines whether a sparse grid or approximation is used for the GP emulator
+        """
+        # Constructor method
+        self.method_name = method_name
+        self.emulator = self.get_emulator()
+        self.obj = self.get_obj()
+        self.sparse_grid = self.get_sparse_grid()
+        
+    def get_emulator(self):
+        """
+        Function to get emulator status based on method name
+        
+        Returns:
+        --------
+        emulator, bool: Status of whether the GP emulates the function directly
+        """
+        
+        if "2" in self.method_name.name:
+            emulator = True
+        else:
+            emulator = False
+        
+        return emulator
+    
+    def get_obj(self):
+        """
+        Function to get objective function status based on method name
+        
+        Returns:
+        --------
+        obj_enum, class instance: Determines whether log scaling is used
+        """
+        if "B" in self.method_name.name:
+            obj = Obj_enum(2)
+        else:
+            obj = Obj_enum(1)
+        return obj
+    
+    def get_sparse_grid(self):
+        """
+        Function to get sparse grid status based on method name
+        
+        Returns:
+        --------
+        sparse_grid: bool, Determines whether a sparse grid is used to evaluate the EI integral
+        """
+        if "C" in self.method_name.name:
+            sparse_grid = True
+        else:
+            sparse_grid = False
+        
+        return sparse_grid
 
 #Question: Which parameters in Simulator vs CaseStudyParameters?
 class CaseStudyParameters:
@@ -395,123 +512,6 @@ class Simulator:
         sim_sse_data.y_vals = sum_error_sq
         
         return sim_sse_data 
- 
-      
-class Method_name_enum(Enum):
-    """
-    The base class for any GPBO Method names
-    
-    """
-    A1 = 1
-    B1 = 2
-    A2 = 3
-    B2 = 4
-    C2 = 5
-    #Note use Method_name_enum.enum.name to call "A1"
-
-class Kernel_enum(Enum):
-    """
-    Base class for kernel choices
-    """
-    MAT_52 = 1
-    MAT_32 = 2
-    RBF = 3
-    
-class Gen_meth_enum(Enum):
-    """
-    The base class for any GPBO Method names
-    
-    """
-    LHS = 1
-    MESHGRID = 2
-    
-class Obj_enum(Enum):
-    """
-    The base class for any GPBO Method names
-    
-    """
-    OBJ = 1
-    LN_OBJ = 2
-    
-class CS_name_enum(Enum):
-    """
-    The base class for any GPBO case study names
-    
-    """
-    CS1 = 1
-    CS2 = 2
-
-class GPBO_Methods:
-    """
-    The base class for any GPBO Method
-    Parameters
-    
-    Methods
-    --------------
-    __init__
-    
-    """
-    # Class variables and attributes
-    
-    def __init__(self, method_name):
-        """
-        Parameters
-        ----------
-        method_name, Class, The name associated with the method being tested. Enum type
-        emulator: bool, Determines if GP will model the function or the function error
-        obj: str, Must be either obj or LN_obj. Determines whether objective fxn is sse or ln(sse)
-        sparse_grid: bool, Determines whether a sparse grid or approximation is used for the GP emulator
-        """
-        # Constructor method
-        self.method_name = method_name
-        self.emulator = self.get_emulator()
-        self.obj = self.get_obj()
-        self.sparse_grid = self.get_sparse_grid()
-        
-    def get_emulator(self):
-        """
-        Function to get emulator status based on method name
-        
-        Returns:
-        --------
-        emulator, bool: Status of whether the GP emulates the function directly
-        """
-        
-        if "2" in self.method_name.name:
-            emulator = True
-        else:
-            emulator = False
-        
-        return emulator
-    
-    def get_obj(self):
-        """
-        Function to get objective function status based on method name
-        
-        Returns:
-        --------
-        obj_enum, class instance: Determines whether log scaling is used
-        """
-        if "B" in self.method_name.name:
-            obj = Obj_enum(2)
-        else:
-            obj = Obj_enum(1)
-        return obj
-    
-    def get_sparse_grid(self):
-        """
-        Function to get sparse grid status based on method name
-        
-        Returns:
-        --------
-        sparse_grid: bool, Determines whether a sparse grid is used to evaluate the EI integral
-        """
-        if "C" in self.method_name.name:
-            sparse_grid = True
-        else:
-            sparse_grid = False
-        
-        return sparse_grid
         
 class Data:
     """
@@ -653,8 +653,52 @@ class Data:
         
         return dim_gp_data
     
-    #What is the syntax to allow data to be any self parameter?
-    def normalize(self, data, bounds):
+    def norm_feature_data(self, simulator):
+        """
+        Normalizes all feature data. Only call this method on unscaled data
+        
+        Parameters
+        ----------
+        simulator: instance of Simulator class, containing at least X and theta value bounds
+        
+        Returns
+        -------
+        scaled_data: Instance of Data class containing all data in original class with scaled feature values
+        """
+        indecies_to_consider = simulator.indecies_to_consider
+        
+        bounds_p = simulator.bounds_theta[:,indecies_to_consider]
+        bounds_x = simulator.bounds_x
+
+        scaled_theta_vals = self.__normalize(self.theta_vals, bounds_p)
+        scaled_x_vals = self.__normalize(self.x_vals, bounds_x)
+        
+        scaled_data = Data(scaled_theta_vals, scaled_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.ei) 
+        
+        return scaled_data
+    
+    def unnorm_feature_data(self, simulator):
+        """
+        Normalizes all feature data and stores it in a new instance of the data class. Only call this method on scaled data
+        
+        Parameters
+        ----------
+        simulator: instance of Simulator class, containing at least X and theta value bounds
+        """
+        
+        indecies_to_consider = simulator.indecies_to_consider
+        
+        bounds_p = simulator.bounds_theta[:,indecies_to_consider]
+        bounds_x = simulator.bounds_x
+
+        reg_theta_vals = self.__unnormalize(self.theta_vals, bounds_p)
+        reg_x_vals = self.__unnormalize(self.x_vals, bounds_x)
+        
+        unscaled_data = Data(reg_theta_vals, reg_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.ei) 
+        
+        return unscaled_data
+    
+    def __normalize(self, data, bounds):
         """
         Normalizes data between 0 and 1
 
@@ -677,7 +721,7 @@ class Data:
         
         return scaled_data
     
-    def unnormalize(self, scaled_data, bounds):
+    def __unnormalize(self, scaled_data, bounds):
         """
         Normalizes data back to original values 
         
@@ -704,30 +748,34 @@ class Data:
 
         Parameters
         ----------
-            CaseStudyParameters: class, class containing at least the seed and separation factor
+            CaseStudyParameters: class, class containing at least the separation factor
         Returns:
+        --------
             train_idx: ndarray, The training data indecies
             test_idx: ndarray, The testing data indecies
 
         """
         sep_fact = CaseStudyParameters.sep_fact
         shuffle_seed = CaseStudyParameters.seed
-        
+                
         #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
         assert isinstance(sep_fact, (float, int))==True or torch.is_tensor(sep_fact)==True, "Separation factor must be a float or int"
         assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
         
         len_theta = self.get_num_theta()
         len_train_idc = int(len_theta*sep_fact)
-        all_idx = range(len_theta)
+        all_idx = np.arange(0,len_theta)
 
-        #Shuffles Random Data
+        #Shuffles Random Data. Will calling this once in case study parameters mean I don't need this? (No. It doesn't)
         if shuffle_seed is not None:
             #Set seed to number specified by shuffle seed
-            np.random.seed(shuffle_seed)
-
-        train_idx = random.sample(all_idx, len_train_idc)
-        test_idx = list(set(all_idx) - set(train_idx))
+            random.seed(shuffle_seed)
+            print(shuffle_seed)
+            
+        #Set train test indecies
+        random.shuffle(all_idx)
+        train_idx = all_idx[:len_train_idc]
+        test_idx = all_idx[len_train_idc:]
         
         return train_idx, test_idx
 
@@ -743,25 +791,116 @@ class GP_Emulator:
     """
     # Class variables and attributes
     
-    def __init__(self, CaseStudyParameters, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter):
+    def __init__(self, CaseStudyParameters, kernel, lenscl, outputscl, retrain_GP):
         """
         Parameters
         ----------
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         kernel: enum class instance, Determines which GP Kerenel to use
-        set_lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         outputscl: float or None, Determines value of outputscale
         retrain_GP: int, number of times to restart GP training
-        GP_train_iter: int, number of training iterations to run. Default is 300
         
         """
         # Constructor method
         self.CaseStudyParameters = CaseStudyParameters
         self.kernel = kernel
-        self.set_lenscl = set_lenscl
+        self.lenscl = lenscl
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
-        self.GP_train_iter = GP_train_iter
+        
+    def get_train_test_data(sim_data, train_idx, test_idx):
+        """
+        finds the simulation data to use as training data
+        Parameters
+        ----------
+            sim_data: Instance of data class. Contains all theta, x, and y data
+            train_idx: ndarray, The training data indecies
+            test_idx: ndarray, The testing data indecies
+        Returns
+        -------
+            train_data: Instance of data class. Contains all theta, x, and y data for training data
+            test_data: Instance of data class. Contains all theta, x, and y data for testing data
+        """
+        #Do I need to add a method to this?
+        train_data = Data(sim_data.theta_vals[train_idx], sim_data.x_vals[train_idx], sim_data.y_vals[train_idx], None, None, None, None)
+        test_data = Data(sim_data.theta_vals[test_idx], sim_data.x_vals[test_idx], sim_data.y_vals[test_idx], None, None, None, None)
+        
+        return train_data, test_data
+        
+    def __set_kernel(self, simulator):
+        """
+        Sets kernel of the model
+        
+        Parameters
+        ----------
+        simulator: instance of Simulator class containinf at least the noise stdev
+        
+        """
+        kern = self.kernel
+        noise_level = simulator.noise_std**2
+        
+        #Set noise kernel
+        noise_kern = WhiteKernel(noise_level=noise_level, noise_level_bounds= "fixed") #bounds = "fixed"
+    
+        if kern.value == 3: #RBF
+            kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))*RBF(length_scale_bounds=(1e-2, 1e2)) + noise_kern 
+        elif kern.value == 2: #Matern 3/2
+            kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))*Matern(length_scale_bounds=(1e-05, 1e7), nu=1.5) + noise_kern
+        else:
+            kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-5,10))*Matern(length_scale_bounds=(1e-05, 1e7), nu=2.5) + noise_kern 
+            
+        return kernel
+    
+    def __set_lenscl(self, kernel):
+        """
+        Set the lengthscale of the model. Need to have training data before 
+        
+        Parameters
+        ----------
+        kernel: The kernel of the model defined by __set_kernel 
+        
+        Returns
+        -------
+        kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
+        """
+        train_data_num = self.train_data.get_dim_theta()
+        lenscl = self.set_lenscl
+        #If setting lengthscale, ensure lengthscale values are fixed, otherwise initialize them at 1
+        if lenscl != None:
+            lengthscale_val = np.ones(train_data_num)*lenscl
+            kernel.k1.k2.length_scale_bounds = "fixed"
+        else:
+            lengthscale_val = np.ones(train_data_num)
+
+        #Set model lengthscale
+        kernel.k1.k2.length_scale = lengthscale_val
+        
+        return kernel
+    
+    def __set_outputscl(self, kernel):
+        """
+        Set the outputscale of the model
+        
+        Parameters
+        ----------
+        kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
+        
+        Returns
+        -------
+        kernel: The kernel of the model defined by __set_kernel with the outputscale bounds set
+        """
+        outputscl = self.outputscl
+        #Set outputscl kernel to be optimized if necessary
+        if outputscl != None:
+            kernel.k1.k1.constant_value == outputscl
+            kernel.k1.k1.constant_value_bounds = "fixed"
+            
+        return kernel
+    
+    
+
+    
         
 #https://www.geeksforgeeks.org/inheritance-and-composition-in-python/
 #AD: Use composition instead of inheritance here, pass an instance of CaseStudyParameters to the init function
