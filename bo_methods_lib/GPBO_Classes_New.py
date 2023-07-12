@@ -181,6 +181,14 @@ class CaseStudyParameters:
         seed: int or None, Determines seed for randomizations. None if seed is random
         
         """
+        #Assert statements
+        assert isinstance(cs_name, (Enum, str)) == True, "cs_name must be a string or Enum" #Will figure this one out later
+        assert all(isinstance(var, (float,int)) for var in [sep_fact,ep0]) == True, "sep_fact and ep0 must be float or int"
+        assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
+        assert all(isinstance(var, (bool)) for var in [normalize, eval_all_pairs, save_fig, save_data]) == True, "normalize, eval_all_pairs, save_fig, and save_data must be bool"
+        assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be int"
+        assert isinstance(DateTime, (str)) == True or DateTime == None, "DateTime must be str or None"
+        
         # Constructor method
         self.cs_name = cs_name
         self.ep0 = ep0
@@ -196,7 +204,7 @@ class CaseStudyParameters:
         #Set seed
         if  self.seed != None:
             assert isinstance(self.seed, int) == True, "Seed number must be an integer or None"
-            np.random.seed(self.seed)
+            random.seed(self.seed)
 
 #I'm having trouble defining how to update num_x_data, num_theta_data and dim_x depending on the situation. Especially when adding new data or when using the meshgrid options
 class Simulator:
@@ -209,7 +217,7 @@ class Simulator:
         ----------
         indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
         theta_ref: ndarray, The array containing the true values of problem constants
-        theta_names: dictionary, dictionary of names of each parameter that will be plotted named by indecie w.r.t Theta_True
+        theta_names: list, list of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         bounds_theta_l: list, lower bounds of theta
         bounds_x_l: list, lower bounds of x
         bounds_theta_u: list, upper bounds of theta
@@ -219,6 +227,13 @@ class Simulator:
         case_study_params: instance of the CaseStudyParameters class
         calc_y_fxn: function, The function to calculate ysim data with
         """
+        
+        assert all(isinstance(var,(float,int)) for var in [noise_std, noise_mean]) == True, "noise_mean and noise_std must be int or float"
+        list_vars = [indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
+        assert all(isinstance(var,(list,np.ndarray)) for var in list_vars) == True, "indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
+        assert all(0 <= idx <= len(theta_ref)-1 for idx in indecies_to_consider)==True, "indecies to consider must be in range of theta_ref"
+        #How to write assert statements for case_study_params and calc_y_fxn
+        
         # Constructor method
         self.dim_x = len(bounds_x_l)
         self.dim_theta = len(indecies_to_consider) #Length of theta is equivalent to the number of indecies to consider
@@ -266,8 +281,6 @@ class Simulator:
         theta_ref = self.theta_ref
         theta_names = self.theta_names
         indecies_to_consider = self.indecies_to_consider
-        
-        assert all(0 <= idx <= len(theta_ref)-1 for idx in indecies_to_consider)==True, "indecies to consider must be in range of theta_ref"
         
         true_params = theta_ref[indecies_to_consider]
         true_param_names = [theta_names[idx] for idx in indecies_to_consider]
@@ -537,6 +550,8 @@ class Data:
         sse: ndarray, sum of squared error values associated with theta_vals and x_vals
         ei: ndarray, expected improvement values associated with theta_vals and x_vals
         """
+        list_vars = [theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, ei]
+        assert all(isinstance(var, np.ndarray) or var is None for var in list_vars), "theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, and ei must be list, np.ndarray, or None"
         # Constructor method
         self.theta_vals = theta_vals
         self.x_vals = x_vals
@@ -757,11 +772,7 @@ class Data:
         """
         sep_fact = CaseStudyParameters.sep_fact
         shuffle_seed = CaseStudyParameters.seed
-                
-        #Assert statements check that the types defined in the doctring are satisfied and sep_fact is between 0 and 1 
-        assert isinstance(sep_fact, (float, int))==True or torch.is_tensor(sep_fact)==True, "Separation factor must be a float or int"
-        assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
-        
+
         len_theta = self.get_num_theta()
         len_train_idc = int(len_theta*sep_fact)
         all_idx = np.arange(0,len_theta)
@@ -802,12 +813,18 @@ class GP_Emulator:
         retrain_GP: int, number of times to restart GP training
         
         """
+        #Assert statements
+        assert all(isinstance(var, float) or var is None for var in [lenscl, outputscl]) == True, "lenscl and outputscl must be float or None"
+        assert isinstance(retrain_GP, int) == True, "retrain_GP must be int"
+        assert isinstance(kernel, Enum) == True, "kernel must be type Enum"
+        
         # Constructor method
         self.CaseStudyParameters = CaseStudyParameters
         self.kernel = kernel
         self.lenscl = lenscl
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
+        
         
     def get_train_test_data(sim_data, train_idx, test_idx):
         """
@@ -898,10 +915,6 @@ class GP_Emulator:
             kernel.k1.k1.constant_value_bounds = "fixed"
             
         return kernel
-    
-    
-
-    
         
 #https://www.geeksforgeeks.org/inheritance-and-composition-in-python/
 #AD: Use composition instead of inheritance here, pass an instance of CaseStudyParameters to the init function
