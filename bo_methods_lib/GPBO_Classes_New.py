@@ -852,26 +852,27 @@ class GP_Emulator:
             
         return kernel
     
-    def __set_lenscl(self, kernel):
+    def __set_lenscl(self, kernel, method):
         """
         Set the lengthscale of the model. Need to have training data before 
         
         Parameters
         ----------
-        kernel: The kernel of the model defined by __set_kernel 
+        kernel: The kernel of the model defined by __set_kernel
+        method: Instance of Method class.
         
         Returns
         -------
         kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
         """
-        train_data_num = self.train_data.get_dim_theta()
+        train_data_dim = self.train_data.get_dim_gp_data(method)
         lenscl = self.set_lenscl
         #If setting lengthscale, ensure lengthscale values are fixed, otherwise initialize them at 1
         if lenscl != None:
-            lengthscale_val = np.ones(train_data_num)*lenscl
+            lengthscale_val = np.ones(train_data_dim)*lenscl
             kernel.k1.k2.length_scale_bounds = "fixed"
         else:
-            lengthscale_val = np.ones(train_data_num)
+            lengthscale_val = np.ones(train_data_dim)
 
         #Set model lengthscale
         kernel.k1.k2.length_scale = lengthscale_val
