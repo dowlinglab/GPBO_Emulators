@@ -787,13 +787,13 @@ class Data:
         
         return data
     
-    def train_test_idx_split(self, CaseStudyParameters):
+    def train_test_idx_split(self, cs_params):
         """
         Splits data indecies into training and testing indecies
 
         Parameters
         ----------
-            CaseStudyParameters: class, class containing at least the separation factor
+            cs_params: class, class containing at least the separation factor and seed
         Returns:
         --------
             train_idx: ndarray, The training data indecies
@@ -801,8 +801,8 @@ class Data:
 
         """
         #Define sep_fact and shuffle_seed
-        sep_fact = CaseStudyParameters.sep_fact
-        shuffle_seed = CaseStudyParameters.seed
+        sep_fact = cs_params.sep_fact
+        shuffle_seed = cs_params.seed
 
         #Find number of thetas and calculate length of training data
         len_theta = self.get_num_theta()
@@ -834,48 +834,35 @@ class GP_Emulator:
     """
     # Class variables and attributes
     
-    def __init__(self, CaseStudyParameters, kernel, lenscl, outputscl, retrain_GP):
+    def __init__(self, gp_data, kernel, lenscl, outputscl, retrain_GP, seed):
         """
         Parameters
         ----------
-        CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         kernel: enum class instance, Determines which GP Kerenel to use
         lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         outputscl: float or None, Determines value of outputscale
         retrain_GP: int, number of times to restart GP training
+        seed: int or None, random seed
         
         """
         #Assert statements
+        #Check for int/float
         assert all(isinstance(var, float) or var is None for var in [lenscl, outputscl]) == True, "lenscl and outputscl must be float or None"
+        #CHeck for int
         assert isinstance(retrain_GP, int) == True, "retrain_GP must be int"
+        #Check for > 0
+        assert all(var > 0 for var in [retrain_GP, lenscl, outputscl]) == True, "retrain_GP, lenscl, and outputscl must be greater than 0"
+        #Check for Enum
         assert isinstance(kernel, Enum) == True, "kernel must be type Enum"
+        #Check for instance of Data class or None
+        assert isinstance(gp_data, (Data)) == True or gp_data == None, "train_data must be an instance of the Data class or None"
         
         # Constructor method
-        self.CaseStudyParameters = CaseStudyParameters
+        self.gp_data = gp_data
         self.kernel = kernel
         self.lenscl = lenscl
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
-        
-        
-    def get_train_test_data(sim_data, train_idx, test_idx):
-        """
-        finds the simulation data to use as training data
-        Parameters
-        ----------
-            sim_data: Instance of data class. Contains all theta, x, and y data
-            train_idx: ndarray, The training data indecies
-            test_idx: ndarray, The testing data indecies
-        Returns
-        -------
-            train_data: Instance of data class. Contains all theta, x, and y data for training data
-            test_data: Instance of data class. Contains all theta, x, and y data for testing data
-        """
-        #Do I need to add a method to this?
-        train_data = Data(sim_data.theta_vals[train_idx], sim_data.x_vals[train_idx], sim_data.y_vals[train_idx], None, None, None, None, None, None)
-        test_data = Data(sim_data.theta_vals[test_idx], sim_data.x_vals[test_idx], sim_data.y_vals[test_idx], None, None, None, None, None, None)
-        
-        return train_data, test_data
         
     def __set_kernel(self, simulator):
         """
@@ -962,15 +949,44 @@ class Type_1_GP_Emulator(GP_Emulator):
     """
     # Class variables and attributes
     
-    def __init__(self):
+    def __init__(self, gp_data, train_data, test_data, kernel, lenscl, outputscl, retrain_GP, seed):
         """
         Parameters
         ----------
-        CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
-        super().__init__(CaseStudyParameters, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter)
+        super().__init__(gp_data, kernel, lenscl, outputscl, retrain_GP, seed)
+        self.train_data = train_data
+        self.test_data = test_data
     
+        
+    def set_train_test_data(self, cs_params):
+        """
+        finds the simulation data to use as training data
+        Parameters
+        ----------
+            cs_params: Instance of CaseStudyParameters class. Contains at least sep_fact and seed
+        Returns
+        -------
+            train_data: Instance of data class. Contains all theta, x, and y data for training data
+            test_data: Instance of data class. Contains all theta, x, and y data for testing data
+        """
+        #Find train indecies
+        train_idx, test_idx = self.gp_data.train_test_idx_split(cs_params)
+        
+        #Get train data
+        theta_train = self.gp_data.theta_vals[train_idx]
+        x_train = self.gp_data.x_vals #x_vals for Type 1 is the same as exp_data. No need to index x
+        y_train = self.gp_data.y_vals[train_idx]
+        train_data = Data(theta_train, x_train, y_train, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
+        self.train_data = train_data
+        
+        #Get test data
+        theta_test = self.gp_data.theta_vals[test_idx]
+        x_test = self.gp_data.x_vals #x_vals for Type 1 is the same as exp_data. No need to index x
+        y_test = self.gp_data.y_vals[test_idx]
+        test_data = Data(theta_test, x_test, y_test, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
+        self.test_data = test_data
         
     def eval_gp(self, param_set):
         """
@@ -999,15 +1015,45 @@ class Type_2_GP_Emulator(GP_Emulator):
     """
     # Class variables and attributes
     
-    def __init__(self):
+    def __init__(self, gp_data, train_data, test_data, kernel, lenscl, outputscl, retrain_GP, seed):
         """
         Parameters
         ----------
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
-        super().__init__(CaseStudyParameters, kernel, set_lenscl, outputscl, retrain_GP, GP_train_iter)
+        super().__init__(gp_data, train_data, kernel, lenscl, outputscl, retrain_GP, seed)
+        self.train_data = train_data
+        self.test_data = test_data
     
+    def set_train_test_data(self, cs_params):
+        """
+        finds the simulation data to use as training data
+        Parameters
+        ----------
+            cs_params: Instance of CaseStudyParameters class. Contains at least sep_fact and seed
+        Returns
+        -------
+            train_data: Instance of data class. Contains all theta, x, and y data for training data
+            test_data: Instance of data class. Contains all theta, x, and y data for testing data
+        """
+        #Find train indecies
+        train_idx, test_idx = self.gp_data.train_test_idx_split(cs_params)
+        
+        #Get train data
+        theta_train = self.gp_data.theta_vals[train_idx]
+        x_train = self.gp_data.x_vals[train_idx]
+        y_train = self.gp_data.y_vals[train_idx]
+        train_data = Data(theta_train, x_train, y_train, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
+        self.train_data = train_data
+        
+        #Get test data
+        theta_test = self.gp_data.theta_vals[test_idx]
+        x_test = self.gp_data.x_vals[test_idx]
+        y_test = self.gp_data.y_vals[test_idx]
+        test_data = Data(theta_test, x_test, y_test, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
+        self.test_data = test_data
+        
     def eval_gp(self, param_set, x_vals):
         """
         Evaluates GP model for an emulator GPBO
@@ -1083,7 +1129,25 @@ class Expected_Improvement():
         -------
         ei: float, The expected improvement of the parameter set
         """
-             
+
+        
+##GPBO_Driver Pseudo Code
+#1) Create method, simulator, exp_data, sim_data, and sim_sse_data
+#2) Initialize GPBO_driver
+#Loop over runs
+#3) Choose training data and initialize GP_Emulator class based on emulator status
+#5) Set GP Model
+#Loop over BO iters
+#6) Train GP model
+#7) Evaluate model. Find gp_mean/var, sse, etc. 
+#8) optimize acquisition fxn
+#9) Evaluate over all theta/pairs and make heat maps (optional)
+#10) Evaluate true model at best theta
+#11) For an estimate of the true parameter value, evaluate calc_y_fxn at point where sse is optimized to be the lowest
+#12) Check for stopping criteria
+#11) Augment training data
+
+
 class GPBO_Driver:
     """
     The base class for running the GPBO Workflow
@@ -1096,46 +1160,44 @@ class GPBO_Driver:
     """
     # Class variables and attributes
     
-    def __init__(self, CaseStudyParameters, Simulator, exp_data, sim_data, sse_sim_data):
+    def __init__(self, cs_params, method, simulator, exp_data, sim_data, sim_sse_data):
         """
         Parameters
         ----------
-        Simulator: Class, class containing values associated with simulation parameters not covered in the GPBO_Method class
-        CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
-        exp_data: Instance of Data class, Class containing at least bounds for experimental data
-        sim_data: Instance of Data class
+        cs_params: Instance of CaseStudyParameters class, class containing the values associated with CaseStudyParameters
+        method: Instance of GPBO_Methods class, Class containing GPBO method information
+        simulator: Instance of Simulator class, class containing values of simulation parameters
+        exp_data: Instance of Data class, Class containing at least theta, x, and y experimental data
+        sim_data: Instance of Data class, class containing at least theta, x, and y simulation data
+        sim_sse_data: Instance of Data class, class containing at least theta, x, and sse simulation data
         
         """
         # Constructor method
-        self.CaseStudyParameters = CaseStudyParameters
-        self.Simulator = Simulator
+        self.cs_params = cs_params
+        self.method = method
+        self.simulator = simulator
         self.exp_data = exp_data
         self.sim_data = sim_data
+        self.sim_sse_data = sim_sse_data
                
-    #Where should I put this? Is there a better way of doing this also how should I ensure I only shuffle the sim data once? Also, how do I shuffle all 3 data objects at once in such a way that the placements aren't messed up?
-    def get_train_test_data(self, data_to_split, train_idx, test_idx):
+    
+    def gen_emulator(self, kernel, lenscl, outputscl, retrain_GP):
         """
-        Splits data into training and testing data
-
-        Parameters
-        ----------
-            data_to_split: class, ndarray: The class containing the original data to generate training data from
-            train_idx: ndarray, The training data indecies
-            test_idx: ndarray, The testing data indecies
+        Sets GP Emulator class equipped with training data based on the method class instance
+        
         Returns:
-            train_data: ndarray, The training data indecies
-            test_data: ndarray, The testing data indecies
-
+        --------
+            gp_emulator: Instance of the GP_Emulator class. Class for the GP emulator
         """
-        shuffle_seed = self.CaseStudyParameters.seed
-        all_theta = data_to_split.theta_vals
-        all_x = data_to_split.x_vals
-        all_y = data_to_split.y_vals
-        
-        train_data = Data(all_theta[train_idx], all_x[train_idx], all_y[train_idx], None, None, None, None, None, None)
-        test_data = Data(all_theta[test_idx], all_x[test_idx], all_y[test_idx], None, None, None, None, None, None)
-        
-        return train_data, test_data
+        #Determine Emulator Status, set gp_data data, and ininitalize correct GP_Emulator child class
+        if self.method.emulator == False:
+            all_gp_data = self.sim_sse_data
+            gp_emulator = Type_1_GP_Emulator(all_gp_data, None, None, kernel, lenscl, outputscl, retrain_GP, self.cs_params.seed)
+        else:
+            all_gp_data = self.sim_data
+            gp_emulator = Type_2_GP_Emulator(all_gp_data, None, None, kernel, lenscl, outputscl, retrain_GP, self.cs_params.seed)
+            
+        return gp_emulator
     
     def train_GP(self, train_data, verbose = False):
         """
