@@ -38,8 +38,10 @@ class Method_name_enum(Enum):
     The base class for any GPBO Method names
     
     """
-    if Enum in range(1, 6):
-        raise ValueError("There are only five options for Enum: 1 to 5")
+    #Ensure that only values 1 to 5 are chosen
+    if Enum in range(1, 6) == False:
+        raise ValueError("There are only three options for Enum: 1 to 5")
+        
     A1 = 1
     B1 = 2
     A2 = 3
@@ -51,8 +53,9 @@ class Kernel_enum(Enum):
     """
     Base class for kernel choices
     """
-    if Enum in range(1, 4):
-        raise ValueError("There are only five options for Enum: 1 to 3")
+    #Check that values are only 1 to 3
+    if Enum in range(1, 4) == False:
+        raise ValueError("There are only three options for Enum: 1 to 3")
         
     MAT_52 = 1
     MAT_32 = 2
@@ -63,8 +66,9 @@ class Gen_meth_enum(Enum):
     The base class for any GPBO Method names
     
     """
-    if Enum in range(1, 3):
-        raise ValueError("There are only five options for Enum: 1 to 2")
+    #Check that values are only 1 to 2
+    if Enum in range(1, 3) == False:
+        raise ValueError("There are only two options for Enum: 1 to 2")
         
     LHS = 1
     MESHGRID = 2
@@ -74,8 +78,9 @@ class Obj_enum(Enum):
     The base class for any GPBO Method names
     
     """
-    if Enum in range(1, 3):
-        raise ValueError("There are only five options for Enum: 1 to 2")
+    #Check that values are only 1 to 2
+    if Enum in range(1, 3) == False:
+        raise ValueError("There are only two options for Enum: 1 to 2")
         
     OBJ = 1
     LN_OBJ = 2
@@ -85,8 +90,9 @@ class CS_name_enum(Enum):
     The base class for any GPBO case study names
     
     """
-    if Enum in range(1, 3):
-        raise ValueError("There are only five options for Enum: 1 to 2")
+    #Check that values are only 1 to 2
+    if Enum in range(1, 3) == False:
+        raise ValueError("There are only two options for Enum: 1 to 2")
         
     CS1 = 1
     CS2 = 2
@@ -126,7 +132,7 @@ class GPBO_Methods:
         --------
         emulator, bool: Status of whether the GP emulates the function directly
         """
-        
+        #Objective function uses emulator GP if class 2
         if "2" in self.method_name.name:
             emulator = True
         else:
@@ -142,6 +148,8 @@ class GPBO_Methods:
         --------
         obj_enum, class instance: Determines whether log scaling is used
         """
+        
+        #Objective function is ln_obj if it includes the letter B
         if "B" in self.method_name.name:
             obj = Obj_enum(2)
         else:
@@ -156,6 +164,7 @@ class GPBO_Methods:
         --------
         sparse_grid: bool, Determines whether a sparse grid is used to evaluate the EI integral
         """
+        #GP EMulator uses sparse grid if it contains C
         if "C" in self.method_name.name:
             sparse_grid = True
         else:
@@ -196,11 +205,19 @@ class CaseStudyParameters:
         
         """
         #Assert statements
+        #Check for strings
         assert isinstance(cs_name, (Enum, str)) == True, "cs_name must be a string or Enum" #Will figure this one out later
+        #Check for float/int
         assert all(isinstance(var, (float,int)) for var in [sep_fact,ep0]) == True, "sep_fact and ep0 must be float or int"
+        #Check for sep fact number between 0 and 1
         assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
+        #Chrck for bool
         assert all(isinstance(var, (bool)) for var in [normalize, eval_all_pairs, save_fig, save_data]) == True, "normalize, eval_all_pairs, save_fig, and save_data must be bool"
+        #Check for int
         assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be int"
+        #Check for > 0
+        assert all(var > 0 for var in [bo_iter_tot, bo_run_tot, seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be > 0"
+        #Check for str or None
         assert isinstance(DateTime, (str)) == True or DateTime == None, "DateTime must be str or None"
         
         # Constructor method
@@ -241,10 +258,16 @@ class Simulator:
         case_study_params: instance of the CaseStudyParameters class
         calc_y_fxn: function, The function to calculate ysim data with
         """
-        
+        #Check for float/int
         assert all(isinstance(var,(float,int)) for var in [noise_std, noise_mean]) == True, "noise_mean and noise_std must be int or float"
+        #Check for list or ndarray
         list_vars = [indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
         assert all(isinstance(var,(list,np.ndarray)) for var in list_vars) == True, "indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
+        #Check for list lengths > 0
+        assert all(len(var) > 0 for var in list_vars) == True, "indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must have length > 0"
+        #Check that bound_x and bounds_theta have same lengths
+        assert len(bounds_theta_l) == len(bounds_theta_u) and len(bounds_x_l) == len(bounds_x_u), "bounds lists for x and theta must be same length"
+        #Check indecies to consider in theta_ref
         assert all(0 <= idx <= len(theta_ref)-1 for idx in indecies_to_consider)==True, "indecies to consider must be in range of theta_ref"
         #How to write assert statements for case_study_params and calc_y_fxn
         
@@ -257,30 +280,12 @@ class Simulator:
         self.theta_true, self.theta_true_names = self.__set_true_params()
         #How to acount for this in the doctring?
         self.bounds_theta = np.array([bounds_theta_l, bounds_theta_u])
+        self.bounds_theta_reg = self.bounds_theta[:,self.indecies_to_consider] #This is the theta_bounds for parameters we will regress
         self.bounds_x = np.array([bounds_x_l, bounds_x_u])
         self.noise_mean = noise_mean
         self.noise_std = noise_std
         self.case_study_params = case_study_params
         self.calc_y_fxn = calc_y_fxn
-    
-    def get_sim_num_theta_data(self, num_theta_data, gen_meth_theta):
-        """
-        Set the number of theta_data given gen_meth
-        
-        Parameters
-        ----------
-        gen_meth_theta: Enum, Determines whether an LHS or grid sampling is used for theta params
-        """
-        if num_theta_data <= 0 or isinstance(num_theta_data, int) == False:
-            raise ValueError('num_theta_data must be a positive integer')
-            
-        if gen_meth_theta.value == 1:
-            num_theta_data = num_theta_data
-        elif gen_meth_theta.value == 2:
-            num_theta_data = num_theta_data**(self.dim_theta)
-        else:
-            raise ValueError("gen_meth.value must be 1 or 2!") 
-        return num_theta_data
         
     def __set_true_params(self):
         """
@@ -295,12 +300,9 @@ class Simulator:
         -------
         true_params: ndarray, The true parameter of the model
         """
-        theta_ref = self.theta_ref
-        theta_names = self.theta_names
-        indecies_to_consider = self.indecies_to_consider
-        
-        true_params = theta_ref[indecies_to_consider]
-        true_param_names = [theta_names[idx] for idx in indecies_to_consider]
+        #Define theta_true and theta_true_names from theta_ref, theta_names, and indecies to consider
+        true_params = self.theta_ref[self.indecies_to_consider]
+        true_param_names = [self.theta_names[idx] for idx in self.indecies_to_consider]
         
         return true_params, true_param_names
     
@@ -347,12 +349,14 @@ class Simulator:
         -------
             LHS: ndarray, array of LHS sampling points with length (num_points) 
         """
+        #Define number of dimensions
         dimensions = bounds.shape[1]
+        #Define sampler
         sampler = qmc.LatinHypercube(d=dimensions, seed = seed)
         lhs_data = sampler.random(n=num_points)
 
-        if bounds is not None:
-            lhs_data = qmc.scale(lhs_data, bounds[0], bounds[1]) #Again, using this because I like that bounds can be different shapes
+        #Generate LHS data given bounds
+        lhs_data = qmc.scale(lhs_data, bounds[0], bounds[1]) #Using this because I like that bounds can be different shapes
 
         return lhs_data
     
@@ -372,15 +376,16 @@ class Simulator:
         
         Notes: Meshgrid generated data will output n_points in each dimension, LHS generates n_points of data
         """        
-        rand_seed = self.case_study_params.seed
+        #Set dimensions 
         dimensions = bounds.shape[1] #Want to do it this way to make it general for either x or theta parameters
         
+        #Decide on a method to use based on gen_meth_value. LHS or Grid
         if gen_meth.value == 2:
             data = self.__grid_sampling(num_points, bounds) 
             
         elif gen_meth.value == 1:
             #Generate LHS sample
-            data =  self.__lhs_sampling(num_points, bounds, rand_seed)
+            data =  self.__lhs_sampling(num_points, bounds, self.case_study_params.seed)
         
         else:
             raise ValueError("gen_meth.value must be 1 or 2!")
@@ -402,31 +407,24 @@ class Simulator:
         """        
         #Define an array to store y values in
         y_data = []
+        #Get number of points
         len_points = data.get_num_theta()
-        calc_y_fxn = self.calc_y_fxn
-        true_model_coefficients = self.theta_ref
-        indecies_to_consider = self.indecies_to_consider
         #Loop over all theta values
         for i in range(len_points):
             #Create model coefficient from true space substituting in the values of param_space at the correct indecies
-            model_coefficients = true_model_coefficients.copy()
+            model_coefficients = self.theta_ref.copy()
             #Replace coefficients a specified indecies with their theta_val counterparts
-            #Note: I can't figure this out. Please help
-#             print(model_coefficients, type(model_coefficients), data.theta_vals[i], type(data.theta_vals[i]), indecies_to_consider)
-            model_coefficients[indecies_to_consider] = data.theta_vals[i]
-#             print(model_coefficients, type(model_coefficients), data.theta_vals[i], type(data.theta_vals[i]), indecies_to_consider)
-
-            #Loop over x values and calculate y
-    #         for j in range(len_x):
+            model_coefficients[self.indecies_to_consider] = data.theta_vals[i]
             #Create model coefficients
-            y_data.append(calc_y_fxn(model_coefficients, data.x_vals[i])) 
+            y_data.append(self.calc_y_fxn(model_coefficients, data.x_vals[i])) 
 
         #Convert list to array and flatten array
         y_data = np.array(y_data).flatten()
 
         #Creates noise values with a certain stdev and mean from a normal distribution
         noise = np.random.normal(size=len(y_data), loc = noise_mean, scale = noise_std)
-
+        
+        #Add noise to data
         y_data = y_data + noise
 
         return y_data
@@ -448,14 +446,18 @@ class Simulator:
         --------
         exp_data: instance of a class filled in with experimental x and y data along with parameter bounds
         """
+        #check that num_data > 0 
         if num_x_data <= 0 or isinstance(num_x_data, int) == False:
             raise ValueError('num_x_data must be a positive integer')
             
+        #Create x vals based on bounds and num_x_data
         x_vals = vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x))
+        #Reshape theta_true to correct dimensions and stack it once for each xexp value
         theta_true = self.theta_true.reshape(1,-1)
         theta_true_repeated = np.vstack([theta_true]*len(x_vals))
-        exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None)
-                             
+        #Create exp_data class and add valies
+        exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None, self.bounds_theta, self.bounds_x)
+        #Generate y data for exp_data calss instance
         exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std)
         
         return exp_data
@@ -475,33 +477,35 @@ class Simulator:
         --------
         sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
         """
-        
+        #Chck that num_data > 0
         if num_theta_data <= 0 or isinstance(num_theta_data, int) == False:
             raise ValueError('num_theta_data must be a positive integer')
             
         if num_x_data <= 0 or isinstance(num_x_data, int) == False:
             raise ValueError('num_x_data must be a positive integer')
         
-        theta_regress_idx = self.indecies_to_consider
-        bounds_theta = self.bounds_theta[:,theta_regress_idx]
-        bounds_x = self.bounds_x
-        
-        x_data = vector_to_1D_array(self.__create_param_data(num_x_data, bounds_x, gen_meth_x))
+        #Set bounds on theta which we are regressing given bounds_theta and indecies to consider
+        x_data = vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x))
             
         #Infer how many times to repeat theta and x values given whether they were generated by LHS or a meshgrid
-        repeat_x = self.get_sim_num_theta_data(num_theta_data, gen_meth_theta)
+        #X and theta repeated at least once per time the other is generated
+        repeat_x = num_theta_data
         repeat_theta = len(x_data)
         
+        #If using a meshgrid this number is exponentiated by the number of dimensions of itself
         if gen_meth_theta.value == 2:
             repeat_x = num_theta_data**(self.dim_theta)
         if gen_meth_x.value == 2:
             repeat_theta = num_x_data**(self.dim_x)
      
         #Generate all rows of simulation data
-        sim_theta_vals = vector_to_1D_array(self.__create_param_data(num_theta_data, bounds_theta, gen_meth_theta))
-        sim_data = Data(None, None, None, None, None, None, None)
+        #Generate simulation data theta_vals and create instance of data class
+        sim_theta_vals = vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta))
+        sim_data = Data(None, None, None, None, None, None, None, self.bounds_theta, self.bounds_x)
+        #Add repeated theta_vals and x_data to sim_data
         sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis =0)
-        sim_data.x_vals = np.vstack([x_data]*repeat_x) #sim_data.get_num_theta() #Faster way to do this?
+        sim_data.x_vals = np.vstack([x_data]*repeat_x)
+        #Add y_vals
         sim_data.y_vals = self.gen_y_data(sim_data, 0, 0)
         
         return sim_data
@@ -521,19 +525,16 @@ class Simulator:
         sse: ndarray. Value of sse given state points x and theta_vals
         """
 
-        #Calculate sse for sim data
+        #Find length of theta and x in data arrays
         len_theta = sim_data.get_num_theta()
         len_x = exp_data.get_num_x_vals()
-        calc_y_fxn = self.calc_y_fxn
-        true_model_coefficients = self.theta_ref
-        indecies_to_consider = self.indecies_to_consider
 
         #Make sse array equal length to the number of total unique thetas
         sum_error_sq = []
         #Define all y_sims
         y_sim = sim_data.y_vals
         #Iterates over evey combination of theta to find the SSE for each combination
-        #Note to do this Xexp and X must use the same values
+        #Note to do this Xexp and X **must** use the same values
         for i in range(0, len_theta, len_x):
             sum_error_sq.append(sum((y_sim[i:i+len_x] - exp_data.y_vals)**2))#Scaler
         
@@ -543,11 +544,14 @@ class Simulator:
         if method.method_name.name == "B1":
             sum_error_sq = np.log(sum_error_sq) #Scaler
         
-        #For this dataset does it make more sense to have all theta and x values or just the unique thetas and x values?
+        #Q: For this dataset does it make more sense to have all theta and x values or just the unique thetas and x values?
+        #A: Just the unique ones. No need to store extra data if we won't use it and it will be saved somewhere else regardless
+        #Assign unique theta indecies and create an array of them
         unique_indexes = np.unique(sim_data.theta_vals, axis = 0, return_index=True)[1]
         unique_theta_vals = np.array([sim_data.theta_vals[index] for index in sorted(unique_indexes)])
-#         sim_sse_data = Data(sim_data.theta_vals, exp_data.x_vals, None, None, None, None, None) #For all theta and x
-        sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None)
+        #Add the unique theta_vals and exp_data x values to the new data class instance
+        sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None, self.bounds_theta, self.bounds_x)
+        #Add y_values to data class instance
         sim_sse_data.y_vals = sum_error_sq
         
         return sim_sse_data 
@@ -564,7 +568,7 @@ class Data:
     """
     # Class variables and attributes
     
-    def __init__(self, theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, ei):
+    def __init__(self, theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, ei, bounds_theta, bounds_x):
         """
         Parameters
         ----------
@@ -587,6 +591,8 @@ class Data:
         self.gp_mean = gp_mean
         self.gp_var = gp_var
 #         self.hyperparams = hyperparams
+        self.bounds_theta = bounds_theta
+        self.bounds_x = bounds_x
         
     
     def get_num_theta(self):
@@ -601,6 +607,7 @@ class Data:
         -------
         num_theta_data: int, the number of data the GP will have access to
         """
+        assert self.theta_vals is not None, "theta_vals must be defined"
         num_theta_data = len(self.theta_vals)
         
         return num_theta_data
@@ -617,6 +624,7 @@ class Data:
         -------
         num_theta_data: int, the number of data the GP will have access to
         """
+        assert self.theta_vals is not None, "theta_vals must be defined"
         if len(self.theta_vals) == 1:
             theta_vals = self.theta_vals.reshape(1,-1)
         else:
@@ -638,6 +646,7 @@ class Data:
         -------
         num_x_data: int, the number of data the GP will have access to
         """
+        assert self.x_vals is not None, "x_vals must be defined"
         num_x_data = len(self.x_vals)
         
         return num_x_data
@@ -654,11 +663,12 @@ class Data:
         -------
         num_x_data: int, the number of data the GP will have access to
         """
+        assert self.x_vals is not None, "x_vals must be defined"
         dim_x_data = vector_to_1D_array(self.x_vals).shape[1]
         
         return dim_x_data
         
-    def get_num_gp_data(self, Method):
+    def get_num_gp_data(self):
         """
         Defines the total number of data the GP will have access to to train on
         
@@ -687,55 +697,49 @@ class Data:
         -------
         num_data: int, the number of data the GP will have access to
         """
+        #Add dimensions of theta and x to get GP training dimensions if using emulator GP
         if Method.emulator == True:
             dim_gp_data = int(self.get_dim_x_vals() + self.get_dim_theta())
+        #Otherwise just use number of theta dimensions
         else:
             dim_gp_data = int(self.get_dim_theta())
         
         return dim_gp_data
     
-    def norm_feature_data(self, simulator):
+    def norm_feature_data(self):
         """
         Normalizes all feature data. Only call this method on unscaled data
-        
-        Parameters
-        ----------
-        simulator: instance of Simulator class, containing at least X and theta value bounds
         
         Returns
         -------
         scaled_data: Instance of Data class containing all data in original class with scaled feature values
         """
-        indecies_to_consider = simulator.indecies_to_consider
+        assert self.theta_vals is not None, "theta_vals must be defined"
+        assert self.x_vals is not None, "x_vals must be defined"
+        assert self.bounds_theta is not None, "bounds_theta must be defined"
+        assert self.bounds_x is not None, "bounds_x must be defined"
         
-        bounds_p = simulator.bounds_theta[:,indecies_to_consider]
-        bounds_x = simulator.bounds_x
-
-        scaled_theta_vals = self.__normalize(self.theta_vals, bounds_p)
-        scaled_x_vals = self.__normalize(self.x_vals, bounds_x)
+        scaled_theta_vals = self.__normalize(self.theta_vals, self.bounds_theta)
+        scaled_x_vals = self.__normalize(self.x_vals, self.bounds_x)
         
-        scaled_data = Data(scaled_theta_vals, scaled_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.ei) 
+        scaled_data = Data(scaled_theta_vals, scaled_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.ei, self.bounds_theta, self.bounds_x) 
         
         return scaled_data
     
-    def unnorm_feature_data(self, simulator):
+    def unnorm_feature_data(self):
         """
         Normalizes all feature data and stores it in a new instance of the data class. Only call this method on scaled data
-        
-        Parameters
-        ----------
-        simulator: instance of Simulator class, containing at least X and theta value bounds
-        """
-        
-        indecies_to_consider = simulator.indecies_to_consider
-        
-        bounds_p = simulator.bounds_theta[:,indecies_to_consider]
-        bounds_x = simulator.bounds_x
 
-        reg_theta_vals = self.__unnormalize(self.theta_vals, bounds_p)
-        reg_x_vals = self.__unnormalize(self.x_vals, bounds_x)
+        """
+        assert self.theta_vals is not None, "theta_vals must be defined"
+        assert self.x_vals is not None, "x_vals must be defined"
+        assert self.bounds_theta is not None, "bounds_theta must be defined"
+        assert self.bounds_x is not None, "bounds_x must be defined"
         
-        unscaled_data = Data(reg_theta_vals, reg_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.ei) 
+        reg_theta_vals = self.__unnormalize(self.theta_vals, self.bounds_theta)
+        reg_x_vals = self.__unnormalize(self.x_vals, self.bounds_x)
+        
+        unscaled_data = Data(reg_theta_vals, reg_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.ei, self.bounds_theta, self.bounds_x) 
         
         return unscaled_data
     
@@ -752,12 +756,11 @@ class Data:
         ---------
         scaled_data: ndarray, the data normalized between 1 and 0 based on the bounds
         """
-        # Method definition
-        # Code logic goes here
-        #Define a scaler for normalization
+        #Define lower/upper bounds
         bounds = vector_to_1D_array(bounds)
         lower_bound = bounds[0]
         upper_bound = bounds[1]
+        #Scale data
         scaled_data = (data - lower_bound) / (upper_bound - lower_bound)
         
         return scaled_data
@@ -775,10 +778,11 @@ class Data:
         ---------
         data: ndarray, the original data renormalized based on the original bounds
         """
-        #Transform/unnormalize data (#How to generalize data to work for any variable type given?)
+        #Define upper/lower bounds
         bounds = vector_to_1D_array(bounds)
         lower_bound = bounds[0]
         upper_bound = bounds[1]
+        #scale data
         data = scaled_data*(upper_bound - lower_bound) + lower_bound
         
         return data
@@ -796,18 +800,20 @@ class Data:
             test_idx: ndarray, The testing data indecies
 
         """
+        #Define sep_fact and shuffle_seed
         sep_fact = CaseStudyParameters.sep_fact
         shuffle_seed = CaseStudyParameters.seed
 
+        #Find number of thetas and calculate length of training data
         len_theta = self.get_num_theta()
         len_train_idc = int(len_theta*sep_fact)
+        #Create an index for each theta
         all_idx = np.arange(0,len_theta)
 
         #Shuffles Random Data. Will calling this once in case study parameters mean I don't need this? (No. It doesn't)
         if shuffle_seed is not None:
             #Set seed to number specified by shuffle seed
             random.seed(shuffle_seed)
-            print(shuffle_seed)
             
         #Set train test indecies
         random.shuffle(all_idx)
@@ -866,8 +872,8 @@ class GP_Emulator:
             test_data: Instance of data class. Contains all theta, x, and y data for testing data
         """
         #Do I need to add a method to this?
-        train_data = Data(sim_data.theta_vals[train_idx], sim_data.x_vals[train_idx], sim_data.y_vals[train_idx], None, None, None, None)
-        test_data = Data(sim_data.theta_vals[test_idx], sim_data.x_vals[test_idx], sim_data.y_vals[test_idx], None, None, None, None)
+        train_data = Data(sim_data.theta_vals[train_idx], sim_data.x_vals[train_idx], sim_data.y_vals[train_idx], None, None, None, None, None, None)
+        test_data = Data(sim_data.theta_vals[test_idx], sim_data.x_vals[test_idx], sim_data.y_vals[test_idx], None, None, None, None, None, None)
         
         return train_data, test_data
         
@@ -1105,100 +1111,7 @@ class GPBO_Driver:
         self.Simulator = Simulator
         self.exp_data = exp_data
         self.sim_data = sim_data
-        
-    def gen_exp_data(self, num_x_data, gen_meth_x):
-        """
-        Generates experimental data in an instance of the Data class
-        
-        Parameters
-        ----------
-        bounds_theta_l: list, lower bounds of theta
-        bounds_x_l: list, lower bounds of x
-        bounds_theta_u: list, upper bounds of theta
-        bounds_x_u: list, upper bounds of x
-        num_x_data: int, number of experiments
-        gen_meth_x: bool: Whether to generate X data with LHS or grid method
-        
-        Returns:
-        --------
-        exp_data: instance of a class filled in with experimental x and y data along with parameter bounds
-        """
-        
-        theta_true = self.Simulator.theta_true.reshape(1,-1)
-        exp_data = Data(theta_true, None, None, None, None, None, None)
-        exp_data.x_vals = vector_to_1D_array(self.create_param_data(num_x_data, self.Simulator.bounds_x, gen_meth_x))
-        exp_data.y_vals = self.create_y_exp_data(exp_data)
-        
-        self.exp_data = exp_data
-        
-        return exp_data        
-        
-    def create_param_data(self, n_points, bounds, gen_meth):
-        """
-        Generates data based off of bounds, and an LHS generation number
-        
-        Parameters
-        ----------
-        n_points: int, number of data to generate
-        bounds: array, array of parameter bounds
-        gen_meth: class (Gen_meth_enum), ("LHS", "Meshgrid"). Determines whether x data will be generated with an LHS or meshgrid
-        
-        Returns:
-        --------
-        x_data: ndarray, a list of x data
-        
-        Notes: Meshgrid generated data will output n_points in each dimension, LHS generates n_points of data
-        """        
-        seed = self.CaseStudyParameters.seed
-        dimensions = bounds.shape[1] #Want to do it this way to make it general for either x or theta parameters
-        
-        if gen_meth.value == 2:
-            #Generate mesh_grid data for theta_set in 2D
-            #Define linspace for theta
-            params = np.linspace(0,1, n_points)
-            #Generate the equivalent of all meshgrid points
-            df = pd.DataFrame(list(itertools.product(params, repeat=dimensions)))
-            df2 = df.drop_duplicates()
-            scaled_data = df2.to_numpy()
-            #Normalize to bounds 
-            if bounds is not None:
-                lower_bound = bounds[0]
-                upper_bound = bounds[1]
-                data = scaled_data*(upper_bound - lower_bound) + lower_bound  
-            
-        elif gen_meth.value == 1:
-            #Generate LHS sample
-            data = lhs_design(n_points, dimensions, seed, bounds = bounds)
-        
-        else:
-            raise ValueError("gen_meth.value must be 1 or 2!")
-#             assert self.CaseStudyParameters.x_data_vals is not None, "X must be provided if not generated"
-#             assert self.CaseStudyParameters.x_data_vals.shape[1] == exp_d, "Provided X values must have the same dimension as bounds!"
-#             sim_data = self.CaseStudyParameters.x_data_vals
-        
-        #How do I make the data an instance of the data class?
-        return data
-        
-    def create_y_exp_data(self, exp_data):
-        """
-        Creates experimental y data based on x, theta_true, and the case study
-        
-        Parameters:
-        -----------
-        exp_data: instance of a class. Contains at least the experimental x data
-        
-        Returns:
-        --------
-        Yexp: ndarray. Value of y given state points x and theta_true
-        """        
-        CaseStudyParameters = self.CaseStudyParameters
-        Simulator = self.Simulator
-        
-        #Note - Can only use this function after generating x data
-        y_exp = calc_y_exp(CaseStudyParameters, Simulator, exp_data)   
-        
-        return y_exp
-    
+               
     #Where should I put this? Is there a better way of doing this also how should I ensure I only shuffle the sim data once? Also, how do I shuffle all 3 data objects at once in such a way that the placements aren't messed up?
     def get_train_test_data(self, data_to_split, train_idx, test_idx):
         """
@@ -1219,8 +1132,8 @@ class GPBO_Driver:
         all_x = data_to_split.x_vals
         all_y = data_to_split.y_vals
         
-        train_data = Data(all_theta[train_idx], all_x[train_idx], all_y[train_idx], None, None, None, None)
-        test_data = Data(all_theta[test_idx], all_x[test_idx], all_y[test_idx], None, None, None, None)
+        train_data = Data(all_theta[train_idx], all_x[train_idx], all_y[train_idx], None, None, None, None, None, None)
+        test_data = Data(all_theta[test_idx], all_x[test_idx], all_y[test_idx], None, None, None, None, None, None)
         
         return train_data, test_data
     
