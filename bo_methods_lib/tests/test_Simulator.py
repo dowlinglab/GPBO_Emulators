@@ -146,19 +146,30 @@ def test_gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, ex
     sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x)
     assert len(sim_data.theta_vals) == len(sim_data.y_vals) == expected, "Need same number of theta_vals and y_vals generated"
     
-#This test function tests whether sim_data will throw the correct errors
+#This test function tests whether sim_data will not generate y data for gen_val_data = True
                     #num_theta_data, num_x_data, gen_meth_theta, gen_meth_x
-gen_sim_data_err_list = [[0, 0, Gen_meth_enum(1), Gen_meth_enum(1)],
-                         [0, 1, Gen_meth_enum(1), Gen_meth_enum(1)],
-                         [1, 0, Gen_meth_enum(1), Gen_meth_enum(1)],
-                         [-1, 1, Gen_meth_enum(1), Gen_meth_enum(1)],
-                         [1, -1, Gen_meth_enum(1), Gen_meth_enum(1)],
-                         [-1, 0, Gen_meth_enum(1), Gen_meth_enum(1)],
-                         [0, -1, Gen_meth_enum(1), Gen_meth_enum(1)]]
-@pytest.mark.parametrize("num_theta_data, num_x_data, gen_meth_theta, gen_meth_x", gen_sim_data_err_list)
-def test_gen_sim_data_err(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x):
+gen_sim_data_val_list = [[1, 1, Gen_meth_enum(1), Gen_meth_enum(1), False, False],
+                         [1, 1, Gen_meth_enum(1), Gen_meth_enum(1), True, True]]
+@pytest.mark.parametrize("num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, gen_val, y_generated", gen_sim_data_val_list)
+def test_gen_sim_data_val(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, gen_val, y_generated):
+    sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, gen_val)
+    y_vals_gen = sim_data.y_vals == None
+    assert y_vals_gen == y_generated
+        
+#This test function tests whether sim_data will correctly will throw the correct errors
+                    #num_theta_data, num_x_data, gen_meth_theta, gen_meth_x
+gen_sim_data_err_list = [[0, 0, Gen_meth_enum(1), Gen_meth_enum(1), False],
+                         [0, 1, Gen_meth_enum(1), Gen_meth_enum(1), False],
+                         [1, 0, Gen_meth_enum(1), Gen_meth_enum(1), False],
+                         [-1, 1, Gen_meth_enum(1), Gen_meth_enum(1), False],
+                         [1, -1, Gen_meth_enum(1), Gen_meth_enum(1), False],
+                         [-1, 0, Gen_meth_enum(1), Gen_meth_enum(1), False],
+                         [0, -1, Gen_meth_enum(1), Gen_meth_enum(1), False],
+                         [1, 1, Gen_meth_enum(1), Gen_meth_enum(1), "string"]]
+@pytest.mark.parametrize("num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, gen_val", gen_sim_data_err_list)
+def test_gen_sim_data_err(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, gen_val):
     with pytest.raises(ValueError):
-        sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x)
+        sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, gen_val)
 
 #This test function tests whether y_data is generated correctly for CS1
                    #num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, expected y_data generated
@@ -187,6 +198,19 @@ def test_sim_data_to_sse_sim_data(method, sim_data, exp_data, expected_arr, expe
     assert np.allclose(sse_sim_data.theta_vals[np.argmin(sse_sim_data.y_vals)], expected_arr, atol = 0.01)
     assert np.isclose(np.min(sse_sim_data.y_vals), expected_val, 0.01)
     
+
+#This test function tests whether sim_data_to_sse_sim_data correctly does not generate y for gen_val_data = True
+#Generate a test sim_data and exp_data class
+                                #method, sim_data, exp_data, expected array where best point is found, expected value of that point
+sim_data_to_sse_sim_data_val_list = [[GPBO_Methods(Method_name_enum(1)), sim_data, exp_data, False, False],
+                                 [GPBO_Methods(Method_name_enum(2)), sim_data, exp_data, True, True]]
+@pytest.mark.parametrize("method, sim_data, exp_data, gen_val_data, y_generated", sim_data_to_sse_sim_data_val_list)
+def test_sim_data_to_sse_sim_val_data(method, sim_data, exp_data, gen_val_data, y_generated):
+    sim_data = simulator.gen_sim_data(1, 1, Gen_meth_enum(2), Gen_meth_enum(2), gen_val_data)
+    exp_data = simulator.gen_exp_data(1, Gen_meth_enum(2))
+    sse_sim_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, gen_val_data)
+    y_vals_gen = sse_sim_data.y_vals == None
+    assert y_vals_gen == y_generated 
     
 ## Case Study 2 Tests
 cs_name2  = CS_name_enum(2)

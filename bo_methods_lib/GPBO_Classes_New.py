@@ -462,7 +462,7 @@ class Simulator:
         
         return exp_data
     
-    def gen_sim_data(self, num_theta_data, num_x_data, gen_meth_theta, gen_meth_x):
+    def gen_sim_data(self, num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, gen_val_data = False):
         """
         Generates experimental data in an instance of the Data class
         
@@ -472,11 +472,16 @@ class Simulator:
         gen_meth_theta: bool: Whether to generate theta data with LHS or grid method
         num_x_data: int, number of experiments
         gen_meth_x: bool: Whether to generate X data with LHS or grid method
+        gen_val_data: bool, Whether validation data (no y vals) or simulation data (has y vals) will be generated. 
+        
         
         Returns:
         --------
         sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
         """
+        if isinstance(gen_val_data, bool) == False:
+            raise ValueError('gen_val_data must be bool')
+            
         #Chck that num_data > 0
         if num_theta_data <= 0 or isinstance(num_theta_data, int) == False:
             raise ValueError('num_theta_data must be a positive integer')
@@ -506,44 +511,33 @@ class Simulator:
         sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis =0)
         sim_data.x_vals = np.vstack([x_data]*repeat_x)
         #Add y_vals
-        sim_data.y_vals = self.gen_y_data(sim_data, 0, 0)
+        if gen_val_data == False:
+            sim_data.y_vals = self.gen_y_data(sim_data, 0, 0)
         
         return sim_data
-    
-    def sim_data_to_sse_sim_data(self, method, sim_data, exp_data):
+   
+    def sim_data_to_sse_sim_data(self, method, sim_data, exp_data, gen_val_data = False):
         """
         Creates simulation data based on x, theta_vals, the GPBO method, and the case study
 
         Parameters
         ----------
         method: class, fully defined methods class which determines which method will be used
-        sim_data: Class, Class containing at least the theta_vals for simulation
+        sim_data: Class, Class containing at least the theta_vals, x_vals, and y_vals for simulation
         exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        gen_val_data: bool, Whether validation data (no y vals) or simulation data (has y vals) will be generated.
 
         Returns:
         --------
         sse: ndarray. Value of sse given state points x and theta_vals
         """
-
+        if isinstance(gen_val_data, bool) == False:
+            raise ValueError('gen_val_data must be bool')
+            
         #Find length of theta and x in data arrays
         len_theta = sim_data.get_num_theta()
         len_x = exp_data.get_num_x_vals()
-
-        #Make sse array equal length to the number of total unique thetas
-        sum_error_sq = []
-        #Define all y_sims
-        y_sim = sim_data.y_vals
-        #Iterates over evey combination of theta to find the SSE for each combination
-        #Note to do this Xexp and X **must** use the same values
-        for i in range(0, len_theta, len_x):
-            sum_error_sq.append(sum((y_sim[i:i+len_x] - exp_data.y_vals)**2))#Scaler
-        
-        sum_error_sq = np.array(sum_error_sq)
-
-        #objective function only explicitly log if using 1B
-        if method.method_name.name == "B1":
-            sum_error_sq = np.log(sum_error_sq) #Scaler
-        
+      
         #Q: For this dataset does it make more sense to have all theta and x values or just the unique thetas and x values?
         #A: Just the unique ones. No need to store extra data if we won't use it and it will be saved somewhere else regardless
         #Assign unique theta indecies and create an array of them
@@ -551,10 +545,28 @@ class Simulator:
         unique_theta_vals = np.array([sim_data.theta_vals[index] for index in sorted(unique_indexes)])
         #Add the unique theta_vals and exp_data x values to the new data class instance
         sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None, self.bounds_theta, self.bounds_x)
-        #Add y_values to data class instance
-        sim_sse_data.y_vals = sum_error_sq
         
-        return sim_sse_data 
+        if gen_val_data == False:
+            #Make sse array equal length to the number of total unique thetas
+            sum_error_sq = []
+            #Define all y_sims
+            y_sim = sim_data.y_vals
+            #Iterates over evey combination of theta to find the SSE for each combination
+            #Note to do this Xexp and X **must** use the same values
+            for i in range(0, len_theta, len_x):
+                sum_error_sq.append(sum((y_sim[i:i+len_x] - exp_data.y_vals)**2))#Scaler
+
+            sum_error_sq = np.array(sum_error_sq)
+
+            #objective function only explicitly log if using 1B
+            if method.method_name.name == "B1":
+                sum_error_sq = np.log(sum_error_sq) #Scaler
+
+            #Add y_values to data class instance
+            sim_sse_data.y_vals = sum_error_sq
+        
+        return sim_sse_data         
+        
         
 class Data:
     """
@@ -590,7 +602,6 @@ class Data:
         self.ei = ei
         self.gp_mean = gp_mean
         self.gp_var = gp_var
-#         self.hyperparams = hyperparams
         self.bounds_theta = bounds_theta
         self.bounds_x = bounds_x
         
@@ -796,10 +807,12 @@ class GP_Emulator:
     """
     # Class variables and attributes
     
-    def __init__(self, gp_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed):
+    def __init__(self, gp_sim_data, gp_val_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed):
         """
         Parameters
         ----------
+        gp_sim_data: instance of Data class, GP data containg y_vals
+        gp_val_data: instance of Data class, GP data for evaluation
         kernel: enum class instance, Determines which GP Kerenel to use
         lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         outputscl: float or None, Determines value of outputscale
@@ -813,14 +826,15 @@ class GP_Emulator:
         #CHeck for int
         assert isinstance(retrain_GP, int) == True, "retrain_GP must be int"
         #Check for > 0
-        assert all(var > 0 for var in [retrain_GP, lenscl, outputscl]) == True, "retrain_GP, lenscl, and outputscl must be greater than 0"
+        assert all(var > 0 for var in [retrain_GP]) == True, "retrain_GP must be greater than 0"
         #Check for Enum
         assert isinstance(kernel, Enum) == True, "kernel must be type Enum"
         #Check for instance of Data class or None
-        assert isinstance(gp_data, (Data)) == True or gp_data == None, "train_data must be an instance of the Data class or None"
+        assert isinstance(gp_sim_data, (Data)) == True or gp_sim_data == None, "gp_sim_data must be an instance of the Data class or None"
         
         # Constructor method
-        self.gp_data = gp_data
+        self.gp_sim_data = gp_sim_data
+        self.gp_val_data = gp_val_data
         self.kernel = kernel
         self.lenscl = lenscl
         self.noise_std = noise_std
@@ -841,7 +855,7 @@ class GP_Emulator:
         num_data: int, the number of data the GP will have access to
         """
         
-        num_gp_data = int(self.gp_data.get_num_theta())
+        num_gp_data = int(self.gp_sim_data.get_num_theta())
         
         return num_gp_data
     
@@ -910,10 +924,11 @@ class GP_Emulator:
         """
         #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim, otherwise initialize them at 1
         if self.lenscl != None:
+            assert self.lenscl> 0, "lenscl must be positive"
             lengthscale_val = np.ones(self.get_dim_gp_data())*self.lenscl
             kernel.k1.k2.length_scale_bounds = "fixed"
         else:
-            lengthscale_val = np.ones(train_data_dim)
+            lengthscale_val = np.ones(self.get_dim_gp_data())
 
         #Set model lengthscale
         kernel.k1.k2.length_scale = lengthscale_val
@@ -934,6 +949,7 @@ class GP_Emulator:
         """
         #Set outputscl kernel to be optimized if necessary or set it to the default of 1 to be optimized
         if self.outputscl != None:
+            assert self.lenscl> 0, "outputscl must be positive"
             kernel.k1.k1.constant_value = self.outputscl
             kernel.k1.k1.constant_value_bounds = "fixed"
         else:
@@ -941,15 +957,7 @@ class GP_Emulator:
             
         return kernel
     
-    def train_gp(self):
-        """
-        Trains the GP given training data
-        
-        Returns
-        -------
             
-        """
-               
 #https://www.geeksforgeeks.org/inheritance-and-composition-in-python/
 #AD: Use composition instead of inheritance here, pass an instance of CaseStudyParameters to the init function
 class Type_1_GP_Emulator(GP_Emulator):
@@ -964,13 +972,13 @@ class Type_1_GP_Emulator(GP_Emulator):
     """
     # Class variables and attributes
     
-    def __init__(self, gp_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed):
+    def __init__(self, gp_sim_data, gp_val_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed):
         """
         Parameters
         ----------
         """
         # Constructor method
-        super().__init__(gp_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
+        super().__init__(gp_sim_data, gp_val_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
         self.train_data = train_data
         self.test_data = test_data
         
@@ -984,7 +992,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         """
 
         #Just use number of theta dimensions
-        dim_gp_data = int(self.gp_data.get_dim_theta())
+        dim_gp_data = int(self.gp_sim_data.get_dim_theta())
         
         return dim_gp_data
     
@@ -1000,24 +1008,83 @@ class Type_1_GP_Emulator(GP_Emulator):
             test_data: Instance of data class. Contains all theta, x, and y data for testing data
         """
         #Get train test idx
-        train_idx, test_idx = self.gp_data.train_test_idx_split(cs_params)
+        train_idx, test_idx = self.gp_sim_data.train_test_idx_split(cs_params)
         
         #Get train data
-        theta_train = self.gp_data.theta_vals[train_idx]
-        x_train = self.gp_data.x_vals #x_vals for Type 1 is the same as exp_data. No need to index x
-        y_train = self.gp_data.y_vals[train_idx]
-        train_data = Data(theta_train, x_train, y_train, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
+        theta_train = self.gp_sim_data.theta_vals[train_idx]
+        x_train = self.gp_sim_data.x_vals #x_vals for Type 1 is the same as exp_data. No need to index x
+        y_train = self.gp_sim_data.y_vals[train_idx]
+        train_data = Data(theta_train, x_train, y_train, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x)
         self.train_data = train_data
         
         #Get test data
-        theta_test = self.gp_data.theta_vals[test_idx]
-        x_test = self.gp_data.x_vals #x_vals for Type 1 is the same as exp_data. No need to index x
-        y_test = self.gp_data.y_vals[test_idx]
-        test_data = Data(theta_test, x_test, y_test, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
+        theta_test = self.gp_sim_data.theta_vals[test_idx]
+        x_test = self.gp_sim_data.x_vals #x_vals for Type 1 is the same as exp_data. No need to index x
+        y_test = self.gp_sim_data.y_vals[test_idx]
+        test_data = Data(theta_test, x_test, y_test, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x)
         self.test_data = test_data
         
         return train_data, test_data
         
+    def train_gp(self, gp_model):
+        """
+        Trains the GP given training data
+        
+        Parameters
+        ----------
+            gp_model: The untrained, fully defined gp model
+            
+        Returns
+        -------
+            trained_hyperparams: list, a list of the hyperparameters. Order: lenscl, noise, outputscl
+            git_gp_model: GaussianProcessRegressor instance. Fit GP model
+        """        
+        #Train GP
+        fit_gp_model = gp_model.fit(self.train_data.theta_vals, self.train_data.y_vals)
+
+        #Pull out kernel parameters after GP training
+        opt_kern_params = fit_gp_model.kernel_
+        outputscl_final = opt_kern_params.k1.k1.constant_value
+        lenscl_final = opt_kern_params.k1.k2.length_scale
+        noise_final = opt_kern_params.k2.noise_level
+            
+        trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
+        
+        self.trained_hyperparams = trained_hyperparams
+        self.fit_gp_model = fit_gp_model
+    
+    def eval_gp_mean_var(self, data):
+        """
+        Calculates the GP mean and variance given each point and adds it to the instance of the data class
+        
+        Parameters:
+        -----------
+            data: instance of the Data class, data to evaluate GP for containing at least theta_vals and x_vals
+        
+        Returns:
+        -------
+            data: instance of the Data class, data containing at least theta_vals, x_vals, gp_mean, and gp_var
+        
+        """
+        feature_eval_data = data.theta_vals
+        gp_mean = np.zeros(data.get_num_theta())
+        gp_var = np.zeros(data.get_num_theta())
+        
+        #Loop over all eval points
+        for i in range(len(feature_eval_data)):
+            eval_point = np.array([feature_eval_data[i]])
+            #Evaluate GP given parameter set theta and state point value
+            model_mean, model_std = self.fit_gp_model.predict(eval_point[0:1], return_std=True)
+            model_variance = model_std**2
+            
+            gp_mean[i] = model_mean
+            gp_var[i] = model_variance
+          
+        data.gp_mean = gp_mean
+        data.gp_var = gp_var
+        
+        return data
+    
     def eval_gp(self, param_set):
         """
         Evaluates GP model for a standard GPBO
@@ -1045,14 +1112,14 @@ class Type_2_GP_Emulator(GP_Emulator):
     """
     # Class variables and attributes
     
-    def __init__(self, gp_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed):
+    def __init__(self, gp_sim_data, gp_val_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed):
         """
         Parameters
         ----------
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
-        super().__init__(gp_data, train_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
+        super().__init__(gp_sim_data, gp_val_data, train_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
         self.train_data = train_data
         self.test_data = test_data
                   
@@ -1065,7 +1132,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         num_data: int, the number of data the GP will have access to
         """
         #Number of theta dimensions + number of x dimensions
-        dim_gp_data = int(self.gp_data.get_dim_x_vals() + self.gp_data.get_dim_theta())
+        dim_gp_data = int(self.gp_sim_data.get_dim_x_vals() + self.gp_sim_data.get_dim_theta())
         
         return dim_gp_data
     
@@ -1081,24 +1148,86 @@ class Type_2_GP_Emulator(GP_Emulator):
             test_data: Instance of data class. Contains all theta, x, and y data for testing data
         """
         #Find train indecies
-        train_idx, test_idx = self.gp_data.train_test_idx_split(cs_params)
+        train_idx, test_idx = self.gp_sim_data.train_test_idx_split(cs_params)
         
         #Get train data
-        theta_train = self.gp_data.theta_vals[train_idx]
-        x_train = self.gp_data.x_vals[train_idx]
-        y_train = self.gp_data.y_vals[train_idx]
-        train_data = Data(theta_train, x_train, y_train, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
+        theta_train = self.gp_sim_data.theta_vals[train_idx]
+        x_train = self.gp_sim_data.x_vals[train_idx]
+        y_train = self.gp_sim_data.y_vals[train_idx]
+        train_data = Data(theta_train, x_train, y_train, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x)
         self.train_data = train_data
         
         #Get test data
-        theta_test = self.gp_data.theta_vals[test_idx]
-        x_test = self.gp_data.x_vals[test_idx]
-        y_test = self.gp_data.y_vals[test_idx]
-        test_data = Data(theta_test, x_test, y_test, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
+        theta_test = self.gp_sim_data.theta_vals[test_idx]
+        x_test = self.gp_sim_data.x_vals[test_idx]
+        y_test = self.gp_sim_data.y_vals[test_idx]
+        test_data = Data(theta_test, x_test, y_test, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x)
         self.test_data = test_data
         
         return train_data, test_data
         
+    def train_gp(self, gp_model):
+        """
+        Trains the GP given training data
+        
+        Parameters
+        ----------
+            gp_model: The untrained, fully defined gp model
+            
+        Returns
+        -------
+            trained_hyperparams: list, a list of the hyperparameters. Order: lenscl, noise, outputscl
+            git_gp_model: GaussianProcessRegressor instance. Fit GP model
+        """        
+        #Put features into correct array form
+        feature_train_data = np.vstack((self.train_data.theta_vals, self.train_data.x_vals))
+        
+        #Train GP
+        fit_gp_model = gp_model.fit(feature_train_data, self.train_data.y_vals)
+
+        #Pull out kernel parameters after GP training
+        opt_kern_params = fit_gp_model.kernel_
+        outputscl_final = opt_kern_params.k1.k1.constant_value
+        lenscl_final = opt_kern_params.k1.k2.length_scale
+        noise_final = opt_kern_params.k2.noise_level
+            
+        trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
+        
+        self.trained_hyperparams = trained_hyperparams
+        self.fit_gp_model = fit_gp_model
+    
+    def eval_gp_mean_var(self, data):
+        """
+        Calculates the GP mean and variance given each point and adds it to the instance of the data class
+        
+        Parameters:
+        -----------
+            data: instance of the Data class, data to evaluate GP for containing at least theta_vals and x_vals
+        
+        Returns:
+        -------
+            data: instance of the Data class, data containing at least theta_vals, x_vals, gp_mean, and gp_var
+        
+        """
+        feature_eval_data = np.vstack((data.theta_vals, data.x_vals))
+        gp_mean = np.zeros(data.get_num_theta())
+        gp_var = np.zeros(data.get_num_theta())
+        
+        #Loop over all eval points
+        for i in range(len(feature_eval_data)):
+            eval_point = np.array([feature_eval_data[i]])
+            #Evaluate GP given parameter set theta and state point value
+            model_mean, model_std = self.fit_gp_model.predict(eval_point[0:1], return_std=True)
+            model_variance = model_std**2
+            
+            gp_mean[i] = model_mean
+            gp_var[i] = model_variance
+          
+        data.gp_mean = gp_mean
+        data.gp_var = gp_var
+        
+        return data
+    
     def eval_gp(self, param_set, x_vals):
         """
         Evaluates GP model for an emulator GPBO
@@ -1205,7 +1334,7 @@ class GPBO_Driver:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_params, method, simulator, exp_data, sim_data, sim_sse_data):
+    def __init__(self, cs_params, method, simulator, exp_data, sim_data, sim_sse_data, val_data, val_sse_data):
         """
         Parameters
         ----------
@@ -1215,6 +1344,8 @@ class GPBO_Driver:
         exp_data: Instance of Data class, Class containing at least theta, x, and y experimental data
         sim_data: Instance of Data class, class containing at least theta, x, and y simulation data
         sim_sse_data: Instance of Data class, class containing at least theta, x, and sse simulation data
+        val_data: Instance of Data class, class containing at least theta and x simulation data
+        val_sse_data: Instance of Data class, class containing at least theta and x sse simulation data
         
         """
         # Constructor method
@@ -1224,11 +1355,13 @@ class GPBO_Driver:
         self.exp_data = exp_data
         self.sim_data = sim_data
         self.sim_sse_data = sim_sse_data
+        self.val_data = val_data
+        self.val_sse_data = val_sse_data
                
     
     def gen_emulator(self, kernel, lenscl, outputscl, retrain_GP):
         """
-        Sets GP Emulator class equipped with training data based on the method class instance
+        Sets GP Emulator class (equipped with training data) and validation data based on the method class instance
         
         Returns:
         --------
@@ -1237,10 +1370,12 @@ class GPBO_Driver:
         #Determine Emulator Status, set gp_data data, and ininitalize correct GP_Emulator child class
         if self.method.emulator == False:
             all_gp_data = self.sim_sse_data
-            gp_emulator = Type_1_GP_Emulator(all_gp_data, None, None, kernel, lenscl, self.simulator.noise_std, outputscl, retrain_GP, self.cs_params.seed)
+            all_val_data = self.val_sse_data
+            gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, kernel, lenscl, self.simulator.noise_std, outputscl, retrain_GP, self.cs_params.seed)
         else:
             all_gp_data = self.sim_data
-            gp_emulator = Type_2_GP_Emulator(all_gp_data, None, None, kernel, lenscl, self.simulator.noise_std, outputscl, retrain_GP, self.cs_params.seed)
+            all_val_data = self.val_data
+            gp_emulator = Type_2_GP_Emulator(all_gp_data, all_val_data, None, None, kernel, lenscl, self.simulator.noise_std, outputscl, retrain_GP, self.cs_params.seed)
             
         return gp_emulator
     
