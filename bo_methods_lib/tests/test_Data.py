@@ -131,7 +131,7 @@ def test_get_dim_theta(exp_data, expected):
 #This test function tests whether get_num_x_vals checker works correctly
                     #exp_data, expected
 get_num_x_vals_list = [[exp_data1, 5],
-                       [exp_data2, 5]]
+                       [exp_data2, 5**2]] #Note: Since this is exp_data, number of thetas is defined by num_x_data**dim_x
 @pytest.mark.parametrize("exp_data, expected", get_num_x_vals_list)
 def test_get_num_x_vals(exp_data, expected):
     assert exp_data.get_num_x_vals() == expected
@@ -141,26 +141,8 @@ def test_get_num_x_vals(exp_data, expected):
 get_dim_x_vals_list = [[exp_data1, 1],
                        [exp_data2, 2]]
 @pytest.mark.parametrize("exp_data, expected", get_dim_x_vals_list)
-def test_get_num_x_vals(exp_data, expected):
+def test_get_dim_x_vals(exp_data, expected):
     assert exp_data.get_dim_x_vals() == expected
-    
-#This test function tests whether get_num_gp_data checker works correctly
-                    #exp_data, expected
-get_num_gp_data_list = [[exp_data1, 5],
-                        [exp_data2, 5**2]]
-@pytest.mark.parametrize("exp_data, expected", get_num_gp_data_list)
-def test_get_num_x_vals(exp_data, expected):
-    assert exp_data.get_num_gp_data() == expected
-                        
-#This test function tests whether get_dim_gp_data checker works correctly
-                      #method, exp_data, expected
-get_dim_gp_data_list = [[GPBO_Methods(Method_name_enum(1)), exp_data1, 2],
-                        [GPBO_Methods(Method_name_enum(1)), exp_data2, 8],
-                        [GPBO_Methods(Method_name_enum(3)), exp_data1, 3],
-                        [GPBO_Methods(Method_name_enum(3)), exp_data2, 10]]
-@pytest.mark.parametrize("method, exp_data, expected", get_dim_gp_data_list)
-def test_get_dim_x_vals(method, exp_data, expected):
-    assert exp_data.get_dim_gp_data(method) == expected
     
 #This test function tests whether norm_feature_data checker works correctly
                     #exp_data, 
@@ -179,7 +161,7 @@ norm_feature_data_list = [[exp_data1,
                                    [1.0]])]
                        ]
 @pytest.mark.parametrize("exp_data, expected_theta, expected_x", norm_feature_data_list)
-def test_get_num_x_vals(exp_data, expected_theta, expected_x):
+def test_norm_feature_data(exp_data, expected_theta, expected_x):
     scaled_exp_data = exp_data.norm_feature_data()
     assert np.allclose(expected_theta, scaled_exp_data.theta_vals) 
     assert np.allclose(expected_x, scaled_exp_data.x_vals) 
@@ -200,7 +182,7 @@ def test_unnorm_feature_data(exp_data):
 train_test_idx_split_list = [[cs_params1, exp_data1], 
                              [cs_params2, exp_data2]]
 @pytest.mark.parametrize("cs_params, exp_data", train_test_idx_split_list)
-def test_unnorm_feature_data(cs_params, exp_data):
+def test_train_test_idx_split(cs_params, exp_data):
     train_idx, test_idx = exp_data.train_test_idx_split(cs_params)
     union_set = set(train_idx).union(test_idx)
     assert (len(train_idx) + len(test_idx) == exp_data.get_num_theta())

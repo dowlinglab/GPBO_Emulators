@@ -456,7 +456,7 @@ class Simulator:
         theta_true = self.theta_true.reshape(1,-1)
         theta_true_repeated = np.vstack([theta_true]*len(x_vals))
         #Create exp_data class and add valies
-        exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None, self.bounds_theta, self.bounds_x)
+        exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None, self.bounds_theta_reg, self.bounds_x)
         #Generate y data for exp_data calss instance
         exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std)
         
@@ -667,44 +667,6 @@ class Data:
         dim_x_data = vector_to_1D_array(self.x_vals).shape[1]
         
         return dim_x_data
-        
-    def get_num_gp_data(self):
-        """
-        Defines the total number of data the GP will have access to to train on
-        
-        Parameters
-        ----------
-        Method: class, fully defined methods class which determines which method will be used
-        
-        Returns
-        -------
-        num_data: int, the number of data the GP will have access to
-        """
-        
-        num_gp_data = int(self.get_num_theta())
-        
-        return num_gp_data
-    
-    def get_dim_gp_data(self, Method):
-        """
-        Defines the total dimension of data the GP will have access to to train on
-        
-        Parameters
-        ----------
-        Method: class, fully defined methods class which determines which method will be used
-        
-        Returns
-        -------
-        num_data: int, the number of data the GP will have access to
-        """
-        #Add dimensions of theta and x to get GP training dimensions if using emulator GP
-        if Method.emulator == True:
-            dim_gp_data = int(self.get_dim_x_vals() + self.get_dim_theta())
-        #Otherwise just use number of theta dimensions
-        else:
-            dim_gp_data = int(self.get_dim_theta())
-        
-        return dim_gp_data
     
     def norm_feature_data(self):
         """
@@ -834,7 +796,7 @@ class GP_Emulator:
     """
     # Class variables and attributes
     
-    def __init__(self, gp_data, kernel, lenscl, outputscl, retrain_GP, seed):
+    def __init__(self, gp_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed):
         """
         Parameters
         ----------
@@ -847,7 +809,7 @@ class GP_Emulator:
         """
         #Assert statements
         #Check for int/float
-        assert all(isinstance(var, float) or var is None for var in [lenscl, outputscl]) == True, "lenscl and outputscl must be float or None"
+        assert all(isinstance(var, (float,int)) or var is None for var in [lenscl, outputscl]) == True, "lenscl and outputscl must be float, int, or None"
         #CHeck for int
         assert isinstance(retrain_GP, int) == True, "retrain_GP must be int"
         #Check for > 0
@@ -861,10 +823,58 @@ class GP_Emulator:
         self.gp_data = gp_data
         self.kernel = kernel
         self.lenscl = lenscl
+        self.noise_std = noise_std
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
+        self.seed = seed
         
-    def __set_kernel(self, simulator):
+    def get_num_gp_data(self):
+        """
+        Defines the total number of data the GP will have access to to train on
+        
+        Parameters
+        ----------
+        Method: class, fully defined methods class which determines which method will be used
+        
+        Returns
+        -------
+        num_data: int, the number of data the GP will have access to
+        """
+        
+        num_gp_data = int(self.gp_data.get_num_theta())
+        
+        return num_gp_data
+    
+    def set_gp_model(self):
+        """
+        Generates the GP model for the process in sklearn
+        
+        Parameters
+        -----------
+            noise_std: float, int, the noise associated with the true data
+            
+        Returns
+        --------
+            gp_model: instance of GaussianProcessRegressor in Sklearn containing kernel, optimizer, etc.
+        """
+        
+        #Don't optimize anything if lengthscale and outputscale are being set
+        if self.lenscl != None and self.outputscl != None:
+            optimizer = None
+        else:
+            optimizer = "fmin_l_bfgs_b"
+            
+        kernel = self.__set_kernel()
+        kernel = self.__set_lenscl(kernel)
+        kernel = self.__set_outputscl(kernel)
+
+        #Define model
+        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=self.noise_std**2, n_restarts_optimizer=self.retrain_GP, 
+                                            random_state = self.seed, optimizer = optimizer)
+        
+        return gp_model
+    
+    def __set_kernel(self):
         """
         Sets kernel of the model
         
@@ -872,23 +882,20 @@ class GP_Emulator:
         ----------
         simulator: instance of Simulator class containinf at least the noise stdev
         
-        """
-        kern = self.kernel
-        noise_level = simulator.noise_std**2
-        
+        """ 
         #Set noise kernel
-        noise_kern = WhiteKernel(noise_level=noise_level, noise_level_bounds= "fixed") #bounds = "fixed"
+        noise_kern = WhiteKernel(noise_level=self.noise_std**2, noise_level_bounds= "fixed") #bounds = "fixed"
     
-        if kern.value == 3: #RBF
+        if self.kernel.value == 3: #RBF
             kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))*RBF(length_scale_bounds=(1e-2, 1e2)) + noise_kern 
-        elif kern.value == 2: #Matern 3/2
+        elif self.kernel.value == 2: #Matern 3/2
             kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))*Matern(length_scale_bounds=(1e-05, 1e7), nu=1.5) + noise_kern
         else:
             kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-5,10))*Matern(length_scale_bounds=(1e-05, 1e7), nu=2.5) + noise_kern 
             
         return kernel
     
-    def __set_lenscl(self, kernel, method):
+    def __set_lenscl(self, kernel):
         """
         Set the lengthscale of the model. Need to have training data before 
         
@@ -901,11 +908,9 @@ class GP_Emulator:
         -------
         kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
         """
-        train_data_dim = self.train_data.get_dim_gp_data(method)
-        lenscl = self.set_lenscl
-        #If setting lengthscale, ensure lengthscale values are fixed, otherwise initialize them at 1
-        if lenscl != None:
-            lengthscale_val = np.ones(train_data_dim)*lenscl
+        #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim, otherwise initialize them at 1
+        if self.lenscl != None:
+            lengthscale_val = np.ones(self.get_dim_gp_data())*self.lenscl
             kernel.k1.k2.length_scale_bounds = "fixed"
         else:
             lengthscale_val = np.ones(train_data_dim)
@@ -927,14 +932,24 @@ class GP_Emulator:
         -------
         kernel: The kernel of the model defined by __set_kernel with the outputscale bounds set
         """
-        outputscl = self.outputscl
-        #Set outputscl kernel to be optimized if necessary
-        if outputscl != None:
-            kernel.k1.k1.constant_value == outputscl
+        #Set outputscl kernel to be optimized if necessary or set it to the default of 1 to be optimized
+        if self.outputscl != None:
+            kernel.k1.k1.constant_value = self.outputscl
             kernel.k1.k1.constant_value_bounds = "fixed"
+        else:
+            kernel.k1.k1.constant_value == 1.0
             
         return kernel
+    
+    def train_gp(self):
+        """
+        Trains the GP given training data
         
+        Returns
+        -------
+            
+        """
+               
 #https://www.geeksforgeeks.org/inheritance-and-composition-in-python/
 #AD: Use composition instead of inheritance here, pass an instance of CaseStudyParameters to the init function
 class Type_1_GP_Emulator(GP_Emulator):
@@ -949,17 +964,30 @@ class Type_1_GP_Emulator(GP_Emulator):
     """
     # Class variables and attributes
     
-    def __init__(self, gp_data, train_data, test_data, kernel, lenscl, outputscl, retrain_GP, seed):
+    def __init__(self, gp_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed):
         """
         Parameters
         ----------
         """
         # Constructor method
-        super().__init__(gp_data, kernel, lenscl, outputscl, retrain_GP, seed)
+        super().__init__(gp_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
         self.train_data = train_data
         self.test_data = test_data
-    
         
+    def get_dim_gp_data(self):
+        """
+        Defines the total dimension of data the GP will have access to to train on
+        
+        Returns
+        -------
+        num_data: int, the number of data the GP will have access to
+        """
+
+        #Just use number of theta dimensions
+        dim_gp_data = int(self.gp_data.get_dim_theta())
+        
+        return dim_gp_data
+    
     def set_train_test_data(self, cs_params):
         """
         finds the simulation data to use as training data
@@ -971,7 +999,7 @@ class Type_1_GP_Emulator(GP_Emulator):
             train_data: Instance of data class. Contains all theta, x, and y data for training data
             test_data: Instance of data class. Contains all theta, x, and y data for testing data
         """
-        #Find train indecies
+        #Get train test idx
         train_idx, test_idx = self.gp_data.train_test_idx_split(cs_params)
         
         #Get train data
@@ -987,6 +1015,8 @@ class Type_1_GP_Emulator(GP_Emulator):
         y_test = self.gp_data.y_vals[test_idx]
         test_data = Data(theta_test, x_test, y_test, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
         self.test_data = test_data
+        
+        return train_data, test_data
         
     def eval_gp(self, param_set):
         """
@@ -1015,16 +1045,29 @@ class Type_2_GP_Emulator(GP_Emulator):
     """
     # Class variables and attributes
     
-    def __init__(self, gp_data, train_data, test_data, kernel, lenscl, outputscl, retrain_GP, seed):
+    def __init__(self, gp_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed):
         """
         Parameters
         ----------
         CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
         """
         # Constructor method
-        super().__init__(gp_data, train_data, kernel, lenscl, outputscl, retrain_GP, seed)
+        super().__init__(gp_data, train_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
         self.train_data = train_data
         self.test_data = test_data
+                  
+    def get_dim_gp_data(self):
+        """
+        Defines the total dimension of data the GP will have access to to train on
+        
+        Returns
+        -------
+        num_data: int, the number of data the GP will have access to
+        """
+        #Number of theta dimensions + number of x dimensions
+        dim_gp_data = int(self.gp_data.get_dim_x_vals() + self.gp_data.get_dim_theta())
+        
+        return dim_gp_data
     
     def set_train_test_data(self, cs_params):
         """
@@ -1053,6 +1096,8 @@ class Type_2_GP_Emulator(GP_Emulator):
         y_test = self.gp_data.y_vals[test_idx]
         test_data = Data(theta_test, x_test, y_test, None, None, None, None, self.gp_data.bounds_theta, self.gp_data.bounds_x)
         self.test_data = test_data
+        
+        return train_data, test_data
         
     def eval_gp(self, param_set, x_vals):
         """
@@ -1192,10 +1237,10 @@ class GPBO_Driver:
         #Determine Emulator Status, set gp_data data, and ininitalize correct GP_Emulator child class
         if self.method.emulator == False:
             all_gp_data = self.sim_sse_data
-            gp_emulator = Type_1_GP_Emulator(all_gp_data, None, None, kernel, lenscl, outputscl, retrain_GP, self.cs_params.seed)
+            gp_emulator = Type_1_GP_Emulator(all_gp_data, None, None, kernel, lenscl, self.simulator.noise_std, outputscl, retrain_GP, self.cs_params.seed)
         else:
             all_gp_data = self.sim_data
-            gp_emulator = Type_2_GP_Emulator(all_gp_data, None, None, kernel, lenscl, outputscl, retrain_GP, self.cs_params.seed)
+            gp_emulator = Type_2_GP_Emulator(all_gp_data, None, None, kernel, lenscl, self.simulator.noise_std, outputscl, retrain_GP, self.cs_params.seed)
             
         return gp_emulator
     
