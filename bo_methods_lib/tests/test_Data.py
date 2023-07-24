@@ -185,5 +185,5 @@ train_test_idx_split_list = [[cs_params1, exp_data1],
 def test_train_test_idx_split(cs_params, exp_data):
     train_idx, test_idx = exp_data.train_test_idx_split(cs_params)
     union_set = set(train_idx).union(test_idx)
-    assert (len(train_idx) + len(test_idx) == exp_data.get_num_theta())
-    assert set(range(exp_data.get_num_theta())).issubset(union_set)
+    assert (len(train_idx) + len(test_idx) == len(exp_data.get_unique_theta()))
+    assert set(range(len(exp_data.get_unique_theta()))).issubset(union_set)
