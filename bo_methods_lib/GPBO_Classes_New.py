@@ -1,8 +1,8 @@
 import numpy as np
 import random
-# import math
-# from scipy.stats import norm
-# from scipy import integrate
+import math
+from scipy.stats import norm
+from scipy import integrate
 # import torch
 # import csv
 # import gpytorch
@@ -10,7 +10,7 @@ import random
 # import pandas as pd
 # import os
 # import time
-# import Tasmanian
+import Tasmanian
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
 from scipy.stats import qmc
@@ -40,7 +40,7 @@ class Method_name_enum(Enum):
     """
     #Ensure that only values 1 to 5 are chosen
     if Enum in range(1, 6) == False:
-        raise ValueError("There are only three options for Enum: 1 to 5")
+        raise ValueError("There are only five options for Enum: 1 to 5")
         
     A1 = 1
     B1 = 2
@@ -96,6 +96,20 @@ class CS_name_enum(Enum):
         
     CS1 = 1
     CS2 = 2
+    
+class Ep_enum(Enum):
+    """
+    The base class for any Method for calculating the decay of the exploration parameter
+    
+    """
+    #Ensure that only values 1 to 5 are chosen
+    if Enum in range(1, 4) == False:
+        raise ValueError("There are only four options for Enum: 1 to 4")
+        
+    CONSTANT = 1
+    DECAY = 2
+    BOYLE = 3
+    JASRASARIA = 4
 
 class GPBO_Methods:
     """
@@ -1187,19 +1201,25 @@ class Type_1_GP_Emulator(GP_Emulator):
         
         return best_error
     
-    def eval_gp_ei(expected_improvement):
+    def eval_gp_ei(self, exp_data, ep_bias, best_error):
         """
         Evaluates gp acquisition function. In this case, ei
         
         Parmaeters
         ----------
-        expected_improvement: Instance of Expected_Improvement class
-
+        y_exp, ndarray, y Experimental data
+        ep_bias, Instance of Exploration_Bias, The exploration bias class
+        best_error: float, the best error of the method
         """
-        
         #Call instance of expected improvement class
+        ei_class = Expected_Improvement(ep_bias, self.gp_val_data.gp_mean, self.gp_val_data.gp_var, exp_data, best_error)
         #Call correct method of ei calculation
+        val_ei = ei_class.type_1()
+        #Add ei data to validation data class
+        self.gp_val_data.ei = val_ei
         
+        return val_ei    
+    
 class Type_2_GP_Emulator(GP_Emulator):
     """
     The base class for Gaussian Processes
@@ -1440,19 +1460,26 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return best_error
     
-    def eval_gp_ei(expected_improvement):
+    def eval_gp_ei(self, exp_data, ep_bias, best_error, method):
         """
         Evaluates gp acquisition function. In this case, ei
         
         Parmaeters
         ----------
-        expected_improvement: Instance of Expected_Improvement class
-
+        y_exp, ndarray. Y experimental data
+        ep_bias, Instance of Exploration_Bias, The exploration bias class
+        best_error: float, the best error of the method
+        method: instance of Method class, method for GP Emulation
         """
-        
         #Call instance of expected improvement class
+        ei_class = Expected_Improvement(ep_bias, self.gp_val_data.gp_mean, self.gp_val_data.gp_var, exp_data, best_error)
         #Call correct method of ei calculation
-
+        ei = ei_class.type_2(method)
+        #Add ei data to validation data class
+        self.gp_val_data.ei = ei
+        
+        return ei
+    
 ##Again, composition instead of inheritance      
 class Expected_Improvement():  
     """
@@ -1462,42 +1489,68 @@ class Expected_Improvement():
     Methods
     --------------
     __init__
+    set_ep
     type_1_ei
     type_2_ei
     """
     #AD Comment: What part of the acquisition function code can be generalized and what is specific to type1 and type2? 
-    def __init__(self, ep, gp_mean, gp_var, CaseStudyParameters):
+    def __init__(self, ep_bias, gp_mean, gp_var, exp_data, best_error):
         """
         Parameters
         ----------
-        CaseStudyParameters: Class, class containing the values associated with CaseStudyParameters
-        ep: float, the exploration parameter of the function  
+        ep_bias: instance of Exploration_Bias, class with information of exploration bias parameter
         gp_mean: tensor, The GP model's mean evaluated over param_set 
         gp_var: tensor, The GP model's variance evaluated over param_set
+        best_error: float, the smallest value of the error in the training data
         """
+        assert len(gp_mean) == len(gp_var), "gp_mean and gp_var must be arrays of the same length"
+        assert isinstance(ep_bias, Exploration_Bias), "ep_bias must be instance of Exploration_Bias"
+        assert isinstance(best_error, (float, int)), "best_error must be float or int. Calculate with GP_Emulator.calc_best_error()"
         
         # Constructor method
-        self.CaseStudyParameters = CaseStudyParameters
-        self.ep = ep
+        self.ep_bias = ep_bias
         self.gp_mean = gp_mean
         self.gp_var = gp_var
+        self.exp_data = exp_data
+        self.best_error = best_error
     
-    def type_1(self, param_set, best_error, Method):
+    def type_1(self):
         """
-        Calculates expected improvement of type 1 (standard) GPBO
-        
-        Parameters:
-        -----------
-        param_set: ndarray (1 x n_dim), Array of GP evaluation data
-        best_error: float, the best error of the problem so far
-        Method: class, fully defined methods class which determines which method will be used
+        Calculates expected improvement of type 1 (standard) GPBO given gp_mean, gp_var, and best_error data
         
         Returns
         -------
-        ei: float, The expected improvement of the parameter set
+        ei: ndarray, The expected improvement of the parameter set
         """
         
-    def type_2(self, param_set, best_error, Method):
+        ei = np.ones(len(self.gp_mean))
+
+        for i in range(len(self.gp_mean)):
+            pred_stdev = np.sqrt(self.gp_var[i]) #1xn_test
+            #Checks that all standard deviations are positive
+            if pred_stdev > 0:
+                #Calculates z-score based on Ke's formula
+                z = (self.best_error*self.ep_bias.ep_curr - self.gp_mean[i])/pred_stdev #scaler
+                #Calculates ei based on Ke's formula
+                #Explotation term
+                ei_term_1 = (self.best_error*self.ep_bias.ep_curr - self.gp_mean[i])*norm.cdf(z) #scaler
+                #Exploration Term
+                ei_term_2 = pred_stdev*norm.pdf(z) #scaler
+                ei[i] = ei_term_1 +ei_term_2 #scaler
+
+#                 print("z",z)
+#                 print("Exploitation Term",ei_term_1)
+#                 print("CDF", norm.cdf(z))
+#                 print("Exploration Term",ei_term_2)
+#                 print("PDF", norm.pdf(z))
+#                 print("EI",ei,"\n")
+            else:
+                #Sets ei to zero if standard deviation is zero
+                ei[i] = 0
+            
+        return ei
+        
+    def type_2(self, method):
         """
         Calculates expected improvement of type 2 (emulator) GPBO
         
@@ -1505,13 +1558,360 @@ class Expected_Improvement():
         -----------
         param_set: ndarray (1 x n_dim), Array of GP evaluation data
         best_error: float, the best error of the problem so far
-        Method: class, fully defined methods class which determines which method will be used
+        method: class, fully defined methods class which determines which method will be used
         
         Returns
         -------
         ei: float, The expected improvement of the parameter set
         """
+        #Num thetas = #gp mean pts/number of x_vals for Type 2
+        num_thetas = int(len(self.gp_mean)/self.exp_data.get_num_x_vals()) 
+        #Define n as the number of x values
+        n = self.exp_data.get_num_x_vals()
+        #Initialize array of eis for eacch theta
+        ei = np.zeros(num_thetas)
+        #Loop over number of thetas in theta_val_set
+        for i in range(num_thetas): #1 ei per theta and also 1 sse per theta   
+            #For method 2C
+            if method.method_name.value == 5: #2C
+                #for ei, ensure that a gp mean and gp_var corresponding to a certain theta are sent to self.__calc_ei_sparse()
+                ei[i] = self.__calc_ei_sparse(self.gp_mean[i*n:i*n+n], self.gp_var[i*n:i*n+n], self.exp_data.y_vals)
+            
+            elif method.method_name.value in (3,4): #2A and 2B
+                #Initialize ei for specific theta
+                ei_theta = 0
+                #Loop over number of exp data points
+                for j in range(self.exp_data.get_num_x_vals()):
+                    #Calculate ei for a given theta (sum of ei for each x over all thetas)
+                    if method.method_name.value == 3: #2A
+                        ei_temp = self.__calc_ei_emulator(self.gp_mean[i*n+j], self.gp_var[i*n+j], self.exp_data.y_vals[j])
 
+                    else: #2B
+                        ei_temp = self.__calc_ei_log_emulator(self.gp_mean[i*n+j], self.gp_var[i*n+j], self.exp_data.y_vals[j])
+                    
+                    ei_theta += ei_temp
+
+                    #Save ei to array
+                    ei[i] = ei_theta            
+                
+            else:
+                raise ValueError("method.method_name.value must be 3 (2A), 4 (2B), or 5 (2C)")
+        
+        return ei            
+        
+    def __calc_ei_emulator(self, gp_mean, gp_var, y_target): #Will need obj toggle soon
+        """ 
+        Calculates the expected improvement of the emulator approach without log scaling (2A)
+        Parameters
+        ----------
+            gp_mean: ndarray, model mean at same state point x and experimental data value y
+            gp_variance: ndarray, model variance at same state point x and experimental data value y
+            y_target: ndarray, the expected value of the function from data or other source
+
+        Returns
+        -------
+            ei: ndarray, the expected improvement for one term of the GP model
+        """
+
+        #Defines standard devaition
+        pred_stdev = np.sqrt(gp_var) #1xn
+
+        #If variance is zero this is important
+        with np.errstate(divide = 'warn'):
+            #Creates upper and lower bounds and described by Alex Dowling's Derivation
+            bound_a = ((y_target - gp_mean) +np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev #1xn
+            bound_b = ((y_target - gp_mean) -np.sqrt(self.best_error**self.ep_bias.ep_curr))/pred_stdev #1xn
+            bound_lower = np.min([bound_a,bound_b])
+            bound_upper = np.max([bound_a,bound_b])        
+
+            #Creates EI terms in terms of Alex Dowling's Derivation
+            ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
+            ei_term1_comp2 = (self.best_error**self.ep_bias.ep_curr) - (y_target - gp_mean)**2 #1xn
+
+            ei_term2_comp1 = 2*(y_target - gp_mean)*pred_stdev #1xn
+            ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
+            ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
+            ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
+
+            ei_term3_comp1 = bound_upper*ei_eta_upper #1xn
+            ei_term3_comp2 = bound_lower*ei_eta_lower #1xn
+
+            ei_term3_comp3 = (1/2)*math.erf(bound_upper/np.sqrt(2)) #1xn
+            ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2)) #1xn  
+
+            ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
+            ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4 #1xn
+            ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
+
+            ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
+            ei_term3 = -gp_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
+            ei = ei_term1 + ei_term2 + ei_term3 #1xn
+
+        return ei
+
+    def __calc_ei_log_emulator(self, gp_mean, gp_var, y_target):
+        """ 
+        Calculates the expected improvement of the emulator approach with log scaling (2B)
+        Parameters
+        ----------
+            gp_mean: ndarray, model mean at same state point x and experimental data value y
+            gp_variance: ndarray, model variance at same state point x and experimental data value y
+            y_target: ndarray, the expected value of the function from data or other source
+
+        Returns
+        -------
+            ei: ndarray, the expected improvement for one term of the GP model
+        """
+        #Defines standard devaition
+        pred_stdev = np.sqrt(gp_var) #1xn
+
+        with np.errstate(divide = 'warn'):
+            #Creates upper and lower bounds and described by Alex Dowling's Derivation
+            bound_a = ((y_target - gp_mean) +np.sqrt(np.exp(self.best_error**self.ep_bias.ep_curr)))/pred_stdev #1xn
+            bound_b = ((y_target - gp_mean) -np.sqrt(np.exp(self.best_error**self.ep_bias.ep_curr)))/pred_stdev #1xn
+            bound_lower = np.min([bound_a,bound_b])
+            bound_upper = np.max([bound_a,bound_b])
+            args = (self.best_error, gp_mean, pred_stdev, y_target, self.ep_bias.ep_curr)
+            ei_term_1 = (self.best_error*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
+            ei_term_2_out = integrate.quad(self.__ei_approx_ln_term, bound_lower, bound_upper, args = args, full_output = 1)
+            ei_term_2 = (-2)*ei_term_2_out[0] 
+            term_2_abs_err = ei_term_2_out[1]
+            ei = ei_term_1 + ei_term_2
+  
+        return ei
+
+    def __ei_approx_ln_term(self, epsilon, best_error, gp_mean, gp_stdev, y_target, ep): 
+        """ 
+        Calculates the integrand of expected improvement of the emulator approach using the log version
+        Parameters
+        ----------
+            epsilon: The random variable. This is the variable that is integrated w.r.t
+            best_error: float, the best predicted error encountered
+            gp_mean: ndarray, model mean
+            gp_stdev: ndarray, model stdev
+            y_target: ndarray, the expected value of the function from data or other source
+            ep: float, the numerical bias towards exploration, zero is the default
+
+        Returns
+        -------
+            ei_term_2_integral: ndarray, the expected improvement for term 2 of the GP model for method 2B
+        """
+        #Define inside term
+        #In the case that this is zero, what should happen?
+        inside_term = abs((y_target - gp_mean - gp_stdev*epsilon))
+        
+        #Check that inside term is > numerical 0
+        if inside_term > 0:
+            ei_term_2_integral = math.log( inside_term )*norm.pdf(epsilon) 
+            
+        else:
+            #If it is 0, then ei tern 2 int is negative infinity
+            ei_term_2_integral = -np.inf
+        
+        return ei_term_2_integral
+
+    def __calc_ei_sparse(self, gp_mean, gp_var, y_target):
+        """
+        Calculates the expected improvement of the emulator approach with a sparse grid approach (2C)
+        Parameters
+        ----------
+            gp_mean: ndarray, model mean at same state point x and experimental data value y
+            gp_var: ndarray, model variance at same state point x and experimental data value y
+            y_target: ndarray, the expected value of the function from data or other source
+            
+        Returns
+        -------
+            ei: ndarray, the expected improvement for one term of the GP model
+        """
+        #Obtain Sparse Grid points and weights
+        points_p, weights_p = self.__get_sparse_grids(len(y_target),output=0,depth=3, rule='gauss-hermite', verbose = False)
+        
+        #Initialize EI
+        ei_temp = 0
+        #Loop over sparse grid weights and nodes
+        for i in range(len(points_p)):
+            #Initialize SSE
+            sse_temp = 0
+            #Loop over experimental data points
+            
+            for j in range(len(y_target)):
+                sse_temp += (y_target[j] - gp_mean[j] - gp_var[j]*points_p[i,j])**2
+    #             SSE_Temp += (Yexp[j] - GP_mean[j] - ep - GP_stdev[j]*points_p[i,j])**2 #If there is an ep, need to add
+            #Apply max operator (equivalent to max[SSE_Temp - (best_error*ep),0])
+            min_list = [sse_temp - (self.best_error*self.ep_bias.ep_curr),0] 
+            ei_temp += weights_p[i]*(-np.min(min_list)) 
+            
+        return ei_temp
+
+    def __get_sparse_grids(self, dim, output=0,depth=3, rule="gauss-hermite", verbose = False, alpha = 0):
+        '''
+        This function shows the sparse grids generated with different rules
+        Parameters:
+        -----------
+            dim: int, sparse grids dimension. Default is zero
+            output: int, output level for function that would be interpolated
+            depth: int, depth level. Controls density of abscissa points
+            rule: str, quadrature rule. Default is 'gauss-legendre'
+            verbose: bool, determines Whether or not plot of sparse grid is shown. False by default
+            alpha: int, specifies $\alpha$ parameter for the integration weight $\rho(x)$, ignored when rule doesn't have this parameter
+
+        Returns:
+        --------
+            points_p: ndarray, The sparse grid points
+            weights_p: ndarray, The Gauss-Legendre Quadrature Rule Weights    
+
+        Other:
+        ------
+            A figure shows 2D sparse grids (if verbose = True)
+        '''
+        #Get grid points and weights
+        grid_p = Tasmanian.SparseGrid()
+        grid_p.makeGlobalGrid(dim,output,depth,"level",rule)
+        points_p = grid_p.getPoints()
+        weights_p = grid_p.getQuadratureWeights()
+        if verbose == True:
+            #If verbose is true print the sparse grid
+            for i in range(len(points_p)):
+                plt.scatter(points_p[i,0], points_p[i,1])
+                plt.title('Sparse Grid of '+ rule.title(), fontsize = 20)
+                plt.xlabel(r"$ϵ$ Dimension 1", fontsize = 20)
+                plt.ylabel(r"$ϵ$ Dimension 2", fontsize = 20)
+            plt.show()
+        return points_p, weights_p
+
+class Exploration_Bias():
+    """
+    Base class for methods of calculating explroation bias at each bo iter
+    """
+    def __init__(self, ep0, ep_curr, ep_enum, ep_inc, ep_f, improvement, best_error, mean_of_var):
+        """
+        Parameters
+        ----------
+        ep0: float, the original exploration parameter of the function
+        ep_curr: float, the current exploration parameter value
+        ep_enum: Enum, whether Boyle, Jasrasaria, Constant, or Decay ep method will be used
+        bo_iter: int, The value of the current BO iteration
+        e_inc: float, the increment for the Boyle's method for calculating exploration parameter: Default is 1.5
+        ep_f: float, The final exploration parameter value: Default is 0.01
+        improvement: Bool, Determines whether last objective was an improvement. Default False
+        best_error: float, The lowest error value in the training data
+        mean_of_var: float, The value of the average of all posterior variances
+        """
+        assert all((isinstance(param, (float, int)) or param is None) for param in [ep0, ep_curr, ep_inc, ep_f, best_error, mean_of_var]), "ep0, ep_curr, ep_inc, ep_f, best_error, and mean_of_var must be int, float, or None"
+        assert isinstance(ep_enum, Enum) == True, "ep_enum must be an Enum instance of Class Ep_enum"
+        assert isinstance(improvement, bool) == True or improvement is None, "improvement must be bool or None"
+        # Constructor method
+        self.ep0 = ep0
+        self.ep_curr = ep_curr
+        self.ep_enum = ep_enum
+        self.ep_inc = ep_inc
+        self.ep_f = ep_f
+        self.improvement = improvement
+        self.best_error = best_error
+        self.mean_of_var = mean_of_var
+        
+    def set_ep(self):
+        """
+        Updates value of exploration parameter based on one of the four alpha heuristics
+        
+        Returns:
+        --------
+        ep: The current exploration parameter
+        
+        """        
+        if self.ep_enum.value == 1: #Constant if using constant method
+            assert self.ep0 is not None
+            ep = self.__set_ep_constant()
+            
+        elif self.ep_enum.value == 2: #Decay
+            assert bo_iter is not None
+            assert ep_f is not None
+            ep = self.__set_ep_decay(bo_iter, ep_f)
+            
+        elif self.ep_enum.value == 3: #Boyle
+            assert bo_iter is not None
+            assert self.ep0 is not None
+            assert ep_inc is not None
+            assert improvement is not None
+            ep = self.__set_ep_boyle(ep_inc, improvement)
+            
+        else: #Jasrasaria
+            assert best_error is not None
+            assert mean_of_var is not None
+            ep = self.__set_ep_jasrasaria()
+        
+        #Set current ep to new ep
+        self.ep_curr = ep
+            
+    def __set_ep_boyle(self, ep_inc, improvement):
+        """
+        Creates a value for the exploration parameter
+
+        Parameters
+        ----------
+            e_inc: float, the increment for the Boyle's method for calculating exploration parameter: Default is 1.5
+            improvement: Bool, Determines whether last objective was an improvement. Default False
+            
+        Returns
+        --------
+            ep: The exploration parameter for the iteration
+        """
+        if self.ep_curr is None:
+            self.ep_curr = self.ep0
+            
+        if improvement == True:
+            ep = self.ep_curr*self.ep_inc
+        else:
+            ep = self.ep_curr/self.ep_inc
+
+        return ep
+    
+    def __set_ep_jasrasaria(self):
+        """
+        Creates a value for the exploration parameter based off of Jasrasaria's heuristic
+
+        Returns
+        --------
+            ep: The exploration parameter for the iteration
+        """
+        
+        ep = self.mean_of_var/self.best_error
+        
+        return ep
+    
+    def __set_ep_constant(self):
+        """
+        Creates a value for the exploration parameter based off of a constant value
+
+        Returns
+        --------
+            ep: The exploration parameter for the iteration
+        """
+        ep = self.ep0
+        
+        return ep
+    
+    def __set_ep_decay(self, bo_iter, ep_f):
+        """
+        Creates a value for the exploration parameter based off of a decay heuristic
+        
+        Parameters
+        ----------
+            bo_iter: int, The value of the current BO iteration
+            ep_f: float, The final exploration parameter value: Default is 0.01
+        
+        Returns
+        --------
+            ep: The exploration parameter for the iteration
+        """
+        if bo_iter < 30 and self.ep0 > 0: #Works
+            alpha = -np.log(self.ep_f/self.ep0)/30
+            ep = self.ep0*np.exp(-alpha*self.bo_iter)
+        else: 
+            ep = 0.01
+            
+        return ep
+    
 class GPBO_Driver:
     """
     The base class for running the GPBO Workflow

@@ -42,7 +42,11 @@ Enum_array = [[Method_name_enum, -1],
               [CS_name_enum, -1],
               [CS_name_enum, 0],
               [CS_name_enum, 3],
-              [CS_name_enum, "string"]]
+              [CS_name_enum, "string"],
+              [Ep_enum, -1],
+              [Ep_enum, 0],
+              [Ep_enum, 5],
+              [Ep_enum, "string"]]
 @pytest.mark.parametrize("function, enum_value", Enum_array)
 def test_CaseStudyParameters(function, enum_value):
     with pytest.raises(ValueError):
