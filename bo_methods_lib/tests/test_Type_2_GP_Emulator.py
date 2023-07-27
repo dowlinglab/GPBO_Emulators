@@ -229,6 +229,25 @@ def test_calc_best_error(gp_emulator, cs_params, exp_data, sim_sse_data):
     train_data, test_data = gp_emulator.set_train_test_data(cs_params)
     best_error = gp_emulator.calc_best_error(exp_data)
     assert np.isclose(best_error, min(sim_sse_data.y_vals), rtol = 1e-6)
+    
+#This test function tests whether eval_gp_ei works correctly
+#Define exploration bias and set ep_curr
+ep_bias = Exploration_Bias(ep0, None, Ep_enum(1), None, None, None, None, None, None, None)
+ep_bias.set_ep()
+
+                 #gp_emulator, exp_data, method, expected_len
+eval_gp_ei_list = [[gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(3)), 25],
+                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(4)), 25],
+                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(5)), 25]]
+@pytest.mark.parametrize("gp_emulator, exp_data, method, expected_l", eval_gp_ei_list)
+def test_eval_gp_ei(gp_emulator, exp_data, method, expected_l):
+    gp_model = gp_emulator.set_gp_model()#Set model
+    gp_emulator.train_gp(gp_model) #Train model    
+    gp_mean, gp_var = gp_emulator.eval_gp_mean_var() #Calc mean, var of gp 
+    best_error = gp_emulator.calc_best_error(exp_data) #Calc best error
+    ei = gp_emulator.eval_gp_ei(exp_data, ep_bias, best_error, method)
+    
+    assert len(ei) == expected_l
 
 ##How to write these tests given stochasticity of GP?
 

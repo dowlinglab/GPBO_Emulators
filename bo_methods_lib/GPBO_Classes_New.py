@@ -1471,6 +1471,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         best_error: float, the best error of the method
         method: instance of Method class, method for GP Emulation
         """
+        assert method.method_name.value >= 3, "Must be using method 2A, 2B, or 2C"
         #Call instance of expected improvement class
         ei_class = Expected_Improvement(ep_bias, self.gp_val_data.gp_mean, self.gp_val_data.gp_var, exp_data, best_error)
         #Call correct method of ei calculation
@@ -1504,7 +1505,9 @@ class Expected_Improvement():
         best_error: float, the smallest value of the error in the training data
         """
         assert len(gp_mean) == len(gp_var), "gp_mean and gp_var must be arrays of the same length"
+        assert all(isinstance(arr, np.ndarray) for arr in (gp_mean, gp_var, exp_data.y_vals)), "gp_mean, gp_var, and exp_data.y_vals must be ndarrays"
         assert isinstance(ep_bias, Exploration_Bias), "ep_bias must be instance of Exploration_Bias"
+        assert isinstance(exp_data, Data), "exp_data must be instance of Data"
         assert isinstance(best_error, (float, int)), "best_error must be float or int. Calculate with GP_Emulator.calc_best_error()"
         
         # Constructor method
@@ -1522,7 +1525,6 @@ class Expected_Improvement():
         -------
         ei: ndarray, The expected improvement of the parameter set
         """
-        
         ei = np.ones(len(self.gp_mean))
 
         for i in range(len(self.gp_mean)):
@@ -1556,8 +1558,6 @@ class Expected_Improvement():
         
         Parameters:
         -----------
-        param_set: ndarray (1 x n_dim), Array of GP evaluation data
-        best_error: float, the best error of the problem so far
         method: class, fully defined methods class which determines which method will be used
         
         Returns
@@ -1612,40 +1612,42 @@ class Expected_Improvement():
         -------
             ei: ndarray, the expected improvement for one term of the GP model
         """
-
         #Defines standard devaition
         pred_stdev = np.sqrt(gp_var) #1xn
+        
+        if pred_stdev > 0:
+            #If variance is close to zero this is important
+            with np.errstate(divide = 'warn'):
+                #Creates upper and lower bounds and described by Alex Dowling's Derivation
+                bound_a = ((y_target - gp_mean) +np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev #1xn
+                bound_b = ((y_target - gp_mean) -np.sqrt(self.best_error**self.ep_bias.ep_curr))/pred_stdev #1xn
+                bound_lower = np.min([bound_a,bound_b])
+                bound_upper = np.max([bound_a,bound_b])        
 
-        #If variance is zero this is important
-        with np.errstate(divide = 'warn'):
-            #Creates upper and lower bounds and described by Alex Dowling's Derivation
-            bound_a = ((y_target - gp_mean) +np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev #1xn
-            bound_b = ((y_target - gp_mean) -np.sqrt(self.best_error**self.ep_bias.ep_curr))/pred_stdev #1xn
-            bound_lower = np.min([bound_a,bound_b])
-            bound_upper = np.max([bound_a,bound_b])        
+                #Creates EI terms in terms of Alex Dowling's Derivation
+                ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
+                ei_term1_comp2 = (self.best_error**self.ep_bias.ep_curr) - (y_target - gp_mean)**2 #1xn
 
-            #Creates EI terms in terms of Alex Dowling's Derivation
-            ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower) #1xn
-            ei_term1_comp2 = (self.best_error**self.ep_bias.ep_curr) - (y_target - gp_mean)**2 #1xn
+                ei_term2_comp1 = 2*(y_target - gp_mean)*pred_stdev #1xn
+                ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
+                ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
+                ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
 
-            ei_term2_comp1 = 2*(y_target - gp_mean)*pred_stdev #1xn
-            ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
-            ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
-            ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
+                ei_term3_comp1 = bound_upper*ei_eta_upper #1xn
+                ei_term3_comp2 = bound_lower*ei_eta_lower #1xn
 
-            ei_term3_comp1 = bound_upper*ei_eta_upper #1xn
-            ei_term3_comp2 = bound_lower*ei_eta_lower #1xn
+                ei_term3_comp3 = (1/2)*math.erf(bound_upper/np.sqrt(2)) #1xn
+                ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2)) #1xn  
 
-            ei_term3_comp3 = (1/2)*math.erf(bound_upper/np.sqrt(2)) #1xn
-            ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2)) #1xn  
+                ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
+                ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4 #1xn
+                ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
 
-            ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
-            ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4 #1xn
-            ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
-
-            ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
-            ei_term3 = -gp_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
-            ei = ei_term1 + ei_term2 + ei_term3 #1xn
+                ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
+                ei_term3 = -gp_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
+                ei = ei_term1 + ei_term2 + ei_term3 #1xn
+        else:
+            ei = 0
 
         return ei
 
@@ -1664,19 +1666,22 @@ class Expected_Improvement():
         """
         #Defines standard devaition
         pred_stdev = np.sqrt(gp_var) #1xn
-
-        with np.errstate(divide = 'warn'):
-            #Creates upper and lower bounds and described by Alex Dowling's Derivation
-            bound_a = ((y_target - gp_mean) +np.sqrt(np.exp(self.best_error**self.ep_bias.ep_curr)))/pred_stdev #1xn
-            bound_b = ((y_target - gp_mean) -np.sqrt(np.exp(self.best_error**self.ep_bias.ep_curr)))/pred_stdev #1xn
-            bound_lower = np.min([bound_a,bound_b])
-            bound_upper = np.max([bound_a,bound_b])
-            args = (self.best_error, gp_mean, pred_stdev, y_target, self.ep_bias.ep_curr)
-            ei_term_1 = (self.best_error*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
-            ei_term_2_out = integrate.quad(self.__ei_approx_ln_term, bound_lower, bound_upper, args = args, full_output = 1)
-            ei_term_2 = (-2)*ei_term_2_out[0] 
-            term_2_abs_err = ei_term_2_out[1]
-            ei = ei_term_1 + ei_term_2
+            
+        if pred_stdev > 0:
+            with np.errstate(divide = 'warn'):
+                #Creates upper and lower bounds and described by Alex Dowling's Derivation
+                bound_a = ((y_target - gp_mean) +np.sqrt(np.exp(self.best_error**self.ep_bias.ep_curr)))/pred_stdev #1xn
+                bound_b = ((y_target - gp_mean) -np.sqrt(np.exp(self.best_error**self.ep_bias.ep_curr)))/pred_stdev #1xn
+                bound_lower = np.min([bound_a,bound_b])
+                bound_upper = np.max([bound_a,bound_b])
+                args = (self.best_error, gp_mean, pred_stdev, y_target, self.ep_bias.ep_curr)
+                ei_term_1 = (self.best_error*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
+                ei_term_2_out = integrate.quad(self.__ei_approx_ln_term, bound_lower, bound_upper, args = args, full_output = 1)
+                ei_term_2 = (-2)*ei_term_2_out[0] 
+                term_2_abs_err = ei_term_2_out[1]
+                ei = ei_term_1 + ei_term_2
+        else:
+            ei = 0
   
         return ei
 
@@ -1783,7 +1788,7 @@ class Exploration_Bias():
     """
     Base class for methods of calculating explroation bias at each bo iter
     """
-    def __init__(self, ep0, ep_curr, ep_enum, ep_inc, ep_f, improvement, best_error, mean_of_var):
+    def __init__(self, ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var):
         """
         Parameters
         ----------
@@ -1791,6 +1796,7 @@ class Exploration_Bias():
         ep_curr: float, the current exploration parameter value
         ep_enum: Enum, whether Boyle, Jasrasaria, Constant, or Decay ep method will be used
         bo_iter: int, The value of the current BO iteration
+        bo_iter: int, The maximum values of BO iterations
         e_inc: float, the increment for the Boyle's method for calculating exploration parameter: Default is 1.5
         ep_f: float, The final exploration parameter value: Default is 0.01
         improvement: Bool, Determines whether last objective was an improvement. Default False
@@ -1800,10 +1806,13 @@ class Exploration_Bias():
         assert all((isinstance(param, (float, int)) or param is None) for param in [ep0, ep_curr, ep_inc, ep_f, best_error, mean_of_var]), "ep0, ep_curr, ep_inc, ep_f, best_error, and mean_of_var must be int, float, or None"
         assert isinstance(ep_enum, Enum) == True, "ep_enum must be an Enum instance of Class Ep_enum"
         assert isinstance(improvement, bool) == True or improvement is None, "improvement must be bool or None"
+        assert all((isinstance(param, (int)) or param is None) for param in [bo_iter, bo_iter_max]), "bo_iter and bo_iter_max must be int or None"
         # Constructor method
         self.ep0 = ep0
         self.ep_curr = ep_curr
         self.ep_enum = ep_enum
+        self.bo_iter = bo_iter
+        self.bo_iter_max = bo_iter_max
         self.ep_inc = ep_inc
         self.ep_f = ep_f
         self.improvement = improvement
@@ -1824,33 +1833,62 @@ class Exploration_Bias():
             ep = self.__set_ep_constant()
             
         elif self.ep_enum.value == 2: #Decay
-            assert bo_iter is not None
-            assert ep_f is not None
-            ep = self.__set_ep_decay(bo_iter, ep_f)
+            assert self.ep0 is not None
+            assert self.ep_f is not None 
+            assert self.ep0*self.ep_f > 0 #Assert same sign
+            assert self.ep0 !=0 #Assert that the starting value is not zero (can't decay from 0)
+            assert self.bo_iter is not None
+            assert self.bo_iter_max is not None
+            assert self.bo_iter_max-1 >= self.bo_iter >= 0
+            
+            ep = self.__set_ep_decay()
             
         elif self.ep_enum.value == 3: #Boyle
-            assert bo_iter is not None
             assert self.ep0 is not None
-            assert ep_inc is not None
-            assert improvement is not None
-            ep = self.__set_ep_boyle(ep_inc, improvement)
+            assert self.ep_inc is not None
+            assert self.improvement is not None
+            ep = self.__set_ep_boyle()
             
         else: #Jasrasaria
-            assert best_error is not None
-            assert mean_of_var is not None
+            assert self.best_error is not None
+            assert self.mean_of_var is not None
             ep = self.__set_ep_jasrasaria()
         
         #Set current ep to new ep
         self.ep_curr = ep
             
-    def __set_ep_boyle(self, ep_inc, improvement):
+    def __set_ep_constant(self):
+        """
+        Creates a value for the exploration parameter based off of a constant value
+
+        Returns
+        --------
+            ep: The exploration parameter for the iteration
+        """
+        ep = self.ep0
+        
+        return ep
+    
+    def __set_ep_decay(self):
+        """
+        Creates a value for the exploration parameter based off of a decay heuristic
+        
+        Returns
+        --------
+            ep: The exploration parameter for the iteration
+        """
+        decay_steps = int(self.bo_iter_max/2)
+        if self.bo_iter < decay_steps:
+#             ep = self.ep0*((self.ep_f/self.ep0)**(self.bo_iter/decay_steps))
+            ep = self.ep0 + (self.ep_f - self.ep0)*(self.bo_iter/self.bo_iter_max)
+        else: 
+            ep = self.ep_f
+            
+        return ep
+    
+    def __set_ep_boyle(self):
         """
         Creates a value for the exploration parameter
-
-        Parameters
-        ----------
-            e_inc: float, the increment for the Boyle's method for calculating exploration parameter: Default is 1.5
-            improvement: Bool, Determines whether last objective was an improvement. Default False
             
         Returns
         --------
@@ -1859,7 +1897,7 @@ class Exploration_Bias():
         if self.ep_curr is None:
             self.ep_curr = self.ep0
             
-        if improvement == True:
+        if self.improvement == True:
             ep = self.ep_curr*self.ep_inc
         else:
             ep = self.ep_curr/self.ep_inc
@@ -1878,39 +1916,7 @@ class Exploration_Bias():
         ep = self.mean_of_var/self.best_error
         
         return ep
-    
-    def __set_ep_constant(self):
-        """
-        Creates a value for the exploration parameter based off of a constant value
 
-        Returns
-        --------
-            ep: The exploration parameter for the iteration
-        """
-        ep = self.ep0
-        
-        return ep
-    
-    def __set_ep_decay(self, bo_iter, ep_f):
-        """
-        Creates a value for the exploration parameter based off of a decay heuristic
-        
-        Parameters
-        ----------
-            bo_iter: int, The value of the current BO iteration
-            ep_f: float, The final exploration parameter value: Default is 0.01
-        
-        Returns
-        --------
-            ep: The exploration parameter for the iteration
-        """
-        if bo_iter < 30 and self.ep0 > 0: #Works
-            alpha = -np.log(self.ep_f/self.ep0)/30
-            ep = self.ep0*np.exp(-alpha*self.bo_iter)
-        else: 
-            ep = 0.01
-            
-        return ep
     
 class GPBO_Driver:
     """
