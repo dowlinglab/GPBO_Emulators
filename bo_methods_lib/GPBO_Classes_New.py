@@ -419,6 +419,9 @@ class Simulator:
         -------
             y_data: ndarray, The simulated y training data
         """        
+        #Set seed
+        if self.case_study_params.seed is not None:
+            np.random.seed(self.case_study_params.seed)
         #Define an array to store y values in
         y_data = []
         #Get number of points
@@ -1641,10 +1644,11 @@ class Expected_Improvement():
 
                 ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3 #1xn
                 ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4 #1xn
+                
                 ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
-
                 ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
                 ei_term3 = -gp_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
+                print(ei_term1, ei_term2, ei_term3 )
                 ei = ei_term1 + ei_term2 + ei_term3 #1xn
         else:
             ei = 0

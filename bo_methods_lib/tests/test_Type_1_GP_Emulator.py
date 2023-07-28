@@ -102,7 +102,7 @@ save_fig = False
 save_data = False
 num_data = None
 seed = 1
-method = GPBO_Methods(Method_name_enum(5)) #1A
+method = GPBO_Methods(Method_name_enum(1)) #1A
 
 #Define cs_params, simulator, and exp_data for CS1
 cs_params1 = CaseStudyParameters(cs_name1, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, 
