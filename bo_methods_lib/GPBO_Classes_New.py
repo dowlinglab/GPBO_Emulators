@@ -1979,75 +1979,78 @@ class GPBO_Driver:
             
         return gp_emulator
     
-    def optimize_acquisition_func(self, Method, param_set):
+    def optimize_acquisition_func(self):
         """
         Optimizes the acquisition function
         
         Parameters
         ----------
-        Method: class, fully defined methods class which determines which method will be used
-        param_set: ndarray (n_train x n_dim), Array of GP evaluation data
-        
+
         Returns
         -------
-        Theta_Best: ndarray, Array of Best Theta values (as determined by max(ei)) for each iteration 
-        Theta_Opt: ndarray, Array of Optimal Theta values (as determined by min(sse)) for each iteration
+        max_ei_theta: ndarray, Array of Best Theta values (as determined by max(ei)) for each iteration 
         """
+        ##Calculate best error
+        ## calculate ep (for that iter)
+        ### Optimize EI given theta using all validation points as starting points for optimization
+        ## Loop over each validation point
+            #Call scipy method to optimize EI given theta
+            #Choose theta with max EI after optimization
+            
+    def optimize_objective_func(self):
+        """
+        Optimizes the acquisition function
         
-    def eval_GP_over_grid(self, Method, bounds_p, x_vals, best_error):
+        Parameters
+        ----------
+
+        Returns
+        -------
+        min_obj_theta: ndarray, Array of Optimal Theta values (as determined by min(sse)) for each iteration
+        """
+        ### Optimize obj func given theta using all validation points as starting points for optimization
+        ## Loop over each validation point
+            #Call scipy method to optimize sse given theta
+            #Choose theta with min sse after optimization
+        
+    def eval_GP_over_grid(self):
         """
         Evaluates GP for data values over a grid (GP Mean, GP var, EI, SSE)
         
         Parameters
         ----------
-        Method: class, fully defined methods class which determines which method will be used
-        bounds_p: ndarray, The bounds for searching for Theta_True.
-        x_vals: ndarray, experimental state points (x data)
-        best_error: float, the best error given the Method and case study so far
         
         Returns:
         --------
-        theta_mesh: ndarray, the meshgrid over which the GP was evaluated
-        ei: ndarray, the expected improvement over theta_mesh
-        gp_mean: tensor, The GP model's mean evaluated over theta_mesh 
-        gp_var: tensor, The GP model's variance evaluated over theta_mesh 
-        sse: ndarray, the sum of squared errors over theta_mesh
-        sse_var: ndarray, the variance over the sum of squared errors over theta_mesh
-        best_error: ndarray, the best_error over theta_mesh
+        Grid_Data: list of Data instances, contains all data from evaluating the model over a grid
         
         """
-        
-    def augment_train_data(self, sim_data, best_theta):
+        #Make list of Data classes
+        #Loop over number of theta combinations
+            #Make instance of Data class and add following to it
+            #Make meshgrid of theta combination in 2 parameters keeping the rest of the values at their true value
+            #Evaluate model mean, stdev, sse, and sse_var
+            #Evaluate ei
+                
+    def augment_train_data(self):
         """
         Augments training data given a new point
 
         Parameters
         ----------
-        sim_data: Class, Class containing at least the theta_vals and y data for simulations
-        best_theta: Class, Class containing at least the best_theta value as defined by max(EI) and the corresponding y_sim value
 
         Returns:
         --------
         sim_data: ndarray. The training parameter set with the augmented theta values
         """
-        sim_data.theta_vals = np.vstack((sim_data.theta_vals, best_theta.theta_vals)) #(q x t)
-        sim_data.y_vals = np.concatenate((sim_data.y_vals, best_theta.y_vals)) #(q x t)
+        #Augment theta_best to training data
 
-        return sim_data
-
-    def run_bo_iter(self, train_data, test_data, param_set, x_vals, y_vals, GP_model, Method):
+    def run_bo_iter(self):
         """
         Runs a single GPBO iteration
         
         Parameters
         ----------
-        train_data: ndarray, The training data
-        test_data: ndarray, The testing data
-        param_set: ndarray (n_train x n_dim), Array of GP evaluation data
-        x_vals: ndarray, experimental state points (x data)
-        y_vals: ndarray, experimental output data (y data)
-        GP_model: Class, Fully defined model for GP
-        Method: class, fully defined methods class which determines which method will be used
         
         Returns:
         --------
@@ -2062,49 +2065,34 @@ class GPBO_Driver:
         time_per_iter: float, time of iteration
         final_hyperparams: ndarray, array of hyperparameters used for GP predictions
         """
-    def run_bo_to_term(self, train_data, test_data, param_set, x_vals, y_vals, GP_model, Method, EI_tol = 1e-7):
+        #Train GP model
+        #Evaluate model mean, variance, sse, and sse_variance
+        #Call optimize acquistion fxn
+        #Call optimize objective function
+        #Call eval_all_data (optional)
+        #Call stopping criteria
+        #Call augment_train_data
+        
+    def run_bo_to_term(self, EI_tol = 1e-7):
         """
         Runs multiple GPBO iterations
         
         Parameters
         ----------
-        train_data: ndarray, The training data
-        test_data: ndarray, The testing data
-        param_set: ndarray (n_train x n_dim), Array of GP evaluation data
-        x_vals: ndarray, experimental state points (x data)
-        y_vals: ndarray, experimental output data (y data)
-        GP_model: Class, Fully defined model for GP
-        Method: class, fully defined methods class which determines which method will be used
         EI_tol: float, tolerance for EI_max maximum value for GPBO early termination. Default 1e-7.
         
         Returns:
         --------
-        Saves relavent data and figures for one BO iterations
-        
-        BO_Theta_Best: ndarray, Array of all Best Theta values (as determined by max(ei)) for each iteration 
-        BO_Theta_Opt: ndarray, Array of all Optimal Theta values (as determined by min(sse)) for each iteration
-        BO_Min_SSE: ndarray, all minimum SSE values (as determined by min(sse)) for each iteration
-        BO_SSE_abs_min: ndarray, absolute minimum SSE values (as determined by min(sse)) showing only the lowest over all iterations 
-        BO_Max_EI: ndarray, absolute maximum EI values (as determined by max(ei)) at each iteration   
-        BO_gp_mean_vals: ndarray, Array of GP mean values for GP approximation for all BO iterations
-        BO_gp_var_vals: ndarray,  Array of GP variance values for GP approximation for all BO iterations
-        BO_median_time_per_iter: float, median time of BO iterations
-        BO_final_hyperparams: ndarray, array of hyperparameters used for GP predictions for all BO iterations
+        terminate: bool, Whether to terminate BO iterations
         """
+        #If EI < 1e-6 for >=2 iterations, terminate early
         
-    def bo_restart(self, train_data, test_data, param_set, x_vals, y_vals, GP_model, Method, EI_tol = 1e-7):
+    def bo_restart(self, EI_tol = 1e-7):
         """
         Runs multiple GPBO iterations
         
         Parameters
         ----------
-        train_data: ndarray, The training data
-        test_data: ndarray, The testing data
-        param_set: ndarray (n_train x n_dim), Array of GP evaluation data
-        x_vals: ndarray, experimental state points (x data)
-        y_vals: ndarray, experimental output data (y data)
-        GP_model: Class, Fully defined model for GP
-        Method: class, fully defined methods class which determines which method will be used
         EI_tol: float, tolerance for EI_max maximum value for GPBO early termination. Default 1e-7.
         
         Returns:
@@ -2121,3 +2109,7 @@ class GPBO_Driver:
         Run_median_time_per_iter: ndarray, median time of iteration for each GPBO restart
         Run_final_hyperparams: ndarray, array of hyperparameters used for GP predictions for all BO iterations for each GPBO restart
         """
+        
+        #Initialize gp_emualtor
+        #Choose training data
+        ##Call bo_iter
