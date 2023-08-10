@@ -102,31 +102,32 @@ save_fig = False
 save_data = False
 num_data = None
 seed = 1
+ei_tol = 1e-6
 method = GPBO_Methods(Method_name_enum(1)) #1A
 
 #Define cs_params, simulator, and exp_data for CS1
 cs_params1 = CaseStudyParameters(cs_name1, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, 
-                                DateTime, seed)
+                                DateTime, seed, ei_tol)
 simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, cs_params1)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 sim_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x)
 sim_sse_data1 = simulator1.sim_data_to_sse_sim_data(method, sim_data1, exp_data1)
 val_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, True)
 val_sse_data1 = simulator1.sim_data_to_sse_sim_data(method, val_data1, exp_data1, True)
-gp_emulator1_s = Type_1_GP_Emulator(sim_sse_data1, val_sse_data1, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
-gp_emulator1_e = Type_2_GP_Emulator(sim_data1, val_data1, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
+gp_emulator1_s = Type_1_GP_Emulator(sim_sse_data1, val_sse_data1, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+gp_emulator1_e = Type_2_GP_Emulator(sim_data1, val_data1, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
 
 #Define cs_params, simulator, and exp_data for CS2
 cs_params2 = CaseStudyParameters(cs_name2, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, 
-                                DateTime, seed)
+                                DateTime, seed, ei_tol)
 simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, cs_params2)
 exp_data2 = simulator2.gen_exp_data(num_x_data, gen_meth_x)
 sim_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x)
 sim_sse_data2 = simulator2.sim_data_to_sse_sim_data(method, sim_data2, exp_data2)
 val_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, True)
 val_sse_data2 = simulator2.sim_data_to_sse_sim_data(method, val_data2, exp_data2, True)
-gp_emulator2_s = Type_1_GP_Emulator(sim_sse_data2, val_sse_data2, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
-gp_emulator2_e = Type_2_GP_Emulator(sim_data2, val_data2, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
+gp_emulator2_s = Type_1_GP_Emulator(sim_sse_data2, val_sse_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+gp_emulator2_e = Type_2_GP_Emulator(sim_data2, val_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
 
 #This test function tests whether get_num_gp_data checker works correctly
                     #emulator class, expected value
@@ -148,7 +149,7 @@ set_gp_model_list = [[Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 1, 1, 1,
                      [Type_2_GP_Emulator, sim_data2, val_data2, 2, 2, 2, 2]]
 @pytest.mark.parametrize("gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops", set_gp_model_list)
 def test_set_gp_model(gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops):
-    gp_emulator = gp_type(sim_data, val_data, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
+    gp_emulator = gp_type(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
     assert gp_emulator.kernel == Kernel_enum.MAT_52
     assert gp_emulator.lenscl == exp_lenscl
     assert gp_emulator.outputscl == exp_ops
@@ -167,7 +168,7 @@ set_gp_model_err_list = [[sim_data1, val_data1, "string", 1, 1, 1],
 @pytest.mark.parametrize("sim_data, val_data, kernel, lenscl, outputscl, retrain_GP", set_gp_model_err_list)
 def test_set_gp_model_err(sim_data, val_data, kernel, lenscl, outputscl, retrain_GP):
     with pytest.raises((AssertionError, ValueError)):   
-        gp_emulator = Type_2_GP_Emulator(sim_data, val_data, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
+        gp_emulator = Type_2_GP_Emulator(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
 
 #This test function tests whether get_dim_gp_data checker works correctly
                         #Emulator class, number of GP training dims
@@ -199,7 +200,7 @@ train_gp_list = [[cs_params1, Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 
                  [cs_params1, Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 2, 2, np.ones(2)*2, 2]]
 @pytest.mark.parametrize("cs_params, gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops", train_gp_list)
 def test_train_gp(cs_params, gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops):
-    gp_emulator = gp_type(sim_data, val_data, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
+    gp_emulator = gp_type(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
     train_data, test_data = gp_emulator.set_train_test_data(cs_params)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model)
@@ -220,7 +221,7 @@ train_gp_opt_list = [[cs_params1, Type_1_GP_Emulator, sim_sse_data1, val_sse_dat
 @pytest.mark.parametrize("cs_params, gp_type, sim_data, val_data, lenscl, outputscl", train_gp_opt_list)
 def test_train_gp_opt(cs_params, gp_type, sim_data, val_data, lenscl, outputscl):
     tol = 1e-7
-    gp_emulator = gp_type(sim_data, val_data, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed)
+    gp_emulator = gp_type(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
     train_data, test_data = gp_emulator.set_train_test_data(cs_params)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model)

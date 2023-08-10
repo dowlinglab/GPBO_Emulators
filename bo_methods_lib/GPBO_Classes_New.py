@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import warnings
 import math
 from scipy.stats import norm
 from scipy import integrate
@@ -234,6 +235,7 @@ class CaseStudyParameters:
         assert all(var > 0 for var in [bo_iter_tot, bo_run_tot, seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be > 0"
         #Check for str or None
         assert isinstance(DateTime, (str)) == True or DateTime == None, "DateTime must be str or None"
+        assert isinstance(ei_tol, (float,int)) and ei_tol >= 0, "ei_tol must be a positive float or integer"
         
         # Constructor method
         self.cs_name = cs_name
@@ -525,7 +527,7 @@ class Simulator:
             
         #Warn user if >5000 pts generated
         if repeat_x*repeat_theta > 5000:
-            raise Warning("More than 5000 points will be generated!")
+            warnings.warn("More than 5000 points will be generated!")
      
         #Generate all rows of simulation data
         sim_data = Data(None, None, None, None, None, None, None, None, self.bounds_theta_reg, self.bounds_x)
