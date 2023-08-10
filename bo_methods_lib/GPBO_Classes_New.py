@@ -199,7 +199,7 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed, ei_tol = 1e-6):
+    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed, ei_tol):
         """
         Parameters
         ----------
@@ -638,24 +638,6 @@ class Data:
         self.gp_var = gp_var
         self.bounds_theta = bounds_theta
         self.bounds_x = bounds_x
-        
-    
-    def get_num_theta(self):
-        """
-        Defines the total number of theta data the GP will have access to to train on
-        
-        Parameters
-        ----------
-        Method: class, fully defined methods class which determines which method will be used
-        
-        Returns
-        -------
-        num_theta_data: int, the number of data the GP will have access to
-        """
-        assert self.theta_vals is not None, "theta_vals must be defined"
-        num_theta_data = len(self.theta_vals)
-        
-        return num_theta_data
     
     def __get_unique(self, all_vals):
         """
@@ -695,7 +677,23 @@ class Data:
         assert self.x_vals is not None, "x_vals must be defined"
         unique_x_vals = self.__get_unique(self.x_vals)
         return unique_x_vals
+    
+    def get_num_theta(self):
+        """
+        Defines the total number of theta data the GP will have access to to train on
         
+        Parameters
+        ----------
+        Method: class, fully defined methods class which determines which method will be used
+        
+        Returns
+        -------
+        num_theta_data: int, the number of data the GP will have access to
+        """
+        assert self.theta_vals is not None, "theta_vals must be defined"
+        num_theta_data = len(self.theta_vals)
+        
+        return num_theta_data
     
     def get_dim_theta(self):
         """
@@ -753,43 +751,6 @@ class Data:
         
         return dim_x_data
     
-    def norm_feature_data(self):
-        """
-        Normalizes all feature data. Only call this method on unscaled data
-        
-        Returns
-        -------
-        scaled_data: Instance of Data class containing all data in original class with scaled feature values
-        """
-        assert self.theta_vals is not None, "theta_vals must be defined"
-        assert self.x_vals is not None, "x_vals must be defined"
-        assert self.bounds_theta is not None, "bounds_theta must be defined"
-        assert self.bounds_x is not None, "bounds_x must be defined"
-        
-        scaled_theta_vals = self.__normalize(self.theta_vals, self.bounds_theta)
-        scaled_x_vals = self.__normalize(self.x_vals, self.bounds_x)
-        
-        scaled_data = Data(scaled_theta_vals, scaled_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.sse_var, self.ei, self.bounds_theta, self.bounds_x) 
-        
-        return scaled_data
-    
-    def unnorm_feature_data(self):
-        """
-        Normalizes all feature data and stores it in a new instance of the data class. Only call this method on scaled data
-
-        """
-        assert self.theta_vals is not None, "theta_vals must be defined"
-        assert self.x_vals is not None, "x_vals must be defined"
-        assert self.bounds_theta is not None, "bounds_theta must be defined"
-        assert self.bounds_x is not None, "bounds_x must be defined"
-        
-        reg_theta_vals = self.__unnormalize(self.theta_vals, self.bounds_theta)
-        reg_x_vals = self.__unnormalize(self.x_vals, self.bounds_x)
-        
-        unscaled_data = Data(reg_theta_vals, reg_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.sse_var, self.ei, self.bounds_theta, self.bounds_x) 
-        
-        return unscaled_data
-    
     def __normalize(self, data, bounds):
         """
         Normalizes data between 0 and 1
@@ -833,6 +794,43 @@ class Data:
         data = scaled_data*(upper_bound - lower_bound) + lower_bound
         
         return data
+    
+    def norm_feature_data(self):
+        """
+        Normalizes all feature data. Only call this method on unscaled data
+        
+        Returns
+        -------
+        scaled_data: Instance of Data class containing all data in original class with scaled feature values
+        """
+        assert self.theta_vals is not None, "theta_vals must be defined"
+        assert self.x_vals is not None, "x_vals must be defined"
+        assert self.bounds_theta is not None, "bounds_theta must be defined"
+        assert self.bounds_x is not None, "bounds_x must be defined"
+        
+        scaled_theta_vals = self.__normalize(self.theta_vals, self.bounds_theta)
+        scaled_x_vals = self.__normalize(self.x_vals, self.bounds_x)
+        
+        scaled_data = Data(scaled_theta_vals, scaled_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.sse_var, self.ei, self.bounds_theta, self.bounds_x) 
+        
+        return scaled_data
+    
+    def unnorm_feature_data(self):
+        """
+        Normalizes all feature data and stores it in a new instance of the data class. Only call this method on scaled data
+
+        """
+        assert self.theta_vals is not None, "theta_vals must be defined"
+        assert self.x_vals is not None, "x_vals must be defined"
+        assert self.bounds_theta is not None, "bounds_theta must be defined"
+        assert self.bounds_x is not None, "bounds_x must be defined"
+        
+        reg_theta_vals = self.__unnormalize(self.theta_vals, self.bounds_theta)
+        reg_x_vals = self.__unnormalize(self.x_vals, self.bounds_x)
+        
+        unscaled_data = Data(reg_theta_vals, reg_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.sse_var, self.ei, self.bounds_theta, self.bounds_x) 
+        
+        return unscaled_data
     
     def train_test_idx_split(self, cs_params):
         """
@@ -945,35 +943,6 @@ class GP_Emulator:
         
         return num_gp_data
     
-    def set_gp_model(self):
-        """
-        Generates the GP model for the process in sklearn
-        
-        Parameters
-        -----------
-            noise_std: float, int, the noise associated with the true data
-            
-        Returns
-        --------
-            gp_model: instance of GaussianProcessRegressor in Sklearn containing kernel, optimizer, etc.
-        """
-        
-        #Don't optimize anything if lengthscale and outputscale are being set
-        if self.lenscl != None and self.outputscl != None:
-            optimizer = None
-        else:
-            optimizer = "fmin_l_bfgs_b"
-            
-        kernel = self.__set_kernel()
-        kernel = self.__set_lenscl(kernel)
-        kernel = self.__set_outputscl(kernel)
-
-        #Define model
-        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=self.noise_std**2, n_restarts_optimizer=self.retrain_GP, 
-                                            random_state = self.seed, optimizer = optimizer)
-        
-        return gp_model
-    
     def __set_kernel(self):
         """
         Sets kernel of the model
@@ -1042,6 +1011,35 @@ class GP_Emulator:
             kernel.k1.k1.constant_value == 1.0
             
         return kernel
+    
+    def set_gp_model(self):
+        """
+        Generates the GP model for the process in sklearn
+        
+        Parameters
+        -----------
+            noise_std: float, int, the noise associated with the true data
+            
+        Returns
+        --------
+            gp_model: instance of GaussianProcessRegressor in Sklearn containing kernel, optimizer, etc.
+        """
+        
+        #Don't optimize anything if lengthscale and outputscale are being set
+        if self.lenscl != None and self.outputscl != None:
+            optimizer = None
+        else:
+            optimizer = "fmin_l_bfgs_b"
+            
+        kernel = self.__set_kernel()
+        kernel = self.__set_lenscl(kernel)
+        kernel = self.__set_outputscl(kernel)
+
+        #Define model
+        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=self.noise_std**2, n_restarts_optimizer=self.retrain_GP, 
+                                            random_state = self.seed, optimizer = optimizer)
+        
+        return gp_model
         
         
     def train_gp(self, gp_model):
@@ -1204,6 +1202,26 @@ class Type_1_GP_Emulator(GP_Emulator):
         
         return dim_gp_data
     
+    def __featurize_data(self, data):
+        """
+        Calculates the GP mean and variance given each point and adds it to the instance of the data class
+        
+        Parameters:
+        -----------
+            data: instance of the Data class, data to evaluate GP for containing at least theta_vals and x_vals
+        
+        Returns:
+        -------
+            data: instance of the Data class, data containing at least theta_vals, x_vals, gp_mean, and gp_var
+        
+        """
+        assert np.all(data.theta_vals is not None), "Must have validation data theta_vals and x_vals to evaluate the GP"
+        
+        #Assign feature evaluation data as theta and x values. Create empty list to store gp approximations
+        feature_eval_data = data.theta_vals
+        
+        return feature_eval_data
+    
     def set_train_test_data(self, cs_params):
         """
         finds the simulation data to use as training data
@@ -1248,27 +1266,30 @@ class Type_1_GP_Emulator(GP_Emulator):
         self.feature_val_data = feature_val_data
         
         return train_data, test_data
-    
-    def __featurize_data(self, data):
-        """
-        Calculates the GP mean and variance given each point and adds it to the instance of the data class
-        
-        Parameters:
-        -----------
-            data: instance of the Data class, data to evaluate GP for containing at least theta_vals and x_vals
-        
-        Returns:
-        -------
-            data: instance of the Data class, data containing at least theta_vals, x_vals, gp_mean, and gp_var
-        
-        """
-        assert np.all(data.theta_vals is not None), "Must have validation data theta_vals and x_vals to evaluate the GP"
-        
-        #Assign feature evaluation data as theta and x values. Create empty list to store gp approximations
-        feature_eval_data = data.theta_vals
-        
-        return feature_eval_data
        
+    def __eval_gp_sse_var(self, data):
+        """
+        Evaluates GP model sse and sse variance and for an standard GPBO
+        Parameters
+        ----------
+        data, instance of Data class, parameter sets you want to evaluate the sse and sse variance for
+        
+        Returns
+        --------
+        sse_mean: tensor, The sse derived from gp_mean evaluated over param_set 
+        sse_var: tensor, The sse variance derived from the GP model's variance evaluated over param_set 
+        
+        """
+        #For type 1, sse is the gp_mean
+        sse_mean = data.gp_mean
+        sse_var = data.gp_var
+        
+        #Set attributes
+        data.sse = data.gp_mean
+        data.sse_var = data.gp_var
+                    
+        return sse_mean, sse_var
+    
     def eval_gp_sse_var_test(self):
         """
         Evaluates GP model sse and sse variance and for an standard GPBO for testing data
@@ -1331,29 +1352,6 @@ class Type_1_GP_Emulator(GP_Emulator):
         cand_sse_mean, cand_sse_var = self.__eval_gp_sse_var(self.cand_data)
                     
         return cand_sse_mean, cand_sse_var
-    
-    def __eval_gp_sse_var(self, data):
-        """
-        Evaluates GP model sse and sse variance and for an standard GPBO
-        Parameters
-        ----------
-        data, instance of Data class, parameter sets you want to evaluate the sse and sse variance for
-        
-        Returns
-        --------
-        sse_mean: tensor, The sse derived from gp_mean evaluated over param_set 
-        sse_var: tensor, The sse variance derived from the GP model's variance evaluated over param_set 
-        
-        """
-        #For type 1, sse is the gp_mean
-        sse_mean = data.gp_mean
-        sse_var = data.gp_var
-        
-        #Set attributes
-        data.sse = data.gp_mean
-        data.sse_var = data.gp_var
-                    
-        return sse_mean, sse_var
     
     def calc_best_error(self):
         """
@@ -1493,6 +1491,27 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return dim_gp_data
     
+    def __featurize_data(self, data):
+        """
+        Calculates the GP mean and variance given each point and adds it to the instance of the data class
+        
+        Parameters:
+        -----------
+            data: instance of the Data class, data to evaluate GP for containing at least theta_vals and x_vals
+        
+        Returns:
+        -------
+            data: instance of the Data class, data containing at least theta_vals, x_vals, gp_mean, and gp_var
+        
+        """
+        assert np.all(data.x_vals is not None), "Must have validation data theta_vals and x_vals to evaluate the GP"
+        assert np.all(data.theta_vals is not None), "Must have validation data theta_vals and x_vals to evaluate the GP"
+        
+        #Assign feature evaluation data as theta and x values. Create empty list to store gp approximations
+        feature_eval_data = np.concatenate((data.theta_vals, data.x_vals), axis =1)
+        
+        return feature_eval_data
+    
     def set_train_test_data(self, cs_params):
         """
         finds the simulation data to use as training data
@@ -1549,26 +1568,47 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         return train_data, test_data
     
-    def __featurize_data(self, data):
+    def __eval_gp_sse_var(self, data, exp_data):
         """
-        Calculates the GP mean and variance given each point and adds it to the instance of the data class
+        Evaluates GP model sse and sse variance and for an emulator GPBO
+        Parameters
+        ----------
+        data, instance of Data class, parameter sets you want to evaluate the sse and sse variance for
+        exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
         
-        Parameters:
-        -----------
-            data: instance of the Data class, data to evaluate GP for containing at least theta_vals and x_vals
-        
-        Returns:
-        -------
-            data: instance of the Data class, data containing at least theta_vals, x_vals, gp_mean, and gp_var
+        Returns
+        --------
+        sse_mean: tensor, The sse derived from gp_mean evaluated over param_set 
+        sse_var: tensor, The sse variance derived from the GP model's variance evaluated over param_set 
         
         """
-        assert np.all(data.x_vals is not None), "Must have validation data theta_vals and x_vals to evaluate the GP"
-        assert np.all(data.theta_vals is not None), "Must have validation data theta_vals and x_vals to evaluate the GP"
+        feature_eval_data = self.__featurize_data(data)
         
-        #Assign feature evaluation data as theta and x values. Create empty list to store gp approximations
-        feature_eval_data = np.concatenate((data.theta_vals, data.x_vals), axis =1)
+        #Find length of theta and number of unique x in data arrays
+        len_theta = data.get_num_theta()
+        len_x = len(data.get_unique_x())
+      
+        #Assign unique theta indecies and create an array of them
+        unique_theta_vals = data.get_unique_theta()
+     
+        #Make sse array equal length to the number of total unique thetas
+        sse_mean = np.zeros(len(unique_theta_vals))
+        sse_var = np.zeros(len(unique_theta_vals))
         
-        return feature_eval_data
+        #Iterates over evey combination of theta to find the sse for each combination
+        #Note to do this Xexp and X **must** use the same values
+        sse_idx = 0 #Used to set data in array
+        for i in range(0, len_theta, len_x):
+            sse_mean[sse_idx] = sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) #Scaler 
+            error_point = (data.gp_mean[i:i+len_x] - exp_data.y_vals) #This SSE_variance CAN be negative
+            sse_var[sse_idx] = 2*error_point@data.gp_var[i:i+len_x] #Error Propogation approach
+            sse_idx += 1
+        
+        #Set class parameters
+        data.sse = sse_mean
+        data.sse_var = sse_var
+        
+        return sse_mean, sse_var
     
     def eval_gp_sse_var_test(self, exp_data):
         """
@@ -1644,49 +1684,6 @@ class Type_2_GP_Emulator(GP_Emulator):
         cand_sse_mean, cand_sse_var = self.__eval_gp_sse_var(self.cand_data, exp_data)
         
         return cand_sse_mean, cand_sse_var
-    
-    
-    def __eval_gp_sse_var(self, data, exp_data):
-        """
-        Evaluates GP model sse and sse variance and for an emulator GPBO
-        Parameters
-        ----------
-        data, instance of Data class, parameter sets you want to evaluate the sse and sse variance for
-        exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
-        
-        Returns
-        --------
-        sse_mean: tensor, The sse derived from gp_mean evaluated over param_set 
-        sse_var: tensor, The sse variance derived from the GP model's variance evaluated over param_set 
-        
-        """
-        feature_eval_data = self.__featurize_data(data)
-        
-        #Find length of theta and number of unique x in data arrays
-        len_theta = data.get_num_theta()
-        len_x = len(data.get_unique_x())
-      
-        #Assign unique theta indecies and create an array of them
-        unique_theta_vals = data.get_unique_theta()
-     
-        #Make sse array equal length to the number of total unique thetas
-        sse_mean = np.zeros(len(unique_theta_vals))
-        sse_var = np.zeros(len(unique_theta_vals))
-        
-        #Iterates over evey combination of theta to find the sse for each combination
-        #Note to do this Xexp and X **must** use the same values
-        sse_idx = 0 #Used to set data in array
-        for i in range(0, len_theta, len_x):
-            sse_mean[sse_idx] = sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) #Scaler 
-            error_point = (data.gp_mean[i:i+len_x] - exp_data.y_vals) #This SSE_variance CAN be negative
-            sse_var[sse_idx] = 2*error_point@data.gp_var[i:i+len_x] #Error Propogation approach
-            sse_idx += 1
-        
-        #Set class parameters
-        data.sse = sse_mean
-        data.sse_var = sse_var
-        
-        return sse_mean, sse_var
     
     def calc_best_error(self, exp_data):
         """
@@ -2274,6 +2271,8 @@ class GPBO_Driver:
         sim_sse_data: Instance of Data class, class containing at least theta, x, and sse simulation data
         val_data: Instance of Data class, class containing at least theta and x simulation data
         val_sse_data: Instance of Data class, class containing at least theta and x sse simulation data
+        gp_emulator: Instance of GP_Emulator class, class containing gp_emulator data (set after training)
+        ep_bias: Instance of Exploration_Bias class, class containing exploration parameter info
         
         """
         # Constructor method
@@ -2430,16 +2429,16 @@ class GPBO_Driver:
 
         return obj
 
-    def eval_GP_over_grid(self):
+    def create_param_grids(self):
         """
-        Evaluates GP for data values over a grid (GP Mean, GP var, EI, SSE)
+        Creates data values over a grid to save for evaluation
         
         Parameters
         ----------
         
         Returns:
         --------
-        Grid_Data: list of Data instances, contains all data from evaluating the model over a grid
+        grid_data: list of Data instances, contains all data from gridding parameters
         
         """
         #Make list of Data classes
@@ -2534,7 +2533,7 @@ class GPBO_Driver:
                     ei_prev = max_ei
                     terminate = False
         
-    def run_bo_restarts(self):
+    def run_bo_restarts(self, kernel, lenscl, outputscl, retrain_GP):
         """
         Runs multiple GPBO restarts
         
@@ -2576,6 +2575,8 @@ class GPBO_Driver:
         
         #Initilize gp model
         gp_model = gp_emulator.set_gp_model()
+        
+        #Set Exploration bias class()
         
         ##Call bo_iter
         self.run_bo_to_term(False)
