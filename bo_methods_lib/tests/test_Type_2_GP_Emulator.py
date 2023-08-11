@@ -237,16 +237,51 @@ ep_bias = Exploration_Bias(ep0, None, Ep_enum(1), None, None, None, None, None, 
 ep_bias.set_ep()
 
                  #gp_emulator, exp_data, method, expected_len
-eval_gp_ei_list = [[gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(3)), 25],
-                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(4)), 25],
-                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(5)), 25]]
-@pytest.mark.parametrize("gp_emulator, exp_data, method, expected_l", eval_gp_ei_list)
-def test_eval_gp_ei(gp_emulator, exp_data, method, expected_l):
+eval_ei_test_list = [[gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(3)), 0],
+                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(4)), 0],
+                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(5)), 0]]
+@pytest.mark.parametrize("gp_emulator, exp_data, method, expected_l", eval_ei_test_list)
+def test_eval_ei_test(gp_emulator, exp_data, method, expected_l):
     gp_model = gp_emulator.set_gp_model()#Set model
     gp_emulator.train_gp(gp_model) #Train model    
-    gp_mean, gp_var = gp_emulator.eval_gp_mean_var() #Calc mean, var of gp 
+    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_test() #Calc mean, var of gp 
     best_error = gp_emulator.calc_best_error(exp_data) #Calc best error
-    ei = gp_emulator.eval_gp_ei(exp_data, ep_bias, best_error, method)
+    ei = gp_emulator.eval_ei_test(exp_data, ep_bias, best_error, method)
+    
+    assert len(ei) == expected_l
+    
+                 #gp_emulator, exp_data, method, expected_len
+eval_ei_val_list = [[gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(3)), 25],
+                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(4)), 25],
+                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(5)), 25]]
+@pytest.mark.parametrize("gp_emulator, exp_data, method, expected_l", eval_ei_val_list)
+def test_eval_ei_val(gp_emulator, exp_data, method, expected_l):
+    gp_model = gp_emulator.set_gp_model()#Set model
+    gp_emulator.train_gp(gp_model) #Train model    
+    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_val() #Calc mean, var of gp 
+    best_error = gp_emulator.calc_best_error(exp_data) #Calc best error
+    ei = gp_emulator.eval_ei_val(exp_data, ep_bias, best_error, method)
+    
+    assert len(ei) == expected_l
+    
+    
+                 #gp_emulator, exp_data, method, expected_len
+eval_ei_cand_list = [[gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(3)), 1],
+                   [gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(4)), 1],
+                   [gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(5)), 1]]
+@pytest.mark.parametrize("gp_emulator, simulator, exp_data, method, expected_l", eval_ei_cand_list)
+def test_eval_ei_cand(gp_emulator, simulator, exp_data, method, expected_l):
+    gp_model = gp_emulator.set_gp_model()#Set model
+    gp_emulator.train_gp(gp_model) #Train model 
+    candidate = Data(None, exp_data.x_vals, None, None, None, None, None, None, simulator.bounds_theta_reg, simulator.bounds_x)
+    theta = gp_emulator.gp_val_data.theta_vals[0].reshape(1,-1) #Set "candidate thetas"
+    theta_vals = np.repeat(theta.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
+    candidate.theta_vals = theta_vals
+    gp_emulator.cand_data = candidate #Set candidate point
+    gp_emulator.feature_cand_data = gp_emulator._Type_2_GP_Emulator__featurize_data(gp_emulator.cand_data)
+    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_cand() #Calc mean, var of gp 
+    best_error = gp_emulator.calc_best_error(exp_data) #Calc best error
+    ei = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error, method)
     
     assert len(ei) == expected_l
 

@@ -1748,7 +1748,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Call correct method of ei calculation
         ei = ei_class.type_2(method)
         #Add ei data to validation data class
-        self.gp_val_data.ei = ei
+        sim_data.ei = ei
         
         return ei
     
@@ -2249,6 +2249,33 @@ class Exploration_Bias():
         return ep
 
     
+class BO_Results:
+    """
+    The base class for storing important BO Results
+    
+    Methods:
+    --------
+    __init__
+    """
+    
+    # Class variables and attributes
+    
+    def __init__(self, configuration, results_df, list_gp_emulator_class, list_heat_map_data):
+        """
+        Parameters
+        ----------
+        configuration: dictionary, dictionary containing the configuration of the BO algorithm
+        results_df: pandas dataframe, dataframe including the values pertinent to BO for all BO runs
+        simulator: Instance of Simulator class, class containing values of simulation parameter data at each BO iteration
+        list_gp_emulator_class: list of GP_Emulator instances, contains all gp_emulator information at each BO iter
+        list_heat_map_data: list of Data instances or None, class containing at least theta and x data for heat map making purposes       
+        """
+        # Constructor method
+        self.configuration = configuration
+        self.results_df = results_df
+        self.list_gp_emulator_class = list_gp_emulator_class
+        self.list_heat_map_data = list_heat_map_data
+    
 class GPBO_Driver:
     """
     The base class for running the GPBO Workflow
@@ -2327,6 +2354,7 @@ class GPBO_Driver:
         """
         
         assert isinstance(reoptimize, int) and reoptimize > 0, "reoptimize must be int > 0"
+        assert isinstance(neg_ei, bool), "neg_ei must be bool!"
 
         #Find unique theta vals
         unique_thetas = self.gp_emulator.gp_val_data.get_unique_theta()
