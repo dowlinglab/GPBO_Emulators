@@ -2416,11 +2416,11 @@ class GPBO_Driver:
     opt_with_scipy(neg_ei, reoptimize)
     __scipy_fxn(theta,neg_ei, best_error)
     create_param_grids()
-    Run_bo_iter(gp_model)
-    Run_bo_to_term(terminate)
-    Run_bo_workflow(kernel, lenscl, outputscl, retrain_GP)
-    Run_bo_restarts()
-    run_bo_to_term()
+    augment_train_data(theta_best)
+    run_bo_iter(gp_model, iteration, reoptimize)
+    run_bo_to_term(gp_model reoptimize)
+    run_bo_workflow(kernel, lenscl, outputscl, retrain_GP, reoptimize)
+    run_bo_restarts(kernel, lenscl, outputscl, retrain_GP, reoptimize)
     """
     # Class variables and attributes
     
