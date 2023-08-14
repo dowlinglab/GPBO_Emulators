@@ -231,7 +231,7 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, DateTime, seed, ei_tol):
+    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_data, DateTime, seed, obj_tol, ei_tol):
         """
         Parameters
         ----------
@@ -248,7 +248,8 @@ class CaseStudyParameters:
         save_data: bool, Determines whether data will be saved. Default True
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         seed: int or None, Determines seed for randomizations. None if seed is random
-        ei_tol: float, ei at which to be terminate algorithm
+        ei_tol: float, ei at which to terminate algorithm
+        obj_tol: float, obj at which to terminate algorithm after int(bo_iter_tot*0.3) iters
         
         """
         #Assert statements
@@ -259,7 +260,7 @@ class CaseStudyParameters:
         #Check for sep fact number between 0 and 1
         assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
         #Chrck for bool
-        assert all(isinstance(var, (bool)) for var in [normalize, eval_all_pairs, save_fig, save_data]) == True, "normalize, eval_all_pairs, save_fig, and save_data must be bool"
+        assert all(isinstance(var, (bool)) for var in [normalize, eval_all_pairs, save_data]) == True, "normalize, eval_all_pairs, save_fig, and save_data must be bool"
         #Check for int
         assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be int"
         #Check for > 0
@@ -267,6 +268,7 @@ class CaseStudyParameters:
         #Check for str or None
         assert isinstance(DateTime, (str)) == True or DateTime == None, "DateTime must be str or None"
         assert isinstance(ei_tol, (float,int)) and ei_tol >= 0, "ei_tol must be a positive float or integer"
+        assert isinstance(obj_tol, (float,int)) and obj_tol >= 0, "obj_tol must be a positive float or integer"
         
         # Constructor method
         self.cs_name = cs_name
@@ -276,7 +278,6 @@ class CaseStudyParameters:
         self.eval_all_pairs = eval_all_pairs
         self.bo_iter_tot = bo_iter_tot
         self.bo_run_tot = bo_run_tot
-        self.save_fig = save_fig
         self.save_data = save_data
         self.DateTime = DateTime
         self.seed = seed
@@ -285,6 +286,7 @@ class CaseStudyParameters:
             assert isinstance(self.seed, int) == True, "Seed number must be an integer or None"
             random.seed(self.seed)
         self.ei_tol = ei_tol
+        self.obj_tol = obj_tol
 
 #I'm having trouble defining how to update num_x_data, num_theta_data and dim_x depending on the situation. Especially when adding new data or when using the meshgrid options
 class Simulator:
@@ -2380,18 +2382,19 @@ class BO_Results:
     """
     
     # Class variables and attributes
-    def __init__(self, configuration, results_df, list_gp_emulator_class, list_heat_map_data):
+    def __init__(self, configuration, simulator_class, list_gp_emulator_class, results_df, list_heat_map_data):
         """
         Parameters
         ----------
         configuration: dictionary, dictionary containing the configuration of the BO algorithm
-        results_df: pandas dataframe, dataframe including the values pertinent to BO for all BO runs
-        simulator: Instance of Simulator class, class containing values of simulation parameter data at each BO iteration
+        simulator_class: Instance of Simulator class, class containing values of simulation parameter data at each BO iteration
         list_gp_emulator_class: list of GP_Emulator instances, contains all gp_emulator information at each BO iter
+        results_df: pandas dataframe, dataframe including the values pertinent to BO for all BO runs
         list_heat_map_data: list of Data instances or None, class containing at least theta and x data for heat map making purposes       
         """
         # Constructor method
         self.configuration = configuration
+        self.simulator_class = simulator_class
         self.results_df = results_df
         self.list_gp_emulator_class = list_gp_emulator_class
         self.list_heat_map_data = list_heat_map_data
@@ -2625,20 +2628,35 @@ class GPBO_Driver:
             #Evaluate model mean, stdev, sse, and sse_var
             #Evaluate ei
                 
-    def augment_train_data(self):
+    def augment_train_data(self, theta_best):
         """
         Augments training data given a new point
 
         Parameters
         ----------
-
+        theta_best: ndarray, The theta value associated with the scipy optimize calculated best theta
+        
         Returns:
         --------
-        sim_data: ndarray. The training parameter set with the augmented theta values
+        train_data: ndarray. The training parameter set with the augmented theta values
         """
-        #Augment theta_best to training data
-
-    def run_bo_iter(self, gp_model, iteration):
+        #Repeat the theta best array once for each x value
+        theta_best_repeated = np.repeat(theta_best.reshape(1,-1), self.exp_data.get_num_x_vals() , axis =0)
+        #Add instance of Data class to theta_best
+        theta_best_data = Data(theta_best_repeated, self.exp_data.x_vals, None, None, None, None, None, None, self.simulator.bounds_theta, self.simulator.bounds_x)
+        #Calculate y values and sse for theta_best with noise
+        theta_best_data.y_vals = gen_y_data(theta_best_data, self.simulator.noise_mean, self.simulator.noise_std)
+        theta_best_sse_data = self.simulator.sim_data_to_sse_sim_data(self.method, theta_best_data, self.exp_data, False)
+        #Augment training theta, x, and y/sse data based on method type
+        if self.method.emulator == False:
+            self.gp_emulator.train_data.theta_vals = np.vstack((self.gp_emulator.train_data.theta_vals, theta_best))
+            self.gp_emulator.train_data.y_vals = np.concatenate((self.gp_emulator.train_data.y_vals, theta_best_sse_data))
+        else:
+            self.gp_emulator.train_data.theta_vals = np.vstack((self.gp_emulator.train_data.theta_vals, theta_best_repeated))
+            self.gp_emulator.train_data.x_vals = np.vstack((self.gp_emulator.train_data.x_vals, self.exp_data.x_vals))  
+            self.gp_emulator.train_data.y_vals = np.concatenate((self.gp_emulator.train_data.y_vals, theta_best_data.y_vals))
+            
+    def run_bo_iter(self, gp_model, iteration, reoptimize):
         """
         Runs a single GPBO iteration
         
@@ -2646,6 +2664,7 @@ class GPBO_Driver:
         ----------
         gp_emulator: Instance of GP_Emulator, class for GP
         iteration: int, The iteration of bo in progress
+        reoptimize: int, number of times to reoptimize ei/sse with different starting values
         
         Returns:
         --------
@@ -2660,7 +2679,10 @@ class GPBO_Driver:
         time_per_iter: float, time of iteration
         final_hyperparams: ndarray, array of hyperparameters used for GP predictions
         """
-        #Set initial exploration bias, improvement, and bo_iter
+        #STart timer
+        time_start = time.time()
+        
+        #Set initial exploration bias and bo_iter
         self.ep_bias.set_ep()
         self.ep_bias.bo_iter = iteration
         
@@ -2696,16 +2718,26 @@ class GPBO_Driver:
         
         #Set ep improvement
         self.ep_bias.improvement = improvement
-            
-        
+         
         #Call eval_all_data (optional) #Instead just make the data you would need to make heat maps?
         
-        #Set Data in new Bo_results class
+        #Calc time/ iter
+        time_end = time.time()
+        time_per_iter = time_end-time_start
         
-        #Call augment_train_data
+        #Create Results Pandas DataFrame for 1 iter
+        column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Theta Min Obj', 'Time/Iter']
+        iter_df = pd.DataFrame(columns=column_names)
+        bo_iter_results = [best_error, self.ep_bias.ep_curr, max_ei, max_ei_theta, min_sse, min_sse_theta, time_per_iter]
+        # Add the new row to the DataFrame
+        iter_df.loc[0] = bo_iter_results
         
+        #Call augment_train_data to append training data
+        self.augment_train_data(max_ei_theta)
         
-    def run_bo_to_term(self):
+        return iter_df, gp_emulator_class
+    
+    def run_bo_to_term(self, gp_model, reoptimize):
         """
         Runs multiple GPBO iterations
         
@@ -2717,6 +2749,11 @@ class GPBO_Driver:
         --------
         terminate: bool, Whether to terminate BO iterations
         """
+        #Initialize bo params
+        column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Theta Min Obj', 'Time/Iter']
+        results_df = pd.DataFrame(columns=column_names)
+        list_gp_emulator_class = []
+        
         #Initilize terminate
         terminate = False
         
@@ -2731,30 +2768,43 @@ class GPBO_Driver:
                 #Set exploration bias
                 self.ep_bias.set_ep()
                 #What should bo_iter output?
-                bo_results, terminate = self.run_bo_iter(gp_model, i) #Change me later
-                #Call stopping criteria
-                if imrovement < 1e-4:
-                    count +=1
-                if all(max_ei < self.cs_params.ei_tol and ei_prev < self.cs_params.ei_tol) == True:
-                    terminate = True
-                elif count >= 15:
-                    terminate = True
+                iter_df, gp_emulator_class = self.run_bo_iter(gp_model, i, reoptimize) #Change me later
+                #Add results to dataframe
+                results_df = pd.concat([results_df, iter_df])
+                
+                ##Add min_obj_cum. and theta at min obj cum. columns
+                #At the first iteration your best is what you got
+                if i == 0:
+                    results_df["Min Obj Cum."][i] = results_df["Min Obj"][i]
+                    results_df["Theta Min Obj Cum."][i] = results_df["Theta Min Obj"][i]
+                #Lowest sse is what you found if it's lower than what you had
+                elif results_df["Min Obj"][i] < results_df["Min Obj"][i-1]:
+                    results_df["Min Obj Cum."][i] = results_df["Min Obj"][i]
+                    results_df["Theta Min Obj Cum."][i] = results_df["Theta Min Obj"][i]
                 else:
-                    ei_prev = max_ei
-                    terminate = False
+                    results_df["Min Obj Cum."][i] = results_df["Min Obj"][i-1]
+                    results_df["Theta Min Obj Cum."][i] = results_df["Theta Min Obj"][i-1]
+                
+                #Add gp emulator data
+                list_gp_emulator_class = gp_emulator_class
+                
+                #Call stopping criteria after 1st iteration and update improvement counter
+                if imrovement < self.cs_params.obj_tol:
+                    count +=1
+                if i > 0:
+                    if all(results_df["Max EI"].iloc[i] < self.cs_params.ei_tol and results_df["Max EI"].iloc[i-1] < self.cs_params.ei_tol) == True:
+                        terminate = True
+                    #Terminate if small sse progress over 1/3 of total iteration budget
+                    elif count >= int(bo_iter_tot*0.3):
+                        terminate = True
+                    else:
+                        ei_prev = max_ei
+                        terminate = False
+
+        return results_df, list_gp_emulator_class
         
-    def run_bo_restarts(self, kernel, lenscl, outputscl, retrain_GP):
-        """
-        Runs multiple GPBO restarts
         
-        Returns:
-        --------
-        restart_bo_results, list of instances of BO_Results, Includes the results related to a set of Bo iters for all restarts
-        """
-        for i in range(cs_params.bo_run_tot):
-            self.bo_restart()
-        
-    def run_bo_workflow(self, kernel, lenscl, outputscl, retrain_GP):
+    def run_bo_workflow(self, kernel, lenscl, outputscl, retrain_GP, reoptimize):
         """
         Runs multiple GPBO iterations
         
@@ -2782,6 +2832,46 @@ class GPBO_Driver:
         gp_model = gp_emulator.set_gp_model()
         
         ##Call bo_iter
-        bo_results = self.run_bo_to_term()
+        results_df, list_gp_emulator_class = self.run_bo_to_term(gp_model)
+        
+        #Set results
+        bo_results = BO_Results(None, None, list_gp_emulator_class, results_df, None)
         
         return bo_results
+    
+    def run_bo_restarts(self, kernel, lenscl, outputscl, retrain_GP, reoptimize):
+        """
+        Runs multiple GPBO restarts
+        
+        Returns:
+        --------
+        restart_bo_results, list of instances of BO_Results, Includes the results related to a set of Bo iters for all restarts
+        """
+        restart_bo_results = []
+        simulator_class = self.simulator
+        configuration = {"DateTime String" : self.cs_params.DateTime,
+                         "Method Name Enum Value" : self.method.method_name.value,
+                         "Case Study Name" : self.cs_params.cs_name,
+                         "Exploration Bias Method Value" : self.ep_bias.ep_enum.value,
+                         "Separation Factor" : self.cs_params.sep_fact,
+                         "Normalize" : self.cs_params.normalize,
+                         "Heat Map Points Generated" : self.cs_params.eval_all_pairs,
+                         "Max BO Iters" : self.cs_params.bo_iter_tot,
+                         "Number of Workflow Restarts" : self.cs_params.bo_run_tot,
+                         "Seed" : self.cs_params.seed,
+                         "EI Tolerance" : self.cs_params.ei_tol,
+                         "Obj Improvement Tolerance" : self.cs_params.obj_tol}
+        
+        
+        
+        #Create list of heat map theta data
+        list_heat_map_data = []
+        
+        for i in range(cs_params.bo_run_tot):
+            bo_results = self.run_bo_workflow(kernel, lenscl, outputscl, retrain_GP)
+            bo_results.configuration = configuration
+            bo_results.simulator_class = simulator_class
+            bo_results.list_heat_map_data = list_heat_map_data
+            restart_bo_results.append(bo_results)
+
+        return restart_bo_results

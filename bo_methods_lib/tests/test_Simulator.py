@@ -95,9 +95,10 @@ save_data = False
 num_data = None
 seed = 1
 ei_tol = 1e-6
+obj_tol = 1e-4
 
-cs_params = CaseStudyParameters(cs_name, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, 
-                         save_fig, save_data, DateTime, seed, ei_tol)
+cs_params = CaseStudyParameters(cs_name, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_data, 
+                                DateTime, seed, ei_tol, obj_tol)
 
 simulator = simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, cs_params)
 
@@ -217,8 +218,8 @@ def test_sim_data_to_sse_sim_val_data(method, sim_data, exp_data, gen_val_data, 
 cs_name2  = CS_name_enum(2)
 indecies_to_consider2 = list(range(4, 12)) #This is what changes for different subproblems of CS2
 
-cs_params2 = CaseStudyParameters(cs_name2, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, 
-                         save_fig, save_data, DateTime, seed, ei_tol)
+cs_params2 = CaseStudyParameters(cs_name2, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_data, 
+                                 DateTime, seed, ei_tol, obj_tol)
 
 simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, cs_params2)
 

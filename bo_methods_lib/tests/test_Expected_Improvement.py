@@ -83,12 +83,13 @@ num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)
 ep_enum = Ep_enum(1)
 ei_tol = 1e-6
+obj_tol = 1e-4
 
 #Generate some experimental data
 cs_name1  = CS_name_enum(1)
 indecies_to_consider1 = list(range(0, 2)) #This is what changes for different subproblems of CS1
-cs_params1 = CaseStudyParameters(cs_name1, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, 
-                                DateTime, seed, ei_tol)
+cs_params1 = CaseStudyParameters(cs_name1, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_data, 
+                                DateTime, seed, ei_tol, obj_tol)
 simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, cs_params1)
 exp_data = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 

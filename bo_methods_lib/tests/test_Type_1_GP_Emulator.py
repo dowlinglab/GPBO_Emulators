@@ -103,11 +103,12 @@ save_data = False
 num_data = None
 seed = 1
 ei_tol = 1e-6
+obj_tol = 1e-4
 method = GPBO_Methods(Method_name_enum(1)) #1A
 
 #Define cs_params, simulator, and exp_data for CS1
-cs_params1 = CaseStudyParameters(cs_name1, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, 
-                                DateTime, seed, ei_tol)
+cs_params1 = CaseStudyParameters(cs_name1, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_data, 
+                                DateTime, seed, ei_tol, obj_tol)
 simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, cs_params1)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 sim_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x)
@@ -118,8 +119,8 @@ gp_emulator1_s = Type_1_GP_Emulator(sim_sse_data1, val_sse_data1, None, None, No
 gp_emulator1_e = Type_2_GP_Emulator(sim_data1, val_data1, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
 
 #Define cs_params, simulator, and exp_data for CS2
-cs_params2 = CaseStudyParameters(cs_name2, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_fig, save_data, 
-                                DateTime, seed, ei_tol)
+cs_params2 = CaseStudyParameters(cs_name2, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_data, 
+                                DateTime, seed, ei_tol, obj_tol)
 simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, cs_params2)
 exp_data2 = simulator2.gen_exp_data(num_x_data, gen_meth_x)
 sim_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x)
