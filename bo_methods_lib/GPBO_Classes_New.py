@@ -10,7 +10,7 @@ from scipy import integrate
 import scipy.optimize as optimize
 # import pandas as pd
 # import os
-# import time
+import time
 import Tasmanian
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
@@ -1691,22 +1691,21 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Find length of theta and number of unique x in data arrays
         len_theta = data.get_num_theta()
         len_x = len(data.get_unique_x())
-      
-        #Assign unique theta indecies and create an array of them
-        unique_theta_vals = data.get_unique_theta()
      
-        #Make sse array equal length to the number of total unique thetas
-        sse_mean = np.zeros(len(unique_theta_vals))
-        sse_var = np.zeros(len(unique_theta_vals))
+        #Make sse arrays as an empty lists. Will add one value for each training point
+        sse_mean = []
+        sse_var = []
         
         #Iterates over evey combination of theta to find the sse for each combination
         #Note to do this Xexp and X **must** use the same values
-        sse_idx = 0 #Used to set data in array
         for i in range(0, len_theta, len_x):
-            sse_mean[sse_idx] = sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) #Scaler 
+            sse_mean.append( sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) ) #Scaler 
             error_point = (data.gp_mean[i:i+len_x] - exp_data.y_vals) #This SSE_variance CAN be negative
-            sse_var[sse_idx] = 2*error_point@data.gp_var[i:i+len_x] #Error Propogation approach
-            sse_idx += 1
+            sse_var.append ( 2*error_point@data.gp_var[i:i+len_x] ) #Error Propogation approach
+        
+        #Lists to arrays
+        sse_mean = np.array(sse_mean)
+        sse_var = np.array(sse_var)
         
         #Set class parameters
         data.sse = sse_mean
@@ -1811,21 +1810,17 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Find length of theta and x in data arrays
         len_theta = self.train_data.get_num_theta()
         len_x = len(self.train_data.get_unique_x())
-      
-        #Assign unique theta indecies and create an array of them
-        unique_theta_vals = self.train_data.get_unique_theta()
      
-        #Make sse array equal length to the number of total unique thetas
-        sse_train_vals = np.zeros(len(unique_theta_vals))
+        #Make sse array as an empty list. Will add one value for each training point
+        sse_train_vals = []
         true_idx_list = [] #Used for error checking
         
-        sse_idx = 0 #Used to set data in array
         #Evaluate SSE by looping over the x values for each combination of theta and calculating SSE
         for i in range(0, len_theta, len_x):
-            sse_train_vals[sse_idx] = sum((self.train_data.y_vals[i:i+len_x] - exp_data.y_vals)**2) #Scaler
+            sse_train_vals.append( sum((self.train_data.y_vals[i:i+len_x] - exp_data.y_vals)**2) )#Scaler
             true_idx_list.append(i) #Used for error checking
-            sse_idx += 1
-                
+        #List to array
+        sse_train_vals = np.array(sse_train_vals)        
         #Best error is the minimum of these values
         best_error = np.amin(sse_train_vals)
 #         print(self.train_data.theta_vals[true_idx_list[np.argmin(sse_train_vals)]]) #For Error Checking, Returns theta associated with best value
@@ -2087,7 +2082,7 @@ class Expected_Improvement():
                 ei_term1 = ei_term1_comp1*ei_term1_comp2 #1xn
                 ei_term2 = ei_term2_comp1*ei_term2_comp2 #1xn
                 ei_term3 = -gp_var*(ei_term3_psi_upper-ei_term3_psi_lower) #1xn
-                print(ei_term1, ei_term2, ei_term3 )
+
                 ei = ei_term1 + ei_term2 + ei_term3 #1xn
         else:
             ei = 0
@@ -2600,7 +2595,10 @@ class GPBO_Driver:
         
         #Calculate objective fxn
         if neg_ei == False:
-            obj = cand_sse_mean
+            if self.method.method_name.value == 2: #Objective to minimize is exp(mean) if using 1B
+                obj = np.exp(cand_sse_mean)
+            else:
+                obj = cand_sse_mean
         else:
             if self.method.emulator == False:
                 obj = -1*self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error)
@@ -2645,17 +2643,22 @@ class GPBO_Driver:
         #Add instance of Data class to theta_best
         theta_best_data = Data(theta_best_repeated, self.exp_data.x_vals, None, None, None, None, None, None, self.simulator.bounds_theta, self.simulator.bounds_x)
         #Calculate y values and sse for theta_best with noise
-        theta_best_data.y_vals = gen_y_data(theta_best_data, self.simulator.noise_mean, self.simulator.noise_std)
+        theta_best_data.y_vals = self.simulator.gen_y_data(theta_best_data, self.simulator.noise_mean, self.simulator.noise_std)
         theta_best_sse_data = self.simulator.sim_data_to_sse_sim_data(self.method, theta_best_data, self.exp_data, False)
+        
         #Augment training theta, x, and y/sse data based on method type
         if self.method.emulator == False:
             self.gp_emulator.train_data.theta_vals = np.vstack((self.gp_emulator.train_data.theta_vals, theta_best))
-            self.gp_emulator.train_data.y_vals = np.concatenate((self.gp_emulator.train_data.y_vals, theta_best_sse_data))
+            self.gp_emulator.train_data.y_vals = np.concatenate((self.gp_emulator.train_data.y_vals, theta_best_sse_data.y_vals))
+            feature_train_data = self.gp_emulator._Type_1_GP_Emulator__featurize_data(self.gp_emulator.train_data)          
         else:
             self.gp_emulator.train_data.theta_vals = np.vstack((self.gp_emulator.train_data.theta_vals, theta_best_repeated))
             self.gp_emulator.train_data.x_vals = np.vstack((self.gp_emulator.train_data.x_vals, self.exp_data.x_vals))  
             self.gp_emulator.train_data.y_vals = np.concatenate((self.gp_emulator.train_data.y_vals, theta_best_data.y_vals))
-            
+            feature_train_data = self.gp_emulator._Type_2_GP_Emulator__featurize_data(self.gp_emulator.train_data)
+        
+        self.gp_emulator.feature_train_data = feature_train_data
+                   
     def run_bo_iter(self, gp_model, iteration, reoptimize):
         """
         Runs a single GPBO iteration
@@ -2686,17 +2689,17 @@ class GPBO_Driver:
         self.ep_bias.set_ep()
         self.ep_bias.bo_iter = iteration
         
-        #Train GP model
-        gp_emulator.train_gp(gp_model)
+        #Train GP model (this step updates the model to a trained model)
+        self.gp_emulator.train_gp(gp_model)
                
-        #Set trained gp_emulator as a self parameter
-        self.gp_emulator = gp_emulator
+        #Save trained gp_emulator as an object
+        gp_emulator_class = self.gp_emulator
         
         #Calcuate best error
         if self.method.emulator == False:
             best_error = self.gp_emulator.calc_best_error() #For Type 1
         else:
-            best_error = self.gp_emulator.calc_best_error(exp_data) #For Type 2
+            best_error = self.gp_emulator.calc_best_error(self.exp_data) #For Type 2
             
         #Calculate mean of var for validation set if using Jasrasaria heuristic
         if self.ep_bias.ep_enum.value == 4:
@@ -2750,7 +2753,7 @@ class GPBO_Driver:
         terminate: bool, Whether to terminate BO iterations
         """
         #Initialize bo params
-        column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Theta Min Obj', 'Time/Iter']
+        column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'Time/Iter']
         results_df = pd.DataFrame(columns=column_names)
         list_gp_emulator_class = []
         
@@ -2759,10 +2762,8 @@ class GPBO_Driver:
         
         #Do Bo iters while stopping criteria is not met
         while terminate == False:
-            #Initialize ei_prev
-            ei_prev = np.inf
+            #Initialize count
             count = 0
-            improvement = 10 #Delete later
             #Loop over number of max bo iters
             for i in range(self.cs_params.bo_iter_tot):
                 #Set exploration bias
@@ -2775,31 +2776,41 @@ class GPBO_Driver:
                 ##Add min_obj_cum. and theta at min obj cum. columns
                 #At the first iteration your best is what you got
                 if i == 0:
-                    results_df["Min Obj Cum."][i] = results_df["Min Obj"][i]
-                    results_df["Theta Min Obj Cum."][i] = results_df["Theta Min Obj"][i]
+                    results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj"].iloc[i]
+                    results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i]
+                    improvement = np.inf #improvement is infinity on 1st iteration
                 #Lowest sse is what you found if it's lower than what you had
-                elif results_df["Min Obj"][i] < results_df["Min Obj"][i-1]:
-                    results_df["Min Obj Cum."][i] = results_df["Min Obj"][i]
-                    results_df["Theta Min Obj Cum."][i] = results_df["Theta Min Obj"][i]
+                elif results_df["Min Obj"].iloc[i] < results_df["Min Obj"].iloc[i-1]:
+                    results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj"].iloc[i]
+                    results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i]
+                    improvement = results_df["Min Obj"].iloc[i-1] - results_df["Min Obj"].iloc[i]
+#                     print(improvement)
                 else:
-                    results_df["Min Obj Cum."][i] = results_df["Min Obj"][i-1]
-                    results_df["Theta Min Obj Cum."][i] = results_df["Theta Min Obj"][i-1]
+                    results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj"].iloc[i-1]
+                    results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i-1]
+                    improvement = 0 #Improvement is defined as positive or 0
                 
                 #Add gp emulator data
-                list_gp_emulator_class = gp_emulator_class
+                list_gp_emulator_class.append( gp_emulator_class )
                 
                 #Call stopping criteria after 1st iteration and update improvement counter
-                if imrovement < self.cs_params.obj_tol:
+                if improvement < self.cs_params.obj_tol:
                     count +=1
                 if i > 0:
-                    if all(results_df["Max EI"].iloc[i] < self.cs_params.ei_tol and results_df["Max EI"].iloc[i-1] < self.cs_params.ei_tol) == True:
-                        terminate = True
+                    #Terminate if max ei is less than the tolerance twice in a row
+                    if results_df["Max EI"].iloc[i] < self.cs_params.ei_tol and results_df["Max EI"].iloc[i-1] < self.cs_params.ei_tol:
+                        break
                     #Terminate if small sse progress over 1/3 of total iteration budget
-                    elif count >= int(bo_iter_tot*0.3):
-                        terminate = True
+                    elif count >= int(self.cs_params.bo_iter_tot*0.3):
+                        break
                     else:
-                        ei_prev = max_ei
                         terminate = False
+                        
+            #Terminate if you hit the max budget of iterations or the loop is broken
+            terminate = True
+            
+        #Reset the index of the pandas df
+        results_df = results_df.reset_index()
 
         return results_df, list_gp_emulator_class
         
@@ -2824,6 +2835,7 @@ class GPBO_Driver:
         
         #Initialize gp_emualtor class
         gp_emulator = self.gen_emulator(kernel, lenscl, outputscl, retrain_GP)
+        self.gp_emulator = gp_emulator
         
         #Choose training data
         train_data, test_data = gp_emulator.set_train_test_data(self.cs_params)
@@ -2832,7 +2844,7 @@ class GPBO_Driver:
         gp_model = gp_emulator.set_gp_model()
         
         ##Call bo_iter
-        results_df, list_gp_emulator_class = self.run_bo_to_term(gp_model)
+        results_df, list_gp_emulator_class = self.run_bo_to_term(gp_model, reoptimize)
         
         #Set results
         bo_results = BO_Results(None, None, list_gp_emulator_class, results_df, None)
@@ -2867,8 +2879,8 @@ class GPBO_Driver:
         #Create list of heat map theta data
         list_heat_map_data = []
         
-        for i in range(cs_params.bo_run_tot):
-            bo_results = self.run_bo_workflow(kernel, lenscl, outputscl, retrain_GP)
+        for i in range(self.cs_params.bo_run_tot):
+            bo_results = self.run_bo_workflow(kernel, lenscl, outputscl, retrain_GP, reoptimize)
             bo_results.configuration = configuration
             bo_results.simulator_class = simulator_class
             bo_results.list_heat_map_data = list_heat_map_data
