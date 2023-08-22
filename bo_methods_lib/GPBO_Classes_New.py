@@ -5,11 +5,9 @@ import math
 from scipy.stats import norm
 from scipy import integrate
 # import torch
-# import csv
 # import gpytorch
 import scipy.optimize as optimize
-# import pandas as pd
-# import os
+import os
 import time
 import Tasmanian
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -17,6 +15,7 @@ from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantK
 from scipy.stats import qmc
 import pandas as pd
 from enum import Enum
+import pickle
 
 from .GPBO_Class_fxns import vector_to_1D_array, calc_muller, calc_cs1_polynomial
 import itertools
@@ -231,15 +230,15 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_data, DateTime, seed, obj_tol, ei_tol):
+    def __init__(self, cs_name, ep0, sep_fact, normalize, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, seed, obj_tol, ei_tol):
         """
         Parameters
         ----------
-        cs_name: Class, The name/enumerator associated with the case study being evaluated   
+        cs_name: string, The name associated with the case study being evaluated   
         ep0: float, The original  exploration bias. Default 1
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         normalize: bool, Determines whether feature data will be normalized for problem analysis
-        eval_all_pairs: bool, determines whether all pairs of theta are evaluated to create heat maps. Default False
+        gen_heat_map_data: bool, determines whether all pairs of theta are generated to create heat maps
         noise_mean:float, int: The mean of the noise
         noise_std: float, int: The standard deviation of the noise
         bo_iter_tot: int, total number of BO iterations per restart
@@ -254,13 +253,13 @@ class CaseStudyParameters:
         """
         #Assert statements
         #Check for strings
-        assert isinstance(cs_name, (Enum, str)) == True, "cs_name must be a string or Enum" #Will figure this one out later
+        assert isinstance(cs_name, (str, Enum)) == True, "cs_name must be a string or Enum" #Will figure this one out later
         #Check for float/int
         assert all(isinstance(var, (float,int)) for var in [sep_fact,ep0]) == True, "sep_fact and ep0 must be float or int"
         #Check for sep fact number between 0 and 1
         assert 0 <= sep_fact <= 1, "Separation factor must be between 0 and 1"
         #Chrck for bool
-        assert all(isinstance(var, (bool)) for var in [normalize, eval_all_pairs, save_data]) == True, "normalize, eval_all_pairs, save_fig, and save_data must be bool"
+        assert all(isinstance(var, (bool)) for var in [normalize, gen_heat_map_data, save_data]) == True, "normalize, gen_heat_map_data, save_fig, and save_data must be bool"
         #Check for int
         assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be int"
         #Check for > 0
@@ -271,11 +270,15 @@ class CaseStudyParameters:
         assert isinstance(obj_tol, (float,int)) and obj_tol >= 0, "obj_tol must be a positive float or integer"
         
         # Constructor method
-        self.cs_name = cs_name
+        #Ensure name is a string
+        if isinstance(cs_name, Enum) == True:
+            self.cs_name = cs_name.name
+        else:
+            self.cs_name = cs_name
         self.ep0 = ep0
         self.sep_fact = sep_fact
         self.normalize = normalize
-        self.eval_all_pairs = eval_all_pairs
+        self.gen_heat_map_data = gen_heat_map_data
         self.bo_iter_tot = bo_iter_tot
         self.bo_run_tot = bo_run_tot
         self.save_data = save_data
@@ -305,7 +308,7 @@ class Simulator:
     gen_sim_data(num_theta_data, gen_meth_theta, num_x_data, gen_meth_x, gen_val_data)
     sim_data_to_sse_sim_data(method, sim_data, exp_data, gen_val_data)
     """
-    def __init__(self, indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, case_study_params, calc_y_fxn):
+    def __init__(self, indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, cs_params, calc_y_fxn):
         """
         Parameters
         ----------
@@ -318,7 +321,7 @@ class Simulator:
         bounds_x_u: list, upper bounds of x
         noise_mean:float, int: The mean of the noise
         noise_std: float, int: The standard deviation of the noise
-        case_study_params: instance of the CaseStudyParameters class
+        cs_params: instance of the CaseStudyParameters class
         calc_y_fxn: function, The function to calculate ysim data with
         """
         #Check for float/int
@@ -332,10 +335,10 @@ class Simulator:
         assert len(bounds_theta_l) == len(bounds_theta_u) and len(bounds_x_l) == len(bounds_x_u), "bounds lists for x and theta must be same length"
         #Check indecies to consider in theta_ref
         assert all(0 <= idx <= len(theta_ref)-1 for idx in indecies_to_consider)==True, "indecies to consider must be in range of theta_ref"
-        #How to write assert statements for case_study_params and calc_y_fxn
+        #How to write assert statements for cs_params and calc_y_fxn
         
         # Constructor method
-        self.case_study_params = case_study_params
+        self.cs_params = cs_params
         
         self.dim_x = len(bounds_x_l)
         self.dim_theta = len(indecies_to_consider) #Length of theta is equivalent to the number of indecies to consider
@@ -349,7 +352,9 @@ class Simulator:
         self.noise_mean = noise_mean
         self.noise_std = noise_std
         self.calc_y_fxn = calc_y_fxn
-        #Set theta_ref to normalized version of itself if applicable
+        #Find theta_ref normalized if applicable
+        if self.cs_params.normalize == True:
+            self.theta_true_norm = (self.theta_true - self.bounds_theta_reg[0]) / (self.bounds_theta_reg[1] - self.bounds_theta_reg[0])
     
     def __set_true_params(self):
         """
@@ -468,11 +473,11 @@ class Simulator:
         y_data: ndarray, The simulated y training data
         """        
         #Set seed
-        if self.case_study_params.seed is not None:
-            np.random.seed(self.case_study_params.seed)
+        if self.cs_params.seed is not None:
+            np.random.seed(self.cs_params.seed)
             
         #Unnormalize feature data for calculation if necessary
-        if self.case_study_params.normalize == True:
+        if self.cs_params.normalize == True:
             data = data.unnorm_feature_data()
                 
         #Define an array to store y values in
@@ -517,14 +522,14 @@ class Simulator:
             raise ValueError('num_x_data must be a positive integer')
             
         #Create x vals based on bounds and num_x_data
-        x_vals = vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, self.case_study_params.seed))
+        x_vals = vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, self.cs_params.seed))
         #Reshape theta_true to correct dimensions and stack it once for each xexp value
         theta_true = self.theta_true.reshape(1,-1)
         theta_true_repeated = np.vstack([theta_true]*len(x_vals))
         #Create exp_data class and add values
         exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None, None, self.bounds_theta_reg, self.bounds_x)
         #Normalize feature data if noramlize is true
-        if self.case_study_params.normalize == True:
+        if self.cs_params.normalize == True:
             exp_data = exp_data.norm_feature_data()
         #Generate y data for exp_data calss instance
         exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std)
@@ -559,7 +564,7 @@ class Simulator:
         
         #Set bounds on theta which we are regressing given bounds_theta and indecies to consider
         #X data we always want the same between simulation and validation data
-        x_data = vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, self.case_study_params.seed))
+        x_data = vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, self.cs_params.seed))
             
         #Infer how many times to repeat theta and x values given whether they were generated by LHS or a meshgrid
         #X and theta repeated at least once per time the other is generated
@@ -581,9 +586,9 @@ class Simulator:
        
         #For validation theta, change the seed by 1 to ensure validation and sim data are never the same
         if gen_val_data == False:
-            seed = self.case_study_params.seed
+            seed = self.cs_params.seed
         else:
-            seed = int(self.case_study_params.seed + 1)
+            seed = int(self.cs_params.seed + 1)
             
         #Generate simulation data theta_vals and create instance of data class   
         sim_theta_vals = vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta, seed))
@@ -593,7 +598,7 @@ class Simulator:
         sim_data.x_vals = np.vstack([x_data]*repeat_x)
         
         #Normalize feature data if noramlize is true
-        if self.case_study_params.normalize == True:
+        if self.cs_params.normalize == True:
             sim_data = sim_data.norm_feature_data()
         
         #Add y_vals for sim_data only
@@ -1056,7 +1061,7 @@ class GP_Emulator:
         else:
             lengthscale_val = np.ones(self.get_dim_gp_data())
 
-        #Set model lengthscale
+        #Set initial model lengthscale
         kernel.k1.k2.length_scale = lengthscale_val
         
         return kernel
@@ -1079,7 +1084,7 @@ class GP_Emulator:
             kernel.k1.k1.constant_value = self.outputscl
             kernel.k1.k1.constant_value_bounds = "fixed"
         else:
-            kernel.k1.k1.constant_value == 1.0
+            kernel.k1.k1.constant_value = 1.0
             
         return kernel
     
@@ -1119,10 +1124,8 @@ class GP_Emulator:
             
         """  
         assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
-        
         #Train GP
         fit_gp_model = gp_model.fit(self.feature_train_data, self.train_data.y_vals)
-
         #Pull out kernel parameters after GP training
         opt_kern_params = fit_gp_model.kernel_
         outputscl_final = opt_kern_params.k1.k1.constant_value
@@ -2385,7 +2388,7 @@ class BO_Results:
         simulator_class: Instance of Simulator class, class containing values of simulation parameter data at each BO iteration
         list_gp_emulator_class: list of GP_Emulator instances, contains all gp_emulator information at each BO iter
         results_df: pandas dataframe, dataframe including the values pertinent to BO for all BO runs
-        list_heat_map_data: list of Data instances or None, class containing at least theta and x data for heat map making purposes       
+        list_heat_map_data: list of Data instances or None, class containing theta, x, and bounds data for heat map making purposes       
         """
         # Constructor method
         self.configuration = configuration
@@ -2393,11 +2396,40 @@ class BO_Results:
         self.results_df = results_df
         self.list_gp_emulator_class = list_gp_emulator_class
         self.list_heat_map_data = list_heat_map_data
-        
-    def save_data(self):
+
+    def save_data(self, ext):
         """
         Defines where to save data to and saves data accordingly
+        
+        Parameters
+        ----------
+        ext: The extension of the file type. ex: csv, json, npy
         """
+        ##Define a path for the data. (Use the name of the case study and date)
+        #Get Date only from DateTime String
+        split_date_parts = self.configuration["DateTime String"].split("/")
+        Run_Date = "/".join(split_date_parts[:-1])
+        path_name = Run_Date + "/" + "Data_Files/" + self.configuration["Case Study Name"]
+
+        ##Create directory if it doesn't already exist
+        # Extract the directory and filename from the given path
+        directory = os.path.split(path)[0]
+        filename = "%s.%s" % (os.path.split(path)[1], ext)
+        if directory == '':
+            directory = '.'
+
+        # If the directory does not exist, create it
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # The final path to save to is
+        savepath = os.path.join(directory, filename)
+        
+        #Turn this class into a JSON object
+        ##How do I actually do this?
+        #Save this object to the specified path
+        ##How do I actually do this?
+        
     
 class GPBO_Driver:
     """
@@ -2607,24 +2639,58 @@ class GPBO_Driver:
 
         return obj
 
-    def create_param_grids(self):
+    def create_heat_map_param_data(self):
         """
-        Creates data values over a grid to save for evaluation
-        
-        Parameters
-        ----------
-        
+        Creates parameter sets that can be used to create heat maps of data at any given iteration
+               
         Returns:
         --------
-        grid_data: list of Data instances, contains all data from gridding parameters
+        list_heat_map_data: A list of heat map data for each set of 2 parameters
+        """      
+        #Create list of heat map theta data
+        list_heat_map_data = []
         
-        """
-        #Make list of Data classes
-        #Loop over number of theta combinations
-            #Make instance of Data class and add following to it
-            #Make meshgrid of theta combination in 2 parameters keeping the rest of the values at their true value
-            #Evaluate model mean, stdev, sse, and sse_var
-            #Evaluate ei
+        #Create a linspace for the number of dimensions and define number of points
+        dim_list = np.linspace(0,self.simulator.dim_theta-1,self.simulator.dim_theta)
+        n_points = len(self.gp_emulator.gp_val_data.get_unique_theta())
+
+        #Create a list of all combinations (without repeats e.g no (1,1), (2,2)) of dimensions of theta
+        mesh_combos = np.array(list(combinations(dim_list, 2)), dtype = int)
+        
+        #Initialze meshgrid-like set of theta values at their true values 
+        theta_set = np.tile(np.array(self.simulator.theta_true), (n_points**2, 1))
+
+        #Infer how many times to repeat theta and x values given that heat maps are meshgrid form by definition
+        repeat_x = n_points**2 #Square because only 2 values at a time change
+        x_vals = np.vstack([self.exp_data.x_vals]*repeat_x)
+        repeat_theta = self.exp_data.get_num_x_vals()
+
+        #Loop over all possible theta combinations of 2
+        for i in range(len(mesh_combos)):
+            #Create a copy of the true values to change the mehsgrid valus on
+            theta_set_copy = np.copy(theta_set)
+            #Set the indecies of theta_set for evaluation as each row of mesh_combos
+            idcs = mesh_combos[i]
+
+            #Create a meshgrid of values of the 2 selected values of theta and reshape to the correct shape           
+            theta1 = np.linspace(self.simulator.bounds_theta_reg[0][idcs[0]], self.simulator.bounds_theta_reg[1][idcs[0]], n_points)
+            theta2 = np.linspace(self.simulator.bounds_theta_reg[0][idcs[1]], self.simulator.bounds_theta_reg[1][idcs[1]], n_points)
+            theta12_mesh = np.array(np.meshgrid(theta1, theta2))
+            theta12_vals = np.array(theta12_mesh).T.reshape(-1,2)
+            
+            #Set initial values for evaluation (true values) to meshgrid values
+            theta_set_copy[:,idcs] = theta12_vals
+            
+            #Put values into instance of data class
+            theta_vals =  np.repeat(theta_set_copy, repeat_theta , axis =0) 
+            data_set = Data(theta_vals, x_vals, None,None,None,None,None,None, self.simulator.bounds_theta_reg, self.simulator.bounds_x)
+            #normalize values between 0 and 1 if necessary
+            if self.cs_params.normalize == True:
+                data_set = data_set.norm_feature_data()
+            #Append data set to list
+            list_heat_map_data.append(data_set)
+            
+        return list_heat_map_data
                 
     def augment_train_data(self, theta_best):
         """
@@ -2641,7 +2707,7 @@ class GPBO_Driver:
         #Repeat the theta best array once for each x value
         theta_best_repeated = np.repeat(theta_best.reshape(1,-1), self.exp_data.get_num_x_vals() , axis =0)
         #Add instance of Data class to theta_best
-        theta_best_data = Data(theta_best_repeated, self.exp_data.x_vals, None, None, None, None, None, None, self.simulator.bounds_theta, self.simulator.bounds_x)
+        theta_best_data = Data(theta_best_repeated, self.exp_data.x_vals, None, None, None, None, None, None, self.simulator.bounds_theta_reg, self.simulator.bounds_x)
         #Calculate y values and sse for theta_best with noise
         theta_best_data.y_vals = self.simulator.gen_y_data(theta_best_data, self.simulator.noise_mean, self.simulator.noise_std)
         theta_best_sse_data = self.simulator.sim_data_to_sse_sim_data(self.method, theta_best_data, self.exp_data, False)
@@ -2838,10 +2904,10 @@ class GPBO_Driver:
         self.gp_emulator = gp_emulator
         
         #Choose training data
-        train_data, test_data = gp_emulator.set_train_test_data(self.cs_params)
+        train_data, test_data = self.gp_emulator.set_train_test_data(self.cs_params)
         
         #Initilize gp model
-        gp_model = gp_emulator.set_gp_model()
+        gp_model = self.gp_emulator.set_gp_model()
         
         ##Call bo_iter
         results_df, list_gp_emulator_class = self.run_bo_to_term(gp_model, reoptimize)
@@ -2850,6 +2916,7 @@ class GPBO_Driver:
         bo_results = BO_Results(None, None, list_gp_emulator_class, results_df, None)
         
         return bo_results
+
     
     def run_bo_restarts(self, kernel, lenscl, outputscl, retrain_GP, reoptimize):
         """
@@ -2867,23 +2934,68 @@ class GPBO_Driver:
                          "Exploration Bias Method Value" : self.ep_bias.ep_enum.value,
                          "Separation Factor" : self.cs_params.sep_fact,
                          "Normalize" : self.cs_params.normalize,
-                         "Heat Map Points Generated" : self.cs_params.eval_all_pairs,
+                         "Heat Map Points Generated" : self.cs_params.gen_heat_map_data,
                          "Max BO Iters" : self.cs_params.bo_iter_tot,
                          "Number of Workflow Restarts" : self.cs_params.bo_run_tot,
                          "Seed" : self.cs_params.seed,
                          "EI Tolerance" : self.cs_params.ei_tol,
                          "Obj Improvement Tolerance" : self.cs_params.obj_tol}
-        
-        
-        
-        #Create list of heat map theta data
-        list_heat_map_data = []
-        
+                
         for i in range(self.cs_params.bo_run_tot):
             bo_results = self.run_bo_workflow(kernel, lenscl, outputscl, retrain_GP, reoptimize)
+            #Update the seed in configuration
+            configuration["Seed"] = self.cs_params.seed
             bo_results.configuration = configuration
             bo_results.simulator_class = simulator_class
-            bo_results.list_heat_map_data = list_heat_map_data
+            #On the 1st iteration, create heat map data if we are actually generating the data
+            if self.cs_params.gen_heat_map_data == True:
+                if i == 0:
+                    list_heat_map_data = self.create_heat_map_param_data()
+                bo_results.list_heat_map_data = list_heat_map_data
             restart_bo_results.append(bo_results)
+            #Add 2 to the seed for each restart
+            self.cs_params.seed += 2
 
         return restart_bo_results
+    
+    def save_data(self, restart_bo_results):
+        """
+        Defines where to save data to and saves data accordingly
+        
+        Parameters
+        ----------
+        restart_bo_results: list of class instances of BO_results, The results of all restarts of the BO workflow for reproduction
+        """
+        ##Define a path for the data. (Use the name of the case study and date)
+        #Get Date only from DateTime String
+        if self.cs_params.DateTime is not None:
+            split_date_parts = self.cs_params.DateTime.split("/")
+            Run_Date = "/".join(split_date_parts[:-1])
+        else:
+            Run_Date = "No_Date"
+        
+        path = Run_Date + "/" + "Data_Files/" + self.cs_params.cs_name
+
+        ##Create directory if it doesn't already exist
+        # Extract the directory and filename from the given path
+        directory = os.path.split(path)[0]
+        filename = "%s.%s" % (os.path.split(path)[1], "pickle")
+        if directory == '':
+            directory = '.'
+
+        # If the directory does not exist, create it
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # The final path to save to is
+        savepath = os.path.join(directory, filename)
+        
+        #Open the file
+        fileObj = open(savepath, 'wb')
+        
+        #Turn this class into a pickled object and save to the file
+        pickled_results = pickle.dump(restart_bo_results, fileObj)
+
+        # Close the file
+        fileObj.close()
+        
