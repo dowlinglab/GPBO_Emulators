@@ -21,8 +21,6 @@ from .GPBO_Class_fxns import vector_to_1D_array, calc_muller, calc_cs1_polynomia
 import itertools
 from itertools import combinations_with_replacement, combinations, permutations
 
-# #Notes: Change line below when changing test problems: 
-# # If line 21 is active, the 8D problem is used, if line 22 is active, the 2D problem is used
 # # from .CS2_create_data import calc_muller, create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
 # from .CS1_create_data import create_sse_data, create_y_data, calc_y_exp, gen_y_Theta_GP, eval_GP_emulator_BE, make_next_point
 
@@ -308,11 +306,11 @@ class Simulator:
     gen_sim_data(num_theta_data, gen_meth_theta, num_x_data, gen_meth_x, gen_val_data)
     sim_data_to_sse_sim_data(method, sim_data, exp_data, gen_val_data)
     """
-    def __init__(self, indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, cs_params, calc_y_fxn):
+    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, cs_params, calc_y_fxn):
         """
         Parameters
         ----------
-        indecies_to_consider: list of int, The indecies corresponding to which parameters are being guessed
+        indeces_to_consider: list of int, The indeces corresponding to which parameters are being guessed
         theta_ref: ndarray, The array containing the true values of problem constants
         theta_names: list, list of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         bounds_theta_l: list, lower bounds of theta
@@ -327,27 +325,27 @@ class Simulator:
         #Check for float/int
         assert all(isinstance(var,(float,int)) for var in [noise_std, noise_mean]) == True, "noise_mean and noise_std must be int or float"
         #Check for list or ndarray
-        list_vars = [indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
-        assert all(isinstance(var,(list,np.ndarray)) for var in list_vars) == True, "indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
+        list_vars = [indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
+        assert all(isinstance(var,(list,np.ndarray)) for var in list_vars) == True, "indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
         #Check for list lengths > 0
-        assert all(len(var) > 0 for var in list_vars) == True, "indecies_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must have length > 0"
+        assert all(len(var) > 0 for var in list_vars) == True, "indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must have length > 0"
         #Check that bound_x and bounds_theta have same lengths
         assert len(bounds_theta_l) == len(bounds_theta_u) and len(bounds_x_l) == len(bounds_x_u), "bounds lists for x and theta must be same length"
-        #Check indecies to consider in theta_ref
-        assert all(0 <= idx <= len(theta_ref)-1 for idx in indecies_to_consider)==True, "indecies to consider must be in range of theta_ref"
+        #Check indeces to consider in theta_ref
+        assert all(0 <= idx <= len(theta_ref)-1 for idx in indeces_to_consider)==True, "indeces to consider must be in range of theta_ref"
         #How to write assert statements for cs_params and calc_y_fxn
         
         # Constructor method
         self.cs_params = cs_params
         
         self.dim_x = len(bounds_x_l)
-        self.dim_theta = len(indecies_to_consider) #Length of theta is equivalent to the number of indecies to consider
-        self.indecies_to_consider = indecies_to_consider
+        self.dim_theta = len(indeces_to_consider) #Length of theta is equivalent to the number of indeces to consider
+        self.indeces_to_consider = indeces_to_consider
         self.theta_ref = theta_ref
         self.theta_names = theta_names
         self.theta_true, self.theta_true_names = self.__set_true_params()
         self.bounds_theta = np.array([bounds_theta_l, bounds_theta_u])
-        self.bounds_theta_reg = self.bounds_theta[:,self.indecies_to_consider] #This is the theta_bounds for parameters we will regress
+        self.bounds_theta_reg = self.bounds_theta[:,self.indeces_to_consider] #This is the theta_bounds for parameters we will regress
         self.bounds_x = np.array([bounds_x_l, bounds_x_u])
         self.noise_mean = noise_mean
         self.noise_std = noise_std
@@ -358,16 +356,16 @@ class Simulator:
     
     def __set_true_params(self):
         """
-        Sets true parameter value array and the corresponding names based on parameter dictionary and indecies to consider
+        Sets true parameter value array and the corresponding names based on parameter dictionary and indeces to consider
         
         Returns
         -------
         true_params: ndarray, The true parameter of the model
         true_param_names: list of string, The names of the true parameter of the model
         """
-        #Define theta_true and theta_true_names from theta_ref, theta_names, and indecies to consider
-        true_params = self.theta_ref[self.indecies_to_consider]
-        true_param_names = [self.theta_names[idx] for idx in self.indecies_to_consider]
+        #Define theta_true and theta_true_names from theta_ref, theta_names, and indeces to consider
+        true_params = self.theta_ref[self.indeces_to_consider]
+        true_param_names = [self.theta_names[idx] for idx in self.indeces_to_consider]
         
         return true_params, true_param_names
     
@@ -486,10 +484,10 @@ class Simulator:
         len_points = data.get_num_theta()
         #Loop over all theta values
         for i in range(len_points):
-            #Create model coefficient from true space substituting in the values of param_space at the correct indecies
+            #Create model coefficient from true space substituting in the values of param_space at the correct indeces
             model_coefficients = self.theta_ref.copy()
-            #Replace coefficients a specified indecies with their theta_val counterparts
-            model_coefficients[self.indecies_to_consider] = data.theta_vals[i]               
+            #Replace coefficients a specified indeces with their theta_val counterparts
+            model_coefficients[self.indeces_to_consider] = data.theta_vals[i]               
             #Create model coefficients
             y_data.append(self.calc_y_fxn(model_coefficients, data.x_vals[i])) 
 
@@ -562,7 +560,7 @@ class Simulator:
         if num_x_data <= 0 or isinstance(num_x_data, int) == False:
             raise ValueError('num_x_data must be a positive integer')
         
-        #Set bounds on theta which we are regressing given bounds_theta and indecies to consider
+        #Set bounds on theta which we are regressing given bounds_theta and indeces to consider
         #X data we always want the same between simulation and validation data
         x_data = vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, self.cs_params.seed))
             
@@ -631,7 +629,7 @@ class Simulator:
       
         #Q: For this dataset does it make more sense to have all theta and x values or just the unique thetas and x values?
         #A: Just the unique ones. No need to store extra data if we won't use it and it will be saved somewhere else regardless
-        #Assign unique theta indecies and create an array of them
+        #Assign unique theta indeces and create an array of them
         unique_indexes = np.unique(sim_data.theta_vals, axis = 0, return_index=True)[1]
         unique_theta_vals = np.array([sim_data.theta_vals[index] for index in sorted(unique_indexes)])
         #Add the unique theta_vals and exp_data x values to the new data class instance
@@ -895,7 +893,7 @@ class Data:
     
     def train_test_idx_split(self, cs_params):
         """
-        Splits data indecies into training and testing indecies
+        Splits data indeces into training and testing indeces
 
         Parameters
         ----------
@@ -925,7 +923,7 @@ class Data:
             random.seed(shuffle_seed)
             
         #Shuffle all_idx data in such a way that theta values will be randomized
-        #Set train test indecies
+        #Set train test indeces
         random.shuffle(all_idx)
         train_idx = all_idx[:len_train_idc]
         test_idx = all_idx[len_train_idc:]
@@ -1000,7 +998,6 @@ class GP_Emulator:
         self.__feature_test_data = None #Added using child class
         self.__feature_val_data = None #Added using child class
         self.__feature_cand_data = None #Added using child class
-        self.cand_data = cand_data
         
     def get_num_gp_data(self):
         """
@@ -1097,7 +1094,7 @@ class GP_Emulator:
         gp_model: instance of GaussianProcessRegressor in Sklearn containing kernel, optimizer, etc.
         """
         
-        #Don't optimize anything if lengthscale and outputscale are being set
+        #Don't optimize anything if lengthscale and outputscale are being fixed
         if self.lenscl != None and self.outputscl != None:
             optimizer = None
         else:
@@ -1168,6 +1165,31 @@ class GP_Emulator:
             gp_var[i] = model_variance
                   
         return gp_mean, gp_var
+    
+    def eval_gp_mean_var_heat_map(self, heat_map_data, featurized_hm_data):
+        """
+        Evaluate the GP mean and variance for the test set
+        
+        Parameters:
+        -----------
+        heat_map_data: instance of the Data class, data to evaluate heat maps for containing at least theta_vals and x_vals
+        featurized_hm_data: ndarray, validation data to evaluate heat maps containing at least theta_vals and x_vals featurized
+        
+        Returns:
+        -------
+        heat_map_gp_mean: ndarray, array of gp_mean for the test set
+        heat_map_gp_var: ndarray, array of gp variance for the test set
+        """
+        
+        assert heat_map_data is not None, "Must have heat map data"
+        #Evaluate test data for GP
+        heat_map_gp_mean, heat_map_gp_var = self.__eval_gp_mean_var(featurized_hm_data)
+        
+        #Set data parameters
+        heat_map_data.gp_mean = heat_map_gp_mean
+        heat_map_data.gp_var = heat_map_gp_var
+
+        return heat_map_gp_mean, heat_map_gp_var
     
     def eval_gp_mean_var_test(self):
         """
@@ -1241,7 +1263,7 @@ class Type_1_GP_Emulator(GP_Emulator):
     --------------
     __init__
     get_dim_gp_data()
-    __featurize_data(data)
+    featurize_data(data)
     set_train_test_data(cs_params)
     __eval_gp_sse_var(data)
      eval_gp_sse_var_test/val/cand()
@@ -1289,11 +1311,11 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert np.all(self.gp_sim_data.theta_vals is not None), "Must have simulation theta to get a number of theta"
         
         #Just use number of theta dimensions for Type 1
-        dim_gp_data = int(self.gp_sim_data.get_dim_theta())
+        dim_gp_data = self.gp_sim_data.get_dim_theta()
         
         return dim_gp_data
     
-    def __featurize_data(self, data):
+    def featurize_data(self, data):
         """
         Collects the featues of the GP into ndarray form from an instance of the Data class
         
@@ -1349,9 +1371,9 @@ class Type_1_GP_Emulator(GP_Emulator):
         self.test_data = test_data
         
         #Set training and validation data features in GP_Emulator base class
-        feature_train_data = self.__featurize_data(train_data)
-        feature_test_data = self.__featurize_data(test_data)
-        feature_val_data = self.__featurize_data(self.gp_val_data)
+        feature_train_data = self.featurize_data(train_data)
+        feature_test_data = self.featurize_data(test_data)
+        feature_val_data = self.featurize_data(self.gp_val_data)
         
         self.feature_train_data = feature_train_data
         self.feature_test_data = feature_test_data
@@ -1382,6 +1404,25 @@ class Type_1_GP_Emulator(GP_Emulator):
         data.sse_var = data.gp_var
                     
         return sse_mean, sse_var
+    
+    
+    def eval_gp_sse_var_heat_map(self, heat_map_data):
+        """
+        Evaluates GP model sse and sse variance and for an standard GPBO for the testing data
+        
+        Returns
+        --------
+        heat_map_sse_mean: tensor, The sse derived from gp_mean evaluated over the test data 
+        heat_map_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
+        
+        """
+        assert np.all(self.heat_map_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
+        assert np.all(self.heat_map_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
+        
+        #For type 1, sse is the gp_mean
+        heat_map_sse_mean, heat_map_sse_var = self.__eval_gp_sse_var(self.test_data)
+                    
+        return heat_map_sse_mean, heat_map_sse_var
     
     def eval_gp_sse_var_test(self):
         """
@@ -1481,6 +1522,24 @@ class Type_1_GP_Emulator(GP_Emulator):
         
         return ei
     
+    def eval_ei_heat_map(self, heat_map_data, exp_data, ep_bias, best_error):
+        """
+        Evaluates gp acquisition function. In this case, ei
+        
+        Parmaeters
+        ----------
+        heat_map_data, Instance of Data class, heat map data to evaluate ei for
+        exp_data: Instance of Data class, the experimental data to evaluate ei with
+        ep_bias, Instance of Exploration_Bias, The exploration bias class
+        best_error: float, the best error of the method
+        
+        Returns
+        -------
+        ei: The expected improvement of all the data in test_data
+        """
+        ei = self.__eval_gp_ei(heat_map_data, exp_data, ep_bias, best_error)
+        return ei
+    
     def eval_ei_test(self, exp_data, ep_bias, best_error):
         """
         Evaluates gp acquisition function. In this case, ei
@@ -1543,7 +1602,7 @@ class Type_2_GP_Emulator(GP_Emulator):
     --------------
     __init__
     get_dim_gp_data()
-    __featurize_data(data)
+    featurize_data(data)
     set_train_test_data(cs_params)
     __eval_gp_sse_var(data, exp_data)
      eval_gp_sse_var_test/val/cand(exp_data)
@@ -1595,7 +1654,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return dim_gp_data
     
-    def __featurize_data(self, data):
+    def featurize_data(self, data):
         """
         Collects the featues of the GP into ndarray form from an instance of the Data class
         
@@ -1635,7 +1694,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(self.gp_sim_data.bounds_x is not None), "Must have simulation x bounds to create train/test data"
         assert np.all(self.gp_sim_data.bounds_theta is not None), "Must have simulation theta bounds to create train/test data"
         
-        #Find train indecies
+        #Find train indeces
         train_idx, test_idx = self.gp_sim_data.train_test_idx_split(cs_params)
         
         #Find unique theta_values
@@ -1664,9 +1723,9 @@ class Type_2_GP_Emulator(GP_Emulator):
         self.test_data = test_data
         
         #Set training and validation data features in GP_Emulator base class
-        feature_train_data = self.__featurize_data(train_data)
-        feature_test_data = self.__featurize_data(test_data)
-        feature_val_data = self.__featurize_data(self.gp_val_data)
+        feature_train_data = self.featurize_data(train_data)
+        feature_test_data = self.featurize_data(test_data)
+        feature_val_data = self.featurize_data(self.gp_val_data)
         
         self.feature_train_data = feature_train_data
         self.feature_test_data = feature_test_data
@@ -1689,7 +1748,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         sse_var: tensor, The sse variance derived from the GP model's variance evaluated over param_set 
         
         """
-        feature_eval_data = self.__featurize_data(data)
+        feature_eval_data = self.featurize_data(data)
         
         #Find length of theta and number of unique x in data arrays
         len_theta = data.get_num_theta()
@@ -1715,6 +1774,32 @@ class Type_2_GP_Emulator(GP_Emulator):
         data.sse_var = sse_var
         
         return sse_mean, sse_var
+    
+    def eval_gp_sse_var_heat_map(self, heat_map_data, exp_data):
+        """
+        Evaluates GP model sse and sse variance and for an emulator GPBO for the test data
+        
+        Parameters
+        ----------
+        heat_map_data, Instance of Data class, heat map data to evaluate ei for
+        exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
+        
+        Returns
+        --------
+        heat_map_sse_mean: tensor, The sse derived from gp_mean evaluated over the test data 
+        heat_map_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
+        
+        """
+        assert np.all(heat_map_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
+        assert np.all(heat_map_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
+        assert np.all(heat_map_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
+        assert np.all(heat_map_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
+        assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
+        assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
+        
+        heat_map_sse_mean, heat_map_sse_var = self.__eval_gp_sse_var(heat_map_data, exp_data)
+        
+        return heat_map_sse_mean, heat_map_sse_var
     
     def eval_gp_sse_var_test(self, exp_data):
         """
@@ -1856,6 +1941,26 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return ei
     
+    def eval_ei_heat_map(self, heat_map_data, exp_data, ep_bias, best_error, method):
+        """
+        Evaluates gp acquisition function. In this case, ei
+        
+        Parmaeters
+        ----------
+        heat_map_data, Instance of Data class, heat map data to evaluate ei for
+        exp_data: Instance of Data class, the experimental data to evaluate ei with
+        ep_bias, Instance of Exploration_Bias, The exploration bias class
+        best_error: float, the best error of the method
+        method: instance of Method class, method for GP Emulation
+        
+        Returns
+        -------
+        ei: The expected improvement of all the data in sim_data
+        """
+        ei = self.__eval_gp_ei(heat_map_data, exp_data, ep_bias, best_error, method)
+        
+        return ei
+    
     def eval_ei_test(self, exp_data, ep_bias, best_error, method):
         """
         Evaluates gp acquisition function for testing data. In this case, ei
@@ -1970,9 +2075,9 @@ class Expected_Improvement():
             pred_stdev = np.sqrt(self.gp_var[i]) #1xn_test
             #Checks that all standard deviations are positive
             if pred_stdev > 0:
-                #Calculates z-score based on Ke's formula
+                #Calculates z-score based on Eq. 6b in Wang and Dowling (2022), COCHE
                 z = (self.best_error*self.ep_bias.ep_curr - self.gp_mean[i])/pred_stdev #scaler
-                #Calculates ei based on Ke's formula
+                #Calculates ei based on Eq. 6a in Wang and Dowling (2022), COCHE
                 #Explotation term
                 ei_term_1 = (self.best_error*self.ep_bias.ep_curr - self.gp_mean[i])*norm.cdf(z) #scaler
                 #Exploration Term
@@ -2396,39 +2501,6 @@ class BO_Results:
         self.results_df = results_df
         self.list_gp_emulator_class = list_gp_emulator_class
         self.list_heat_map_data = list_heat_map_data
-
-    def save_data(self, ext):
-        """
-        Defines where to save data to and saves data accordingly
-        
-        Parameters
-        ----------
-        ext: The extension of the file type. ex: csv, json, npy
-        """
-        ##Define a path for the data. (Use the name of the case study and date)
-        #Get Date only from DateTime String
-        split_date_parts = self.configuration["DateTime String"].split("/")
-        Run_Date = "/".join(split_date_parts[:-1])
-        path_name = Run_Date + "/" + "Data_Files/" + self.configuration["Case Study Name"]
-
-        ##Create directory if it doesn't already exist
-        # Extract the directory and filename from the given path
-        directory = os.path.split(path)[0]
-        filename = "%s.%s" % (os.path.split(path)[1], ext)
-        if directory == '':
-            directory = '.'
-
-        # If the directory does not exist, create it
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-        # The final path to save to is
-        savepath = os.path.join(directory, filename)
-        
-        #Turn this class into a JSON object
-        ##How do I actually do this?
-        #Save this object to the specified path
-        ##How do I actually do this?
         
     
 class GPBO_Driver:
@@ -2571,7 +2643,7 @@ class GPBO_Driver:
         
         #Choose a single value with the lowest -ei or sse
         min_value = min(best_vals) #Find lowest value
-        min_indices = np.where( np.isclose(best_vals, min_value, rtol=1e-7) )[0] #Find all indecies where there may be a tie
+        min_indices = np.where( np.isclose(best_vals, min_value, rtol=1e-7) )[0] #Find all indeces where there may be a tie
         rand_min_idx = np.random.choice(min_indices) #Choose one at random as the next step
         
         best_val = best_vals[rand_min_idx]
@@ -2612,9 +2684,9 @@ class GPBO_Driver:
         
         #Set candidate point feature data
         if self.method.emulator == False:
-            self.gp_emulator.feature_cand_data = self.gp_emulator._Type_1_GP_Emulator__featurize_data(self.gp_emulator.cand_data)
+            self.gp_emulator.feature_cand_data = self.gp_emulator.featurize_data(self.gp_emulator.cand_data)
         else:
-            self.gp_emulator.feature_cand_data = self.gp_emulator._Type_2_GP_Emulator__featurize_data(self.gp_emulator.cand_data)
+            self.gp_emulator.feature_cand_data = self.gp_emulator.featurize_data(self.gp_emulator.cand_data)
         
         #Evaluate GP mean/ stdev at theta
         cand_mean, cand_var = self.gp_emulator.eval_gp_mean_var_cand()
@@ -2669,7 +2741,7 @@ class GPBO_Driver:
         for i in range(len(mesh_combos)):
             #Create a copy of the true values to change the mehsgrid valus on
             theta_set_copy = np.copy(theta_set)
-            #Set the indecies of theta_set for evaluation as each row of mesh_combos
+            #Set the indeces of theta_set for evaluation as each row of mesh_combos
             idcs = mesh_combos[i]
 
             #Create a meshgrid of values of the 2 selected values of theta and reshape to the correct shape           
@@ -2716,12 +2788,12 @@ class GPBO_Driver:
         if self.method.emulator == False:
             self.gp_emulator.train_data.theta_vals = np.vstack((self.gp_emulator.train_data.theta_vals, theta_best))
             self.gp_emulator.train_data.y_vals = np.concatenate((self.gp_emulator.train_data.y_vals, theta_best_sse_data.y_vals))
-            feature_train_data = self.gp_emulator._Type_1_GP_Emulator__featurize_data(self.gp_emulator.train_data)          
+            feature_train_data = self.gp_emulator.featurize_data(self.gp_emulator.train_data)          
         else:
             self.gp_emulator.train_data.theta_vals = np.vstack((self.gp_emulator.train_data.theta_vals, theta_best_repeated))
             self.gp_emulator.train_data.x_vals = np.vstack((self.gp_emulator.train_data.x_vals, self.exp_data.x_vals))  
             self.gp_emulator.train_data.y_vals = np.concatenate((self.gp_emulator.train_data.y_vals, theta_best_data.y_vals))
-            feature_train_data = self.gp_emulator._Type_2_GP_Emulator__featurize_data(self.gp_emulator.train_data)
+            feature_train_data = self.gp_emulator.featurize_data(self.gp_emulator.train_data)
         
         self.gp_emulator.feature_train_data = feature_train_data
                    
