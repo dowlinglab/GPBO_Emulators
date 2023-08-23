@@ -279,7 +279,7 @@ def test_eval_ei_cand(gp_emulator, simulator, exp_data, method, expected_l):
     theta_vals = np.repeat(theta.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
     candidate.theta_vals = theta_vals
     gp_emulator.cand_data = candidate #Set candidate point
-    gp_emulator.feature_cand_data = gp_emulator._Type_2_GP_Emulator__featurize_data(gp_emulator.cand_data)
+    gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data)
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_cand() #Calc mean, var of gp 
     best_error = gp_emulator.calc_best_error(exp_data) #Calc best error
     ei = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error, method)

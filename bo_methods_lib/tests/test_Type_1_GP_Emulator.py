@@ -284,7 +284,7 @@ def test_eval_ei_cand(gp_emulator, simulator, exp_data, expected_l):
     candidate = Data(None, exp_data.x_vals, None, None, None, None, None, None, simulator.bounds_theta_reg, simulator.bounds_x)
     candidate.theta_vals = gp_emulator.gp_sim_data.theta_vals[0].reshape(1,-1) #Set candidate thetas
     gp_emulator.cand_data = candidate #Set candidate point
-    gp_emulator.feature_cand_data = gp_emulator._Type_1_GP_Emulator__featurize_data(gp_emulator.cand_data) #Set feature vals
+    gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data) #Set feature vals
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_cand() #Calc mean, var of gp 
     best_error = gp_emulator.calc_best_error() #Calc best error
     ei = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error)
