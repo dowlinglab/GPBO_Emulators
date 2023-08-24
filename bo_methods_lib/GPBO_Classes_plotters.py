@@ -2,10 +2,12 @@ from matplotlib import pyplot as plt
 import numpy as np
 import torch
 from mpl_toolkits.mplot3d import Axes3D
-from pylab import *
 import pandas as pd
 import os
+import matplotlib.ticker
+
 import matplotlib.pyplot as plt
+from  .GPBO_Classes_New import Data
 
 def save_fig(path, ext='png', close=True, verbose=True):
     """Save a figure from pyplot.
@@ -58,27 +60,70 @@ def save_fig(path, ext='png', close=True, verbose=True):
 def create_subplots(num_subplots):
     """
     Creates Subplots based on the amount of data
-    """
-    #Make figures and define number of subplots  
-    row_num = int(np.floor(np.sqrt(num_subplots)))
-    col_num = int(np.ceil(num_subplots/row_num))
-#     print(row_num, col_num) 
-    assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
-    fig, axes = plt.subplots(nrows = row_num, ncols = col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = "row")
-    ax = axes.reshape(row_num * col_num)
     
+    Parameters
+    ----------
+    num_subplots: int, total number of needed subplots
+    
+    Returns
+    -------
+    fig: matplotlib.figure, The figure you are plotting
+    ax: matplotlib.axes.Axes, 1D array of axes
+    len(ax): The number of axes generated total
+    """
+    assert num_subplots >= 1, "Number of subplots must be at least 1"
+    #Make figures and define number of subplots  
+    #If you are making more than one figure
+    if num_subplots > 1:
+        #Make enough rows and columns and get close to equal number of each
+        row_num = int(np.floor(np.sqrt(num_subplots)))
+        col_num = int(np.ceil(num_subplots/row_num))
+        assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
+        #Creat subplots
+        fig, axes = plt.subplots(nrows = row_num, ncols = col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = "row")
+        ax = axes.reshape(row_num * col_num)
+    else:
+        #One subplot if num_subplots = 1
+        fig, axes = plt.subplots(nrows = 1, ncols = 1, figsize = (6,6), squeeze = False, sharex = "row")
+        ax = axes.reshape(1)
+        
     return fig, ax, len(ax)
     
-def plot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fontsize):
+def subplot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fontsize):
     """
     Function for setting plot settings
+    
+    Parameters
+    ----------
+    plot_x: ndarray, The x data for plotting
+    plot_y: ndarray, The y data for plotting
+    xlabel: str or None, the label for the x axis
+    ylabel: str or None, the label for the y axis
+    title: str or None, The subplot title
+    xbins: int, Number of x bins
+    ybins: int, Number of y bins
+    fontsize: int, fontsize of letters in the subplot
     """
+    #Group inputs by type
+    none_str_vars = [title, xlabel, ylabel]
+    int_vars = [xbins, ybins, fontsize]
+    arr_vars = [plot_x, plot_y]
+    
+    #Assert Statements
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, and ylabel must be string or None"
+    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, and fontsize must be int"
+    assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
+    assert all(isinstance(var, (np.ndarray,pd.core.series.Series)) for var in arr_vars), "plot_x, plot_y must be np.ndarray or pd.core.series.Series"
+    
+    #Set title, label, and axes
     if title is not None:
         ax.set_title(title, fontsize=fontsize, fontweight='bold')   
     if xlabel is not None:
         ax.set_xlabel(xlabel,fontsize=fontsize,fontweight='bold')
     if ylabel is not None:
         ax.set_ylabel(ylabel,fontsize=fontsize,fontweight='bold')
+        
+    #Turn on tick parameters and bin number
     ax.xaxis.set_tick_params(labelsize=fontsize, direction = "in")
     ax.yaxis.set_tick_params(labelsize=fontsize, direction = "in")
     ax.locator_params(axis='y', nbins=ybins)
@@ -86,6 +131,7 @@ def plot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fontsi
     ax.minorticks_on() # turn on minor ticks
     ax.tick_params(which="minor",direction="in",top=True, right=True)
     
+    #Set bounds and aspect ratio
     if np.isclose(np.min(plot_x), np.max(plot_x), rtol =1e-6) == False:        
         ax.set_xlim(left = np.min(plot_x), right = np.max(plot_x))
  
@@ -97,9 +143,7 @@ def plot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fontsi
 #         ax.set_ylim(bottom = np.min(plot_y)-abs(np.min(plot_y)*0.05), top = np.max(plot_y)+abs(np.min(plot_y)*0.05))
 #         print(np.min(plot_y)-abs(np.min(plot_y)*0.05), np.max(plot_y)+abs(np.min(plot_y)*0.05))
 #     else:
-#         ax.set_ylim(bottom = np.min(plot_y)/2, top = np.max(plot_y)*2)
-    
-    
+#         ax.set_ylim(bottom = np.min(plot_y)/2, top = np.max(plot_y)*2)    
     return ax
          
     
@@ -111,66 +155,90 @@ def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_la
     -----------
     data: ndarray (n_runs x n_iters x n_params), Array of data from bo workflow runs
     data_names: list of str, List of data names
-    data_true: list of float/int, The true values of each parameter
+    data_true: list/ndarray of float/int or None, The true values of each parameter
     xbins: int, Number of bins for x
     ybins: int, Number of bins for y
-    title: str, Title of graph
-    x_label: str, title of x-axis
-    y_label: str, title of y-axis
+    title: str or None, Title of graph
+    x_label: str or None, title of x-axis
+    y_label: str or None, title of y-axis
     title_fontsize: int, fontisize for title. Default 24
     other_fontsize: int, fontisize for other values. Default 20
-    save_path: None or str, Path to save figure to. Default None (do not save figure).
+    save_path: str or None, Path to save figure to. Default None (do not save figure).
     """
+    #Assert Statements
+    none_str_vars = [x_label, y_label, title, save_path]
+    int_vars = [xbins, ybins, title_fontsize, other_fontsize]
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, save_path, and ylabel must be string or None"
+    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
+    assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
+    assert isinstance(data, np.ndarray) or data is None, "data must be np.ndarray"
+    assert len(data.shape) == 3, "data must be a 3D tensor"
+    assert isinstance(data_true, (list, np.ndarray)) or data_true is None, "data_true must be list, ndarray, or None"
+    if data_true is not None:
+         assert all(isinstance(item, (float,int)) for item in data_true), "data_true elements must be float/int"
+    assert isinstance(data_names, list), "data_names must be list"
+    assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
+   
+    
     #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
     subplots_needed = data.shape[-1]
     fig, ax, num_subplots = create_subplots(subplots_needed)
     
-    #Print the title
+    #Print the title and labels as appropriate
     if title_fontsize is not None:
         fig.suptitle(title, weight='bold', fontsize=title_fontsize)
-    fig.supxlabel(x_label, fontsize=other_fontsize,fontweight='bold')
-    fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold')
+    if x_label is not None:
+        fig.supxlabel(x_label, fontsize=other_fontsize,fontweight='bold')
+    if y_label is not None:
+        fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold')
     
     
     #Loop over different hyperparameters (number of subplots)
     for i in range(num_subplots):
+        #If you still have data to plot
         if i < data.shape[-1]:
-            true_val_idx = i
+            #The index of the data is i, and one data type is in the last row of the data
             one_data_type = data[:,:,i]
             #Loop over all runs
             for j in range(one_data_type.shape[0]):
+                #Create label based on run #
                 label = "Run: "+str(j+1) 
+                #Remove elements that are numerically 0
                 data_df_run = pd.DataFrame(data = one_data_type[j])
                 data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-6).any(axis=1),0]
                 data_df_i = data_df_run.loc[:,0]
+                #Ensure we have at least 2 elements to plot
                 if len(data_df_j) < 2:
                     data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
+                #Define x axis
                 bo_len = len(data_df_j)
-                bo_space = np.linspace(1,bo_len,bo_len) 
+                bo_space = np.linspace(1,bo_len,bo_len)
+                #Set appropriate notation
                 if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
                     ax[i].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                #Plot data
                 ax[i].step(bo_space, data_df_j, label = label)
+                #Plot true value if applicable
                 if data_true is not None and j == one_data_type.shape[0] - 1:
-                    ax[i].axhline(y=data_true[true_val_idx], color = "red", linestyle='-', label = "True Value")
+                    ax[i].axhline(y=data_true[i], color = "red", linestyle='-', label = "True Value")
                 #Set plot details 
-                y_label = None
                 title = r'$'+ data_names[i]+ '$'
-                plot_details(ax[i], bo_space, data_df_j, None, y_label, title, xbins, ybins, other_fontsize)
+                subplot_details(ax[i], bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
 
         #Set axes off if it's an extra
         else:
             ax[i].set_axis_off()
+            
         #Fetch handles and labels on last iteration
         if i == num_subplots-1:
             handles, labels = ax[i].get_legend_handles_labels()
             
     #Plots legend and title
     plt.tight_layout()
-    fig.legend(handles, labels, loc= "upper left", bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
     
     #save or show figure
     if save_path is None:
-#     if verbose == True and save_figure == False:
         plt.show()
         plt.close()
     else:
@@ -178,36 +246,36 @@ def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_la
 
     return
 
-#This needs to take indecies as an argument and link indecies to a list of parameters
+#These parameters may need to change
 def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_to_plot, x_exp, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
     '''
+    UPDATE ME LATER
     Plots original training/testing data with the true value
     Parameters
     ----------
-        train_data: ndarray, The training parameter space data. Must be 3D Max
-        test_data: ndarray, The testing parameter space data
-        val_data: ndarray, The testing parameter space data
-        param_names: list of str, List of parameter names
-        true_params: tensor or ndarray, The true parameter space data
-        idcs_to_plot: ndarray, The list of indecies that will be plotted in ascending order
-        x_exp: The experimental x data used
-        xbins: int, Number of bins for x
-        ybins: int, Number of bins for y
-        zbins: int, Number of bins for z
-        title: str, Title of graph
-        title_fontsize: int, fontisize for title. Default 24
-        other_fontsize: int, fontisize for other values. Default 20
-        save_path: None or str, Path to save figure to. Default None (do not save figure).
+    train_data: ndarray, The training parameter space data. Must be 3D Max
+    test_data: ndarray, The testing parameter space data
+    val_data: ndarray, The testing parameter space data
+    param_names: list of str, List of parameter names
+    true_params: tensor or ndarray, The true parameter space data
+    idcs_to_plot: ndarray, The list of indecies that will be plotted in ascending order
+    x_exp: The experimental x data used
+    xbins: int, Number of bins for x
+    ybins: int, Number of bins for y
+    zbins: int, Number of bins for z
+    title: str, Title of graph
+    title_fontsize: int, fontisize for title. Default 24
+    other_fontsize: int, fontisize for other values. Default 20
+    save_path: None or str, Path to save figure to. Default None (do not save figure).
      
     Returns
     -------
         plt.show(), A plot of the original training data points and the true value
     '''
-    i1, i2, i3 = idcs_to_plot
-    
     #If there are less 2 parameters, plot in 2D
     if len(idcs_to_plot) == 2:
-        #Set figure details
+        i1, i2 = idcs_to_plot
+        #Set figure details. Set bins turn on ticks
         plt.figure(figsize = (6,6))
         plt.xticks(fontsize=other_fontsize)
         plt.yticks(fontsize=other_fontsize)
@@ -223,8 +291,8 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
         plt.scatter(val_data[:,i1],val_data[:,i2], color="blue",s=20, label = "Validation", marker = "D", zorder = 3)
         #How to plot theta true given that a combination of x and theta can be chosen?
 #         plt.scatter(true_params[i1],true_params[i2], color="blue", label = "True argmin"+r'$(e(\theta))$', s=100, marker=(5,1), zorder = 3)
-        #Set plot details
-        plt.legend(loc= "upper left", bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+        #Set plot labels
+        plt.legend(loc= "upper left", bbox_to_anchor=(1.05, 0.95), borderaxespad=0)
         x_label = r'$\mathbf{'+ param_names[i1] +'}$'
         y_label = r'$\mathbf{'+ param_names[i2] +'}$'
 
@@ -232,21 +300,23 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
         plt.ylabel(y_label, fontsize=other_fontsize, fontweight='bold')
         
         #Set axis limits based on the maximum and minimum of the parameter search space      
-        x_lim_l = np.amin(np.concatenate((train_p[:,i1], test_p[:,i1]), axis = None))
-        y_lim_l = np.amin(np.concatenate((train_p[:,i2], test_p[:,i2]), axis = None))
-        x_lim_u = np.amax(np.concatenate((train_p[:,i1], test_p[:,i1]), axis = None))
-        y_lim_u = np.amax(np.concatenate((train_p[:,i2], test_p[:,i2]), axis = None))
+        x_lim_l = np.amin(np.concatenate((train_data[:,i1], test_data[:,i1]), axis = None))
+        y_lim_l = np.amin(np.concatenate((train_data[:,i2], test_data[:,i2]), axis = None))
+        x_lim_u = np.amax(np.concatenate((train_data[:,i1], test_data[:,i1]), axis = None))
+        y_lim_u = np.amax(np.concatenate((train_data[:,i2], test_data[:,i2]), axis = None))
         plt.xlim((x_lim_l,x_lim_u))
         plt.ylim((y_lim_l,y_lim_u))
+        #Set plot title
         plt.title(title, fontsize=title_fontsize, fontweight='bold')
-
-     
+ 
     #Otherwise print in 3D
     elif len(idcs_to_plot) == 3:
+        i1, i2, i3 = idcs_to_plot
         #How should I go about plotting the true value?
 
         # Create the figure
         fig = plt.figure(figsize = (6,6))
+        #Add 3D axes, set ticks, and bins
         ax = fig.add_subplot(111, projection='3d')
         ax.zaxis.set_tick_params(labelsize=other_fontsize)
         ax.yaxis.set_tick_params(labelsize=other_fontsize)
@@ -260,20 +330,19 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
 
     
         # Plot the values
-        ax.scatter(train_data[:,i1], train_data[:,i2], train_data[:,i3], color = "green", s=50, label = "Training", marker='o', zorder = 1)
-        ax.scatter(test_data[:,i1],test_data[:,i2], test_data[:,i3], color="red", s=25, label = "Testing", marker = "x", zorder = 2)
-        ax.scatter(val_data[:,i1],val_data[:,i2], val_data[:,i3], color="blue", s=20, label = "Validation", marker = "D", zorder = 3)
+        ax.scatter(train_data[:,i1], train_data[:,i2], train_data[:,i3], color = "green", s=100, label = "Training", marker='o',zorder = 1)
+        ax.scatter(test_data[:,i1],test_data[:,i2], test_data[:,i3], color="red", s=50, label = "Testing", marker = "x", zorder = 2)
+        ax.scatter(val_data[:,i1],val_data[:,i2], val_data[:,i3], color="blue", s=40, label = "Validation", marker = "D", zorder = 3)
 #         ax.scatter(p_true_3D_full[:,0], p_true_3D_full[:,1], p_true_3D_full[:,2], color="blue", label = "True argmin" + r'$(e(\theta))$', 
 #                     s=100, marker = (5,1), zorder = 3)
-        
-        plt.legend(loc= "upper left", bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+        #Set Labels
         x_label = r'$\mathbf{'+ param_names[i1] +'}$'
         y_label = r'$\mathbf{'+ param_names[i2] +'}$'
         z_label = r'$\mathbf{'+ param_names[i3] +'}$'
 #         plt.xlabel(r'$\mathbf{\theta_1}$', fontsize=16, fontweight='bold')
-        ax.set_xlabel(x_label, fontsize=other_fontsize, fontweight='bold')
-        ax.set_ylabel(y_label, fontsize=other_fontsize, fontweight='bold')
-        ax.set_zlabel(z_label, fontsize=other_fontsize, fontweight='bold')
+        ax.set_xlabel(x_label, fontsize=other_fontsize, fontweight='bold', labelpad=int(other_fontsize))
+        ax.set_ylabel(y_label, fontsize=other_fontsize, fontweight='bold', labelpad=int(other_fontsize))
+        ax.set_zlabel(z_label, fontsize=other_fontsize, fontweight='bold', labelpad=int(other_fontsize))
         
         #How to set bounds given that you could plot any combination of theta and x dimensions on any axis?
 #         x_lim_l = np.amin(np.concatenate((train_p[:,0], test_p[:,0]), axis = None))
@@ -282,11 +351,16 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
 #         y_lim_u = np.amax(np.concatenate((train_p[:,1], test_p[:,1]), axis = None))
 #         plt.xlim((x_lim_l,x_lim_u))
 #         plt.ylim((y_lim_l,y_lim_u))
+        #Remove grid, set title and get legend
         ax.grid(False)
-        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
+        plt.title(title, weight='bold', fontsize=title_fontsize)
+        plt.tight_layout()
+        plt.legend(loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 1.05), borderaxespad=0)
+        
     else:
         print("Must be a 2D or 3D graph")
-        
+     
+    #Save or show figure
     if save_path is not None:
         save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
@@ -295,95 +369,141 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
 
     return 
 
-def plot_heat_maps(heat_map_data, theta_true, theta_obj_min, theta_ei_max, train_theta, param_names, levels, idcs_to_plot, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
+def plot_heat_maps(heat_map_data, theta_true, theta_obj_min, theta_ei_max, train_theta, param_names, levels, idcs_to_plot, vals_to_plot, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
     '''
     Plots comparison of y_sim, GP_mean, and GP_stdev
     Parameters
     ----------
-        test_mesh: ndarray, 2 NxN uniform arrays containing all values of the 2 input parameters. Created with np.meshgrid()
-        z: list of 3 NxN arrays containing all points that will be plotted for GP_mean, GP standard deviation, and y_sim
-        theta_true: ndarray, A 2x1 containing the true input parameters
-        theta_obj_min: ndarray, A 2x1 containing the optimal input parameters predicted by the GP
-        theta_ei_max: ndarray, A 2x1 containing the input parameters predicted by the GP to have the best EI
-        train_theta: Training data for the iteration under consideration
-        levels: int, Number of levels to skip when drawing contour lines. Default is 20
-        idcs_to_plot: ndarray, The list of values that will be plotted (0-2). 0=sse, 1 = sse var, 2 = ei
+        heat_map_data: Instance of Data, Containing all values of the input parameters
+        theta_true: ndarray or None, Containing the true input parameters in all dimensions
+        theta_obj_min: ndarray or None, Containing the optimal input parameters predicted by the GP
+        theta_ei_max: ndarray or None, Containing the input parameters predicted by the GP to have the best EI
+        train_theta: ndarray or None, Training data for the iteration under consideration
+        param_names: list of str, Parameter names. Length of 2
+        levels: int, list of int or None, Number of levels to skip when drawing contour lines
+        idcs_to_plot: list of int, Indecies of parameters to plot
+        vals_to_plot: list of int, The list of values that will be plotted (0-2). 0=sse, 1 = sse var, 2 = ei
         xbins: int, Number of bins for x
         ybins: int, Number of bins for y
         zbins: int, Number of bins for z
-        title: str, Title of graph
+        title: str or None, Title of graph
         title_fontsize: int, fontisize for title. Default 24
         other_fontsize: int, fontisize for other values. Default 20
-        save_path: None or str, Path to save figure to. Default None (do not save figure).    
+        save_path: str or None, Path to save figure to. Default None (do not save figure).    
     Returns
     -------
         plt.show(), A heat map of test_mesh and z
     '''
-    #Backtrack out number of parameters from given information
+    
+    #Assert Statements
+    none_str_vars = [title, save_path]
+    none_ndarray_list = [theta_true, theta_obj_min, theta_ei_max, train_theta]
+    int_vars = [xbins, ybins, zbins, title_fontsize, other_fontsize]
+    list_vars = [idcs_to_plot, vals_to_plot, param_names]
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path  must be string or None"
+    assert all(isinstance(var, np.ndarray) or var is None for var in none_ndarray_list), "theta_true, theta_obj_min, theta_ei_max, train_theta must be array or None"
+    assert isinstance(heat_map_data, Data), "heat_map_data must be an instance of the data class"
+    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
+    assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive" 
+    assert isinstance(levels, (list, int)) or levels is None, "levels must be list of int, int, or None"
+    if isinstance(levels, (list)) == True:
+        assert all(isinstance(var, int) for var in levels), "If a list, levels must be list of int"
+    assert all(isinstance(item, int) for item in idcs_to_plot), "idcs_to_plot elements must be int"
+    assert all(isinstance(item, int) for item in vals_to_plot), "vals_to_plot elements must be int"
+    assert all(isinstance(item, str) for item in param_names), "param_names elements must be str"
+    
+    #Infer parameters from given information
+    z = [heat_map_data.sse_mean, heat_map_data.sse_var, heat_map_data.ei]
+    titles = ["sse", "sse var", "ei"]
+    
+    #Define plot levels
     if levels is None:
         tot_lev = None
     elif len(levels) == 1:
-        tot_lev = levels*len(z) 
+        tot_lev = levels*len(vals_to_plot) 
     else:
         tot_lev = levels
         
-    #Define figures and x and y data
+    #Define original theta_vals (for restoration later)
+    org_theta = heat_map_data.theta_vals
+    #Redefine the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
+    heat_map_data.theta_vals = heat_map_data.theta_vals[:,idcs_to_plot]
+    #Create a meshgrid with x and y values fron the uniwue theta values of that array
     unique_theta = heat_map_data.get_unique_theta()
     theta_pts = int(np.sqrt(len(unique_theta)))
-    test_mesh = unique_theta.reshape(theta_pts,theta_pts, -1).T
+    test_mesh = unique_theta.reshape(theta_pts,theta_pts,-1).T
     xx , yy = test_mesh #NxN, NxN
-    z = [heat_map_data.sse_mean, heat_map_data.sse_var, heat_map_data.ei]
-    titles = ["sse", "sse var", "ei"]
+    
     #Assert sattements
-#     assert len(z) == len(titles), "Equal number of data matricies and titles must be given!"
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
     
     #Make figures and define number of subplots  
-    subplots_needed = len(idcs_to_plot)
+    subplots_needed = len(vals_to_plot)
     fig, ax, num_subplots = create_subplots(subplots_needed)
     
     #Print the title
-    fig.suptitle(title, weight='bold', fontsize=18)
+    if title is not None:
+        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
     
     #Set plot details
     #Loop over number of subplots
-    for i in idcs_to_plot:
-        z[i] = z[i].reshape(theta_pts,theta_pts).T
+    for i in range(len(vals_to_plot)):
+        z_i = vals_to_plot[i]
+        z[z_i] = z[z_i].reshape(theta_pts,theta_pts).T
         #Assert statements
-        assert z[i].shape==xx.shape, "Array z must be NxN"
-        assert isinstance(z[i], np.ndarray)==True, "Heat map values must be numpy arrays"
-        assert isinstance(titles[i], str)==True, "Title must be a string" 
+        assert z[z_i].shape==xx.shape, "Array z must be NxN"
+        assert isinstance(z[z_i], np.ndarray)==True, "Heat map values must be numpy arrays"
+        assert isinstance(titles[z_i], str)==True, "Title must be a string" 
         
-        #Create a colormap and colorbar for each subplot
-        cs_fig = ax[i].contourf(xx, yy,z[i], levels = 900, cmap = "autumn")
-        if np.amax(abs(z[i])) < 1e-1 or np.amax(abs(z[i])) > 1000:
-            cbar = plt.colorbar(cs_fig, ax = ax[i], format='%.2e')
+        #Set number format based on magnitude
+        if np.amax(abs(z[z_i])) < 1e-1 or np.amax(abs(z[z_i])) > 1000:
+            fmt = '%.2e'           
         else:
-            cbar = plt.colorbar(cs_fig, ax = ax[i], format = '%2.2f')
+            fmt = '%2.2f'
+            
+        #Create a colormap and colorbar for each subplot
+        cs_fig = ax[i].contourf(xx, yy, z[z_i], levels = zbins, cmap = plt.cm.get_cmap("autumn"))
+        cbar = plt.colorbar(cs_fig, ax = ax[i], format=fmt)
+        cbar.ax.tick_params(labelsize=other_fontsize)
         
         #Create a line contour for each colormap
-        if levels is not None:
+        if levels is not None:   
             cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
-            ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=10, inline=1)
-    
-        #plot true, best, and training values
-        ax[i].scatter(theta_true[0],theta_true[1], color="blue", label = "True", s=100, marker = (5,1))
-        ax[i].scatter(train_theta[:,0],train_theta[:,1], color="green",s=25, label = "Training", marker = "x")
-        ax[i].scatter(theta_obj_min[0],theta_obj_min[1], color="white", s=90, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
-        ax[i].scatter(theta_ei_max[0],theta_ei_max[1], color="black", s=25, label = "Max EI", marker = ".")
+            ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
+
+        #plot min obj, max ei, true and training param values as appropriate
+        if theta_true is not None:
+            ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1))
+        if train_theta is not None:
+            ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]], color="green",s=100, label="Training",marker= "x")
+        if theta_obj_min is not None:
+            ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
+        if theta_ei_max is not None:
+            ax[i].scatter(theta_ei_max[idcs_to_plot[0]],theta_ei_max[idcs_to_plot[1]], color="black",s=150, label = "Max EI", marker = ".")
         
+        #Define x and y labels
         xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
         ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
         
-        plot_details(ax[i], xx, yy, xlabel, ylabel, titles[i], xbins, ybins, other_fontsize)
+        #Set plot details
+        subplot_details(ax[i], xx, yy, xlabel, ylabel, titles[z_i], xbins, ybins, other_fontsize)
         
         #Get legend information
-        if i == len(z)-1:
+        if i == len(vals_to_plot)-1:
             handles, labels = ax[i].get_legend_handles_labels()     
           
     #Plots legend and title
+    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
     plt.tight_layout()
-    fig.legend(handles, labels, loc= "upper left", bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
 
+    #Save or show figure
+    if save_path is not None:
+        save_fig(save_path, ext='png', close=True, verbose=False)  
+    else:
+        plt.show()
+        plt.close()
+    
+    #After plotting, restore original theta values
+    heat_map_data.theta_vals = org_theta
     
     return plt.show()
