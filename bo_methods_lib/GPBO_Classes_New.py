@@ -2644,8 +2644,10 @@ class GPBO_Driver:
         
         #Calc best error
         if self.method.emulator == False:
+            #Type 1 best error is inferred from training data 
             best_error = self.gp_emulator.calc_best_error()
         else:
+            #Type 2 best error must be calculated given the experimental data
             best_error = self.gp_emulator.calc_best_error(self.exp_data)
             
         #Find bounds and arguments for function
@@ -2674,6 +2676,7 @@ class GPBO_Driver:
             best_thetas[i] = best_result.x
         
         #Choose a single value with the lowest -ei or sse
+        #In the case that 2 point have the same -ei or sse and this point is the lowest, this lets us pick one at random rather than always just choosing a certain point
         min_value = min(best_vals) #Find lowest value
         min_indices = np.where( np.isclose(best_vals, min_value, rtol=1e-7) )[0] #Find all indeces where there may be a tie
         rand_min_idx = np.random.choice(min_indices) #Choose one at random as the next step
