@@ -2617,7 +2617,7 @@ class GPBO_Driver:
         
         Parameters
         ----------
-        neg_ei: bool, whether to calculate neg_ei (True) or sse (False)
+        neg_ei: bool, whether to use -1*ei (True) or sse (False) as the objective function for minimization
         reoptimize: int, how many times to reinitialize optimization with other starting points
         
         Returns:
@@ -2630,8 +2630,9 @@ class GPBO_Driver:
         assert isinstance(neg_ei, bool), "neg_ei must be bool!"
 
         #Find unique theta vals
-        unique_thetas = self.gp_emulator.gp_val_data.get_unique_theta()
-        assert reoptimize <= len(unique_thetas), "Can not reoptimize more times than there are starting points"
+        #Note. For reoptimizing -ei/sse a different validation point is chosen as a starting point for optimization. Therefore, we assume that the validation theta set has no repeated points.
+        unique_val_thetas = self.gp_emulator.gp_val_data.get_unique_theta()
+        assert reoptimize <= len(unique_val_thetas), "Can not reoptimize more times than there are starting points"
         
         #Set seed
         if self.cs_params.seed is not None:
@@ -2658,13 +2659,13 @@ class GPBO_Driver:
         #Need to account for normalization here (make bounds array of [0,1]^dim_theta)
         
         #Choose values of theta from validation set at random
-        theta_val_idc = list(range(len(unique_thetas)))
+        theta_val_idc = list(range(len(unique_val_thetas)))
     
         ## Loop over each validation point/ a certain number of validation point thetas
         for i in range(reoptimize):
             #Choose a random index of theta to start with
             unique_theta_index = random.sample(theta_val_idc, 1)
-            theta_guess = unique_thetas[unique_theta_index]
+            theta_guess = unique_val_thetas[unique_theta_index]
             
             #Call scipy method to optimize EI given theta
             best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei, best_error))
@@ -2680,7 +2681,7 @@ class GPBO_Driver:
         best_val = best_vals[rand_min_idx]
         best_theta = best_thetas[rand_min_idx]
         
-        #Make sure to return a positive value of EI
+        #Since we minimize -ei, multiply by -1 to get the maximum value of ei
         if neg_ei == True:
             best_val = best_val*-1
                     
