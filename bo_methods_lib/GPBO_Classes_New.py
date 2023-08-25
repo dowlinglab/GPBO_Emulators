@@ -910,6 +910,10 @@ class Data:
         --------
         train_idx: ndarray, The training theta data identifiers
         test_idx: ndarray, The testing theta data identifiers
+        
+        Notes
+        -----
+        The training and testing data is split such that the number train_data is always rounded up. Ensures there is always training data
 
         """
         assert self.theta_vals is not None, "data must have theta_vals"

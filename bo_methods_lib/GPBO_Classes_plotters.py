@@ -272,6 +272,8 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
     -------
         plt.show(), A plot of the original training data points and the true value
     '''
+    assert len(idcs_to_plot) in [1,2], "idcs_to_plot must be a length 2 or 3"
+    
     #If there are less 2 parameters, plot in 2D
     if len(idcs_to_plot) == 2:
         i1, i2 = idcs_to_plot
