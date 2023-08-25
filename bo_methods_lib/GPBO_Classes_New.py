@@ -979,7 +979,7 @@ class GP_Emulator:
         __feature_train_data: ndarray, the feature data for the training data in ndarray form
         __feature_test_data: ndarray, the feature data for the testing data in ndarray form
         __feature_val_data: ndarray, the feature data for the validation data in ndarray form
-        __feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.opt_with_scipy()
+        __feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
         """
         #Assert statements
         #Check for int/float
@@ -1300,7 +1300,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         feature_train_data: ndarray, the feature data for the training data in ndarray form
         feature_test_data: ndarray, the feature data for the testing data in ndarray form
         feature_val_data: ndarray, the feature data for the validation data in ndarray form
-        feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.opt_with_scipy()
+        feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
         """
         # Constructor method
         super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
@@ -1603,6 +1603,22 @@ class Type_1_GP_Emulator(GP_Emulator):
         
         return ei
     
+    def add_next_theta_to_train_data(self, theta_best_sse_data):
+        """
+        Adds the theta with the highest ei to the training data set
+        
+        Parameters
+        ----------
+        theta_best_sse_data: Instance of Data, The class containing the data relavent to theta_best for a Type 1 GP
+        """
+        #Update training theta, x, and y separately
+        self.train_data.theta_vals = np.vstack((self.train_data.theta_vals, theta_best_sse_data.theta_vals))
+        self.train_data.y_vals = np.concatenate((self.train_data.y_vals, theta_best_sse_data.y_vals))
+        feature_train_data = self.featurize_data(self.train_data)  
+        
+        #Reset training data feature array
+        self.feature_train_data = feature_train_data
+    
 class Type_2_GP_Emulator(GP_Emulator):
     """
     The base class for Gaussian Processes
@@ -1643,7 +1659,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         feature_train_data: ndarray, the feature data for the training data in ndarray form
         feature_test_data: ndarray, the feature data for the testing data in ndarray form
         feature_val_data: ndarray, the feature data for the validation data in ndarray form
-        feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.opt_with_scipy()
+        feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
         """
         # Constructor method
         super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
@@ -2040,6 +2056,25 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return ei
     
+    def add_next_theta_to_train_data(self, theta_best_data):
+        """
+        Adds the theta with the highest ei to the training data set
+        
+        Parameters
+        ----------
+        theta_best: Instance of Data, The class containing the data relavent to theta_best
+        """
+        #Update training theta, x, and y separately
+        self.train_data.theta_vals = np.vstack((self.train_data.theta_vals, theta_best_data.theta_vals))
+        self.train_data.x_vals = np.vstack((self.train_data.x_vals, theta_best_data.x_vals))  
+        self.train_data.y_vals = np.concatenate((self.train_data.y_vals, theta_best_data.y_vals))
+        feature_train_data = self.featurize_data(self.train_data)
+        
+        #Reset training data feature array
+        self.feature_train_data = feature_train_data
+        
+        
+                                                             
 ##Again, composition instead of inheritance      
 class Expected_Improvement():  
     """
@@ -2541,14 +2576,14 @@ class GPBO_Driver:
     Methods
     --------------
     __init__
-    gen_emulator(kernel, lenscl, outputscl, retrain_GP)
-    opt_with_scipy(neg_ei, reoptimize)
+    __gen_emulator(kernel, lenscl, outputscl, retrain_GP)
+    __opt_with_scipy(neg_ei, reoptimize)
     __scipy_fxn(theta,neg_ei, best_error)
-    create_param_grids()
-    augment_train_data(theta_best)
-    run_bo_iter(gp_model, iteration, reoptimize)
-    run_bo_to_term(gp_model reoptimize)
-    run_bo_workflow(kernel, lenscl, outputscl, retrain_GP, reoptimize)
+    __create_heat_map_param_data
+    __augment_train_data(theta_best)
+    __run_bo_iter(gp_model, iteration, reoptimize)
+    __run_bo_to_term(gp_model reoptimize)
+    __run_bo_workflow(kernel, lenscl, outputscl, retrain_GP, reoptimize)
     run_bo_restarts(kernel, lenscl, outputscl, retrain_GP, reoptimize)
     save_data(restart_bo_results)
     """
@@ -2581,9 +2616,10 @@ class GPBO_Driver:
         self.val_sse_data = val_sse_data
         self.gp_emulator = gp_emulator
         self.ep_bias = ep_bias
+        self.bo_iter_term_frac = 0.3 #The fraction of iterations after which to terminate bo if no sse improvement is made
                
     
-    def gen_emulator(self, kernel, lenscl, outputscl, retrain_GP):
+    def __gen_emulator(self, kernel, lenscl, outputscl, retrain_GP):
         """
         Sets GP Emulator class (equipped with training data) and validation data based on the method class instance
         
@@ -2611,7 +2647,26 @@ class GPBO_Driver:
         return gp_emulator
     
     
-    def opt_with_scipy(self, neg_ei, reoptimize):
+    def __get_best_error(self):
+        """
+        Helper function to calculate the best error given the method.
+        
+        Returns
+        -------
+        best_error: float, the best error of the GPBO workflow
+        """
+        
+        if self.method.emulator == False:
+            #Type 1 best error is inferred from training data 
+            best_error = self.gp_emulator.calc_best_error()
+        else:
+            #Type 2 best error must be calculated given the experimental data
+            best_error = self.gp_emulator.calc_best_error(self.exp_data)
+        
+        return best_error
+        
+    
+    def __opt_with_scipy(self, neg_ei, reoptimize):
         """
         Optimizes a function with scipy.optimize
         
@@ -2643,12 +2698,7 @@ class GPBO_Driver:
         best_thetas = np.zeros((reoptimize, self.gp_emulator.gp_val_data.get_dim_theta()))
         
         #Calc best error
-        if self.method.emulator == False:
-            #Type 1 best error is inferred from training data 
-            best_error = self.gp_emulator.calc_best_error()
-        else:
-            #Type 2 best error must be calculated given the experimental data
-            best_error = self.gp_emulator.calc_best_error(self.exp_data)
+        best_error = self.__get_best_error()
             
         #Find bounds and arguments for function
         #Unnormalize feature data for calculation if necessary
@@ -2719,23 +2769,23 @@ class GPBO_Driver:
         self.gp_emulator.cand_data = candidate
         
         #Set candidate point feature data
-        if self.method.emulator == False:
-            self.gp_emulator.feature_cand_data = self.gp_emulator.featurize_data(self.gp_emulator.cand_data)
-        else:
-            self.gp_emulator.feature_cand_data = self.gp_emulator.featurize_data(self.gp_emulator.cand_data)
+        self.gp_emulator.feature_cand_data = self.gp_emulator.featurize_data(self.gp_emulator.cand_data)
         
         #Evaluate GP mean/ stdev at theta
         cand_mean, cand_var = self.gp_emulator.eval_gp_mean_var_cand()
         
         #Evaluate SSE & SSE stdev at theta
         if self.method.emulator == False:
+            #For Type 1 GP, the sse and sse_var are directly inferred from the gp_mean and gp_var
             cand_sse_mean, cand_sse_var = self.gp_emulator.eval_gp_sse_var_cand()
         else:
+            #For Type 2 GP, the sse and sse_var are calculated from the gp_mean, gp_var, and experimental data
             cand_sse_mean, cand_sse_var = self.gp_emulator.eval_gp_sse_var_cand(self.exp_data)
         
         #Calculate objective fxn
         if neg_ei == False:
-            if self.method.method_name.value == 2: #Objective to minimize is exp(mean) if using 1B
+            #Objective to minimize is exp(mean) if using 1B, and mean for all other methods
+            if self.method.method_name.value == 2: 
                 obj = np.exp(cand_sse_mean)
             else:
                 obj = cand_sse_mean
@@ -2747,13 +2797,13 @@ class GPBO_Driver:
 
         return obj
 
-    def create_heat_map_param_data(self):
+    def __create_heat_map_param_data(self):
         """
         Creates parameter sets that can be used to create heat maps of data at any given iteration
                
         Returns:
         --------
-        heat_map_data_dict: dict, heat map data for each set of 2 parameters indexed by parameter names "param_1-param_2"
+        heat_map_data_dict: dict, heat map data for each set of 2 parameters indexed by parameter name tuple ("param_1,param_2")
         """      
         #Create list of heat map theta data
         heat_map_data_dict = {}
@@ -2769,6 +2819,7 @@ class GPBO_Driver:
         theta_set = np.tile(np.array(self.simulator.theta_true), (n_points**2, 1))
 
         #Infer how many times to repeat theta and x values given that heat maps are meshgrid form by definition
+        #The meshgrid of parameter values created below is symmetric, therefore, x is repeated by n_points**2 for a 2D meshgrid
         repeat_x = n_points**2 #Square because only 2 values at a time change
         x_vals = np.vstack([self.exp_data.x_vals]*repeat_x)
         repeat_theta = self.exp_data.get_num_x_vals()
@@ -2779,10 +2830,11 @@ class GPBO_Driver:
             theta_set_copy = np.copy(theta_set)
             #Set the indeces of theta_set for evaluation as each row of mesh_combos
             idcs = mesh_combos[i]
-            #define name of parameter set as "param_1-param_2"
-            data_set_name = self.simulator.theta_true_names[idcs[0]] + "-" + self.simulator.theta_true_names[idcs[1]]
+            #define name of parameter set as tuple ("param_1,param_2")
+            data_set_name = (self.simulator.theta_true_names[idcs[0]], self.simulator.theta_true_names[idcs[1]])
 
-            #Create a meshgrid of values of the 2 selected values of theta and reshape to the correct shape           
+            #Create a meshgrid of values of the 2 selected values of theta and reshape to the correct shape
+            #Assume that theta1 and theta2 have equal number of points on the meshgrid
             theta1 = np.linspace(self.simulator.bounds_theta_reg[0][idcs[0]], self.simulator.bounds_theta_reg[1][idcs[0]], n_points)
             theta2 = np.linspace(self.simulator.bounds_theta_reg[0][idcs[1]], self.simulator.bounds_theta_reg[1][idcs[1]], n_points)
             theta12_mesh = np.array(np.meshgrid(theta1, theta2))
@@ -2792,9 +2844,10 @@ class GPBO_Driver:
             theta_set_copy[:,idcs] = theta12_vals
             
             #Put values into instance of data class
-            theta_vals =  np.repeat(theta_set_copy, repeat_theta , axis =0)
             #Create data set based on emulator status
             if self.method.emulator == True:
+                #Repeat the theta vals for Type 2 methods to ensure that theta and x values are in the correct form for evaluation with gp_emulator.eval_gp_mean_heat_map()
+                theta_vals =  np.repeat(theta_set_copy, repeat_theta , axis =0)
                 data_set = Data(theta_vals, x_vals, None,None,None,None,None,None, self.simulator.bounds_theta_reg, self.simulator.bounds_x)
             else:
                 data_set = Data(theta_set_copy, self.exp_data.x_vals, None,None,None,None,None,None, self.simulator.bounds_theta_reg, self.simulator.bounds_x)
@@ -2806,7 +2859,7 @@ class GPBO_Driver:
             
         return heat_map_data_dict
                 
-    def augment_train_data(self, theta_best):
+    def __augment_train_data(self, theta_best):
         """
         Augments training data given a new point
 
@@ -2819,27 +2872,21 @@ class GPBO_Driver:
         train_data: ndarray. The training parameter set with the augmented theta values
         """
         #Repeat the theta best array once for each x value
+        #Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
         theta_best_repeated = np.repeat(theta_best.reshape(1,-1), self.exp_data.get_num_x_vals() , axis =0)
         #Add instance of Data class to theta_best
         theta_best_data = Data(theta_best_repeated, self.exp_data.x_vals, None, None, None, None, None, None, self.simulator.bounds_theta_reg, self.simulator.bounds_x)
         #Calculate y values and sse for theta_best with noise
-        theta_best_data.y_vals = self.simulator.gen_y_data(theta_best_data, self.simulator.noise_mean, self.simulator.noise_std)
-        theta_best_sse_data = self.simulator.sim_data_to_sse_sim_data(self.method, theta_best_data, self.exp_data, False)
+        theta_best_data.y_vals = self.simulator.gen_y_data(theta_best_data, self.simulator.noise_mean, self.simulator.noise_std)  
         
-        #Augment training theta, x, and y/sse data based on method type
+        #Set the best data to be in sse form if using a type 1 GP
         if self.method.emulator == False:
-            self.gp_emulator.train_data.theta_vals = np.vstack((self.gp_emulator.train_data.theta_vals, theta_best))
-            self.gp_emulator.train_data.y_vals = np.concatenate((self.gp_emulator.train_data.y_vals, theta_best_sse_data.y_vals))
-            feature_train_data = self.gp_emulator.featurize_data(self.gp_emulator.train_data)          
-        else:
-            self.gp_emulator.train_data.theta_vals = np.vstack((self.gp_emulator.train_data.theta_vals, theta_best_repeated))
-            self.gp_emulator.train_data.x_vals = np.vstack((self.gp_emulator.train_data.x_vals, self.exp_data.x_vals))  
-            self.gp_emulator.train_data.y_vals = np.concatenate((self.gp_emulator.train_data.y_vals, theta_best_data.y_vals))
-            feature_train_data = self.gp_emulator.featurize_data(self.gp_emulator.train_data)
-        
-        self.gp_emulator.feature_train_data = feature_train_data
+            theta_best_data = self.simulator.sim_data_to_sse_sim_data(self.method, theta_best_data, self.exp_data, False)
+
+        #Augment training theta, x, and y/sse data
+        self.gp_emulator.add_next_theta_to_train_data(theta_best_data)
                    
-    def run_bo_iter(self, gp_model, iteration, reoptimize):
+    def __run_bo_iter(self, gp_model, iteration, reoptimize):
         """
         Runs a single GPBO iteration
         
@@ -2852,7 +2899,7 @@ class GPBO_Driver:
         Returns:
         --------
         iter_df: pd.DataFrame, Dataframe containing the results from the GPBO Workflow for iteration
-        gp_emulator_class: Instance of GP_Emulator, The class used for this iteration of the GPBO workflow
+        self.gp_emulator: Instance of GP_Emulator, The class used for this iteration of the GPBO workflow
         """
         #Start timer
         time_start = time.time()
@@ -2863,15 +2910,9 @@ class GPBO_Driver:
         
         #Train GP model (this step updates the model to a trained model)
         self.gp_emulator.train_gp(gp_model)
-               
-        #Save trained gp_emulator as an object
-        gp_emulator_class = self.gp_emulator
         
         #Calcuate best error
-        if self.method.emulator == False:
-            best_error = self.gp_emulator.calc_best_error() #For Type 1
-        else:
-            best_error = self.gp_emulator.calc_best_error(self.exp_data) #For Type 2
+        best_error = self.__get_best_error()
             
         #Calculate mean of var for validation set if using Jasrasaria heuristic
         if self.ep_bias.ep_enum.value == 4:
@@ -2880,20 +2921,21 @@ class GPBO_Driver:
             self.ep_bias.mean_of_var = mean_of_var
             
         #Call optimize acquistion fxn
-        max_ei, max_ei_theta = self.opt_with_scipy(True, reoptimize)
+        max_ei, max_ei_theta = self.__opt_with_scipy(True, reoptimize)
         
         #Call optimize objective function
-        min_sse, min_sse_theta = self.opt_with_scipy(False, reoptimize)
+        min_sse, min_sse_theta = self.__opt_with_scipy(False, reoptimize)
         
-        #calculate improvement
-        if min_sse < best_error:
-            improvement = True
-        else:
-            improvement = False
-        
-        #Set ep improvement
-        self.ep_bias.improvement = improvement
-        
+        #calculate improvement if using Boyle's method to update the exploration bias
+        if self.ep_bias.ep_enum.value == 3:
+            #Improvement is true if the min sse found is lower than the best error, otherwise it's false
+            if min_sse < best_error:
+                improvement = True
+            else:
+                improvement = False
+            #Set ep improvement
+            self.ep_bias.improvement = improvement
+                 
         #Calc time/ iter
         time_end = time.time()
         time_per_iter = time_end-time_start
@@ -2905,12 +2947,12 @@ class GPBO_Driver:
         # Add the new row to the DataFrame
         iter_df.loc[0] = bo_iter_results
         
-        #Call augment_train_data to append training data
-        self.augment_train_data(max_ei_theta)
+        #Call __augment_train_data to append training data
+        self.__augment_train_data(max_ei_theta)
         
-        return iter_df, gp_emulator_class
+        return iter_df, self.gp_emulator
     
-    def run_bo_to_term(self, gp_model, reoptimize):
+    def __run_bo_to_term(self, gp_model, reoptimize):
         """
         Runs multiple GPBO iterations
         
@@ -2924,6 +2966,7 @@ class GPBO_Driver:
         iter_df: pd.DataFrame, Dataframe containing the results from the GPBO Workflow for all iterations
         list_gp_emulator_class: list of instances of GP_Emulator, The classes used for all iterations of the GPBO workflow
         """
+        assert 0 < self.bo_iter_term_frac <= 1, "self.bo_iter_term_frac must be between 0 and 1"
         #Initialize bo params
         column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'Time/Iter']
         results_df = pd.DataFrame(columns=column_names)
@@ -2941,23 +2984,33 @@ class GPBO_Driver:
                 #Set exploration bias
                 self.ep_bias.set_ep()
                 #What should bo_iter output?
-                iter_df, gp_emulator_class = self.run_bo_iter(gp_model, i, reoptimize) #Change me later
+                iter_df, gp_emulator_class = self.__run_bo_iter(gp_model, i, reoptimize) #Change me later
                 #Add results to dataframe
                 results_df = pd.concat([results_df, iter_df])
-                #At the first iteration your best is what you got
+                #At the first iteration
                 if i == 0:
+                    #Then the minimimum is defined by the first value of the objective function you calculate
                     results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj"].iloc[i]
+                    #The Theta values are then inferred
                     results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i]
-                    improvement = np.inf #improvement is infinity on 1st iteration
-                #Lowest sse is what you found if it's lower than what you had
-                elif results_df["Min Obj"].iloc[i] < results_df["Min Obj"].iloc[i-1]:
+                    #improvement is defined as infinity on 1st iteration (something is always better than nothing)
+                    improvement = np.inf 
+                #If it is not the 1st iteration and your current Min Obj value is smaller than your previous Overall Min Obj
+                elif results_df["Min Obj"].iloc[i] < results_df["Min Obj Cum."].iloc[i-1]:
+                    #Then the New Cumulative Minimum objective value is the current minimum objective value
                     results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj"].iloc[i]
+                    #The Thetas are inferred
                     results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i]
-                    improvement = results_df["Min Obj"].iloc[i-1] - results_df["Min Obj"].iloc[i]
+                    #And the improvement is defined as the difference between the last Min Obj Cum. and current Obj Min
+                    improvement = results_df["Min Obj Cum."].iloc[i-1] - results_df["Min Obj"].iloc[i]
+                #Otherwise
                 else:
-                    results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj"].iloc[i-1]
+                    #The minimum objective for all the runs is the same as it was before
+                    results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj Cum."].iloc[i-1]
+                    #And so are the thetas
                     results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i-1]
-                    improvement = 0 #Improvement is defined as positive or 0
+                    #And the improvement is defined as 0, since it must be non-negative
+                    improvement = 0
                 
                 #Add gp emulator data
                 list_gp_emulator_class.append( gp_emulator_class )
@@ -2970,7 +3023,7 @@ class GPBO_Driver:
                     if results_df["Max EI"].iloc[i] < self.cs_params.ei_tol and results_df["Max EI"].iloc[i-1] < self.cs_params.ei_tol:
                         break
                     #Terminate if small sse progress over 1/3 of total iteration budget
-                    elif count >= int(self.cs_params.bo_iter_tot*0.3):
+                    elif count >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac):
                         break
                     else:
                         terminate = False
@@ -2984,9 +3037,9 @@ class GPBO_Driver:
         return results_df, list_gp_emulator_class
         
         
-    def run_bo_workflow(self, kernel, lenscl, outputscl, retrain_GP, reoptimize):
+    def __run_bo_workflow(self, kernel, lenscl, outputscl, retrain_GP, reoptimize):
         """
-        Runs multiple GPBO Workflows
+        Runs a single GPBO method through all bo iterations and reports the data for that run of the method
         
         Parameters
         ----------
@@ -3002,7 +3055,7 @@ class GPBO_Driver:
         """
         
         #Initialize gp_emualtor class
-        gp_emulator = self.gen_emulator(kernel, lenscl, outputscl, retrain_GP)
+        gp_emulator = self.__gen_emulator(kernel, lenscl, outputscl, retrain_GP)
         self.gp_emulator = gp_emulator
         
         #Choose training data
@@ -3012,7 +3065,7 @@ class GPBO_Driver:
         gp_model = self.gp_emulator.set_gp_model()
         
         ##Call bo_iter
-        results_df, list_gp_emulator_class = self.run_bo_to_term(gp_model, reoptimize)
+        results_df, list_gp_emulator_class = self.__run_bo_to_term(gp_model, reoptimize)
         
         #Set results
         bo_results = BO_Results(None, None, self.exp_data, list_gp_emulator_class, results_df, None)
@@ -3052,19 +3105,22 @@ class GPBO_Driver:
                          "Obj Improvement Tolerance" : self.cs_params.obj_tol}
                 
         for i in range(self.cs_params.bo_run_tot):
-            bo_results = self.run_bo_workflow(kernel, lenscl, outputscl, retrain_GP, reoptimize)
+            bo_results = self.__run_bo_workflow(kernel, lenscl, outputscl, retrain_GP, reoptimize)
             #Update the seed in configuration
             configuration["Seed"] = self.cs_params.seed
-            bo_results.configuration = configuration
+            #Add this updated copy of configuration with the new seed to the bo_results
+            bo_results.configuration = configuration.copy()
             #Add simulator class
             bo_results.simulator_class = simulator_class
             #On the 1st iteration, create heat map data if we are actually generating the data
             if self.cs_params.gen_heat_map_data == True:
                 if i == 0:
-                    heat_map_data_dict = self.create_heat_map_param_data()
+                    #Generate heat map data for each combination of parameter values stored in a dictionary
+                    heat_map_data_dict = self.__create_heat_map_param_data()
+                #Save these heat map values in the bo_results object
                 bo_results.heat_map_data_dict = heat_map_data_dict
             restart_bo_results.append(bo_results)
-            #Add 2 to the seed for each restart (1 for the sim/exp data seed and 1 for validation data seed)
+            #Add 2 to the seed for each restart (1 for the sim/exp data seed and 1 for validation data seed) to get completely new seeds
             self.cs_params.seed += 2
         
         #Save data automatically if save_data is true
