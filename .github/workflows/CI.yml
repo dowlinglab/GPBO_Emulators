@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  # GitHub has started calling new repo's first branch "main" https://github.com/github/renaming
+  # The cookiecutter uses the "--initial-branch" flag when it runs git-init
+  push:
+    branches:
+      - "GPBO_Classes_ci"
+  pull_request:
+    branches:
+      - "GPBO_Classes_ci"
+  schedule:
+    # Weekly tests run on main by default:
+    #   Scheduled workflows run on the latest commit on the default or base branch.
+    #   (from https://help.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events-schedule)
+    - cron: "0 8 * * 1"
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}, Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # os: [macOS-latest, ubuntu-latest]
+        os: [ubuntu-latest]
+        python-version: [3.9, "3.10", 3.11]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Additional info about the build
+        shell: bash
+        run: |
+          uname -a
+          df -h
+          ulimit -a
+
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: bo_methods_lib/devtools/conda-envs/test_env.yaml
+          create-args: >-
+            python=${{ matrix.python-version }}
+
+      - name: Install Tasmanian 
+        shell: bash -l {0}
+        run: |
+          python3 -m pip install Tasmanian --user 
+
+      - name: Add user bin directory to PATH
+        shell: bash -l {0}
+        run: echo "$(python -m site --user-base)/lib" >> $GITHUB_PATH
+    
+      - name: Install package
+        run: |
+          python3 -m pip install ./bo_methods_lib/ --no-deps
+
+      - name: Run tests
+        shell: bash -l {0}
+        run: |
+          pytest -v --cov=bo_methods_lib --cov-report=xml --color=yes bo_methods_lib/tests/
