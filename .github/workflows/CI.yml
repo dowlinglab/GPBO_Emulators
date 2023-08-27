@@ -37,7 +37,7 @@ jobs:
 
       - uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: bo_methods_lib/devtools/conda-envs/test_env.yaml
+          environment-file: bo_methods_lib/devtools/conda-envs/test_env.yml
           create-args: >-
             python=${{ matrix.python-version }}
 
