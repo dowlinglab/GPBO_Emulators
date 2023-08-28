@@ -85,8 +85,8 @@ meth_name_vals = [1,2,3,4,5]
 
 #Set Initial Parameters
 ep0 = 1
-ep_enum = Ep_enum(1)
-sep_fact_list = np.linspace(0.1,1,10)
+ep_enum_vals = [1,2,3,4]
+sep_fact = 0.8
 normalize = False
 gen_heat_map_data = True
 noise_mean = 0
@@ -118,27 +118,36 @@ simulator = simulator_helper_test_fxns(cs_name_enum, indecies_to_consider, noise
 #Generate Exp Data
 exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x)
 
-#Create Exploration Bias Class
-ep_bias = Exploration_Bias(ep0, None, ep_enum, None, None, None, None, None, None, None)
+#Generate Sim Data
+sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, False)
+
+#Generate Validation Data
+val_data = simulator.gen_sim_data(num_theta_data_val, num_x_data, gen_meth_theta_val, gen_meth_x, sep_fact, True)
 
 #Loop over methods
 for name in meth_name_vals:
     meth_name = Method_name_enum(name)
     method = GPBO_Methods(meth_name)
     
+    #Gen sse_sim_data and sse_sim_val_data
+    sim_sse_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, False)
+    val_sse_data = simulator.sim_data_to_sse_sim_data(method, val_data, exp_data, sep_fact, True)
+    
     #Loop over number of number of separation factors
-    for i in range(len(sep_fact_list)):
-        sep_fact = sep_fact_list[i]
-        #Generate Sim Data
-        sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, False)
-        #Generate Validation Data
-        val_data = simulator.gen_sim_data(num_theta_data_val, num_x_data, gen_meth_theta_val, gen_meth_x, sep_fact, True)
-        #Gen sse_sim_data and sse_sim_val_data
-        sim_sse_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, False)
-        val_sse_data = simulator.sim_data_to_sse_sim_data(method, val_data, exp_data, sep_fact, True)
+    for ep_enum_val in ep_enum_vals:
+        ep_enum = Ep_enum(ep_enum_val)
+        #Create Exploration Bias Class based on enum value
+        if ep_enum.value == 1:
+            ep_bias = Exploration_Bias(ep0, None, ep_enum, None, None, None, None, None, None, None)
+        elif ep_enum.value == 2:
+            ep_bias = Exploration_Bias(ep0, None, ep_enum, None, bo_iter_tot, None, 0, None, None, None)
+        elif ep_enum.value == 3:
+            ep_bias = Exploration_Bias(ep0, None, ep_enum, None, None, 1.5, None, None, None, None)
+        else:
+            ep_bias = Exploration_Bias(None, None, ep_enum, None, None, None, None, None, None, None)
 
         #Define cs_name and cs_params class
-        cs_name = "CS1_meth_" + meth_name.name + "_sep_fact_" + str(round(sep_fact_list[i],2))
+        cs_name = "CS1_BO_method_" + meth_name.name + "_ep_method_" + ep_bias.ep_enum.name
         cs_params = CaseStudyParameters(cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, 
                                     reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, 
                                     seed, ei_tol, obj_tol)

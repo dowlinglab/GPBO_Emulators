@@ -113,7 +113,7 @@ def subplot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fon
     assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, and ylabel must be string or None"
     assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, and fontsize must be int"
     assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
-    assert all(isinstance(var, (np.ndarray,pd.core.series.Series)) for var in arr_vars), "plot_x, plot_y must be np.ndarray or pd.core.series.Series"
+    assert all(isinstance(var, (np.ndarray,pd.core.series.Series)) or var is None for var in arr_vars), "plot_x, plot_y must be np.ndarray or pd.core.series.Series or None"
     
     #Set title, label, and axes
     if title is not None:
@@ -132,12 +132,13 @@ def subplot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fon
     ax.tick_params(which="minor",direction="in",top=True, right=True)
     
     #Set bounds and aspect ratio
-    if np.isclose(np.min(plot_x), np.max(plot_x), rtol =1e-6) == False:        
+    
+    if np.isclose(np.min(plot_x), np.max(plot_x), rtol =1e-6) == False and plot_x is not None:        
         ax.set_xlim(left = np.min(plot_x), right = np.max(plot_x))
  
     ax.set_box_aspect(1)
     
-    if np.min(plot_y) == 0:
+    if np.min(plot_y) == 0 and plot_y is not None:
         ax.set_ylim(bottom = np.min(plot_y)-0.05, top = np.max(plot_y)+0.05)
 #     elif np.isclose(np.min(plot_y), np.max(plot_y), rtol =1e-6) == False:
 #         ax.set_ylim(bottom = np.min(plot_y)-abs(np.min(plot_y)*0.05), top = np.max(plot_y)+abs(np.min(plot_y)*0.05))
@@ -246,6 +247,67 @@ def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_la
 
     return
 
+def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
+    """
+    Plots x data vs y data for any given parameter set theta
+    
+    Parameters
+    ----------
+    data: Instance of Data,
+    
+    """
+    subplots_needed = data.get_dim_x_vals()
+    fig, ax, num_subplots = create_subplots(subplots_needed)
+    
+    #Print the title and labels as appropriate
+    if title_fontsize is not None:
+        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
+    if x_label is not None:
+        fig.supxlabel(x_label, fontsize=other_fontsize,fontweight='bold')
+    if y_label is not None:
+        fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold')
+    
+    
+    #Loop over different hyperparameters (number of subplots)
+    for i in range(num_subplots):
+        #If you still have data to plot
+        if i < data.get_dim_x_vals():
+            #The index of the data is i, and one data type is in the last row of the data
+            X_space = data.x_vals[:,i]
+            ax[i].plot(X_space, data.gp_mean, lw=2, label="GP_mean", color = "blue")
+            ax[i].scatter(X_space, data.y_vals, label = "Y_sim", color = "black")
+            if train_data is not None:
+                ax[i].scatter(train_data.x_vals[:,i], train_data.y_vals, color = "green",  s=150, marker = "x", label = "Training")
+            if test_data is not None:
+                ax[i].scatter(test_data.x_vals[:,i], test_data.y_vals, color = "red", s=100, marker = "x", label = "Testing")
+            if exp_data is not None:
+                ax[i].scatter(exp_data.x_vals[:,i], exp_data.y_vals, color = "black", marker = "o", label = "Experiment")
+            ax[i].fill_between(
+                X_space,
+                data.gp_mean - 1.96 * np.sqrt(data.gp_var),
+                data.gp_mean + 1.96 * np.sqrt(data.gp_var),
+                alpha=0.3 )
+            subplot_details(ax[i], X_space, None, None, None, "X_exp dim " + str(i+1) , xbins, ybins, other_fontsize)
+        #Set axes off if it's an extra
+        else:
+            ax[i].set_axis_off()
+            
+        #Fetch handles and labels on last iteration
+        if i == num_subplots-1:
+            handles, labels = ax[i].get_legend_handles_labels()
+            
+    #Plots legend and title
+    plt.tight_layout()
+    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    
+    #save or show figure
+    if save_path is None:
+        plt.show()
+        plt.close()
+    else:
+        save_fig(save_path, ext='png', close=True, verbose=False)  
+    
+    return
 #These parameters may need to change
 def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_to_plot, x_exp, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
     '''

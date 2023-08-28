@@ -2791,12 +2791,14 @@ class GPBO_Driver:
             #Choose a random index of theta to start with
             unique_theta_index = random.sample(theta_val_idc, 1)
             theta_guess = unique_val_thetas[unique_theta_index]
-            
-            #Call scipy method to optimize EI given theta
-            best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei, best_error))
-            #Add ei and best_thetas to lists as appropriate
-            best_vals[i] = best_result.fun
-            best_thetas[i] = best_result.x
+            try:
+                #Call scipy method to optimize EI given theta
+                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei, best_error))
+                #Add ei and best_thetas to lists as appropriate
+                best_vals[i] = best_result.fun
+                best_thetas[i] = best_result.x
+            except:
+                pass
         
         #Choose a single value with the lowest -ei or sse
         #In the case that 2 point have the same -ei or sse and this point is the lowest, this lets us pick one at random rather than always just choosing a certain point
