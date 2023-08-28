@@ -2,20 +2,6 @@ import numpy as np
 from scipy.stats import qmc
 import pandas as pd
 
-def vector_to_1D_array(array):
-    """
-    Turns arrays that are shape (n,) into (n, 1) arrays
-    
-    Parameters:
-        array: ndarray, n dimensions
-    Returns:
-        array: ndarray,  if n > 1, return original array. Otherwise, return 2D array with shape (-1,n)
-    """
-    #If array is not 2D, give it shape (len(array), 1)
-    if not len(array.shape) > 1:
-        array = array.reshape(-1,1)
-    return array
-
 #Add your function here. SHould take theta_ref and x values
 def calc_cs1_polynomial(true_model_coefficients, x):
     """
@@ -50,7 +36,10 @@ def calc_muller(model_coefficients, x):
         y_mul: float, value of Muller potential
     """
     #Reshape x to matrix form
-    x = vector_to_1D_array(x) 
+    #If array is not 2D, give it shape (len(array), 1)
+    if not len(x.shape) > 1:
+        x = x.reshape(-1,1)
+        
     assert x.shape[0] == 2, "Muller Potential x_data must be 2 dimensional"
     X1, X2 = x #Split x into 2 parts by splitting the rows
     

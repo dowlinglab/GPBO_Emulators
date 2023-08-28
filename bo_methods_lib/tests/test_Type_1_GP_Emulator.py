@@ -25,7 +25,7 @@ def test_bo_methods_lib_imported():
     
 #Create sample test data for gp_emulator
 #Defining this function intentionally here to test function behavior for test cases
-def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, case_study_parameters):
+def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, normalize, seed):
     """
     Sets the model for calculating y based off of the case study identifier.
 
@@ -39,23 +39,24 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
     """
     #Note: Add your function name from GPBO_Class_fxns.py here
     if cs_name.value == 1:      
-        theta_ref = np.array([1.0, -1.0])
         theta_names = ['theta_1', 'theta_2']
         bounds_x_l = [-2]
         bounds_x_u = [2]
         bounds_theta_l = [-2, -2]
         bounds_theta_u = [ 2,  2]
+        theta_ref = np.array([1.0, -1.0])     
         calc_y_fxn = calc_cs1_polynomial
         
-    elif cs_name.value == 2:     
-        theta_ref = np.array([-200,-100,-170,15,-1,-1,-6.5,0.7,0,0,11,0.6,-10,-10,-6.5,0.7,1,0,-0.5,-1,0,0.5,1.5,1])
-                             
+    elif cs_name.value == 2:                          
         theta_names = ['A_1', 'A_2', 'A_3', 'A_4', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4', 'c_1', 
                        'c_2', 'c_3', 'c_4', 'x0_1', 'x0_2', 'x0_3', 'x0_4', 'x1_1', 'x1_2', 'x1_3', 'x1_4']
         bounds_x_l = [-1.5, -0.5]
         bounds_x_u = [1, 2]
         bounds_theta_l = [-300,-200,-250, 5,-2,-2,-10, -2, -2,-2,5,-2,-20,-20, -10,-1 ,-2,-2,-2, -2,-2,-2,0,-2]
         bounds_theta_u = [-100,  0, -150, 20,2, 2, 0,  2,  2,  2, 15,2, 0,0   , 0,  2, 2,  2, 2, 2 ,2 , 2, 2,2]
+        theta_ref = np.array([-200,-100,-170,15,-1,-1,-6.5,0.7,0,0,11,0.6,-10,-10,-6.5,0.7,1,0,-0.5,-1,0,0.5,1.5,1])      
+#         theta_ref = np.array([0.5, 0.5, 0.8, 2/3, 0.25, 0.25, 0.35, 0.675, 0.5, 0.5, 0.6, 0.65, 0.5, 0.5, 0.35, 28333/50000, 0.75, 0.5,
+#     0.375, 0.25, 0.5, 0.625, 0.75, 0.75])
         calc_y_fxn = calc_muller
         
     else:
@@ -70,7 +71,8 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      bounds_x_u, 
                      noise_mean,
                      noise_std,
-                     case_study_parameters,
+                     normalize,
+                     seed,
                      calc_y_fxn)
 
 cs_name1  = CS_name_enum(1)
@@ -87,46 +89,32 @@ gen_meth_theta = Gen_meth_enum(2)
 ep0 = 1
 sep_fact = 0.8
 normalize = False
-lhs_gen_theta = True
-eval_all_pairs = False
 noise_mean = 0
 noise_std = 0.01
 kernel = Kernel_enum(1)
 lenscl = 1
 outputscl = 1
 retrain_GP = 2
-GP_train_iter = 300
-bo_iter_tot = 3
-bo_run_tot = 2
-save_fig = False
-save_data = False
-num_data = None
 seed = 1
-ei_tol = 1e-6
-obj_tol = 1e-4
 method = GPBO_Methods(Method_name_enum(1)) #1A
 
 #Define cs_params, simulator, and exp_data for CS1
-cs_params1 = CaseStudyParameters(cs_name1, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_data, 
-                                DateTime, seed, ei_tol, obj_tol)
-simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, cs_params1)
+simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, normalize, seed)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
-sim_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x)
-sim_sse_data1 = simulator1.sim_data_to_sse_sim_data(method, sim_data1, exp_data1)
-val_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, True)
-val_sse_data1 = simulator1.sim_data_to_sse_sim_data(method, val_data1, exp_data1, True)
+sim_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, sep_fact)
+sim_sse_data1 = simulator1.sim_data_to_sse_sim_data(method, sim_data1, exp_data1, sep_fact)
+val_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, True)
+val_sse_data1 = simulator1.sim_data_to_sse_sim_data(method, val_data1, exp_data1, sep_fact, True)
 gp_emulator1_s = Type_1_GP_Emulator(sim_sse_data1, val_sse_data1, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
 gp_emulator1_e = Type_2_GP_Emulator(sim_data1, val_data1, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
 
 #Define cs_params, simulator, and exp_data for CS2
-cs_params2 = CaseStudyParameters(cs_name2, ep0, sep_fact, normalize, eval_all_pairs, bo_iter_tot, bo_run_tot, save_data, 
-                                DateTime, seed, ei_tol, obj_tol)
-simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, cs_params2)
+simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, normalize, seed)
 exp_data2 = simulator2.gen_exp_data(num_x_data, gen_meth_x)
-sim_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x)
-sim_sse_data2 = simulator2.sim_data_to_sse_sim_data(method, sim_data2, exp_data2)
-val_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, True)
-val_sse_data2 = simulator2.sim_data_to_sse_sim_data(method, val_data2, exp_data2, True)
+sim_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, sep_fact)
+sim_sse_data2 = simulator2.sim_data_to_sse_sim_data(method, sim_data2, exp_data2, sep_fact)
+val_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, True)
+val_sse_data2 = simulator2.sim_data_to_sse_sim_data(method, val_data2, exp_data2, sep_fact, True)
 gp_emulator2_s = Type_1_GP_Emulator(sim_sse_data2, val_sse_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
 gp_emulator2_e = Type_2_GP_Emulator(sim_data2, val_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
 
@@ -182,27 +170,24 @@ def test_get_dim_gp_data(gp_emulator, expected):
     assert gp_emulator.get_dim_gp_data() == expected
 
 #This test function tests whether set_train_test_data checker works correctly
-                            #gp emulator, cs_params
-set_train_test_data_list = [[gp_emulator1_s, cs_params1],
-                            [gp_emulator1_e, cs_params1],
-                            [gp_emulator2_s, cs_params2],
-                            [gp_emulator2_e, cs_params2]]
-@pytest.mark.parametrize("gp_emulator, cs_params", set_train_test_data_list)
-def test_set_train_test_data(gp_emulator, cs_params):
-    train_data, test_data = gp_emulator.set_train_test_data(cs_params)
+                            #gp emulator
+set_train_test_data_list = [gp_emulator1_s, gp_emulator1_e, gp_emulator2_s, gp_emulator2_e]
+@pytest.mark.parametrize("gp_emulator", set_train_test_data_list)
+def test_set_train_test_data(gp_emulator):
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     assert len(train_data.theta_vals) + len(test_data.theta_vals) == len(gp_emulator.gp_sim_data.theta_vals)
     
 
 #This test function tests whether train_gp checker works correctly
-                    #cs_params, emulator class type, sim data, val_data, lenscl, outputscl, exp_lenscl, exp_ops
-train_gp_list = [[cs_params1, Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 1, 1, np.ones(2), 1],
-                 [cs_params2, Type_1_GP_Emulator, sim_sse_data2, val_sse_data2, 1, 1, np.ones(8), 1],
-                 [cs_params1, Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 2, 1, np.ones(2)*2, 1],
-                 [cs_params1, Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 2, 2, np.ones(2)*2, 2]]
-@pytest.mark.parametrize("cs_params, gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops", train_gp_list)
-def test_train_gp(cs_params, gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops):
+                    #emulator class type, sim data, val_data, lenscl, outputscl, exp_lenscl, exp_ops
+train_gp_list = [[Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 1, 1, np.ones(2), 1],
+                 [Type_1_GP_Emulator, sim_sse_data2, val_sse_data2, 1, 1, np.ones(8), 1],
+                 [Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 2, 1, np.ones(2)*2, 1],
+                 [Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 2, 2, np.ones(2)*2, 2]]
+@pytest.mark.parametrize("gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops", train_gp_list)
+def test_train_gp(gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops):
     gp_emulator = gp_type(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
-    train_data, test_data = gp_emulator.set_train_test_data(cs_params)
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model)
     trained_lenscl = gp_emulator.trained_hyperparams[0]
@@ -213,17 +198,17 @@ def test_train_gp(cs_params, gp_type, sim_data, val_data, lenscl, outputscl, exp
     assert trained_ops == exp_ops
     
 #This test function tests whether train_gp checker works correctly (optimizes None parameters between bounds)
-                    #cs_params, emulator class type, sim data, val_data, lenscl, outputscl, exp_ops
-train_gp_opt_list = [[cs_params1, Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, None, 1],
-                     [cs_params2, Type_1_GP_Emulator, sim_sse_data2, val_sse_data2, None, 1],
-                     [cs_params2, Type_1_GP_Emulator, sim_sse_data2, val_sse_data2, None, 2],
-                     [cs_params1, Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 1, None],
-                     [cs_params1, Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 2, None]]
-@pytest.mark.parametrize("cs_params, gp_type, sim_data, val_data, lenscl, outputscl", train_gp_opt_list)
-def test_train_gp_opt(cs_params, gp_type, sim_data, val_data, lenscl, outputscl):
+                    # emulator class type, sim data, val_data, lenscl, outputscl, exp_ops
+train_gp_opt_list = [[Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, None, 1],
+                     [Type_1_GP_Emulator, sim_sse_data2, val_sse_data2, None, 1],
+                     [Type_1_GP_Emulator, sim_sse_data2, val_sse_data2, None, 2],
+                     [Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 1, None],
+                     [Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, 2, None]]
+@pytest.mark.parametrize("gp_type, sim_data, val_data, lenscl, outputscl", train_gp_opt_list)
+def test_train_gp_opt(gp_type, sim_data, val_data, lenscl, outputscl):
     tol = 1e-7
     gp_emulator = gp_type(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
-    train_data, test_data = gp_emulator.set_train_test_data(cs_params)
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model)
     trained_lenscl = gp_emulator.trained_hyperparams[0]
@@ -234,12 +219,11 @@ def test_train_gp_opt(cs_params, gp_type, sim_data, val_data, lenscl, outputscl)
     assert 1e-5 - tol <= trained_ops <= 1e2 + tol        
     
 #This test function tests whether calc_best_error checker works correctly
-                            #gp emulator, cs_params
-calc_best_error_list = [[gp_emulator1_s, cs_params1],
-                        [gp_emulator2_s, cs_params2]]
-@pytest.mark.parametrize("gp_emulator, cs_params", calc_best_error_list)
-def test_calc_best_error(gp_emulator, cs_params):
-    train_data, test_data = gp_emulator.set_train_test_data(cs_params)
+                            #gp emulator
+calc_best_error_list = [gp_emulator1_s, gp_emulator2_s]
+@pytest.mark.parametrize("gp_emulator", calc_best_error_list)
+def test_calc_best_error(gp_emulator):
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     best_error = gp_emulator.calc_best_error()
     assert np.isclose(best_error, min(train_data.y_vals), rtol = 1e-6)
     
@@ -249,39 +233,39 @@ ep_bias = Exploration_Bias(ep0, None, Ep_enum(1), None, None, None, None, None, 
 ep_bias.set_ep()
 
                  #gp_emulator, exp_data, expected_len
-eval_ei_test_list = [[gp_emulator1_s, exp_data1, 5],
-                   [gp_emulator2_s, exp_data2, 52]]
-@pytest.mark.parametrize("gp_emulator, exp_data, expected_l", eval_ei_test_list)
-def test_eval_ei_test(gp_emulator, exp_data, expected_l):
+eval_ei_test_list = [[gp_emulator1_s, exp_data1],
+                   [gp_emulator2_s, exp_data2]]
+@pytest.mark.parametrize("gp_emulator, exp_data", eval_ei_test_list)
+def test_eval_ei_test(gp_emulator, exp_data):
     gp_model = gp_emulator.set_gp_model()#Set model
     gp_emulator.train_gp(gp_model) #Train model    
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_test() #Calc mean, var of gp 
     best_error = gp_emulator.calc_best_error() #Calc best error
     ei = gp_emulator.eval_ei_test(exp_data, ep_bias, best_error)
     
-    assert len(ei) == expected_l
+    assert len(ei) == len(gp_emulator.test_data.theta_vals)
     
                  #gp_emulator, exp_data, expected_len
-eval_ei_val_list = [[gp_emulator1_s, exp_data1, 25],
-                   [gp_emulator2_s, exp_data2, 256]]
-@pytest.mark.parametrize("gp_emulator, exp_data, expected_l", eval_ei_val_list)
-def test_eval_ei_val(gp_emulator, exp_data, expected_l):
+eval_ei_val_list = [[gp_emulator1_s, exp_data1],
+                   [gp_emulator2_s, exp_data2]]
+@pytest.mark.parametrize("gp_emulator, exp_data", eval_ei_val_list)
+def test_eval_ei_val(gp_emulator, exp_data):
     gp_model = gp_emulator.set_gp_model()#Set model
     gp_emulator.train_gp(gp_model) #Train model    
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_val() #Calc mean, var of gp 
     best_error = gp_emulator.calc_best_error() #Calc best error
     ei = gp_emulator.eval_ei_val(exp_data, ep_bias, best_error)
     
-    assert len(ei) == expected_l
+    assert len(ei) == len(gp_emulator.gp_val_data.theta_vals)
 
                  #gp_emulator, exp_data, expected_len
-eval_ei_cand_list = [[gp_emulator1_s, simulator1, exp_data1, 1],
-                   [gp_emulator2_s, simulator2, exp_data2, 1]]
-@pytest.mark.parametrize("gp_emulator, simulator, exp_data, expected_l", eval_ei_cand_list)
-def test_eval_ei_cand(gp_emulator, simulator, exp_data, expected_l):
+eval_ei_cand_list = [[gp_emulator1_s, simulator1, exp_data1],
+                   [gp_emulator2_s, simulator2, exp_data2]]
+@pytest.mark.parametrize("gp_emulator, simulator, exp_data", eval_ei_cand_list)
+def test_eval_ei_cand(gp_emulator, simulator, exp_data):
     gp_model = gp_emulator.set_gp_model()#Set model
     gp_emulator.train_gp(gp_model) #Train model 
-    candidate = Data(None, exp_data.x_vals, None, None, None, None, None, None, simulator.bounds_theta_reg, simulator.bounds_x)
+    candidate = Data(None, exp_data.x_vals, None, None, None, None, None, None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
     candidate.theta_vals = gp_emulator.gp_sim_data.theta_vals[0].reshape(1,-1) #Set candidate thetas
     gp_emulator.cand_data = candidate #Set candidate point
     gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data) #Set feature vals
@@ -289,7 +273,7 @@ def test_eval_ei_cand(gp_emulator, simulator, exp_data, expected_l):
     best_error = gp_emulator.calc_best_error() #Calc best error
     ei = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error)
     
-    assert len(ei) == expected_l
+    assert len(ei) == len(gp_emulator.cand_data.theta_vals)
 
 ##How to write these tests given stochasticity of GP?
 

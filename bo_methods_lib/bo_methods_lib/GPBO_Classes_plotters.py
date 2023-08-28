@@ -479,7 +479,7 @@ def plot_heat_maps(heat_map_data, theta_true, theta_obj_min, theta_ei_max, train
         if train_theta is not None:
             ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]], color="green",s=100, label="Training",marker= "x")
         if theta_obj_min is not None:
-            ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
+            ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
         if theta_ei_max is not None:
             ax[i].scatter(theta_ei_max[idcs_to_plot[0]],theta_ei_max[idcs_to_plot[1]], color="black",s=150, label = "Max EI", marker = ".")
         
