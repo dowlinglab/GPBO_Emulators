@@ -308,6 +308,8 @@ def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins,
         save_fig(save_path, ext='png', close=True, verbose=False)  
     
     return
+
+
 #These parameters may need to change
 def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_to_plot, x_exp, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
     '''
@@ -433,12 +435,85 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
 
     return 
 
-def plot_heat_maps(heat_map_data, theta_true, theta_obj_min, theta_ei_max, train_theta, param_names, levels, idcs_to_plot, vals_to_plot, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
+def parity_plot(y_data, y_sse_data, sse_data, method, xbins, ybins, x_label, y_label, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
+    """
+    Creates parity plots of data
+    """      
+        
+    #Make figures and define number of subplots  
+    titles = ["sse", "y_sim"]
+    if method.emulator == True:
+        assert all(isinstance(var, Data) for var in [y_data, y_sse_data]), "y_data and y_sse_data must be type Data and not None!"
+        subplots_needed = 2
+        y_sim = y_data.y_vals
+        gp_mean = y_data.gp_mean
+        gp_stdev = np.sqrt(y_data.gp_var)
+        sse_sim = y_sse_data.y_vals
+        sse_mean = y_data.sse_mean      
+        sse_stdev = np.sqrt(y_data.sse_var)
+    else:
+        subplots_needed = 1
+        assert isinstance(sse_data, Data), "sse_data must be type Data and not None!"
+        sse_sim = sse_data.y_vals
+        sse_mean = sse_data.sse_mean      
+        sse_stdev = np.sqrt(sse_data.sse_var)
+        
+    fig, ax, num_subplots = create_subplots(subplots_needed)
+    
+     #Print the title and labels as appropriate
+    if title_fontsize is not None:
+        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
+    if x_label is not None:
+        fig.supxlabel(x_label, fontsize=other_fontsize,fontweight='bold')
+    if y_label is not None:
+        fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold') 
+    
+    #Set plot details
+    #Loop over number of subplots
+    for i in range(subplots_needed):
+        if i < subplots_needed:
+            #When we only want sse_data
+            if i == 0:
+                gp_upper = sse_mean + sse_stdev*1.96
+                gp_lower = sse_mean - sse_stdev*1.96
+                y_err = np.array([gp_lower, gp_upper])
+                ax[i].errorbar(sse_sim, sse_mean, fmt="o", yerr=y_err, label = "GP", ms=10, zorder=1, mec = "green", mew = 1)
+                ax[i].plot(sse_sim, sse_sim, label = "Sim" , zorder=2, color = "black")
+                subplot_details(ax[i], sse_sim, sse_sim, None, None, titles[i], xbins, ybins, other_fontsize)
+            else:
+                #The index of the data is i, and one data type is in the last row of the data
+                ax[i].errorbar(y_sim, gp_mean, yerr=1.96*gp_stdev, fmt = "o", label ="GP", ms=5, mec = "green", mew = 1, zorder= 1 )
+                ax[i].plot(y_sim, y_sim, label = "Sim" , zorder=2, color = "black")
+                subplot_details(ax[i], y_sim, y_sim, None, None, titles[i], xbins, ybins, other_fontsize)
+
+            #Set plot details
+           
+            #Get legend information
+            if i == subplots_needed-1:
+                handles, labels = ax[i].get_legend_handles_labels()  
+        else:
+           #Set axes off if it's an extra
+            ax[i].set_axis_off() 
+              
+    #Plots legend and title
+    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    plt.tight_layout()
+
+    #Save or show figure
+    if save_path is not None:
+        save_fig(save_path, ext='png', close=True, verbose=False)  
+    else:
+        plt.show()
+        plt.close()
+    
+    return
+
+def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_theta, param_names, levels, idcs_to_plot, z, z_titles, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, cmap = "autumn", save_path = None):
     '''
     Plots comparison of y_sim, GP_mean, and GP_stdev
     Parameters
     ----------
-        heat_map_data: Instance of Data, Containing all values of the input parameters
+        test_mesh: list of ndarray of length 2, Containing all values of the parameters for the heat map x and y. Gen with np.meshgrid()
         theta_true: ndarray or None, Containing the true input parameters in all dimensions
         theta_obj_min: ndarray or None, Containing the optimal input parameters predicted by the GP
         theta_ei_max: ndarray or None, Containing the input parameters predicted by the GP to have the best EI
@@ -446,7 +521,8 @@ def plot_heat_maps(heat_map_data, theta_true, theta_obj_min, theta_ei_max, train
         param_names: list of str, Parameter names. Length of 2
         levels: int, list of int or None, Number of levels to skip when drawing contour lines
         idcs_to_plot: list of int, Indecies of parameters to plot
-        vals_to_plot: list of int, The list of values that will be plotted (0-2). 0=sse, 1 = sse var, 2 = ei
+        z: list of np.ndarrays, The list of values that will be plotted. Ex. SSE, SSE_Var, EI
+        z_titles: list of str, The list of the names of the values in z
         xbins: int, Number of bins for x
         ybins: int, Number of bins for y
         zbins: int, Number of bins for z
@@ -463,99 +539,88 @@ def plot_heat_maps(heat_map_data, theta_true, theta_obj_min, theta_ei_max, train
     none_str_vars = [title, save_path]
     none_ndarray_list = [theta_true, theta_obj_min, theta_ei_max, train_theta]
     int_vars = [xbins, ybins, zbins, title_fontsize, other_fontsize]
-    list_vars = [idcs_to_plot, vals_to_plot, param_names]
+    list_vars = [test_mesh, z, z_titles, param_names]
     assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path  must be string or None"
     assert all(isinstance(var, np.ndarray) or var is None for var in none_ndarray_list), "theta_true, theta_obj_min, theta_ei_max, train_theta must be array or None"
-    assert isinstance(heat_map_data, Data), "heat_map_data must be an instance of the data class"
     assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
     assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive" 
     assert isinstance(levels, (list, int)) or levels is None, "levels must be list of int, int, or None"
     if isinstance(levels, (list)) == True:
         assert all(isinstance(var, int) for var in levels), "If a list, levels must be list of int"
     assert all(isinstance(item, int) for item in idcs_to_plot), "idcs_to_plot elements must be int"
-    assert all(isinstance(item, int) for item in vals_to_plot), "vals_to_plot elements must be int"
+    assert all(isinstance(item, np.ndarray) for item in z), "z elements must be np.ndarray"
+    assert all(isinstance(item, np.ndarray) for item in test_mesh), "test_mesh elements must be np.ndarray"
+    assert all(isinstance(item, str) for item in z_titles), "z_title elements must be str"
     assert all(isinstance(item, str) for item in param_names), "param_names elements must be str"
-    
-    #Infer parameters from given information
-    z = [heat_map_data.sse_mean, heat_map_data.sse_var, heat_map_data.ei]
-    titles = ["sse", "sse var", "ei"]
     
     #Define plot levels
     if levels is None:
         tot_lev = None
     elif len(levels) == 1:
-        tot_lev = levels*len(vals_to_plot) 
+        tot_lev = levels*len(z) 
     else:
         tot_lev = levels
         
-    #Define original theta_vals (for restoration later)
-    org_theta = heat_map_data.theta_vals
-    #Redefine the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
-    heat_map_data.theta_vals = heat_map_data.theta_vals[:,idcs_to_plot]
-    #Create a meshgrid with x and y values fron the uniwue theta values of that array
-    unique_theta = heat_map_data.get_unique_theta()
-    theta_pts = int(np.sqrt(len(unique_theta)))
-    test_mesh = unique_theta.reshape(theta_pts,theta_pts,-1).T
-    xx , yy = test_mesh #NxN, NxN
-    
     #Assert sattements
+    #Get x and y data from test_mesh
+    xx , yy = test_mesh #NxN, NxN
     assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
     
     #Make figures and define number of subplots  
-    subplots_needed = len(vals_to_plot)
+    subplots_needed = len(z)
     fig, ax, num_subplots = create_subplots(subplots_needed)
     
     #Print the title
     if title is not None:
         fig.suptitle(title, weight='bold', fontsize=title_fontsize)
-    
+
     #Set plot details
     #Loop over number of subplots
-    for i in range(len(vals_to_plot)):
-        z_i = vals_to_plot[i]
-        z[z_i] = z[z_i].reshape(theta_pts,theta_pts).T
-        #Assert statements
-        assert z[z_i].shape==xx.shape, "Array z must be NxN"
-        assert isinstance(z[z_i], np.ndarray)==True, "Heat map values must be numpy arrays"
-        assert isinstance(titles[z_i], str)==True, "Title must be a string" 
-        
-        #Set number format based on magnitude
-        if np.amax(abs(z[z_i])) < 1e-1 or np.amax(abs(z[z_i])) > 1000:
-            fmt = '%.2e'           
-        else:
-            fmt = '%2.2f'
-            
-        #Create a colormap and colorbar for each subplot
-        cs_fig = ax[i].contourf(xx, yy, z[z_i], levels = zbins, cmap = plt.cm.get_cmap("autumn"))
-        cbar = plt.colorbar(cs_fig, ax = ax[i], format=fmt)
-        cbar.ax.tick_params(labelsize=other_fontsize)
-        
-        #Create a line contour for each colormap
-        if levels is not None:   
-            cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
-            ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
+    for i in range(num_subplots):
+        if i < len(z):
+            #Assert statements
+            assert z[i].shape==xx.shape, "Array z must be NxN"
 
-        #plot min obj, max ei, true and training param values as appropriate
-        if theta_true is not None:
-            ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1))
-        if train_theta is not None:
-            ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]], color="green",s=100, label="Training",marker= "x")
-        if theta_obj_min is not None:
-            ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
-        if theta_ei_max is not None:
-            ax[i].scatter(theta_ei_max[idcs_to_plot[0]],theta_ei_max[idcs_to_plot[1]], color="black",s=150, label = "Max EI", marker = ".")
-        
-        #Define x and y labels
-        xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
-        ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
-        
-        #Set plot details
-        subplot_details(ax[i], xx, yy, xlabel, ylabel, titles[z_i], xbins, ybins, other_fontsize)
-        
-        #Get legend information
-        if i == len(vals_to_plot)-1:
-            handles, labels = ax[i].get_legend_handles_labels()     
-          
+            #Set number format based on magnitude
+            if np.amax(abs(z[i])) < 1e-1 or np.amax(abs(z[i])) > 1000:
+                fmt = '%.2e'           
+            else:
+                fmt = '%2.2f'
+
+            #Create a colormap and colorbar for each subplot
+            cs_fig = ax[i].contourf(xx, yy, z[i], levels = zbins, cmap = plt.cm.get_cmap(cmap))
+            cbar = plt.colorbar(cs_fig, ax = ax[i], format=fmt)
+            cbar.ax.tick_params(labelsize=other_fontsize)
+
+            #Create a line contour for each colormap
+            if levels is not None:   
+                cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+                ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
+
+            #plot min obj, max ei, true and training param values as appropriate
+            if theta_true is not None:
+                ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1))
+            if train_theta is not None:
+                ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]],color="green",s=100,label="Train",marker= "x")
+            if theta_obj_min is not None:
+                ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
+            if theta_ei_max is not None:
+                ax[i].scatter(theta_ei_max[idcs_to_plot[0]],theta_ei_max[idcs_to_plot[1]],color="black",s=150,label ="Max EI",marker = ".")
+
+            #Define x and y labels
+            xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
+            ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
+
+            #Set plot details
+            subplot_details(ax[i], xx, yy, xlabel, ylabel, z_titles[i], xbins, ybins, other_fontsize)
+
+            #Get legend information
+            if i == len(z)-1:
+                handles, labels = ax[i].get_legend_handles_labels()  
+        else:
+           #Set axes off if it's an extra
+            ax[i].set_axis_off() 
+              
     #Plots legend and title
     fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
     plt.tight_layout()
@@ -566,8 +631,5 @@ def plot_heat_maps(heat_map_data, theta_true, theta_obj_min, theta_ei_max, train
     else:
         plt.show()
         plt.close()
-    
-    #After plotting, restore original theta values
-    heat_map_data.theta_vals = org_theta
     
     return plt.show()
