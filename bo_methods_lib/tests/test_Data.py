@@ -175,3 +175,22 @@ def test_train_test_idx_split(exp_data):
     union_set = set(train_idx).union(test_idx)
     assert (len(train_idx) + len(test_idx) == len(exp_data.get_unique_theta()))
     assert set(range(len(exp_data.get_unique_theta()))).issubset(union_set)
+
+#This test function tests whether get_unique_theta() and get_unique_x() work correctly
+                    #exp_data, expected
+get_unique_theta_x =   [[exp_data1, 5, 1],
+                       [exp_data2, 5**2, 1]] #Note: Since this is exp_data, number of thetas is defined by num_x_data**dim_x
+@pytest.mark.parametrize("exp_data, expected_x, expected_theta", get_unique_theta_x)
+def test_get_unique_vals(exp_data, expected_x, expected_theta):
+    assert len(exp_data.get_unique_x()) == expected_x
+    assert len(exp_data.get_unique_theta()) == expected_theta
+
+#This test function tests whether get_unique_theta() and get_unique_x() throw correct errors
+                    #exp_data, expected
+get_unique_theta_x_err =   [["string", 5, 1]] #Note: Since this is exp_data, number of thetas is defined by num_x_data**dim_x
+@pytest.mark.parametrize("exp_data, expected_x, expected_theta", get_unique_theta_x_err)
+def test_get_unique_vals_err(exp_data, expected_x, expected_theta):
+    with pytest.raises((AssertionError, AttributeError, ValueError)): 
+        assert len(exp_data.get_unique_x()) == expected_x
+        assert len(exp_data.get_unique_theta()) == expected_theta
+  

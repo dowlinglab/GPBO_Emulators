@@ -107,16 +107,17 @@ def test_type_1_list(gp_mean, gp_var, best_error, ei_expected):
     assert np.isclose(ei, ei_expected, rtol = 1e-2)
     
 #This test function tests whether Expected_Improvement throws the correct errors on initialization
-               ## ep_bias, gp_mean, gp_var, exp_data, best_error
-ei_init_list = [["ep_bias", np.array([0.5]), np.array([0.02]), exp_data, 0.2],
-               [ep_bias, [0.5], np.array([0.02]), exp_data, 0.2],
-               [ep_bias, np.array([0.5]), np.array([0.02]), "exp_data", 0.2],
-               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, "best_error"]]
-@pytest.mark.parametrize("ep_bias, gp_mean, gp_var, exp_data, best_error", ei_init_list)
-def test_ei_init_err_list(ep_bias, gp_mean, gp_var, exp_data, best_error):
+               ## ep_bias, gp_mean, gp_var, exp_data, best_error, method
+ei_init_list = [["ep_bias", np.array([0.5]), np.array([0.02]), exp_data, 0.2, Method_name_enum(3)],
+               [ep_bias, [0.5], np.array([0.02]), exp_data, 0.2, Method_name_enum(3)],
+               [ep_bias, np.array([0.5]), np.array([0.02]), "exp_data", 0.2, Method_name_enum(3)],
+               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, "best_error", Method_name_enum(3)],
+               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, 0.2, 3]]
+@pytest.mark.parametrize("ep_bias, gp_mean, gp_var, exp_data, best_error, method", ei_init_list)
+def test_ei_init_err_list(ep_bias, gp_mean, gp_var, exp_data, best_error, method):
     with pytest.raises((AssertionError, AttributeError, ValueError)):   
         acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error)
-        
+        ei = acq_func.type_2(method)       
 
 #This test function tests whether type_2 works as intended
                ## gp_mean, gp_var, best_error, method, ei_expected

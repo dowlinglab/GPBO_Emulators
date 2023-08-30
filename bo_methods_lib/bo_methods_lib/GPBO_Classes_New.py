@@ -1240,30 +1240,32 @@ class GP_Emulator:
                   
         return gp_mean, gp_var
     
-    def eval_gp_mean_var_heat_map(self, heat_map_data, featurized_hm_data):
+    def eval_gp_mean_var_misc(self, misc_data, featurized_misc_data):
         """
         Evaluate the GP mean and variance for a heat map set
         
         Parameters:
         -----------
-        heat_map_data: instance of the Data class, data to evaluate heat maps for containing at least theta_vals and x_vals
-        featurized_hm_data: ndarray, validation data to evaluate heat maps containing at least theta_vals and x_vals featurized
+        misc_data: instance of the Data class, data to evaluate gp mean and variance for containing at least theta_vals and x_vals
+        featurized_misc_data: ndarray, featurized data to evaluate containing at least theta_vals and x_vals
         
         Returns:
         -------
-        heat_map_gp_mean: ndarray, array of gp_mean for the test set
-        heat_map_gp_var: ndarray, array of gp variance for the test set
+        misc_gp_mean: ndarray, array of gp_mean for the test set
+        misc_gp_var: ndarray, array of gp variance for the test set
         """
         
-        assert heat_map_data is not None, "Must have heat map data"
+        assert isinstance(misc_data , Data), "misc_data must be type Data"
+        assert isinstance(featurized_misc_data, np.ndarray), "featurized_misc_data must be np.ndarray"
+        
         #Evaluate heat map data for GP
-        heat_map_gp_mean, heat_map_gp_var = self.__eval_gp_mean_var(featurized_hm_data)
+        misc_gp_mean, misc_gp_var = self.__eval_gp_mean_var(featurized_misc_data)
         
         #Set data parameters
-        heat_map_data.gp_mean = heat_map_gp_mean
-        heat_map_data.gp_var = heat_map_gp_var
+        misc_data.gp_mean = misc_gp_mean
+        misc_data.gp_var = misc_gp_var
 
-        return heat_map_gp_mean, heat_map_gp_var
+        return misc_gp_mean, misc_gp_var
     
     def eval_gp_mean_var_test(self):
         """
@@ -1487,23 +1489,28 @@ class Type_1_GP_Emulator(GP_Emulator):
         return sse_mean, sse_var
     
     
-    def eval_gp_sse_var_heat_map(self, heat_map_data):
+    def eval_gp_sse_var_misc(self, misc_data):
         """
-        Evaluates GP model sse and sse variance and for an standard GPBO for the heat map data
+        Evaluates GP model sse and sse variance and for an standard GPBO for any data. Including heat map data
+        
+        Parameters
+        -----------
+        misc_data: Instance of Data, the data to evaluate the sse mean and variance for
         
         Returns
         --------
-        heat_map_sse_mean: tensor, The sse derived from gp_mean evaluated over the test data 
-        heat_map_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
+        misc_sse_mean: tensor, The sse derived from gp_mean evaluated over the data 
+        misc_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the data 
         
         """
-        assert np.all(heat_map_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
-        assert np.all(heat_map_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
+        assert isinstance(misc_data , Data), "misc_data must be type Data"
+        assert np.all(misc_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_misc()"
+        assert np.all(misc_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_misc()"
         
         #For type 1, sse is the gp_mean
-        heat_map_sse_mean, heat_map_sse_var = self.__eval_gp_sse_var(heat_map_data)
+        misc_sse_mean, misc_sse_var = self.__eval_gp_sse_var(misc_data)
                     
-        return heat_map_sse_mean, heat_map_sse_var
+        return misc_sse_mean, misc_sse_var
     
     def eval_gp_sse_var_test(self):
         """
@@ -1515,6 +1522,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         test_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
         
         """
+        assert self.test_data is not None, "Must have self.test_data"
         assert np.all(self.test_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
         assert np.all(self.test_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
         
@@ -1533,6 +1541,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         val_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the validation data 
         
         """
+        assert self.gp_val_data is not None, "Must have self.gp_val_data"
         assert np.all(self.gp_val_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         assert np.all(self.gp_val_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         
@@ -1551,6 +1560,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the candidate theta data 
         
         """
+        assert self.cand_data is not None, "Must have self.cand_data"
         assert np.all(self.cand_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         assert np.all(self.cand_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         
@@ -1568,6 +1578,8 @@ class Type_1_GP_Emulator(GP_Emulator):
         best_error: float, the best error of the method
         
         """   
+        assert self.train_data is not None, "Must have self.train_data"
+        assert all(isinstance(self.train_data , Data)), "self.train_data must be type Data"
         assert np.all(self.train_data.theta_vals is not None), "Must have simulation theta and y data to calculate best error"
         assert np.all(self.train_data.y_vals is not None), "Must have simulation theta and y data to calculate best error"
         
@@ -1601,13 +1613,13 @@ class Type_1_GP_Emulator(GP_Emulator):
         
         return ei
     
-    def eval_ei_heat_map(self, heat_map_data, exp_data, ep_bias, best_error):
+    def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error):
         """
         Evaluates gp acquisition function. In this case, ei
         
         Parmaeters
         ----------
-        heat_map_data, Instance of Data class, heat map data to evaluate ei for
+        misc_data, Instance of Data class, data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
         best_error: float, the best error of the method
@@ -1616,7 +1628,11 @@ class Type_1_GP_Emulator(GP_Emulator):
         -------
         ei: The expected improvement of all the data in test_data
         """
-        ei = self.__eval_gp_ei(heat_map_data, exp_data, ep_bias, best_error)
+        assert isinstance(misc_data, Data), "misc_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
+        assert isinstance(best_error, (float, int)), "best_error must be float or int"
+        ei = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error)
         return ei
     
     def eval_ei_test(self, exp_data, ep_bias, best_error):
@@ -1633,6 +1649,10 @@ class Type_1_GP_Emulator(GP_Emulator):
         -------
         ei: The expected improvement of all the data in test_data
         """
+        assert isinstance(self.test_data, Data), "self.test_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
+        assert isinstance(best_error, (float, int)), "best_error must be float or int"
         ei = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error)
         return ei
     
@@ -1650,6 +1670,10 @@ class Type_1_GP_Emulator(GP_Emulator):
         -------
         ei: The expected improvement of all the data in gp_val_data
         """
+        assert isinstance(self.gp_val_data, Data), "self.gp_val_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
+        assert isinstance(best_error, (float, int)), "best_error must be float or int"
         ei = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error)
         
         return ei
@@ -1668,6 +1692,10 @@ class Type_1_GP_Emulator(GP_Emulator):
         -------
         ei: The expected improvement of all the data in candidate theta data
         """
+        assert isinstance(self.cand_data, Data), "self.cand_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
+        assert isinstance(best_error, (float, int)), "best_error must be float or int"
         ei = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error)
         
         return ei
@@ -1680,6 +1708,10 @@ class Type_1_GP_Emulator(GP_Emulator):
         ----------
         theta_best_sse_data: Instance of Data, The class containing the data relavent to theta_best for a Type 1 GP
         """
+        assert self.train_data is not None, "self.train_data must be Data"
+        assert isinstance(self.train_data, Data), "self.train_data must be Data"
+        assert isinstance(theta_best_sse_data, Data), "theta_best_sse_data must be Data"
+        assert all(isinstance(var, np.ndarray) for var in [self.train_data.theta_vals,self.train_data.y_vals]), "self.train_data.theta_vals and self.train_data.y_vals must not be None"
         #Update training theta, x, and y separately
         self.train_data.theta_vals = np.vstack((self.train_data.theta_vals, theta_best_sse_data.theta_vals))
         self.train_data.y_vals = np.concatenate((self.train_data.y_vals, theta_best_sse_data.y_vals))
@@ -1882,31 +1914,32 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return sse_mean, sse_var
     
-    def eval_gp_sse_var_heat_map(self, heat_map_data, exp_data):
+    def eval_gp_sse_var_misc(self, misc_data, exp_data):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the heat map data
         
         Parameters
         ----------
-        heat_map_data, Instance of Data class, heat map data to evaluate ei for
+        misc_data, Instance of Data class, data to evaluate gp sse and sse variance for
         exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
         
         Returns
         --------
-        heat_map_sse_mean: tensor, The sse derived from gp_mean evaluated over the test data 
-        heat_map_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
+        misc_sse_mean: tensor, The sse derived from gp_mean evaluated over the test data 
+        misc_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
         
         """
-        assert np.all(heat_map_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
-        assert np.all(heat_map_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
-        assert np.all(heat_map_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
-        assert np.all(heat_map_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
+        assert isinstance(misc_data , Data), "misc_data must be type Data"
+        assert np.all(misc_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
+        assert np.all(misc_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
+        assert np.all(misc_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_misc()"
+        assert np.all(misc_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_misc()"
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        heat_map_sse_mean, heat_map_sse_var = self.__eval_gp_sse_var(heat_map_data, exp_data)
+        misc_sse_mean, misc_sse_var = self.__eval_gp_sse_var(misc_data, exp_data)
         
-        return heat_map_sse_mean, heat_map_sse_var
+        return misc_sse_mean, misc_sse_var
     
     def eval_gp_sse_var_test(self, exp_data):
         """
@@ -1922,6 +1955,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         test_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
         
         """
+        assert all(isinstance(var , Data) for var in [self.test_data, exp_data]), "self.test_data and exp_data must be type Data"
         assert np.all(self.test_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(self.test_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(self.test_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
@@ -1947,6 +1981,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         val_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the validation data 
         
         """
+        assert all(isinstance(var , Data) for var in [self.gp_val_data, exp_data]), "self.gp_val_data and exp_data must be type Data"
         assert np.all(self.gp_val_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(self.gp_val_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(self.gp_val_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
@@ -1972,6 +2007,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         cand_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the candidate theta data 
         
         """
+        assert all(isinstance(var , Data) for var in [self.cand_data, exp_data]), "self.cand_data and exp_data must be type Data"
         assert np.all(self.cand_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(self.cand_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(self.cand_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
@@ -1996,6 +2032,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         best_error: float, the best error of the method
         
         """  
+        assert all(isinstance(var , Data) for var in [self.train_data, exp_data]), "self.tain_data and exp_data must be type Data"
         assert np.all(self.train_data.x_vals is not None), "Must have simulation x, theta, and y data to calculate best error"
         assert np.all(self.train_data.theta_vals is not None), "Must have simulation x, theta, and y data to calculate best error"
         assert np.all(self.train_data.y_vals is not None), "Must have simulation x, theta, and y data to calculate best error"
@@ -2050,13 +2087,13 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return ei
     
-    def eval_ei_heat_map(self, heat_map_data, exp_data, ep_bias, best_error, method):
+    def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error, method):
         """
         Evaluates gp acquisition function. In this case, ei
         
         Parmaeters
         ----------
-        heat_map_data, Instance of Data class, heat map data to evaluate ei for
+        misc_data, Instance of Data class, data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
         best_error: float, the best error of the method
@@ -2066,7 +2103,12 @@ class Type_2_GP_Emulator(GP_Emulator):
         -------
         ei: The expected improvement of all the data in sim_data
         """
-        ei = self.__eval_gp_ei(heat_map_data, exp_data, ep_bias, best_error, method)
+        assert isinstance(misc_data, Data), "misc_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
+        assert isinstance(best_error, (float, int)), "best_error must be float or int"
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
+        ei = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error, method)
         
         return ei
     
@@ -2086,6 +2128,12 @@ class Type_2_GP_Emulator(GP_Emulator):
         -------
         ei: The expected improvement of all the data in test_data
         """
+        assert isinstance(self.test_data, Data), "self.test_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
+        assert isinstance(best_error, (float, int)), "best_error must be float or int"
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
+                   
         ei = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error, method)
         return ei
     
@@ -2105,6 +2153,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         -------
         ei: The expected improvement of all the data in gp_val_data
         """
+        assert isinstance(self.gp_val_data, Data), "self.gp_val_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
+        assert isinstance(best_error, (float, int)), "best_error must be float or int"
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         ei = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error, method)
         
         return ei
@@ -2125,6 +2178,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         -------
         ei: The expected improvement of all the data in candidate feature
         """
+        assert isinstance(self.cand_data, Data), "self.cand_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
+        assert isinstance(best_error, (float, int)), "best_error must be float or int"
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         ei = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error, method)
         
         return ei
@@ -2137,6 +2195,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         theta_best: Instance of Data, The class containing the data relavent to theta_best
         """
+        assert self.train_data is not None, "self.train_data must be Data"
+        assert isinstance(self.train_data, Data), "self.train_data must be Data"
+        assert isinstance(theta_best_data, Data), "theta_best_data must be Data"
+        assert all(isinstance(var, np.ndarray) for var in [self.train_data.theta_vals,self.train_data.y_vals]), "self.train_data.theta_vals and self.train_data.y_vals must not be None"
+        
         #Update training theta, x, and y separately
         self.train_data.theta_vals = np.vstack((self.train_data.theta_vals, theta_best_data.theta_vals))
         self.train_data.x_vals = np.vstack((self.train_data.x_vals, theta_best_data.x_vals))  
@@ -2236,6 +2299,7 @@ class Expected_Improvement():
         -------
         ei: float, The expected improvement of the parameter set
         """
+        assert isinstance(method, GPBO_Methods), "method must be type GPBO_Methods"
         #Num thetas = #gp mean pts/number of x_vals for Type 2
         num_thetas = int(len(self.gp_mean)/self.exp_data.get_num_x_vals()) 
         #Define n as the number of x values

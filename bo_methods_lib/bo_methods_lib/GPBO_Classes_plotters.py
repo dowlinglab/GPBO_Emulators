@@ -147,6 +147,20 @@ def subplot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fon
 #         ax.set_ylim(bottom = np.min(plot_y)/2, top = np.max(plot_y)*2)    
     return ax
          
+def set_plot_titles(fig, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20):
+    """
+    Helper function to set plot titles and labels for figures with subplots
+    """
+    
+    if title_fontsize is not None:
+        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
+    if x_label is not None:
+        fig.supxlabel(x_label, fontsize=other_fontsize,fontweight='bold')
+    if y_label is not None:
+        fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold')
+        
+    return
+    
     
 def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
@@ -186,14 +200,8 @@ def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_la
     fig, ax, num_subplots = create_subplots(subplots_needed)
     
     #Print the title and labels as appropriate
-    if title_fontsize is not None:
-        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
-    if x_label is not None:
-        fig.supxlabel(x_label, fontsize=other_fontsize,fontweight='bold')
-    if y_label is not None:
-        fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold')
-    
-    
+    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+
     #Loop over different hyperparameters (number of subplots)
     for i in range(num_subplots):
         #If you still have data to plot
@@ -260,12 +268,7 @@ def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins,
     fig, ax, num_subplots = create_subplots(subplots_needed)
     
     #Print the title and labels as appropriate
-    if title_fontsize is not None:
-        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
-    if x_label is not None:
-        fig.supxlabel(x_label, fontsize=other_fontsize,fontweight='bold')
-    if y_label is not None:
-        fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold')
+    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
     
     
     #Loop over different hyperparameters (number of subplots)
@@ -309,6 +312,64 @@ def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins,
     
     return
 
+def plot_theta_vs_y_given_x(data, theta_idx, data_names, exp_data, train_data, test_data, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
+    """
+    Plots theta data vs y data for any given parameter set theta
+    
+    Parameters
+    ----------
+    data: Instance of Data,
+    
+    """
+    subplots_needed = len(data)
+    fig, ax, num_subplots = create_subplots(subplots_needed)
+    
+    #Print the title and labels as appropriate
+    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+    
+    #Loop over different hyperparameters (number of subplots)
+    for i in range(num_subplots):
+        #If you still have data to plot
+        if i < subplots_needed:
+            data = data[i]
+            #The index of the data is i, and one data type is in the last row of the data
+            theta_space = data.theta_vals[:,theta_idx]
+            ax[i].plot(theta_space, data.gp_mean, lw=2, label="GP_mean", color = "blue")
+            ax[i].plot(theta_space, data.y_vals, label = "Y_sim", color = "black", linestyle = "--")
+            if train_data is not None:
+                ax[i].scatter(train_data.theta_vals[:,theta_idx], train_data.y_vals, color = "green", s=150, marker = "x", label = "Train")
+            if test_data is not None:
+                ax[i].scatter(test_data.theta_vals[:,theta_idx], test_data.y_vals, color = "red", s=100, marker = "x", label = "Test")
+            if exp_data is not None:
+                ax[i].scatter(exp_data.theta_vals[:,theta_idx], exp_data.y_vals, color = "black", marker = "o", label = "Exp")
+
+            ax[i].fill_between(
+               theta_space,
+               data.gp_mean - 1.96 * np.sqrt(data.gp_var),
+               data.gp_mean + 1.96 * np.sqrt(data.gp_var),
+               alpha=0.3 )
+            
+            subplot_details(ax[i], theta_space, None, None, None, data_names[i] , xbins, ybins, other_fontsize)
+        #Set axes off if it's an extra
+        else:
+            ax[i].set_axis_off()
+            
+        #Fetch handles and labels on last iteration
+        if i == num_subplots-1:
+            handles, labels = ax[i].get_legend_handles_labels()
+            
+    #Plots legend and title
+    plt.tight_layout()
+    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    
+    #save or show figure
+    if save_path is None:
+        plt.show()
+        plt.close()
+    else:
+        save_fig(save_path, ext='png', close=True, verbose=False)  
+    
+    return
 
 #These parameters may need to change
 def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_to_plot, x_exp, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
@@ -460,13 +521,8 @@ def parity_plot(y_data, y_sse_data, sse_data, method, xbins, ybins, x_label, y_l
         
     fig, ax, num_subplots = create_subplots(subplots_needed)
     
-     #Print the title and labels as appropriate
-    if title_fontsize is not None:
-        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
-    if x_label is not None:
-        fig.supxlabel(x_label, fontsize=other_fontsize,fontweight='bold')
-    if y_label is not None:
-        fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold') 
+    #Print the title and labels as appropriate
+    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
     
     #Set plot details
     #Loop over number of subplots
@@ -479,14 +535,14 @@ def parity_plot(y_data, y_sse_data, sse_data, method, xbins, ybins, x_label, y_l
                 y_err = np.array([gp_lower, gp_upper])
                 ax[i].errorbar(sse_sim, sse_mean, fmt="o", yerr=y_err, label = "GP", ms=10, zorder=1, mec = "green", mew = 1)
                 ax[i].plot(sse_sim, sse_sim, label = "Sim" , zorder=2, color = "black")
+                #Set plot details
                 subplot_details(ax[i], sse_sim, sse_sim, None, None, titles[i], xbins, ybins, other_fontsize)
             else:
                 #The index of the data is i, and one data type is in the last row of the data
                 ax[i].errorbar(y_sim, gp_mean, yerr=1.96*gp_stdev, fmt = "o", label ="GP", ms=5, mec = "green", mew = 1, zorder= 1 )
                 ax[i].plot(y_sim, y_sim, label = "Sim" , zorder=2, color = "black")
+                #Set plot details
                 subplot_details(ax[i], y_sim, y_sim, None, None, titles[i], xbins, ybins, other_fontsize)
-
-            #Set plot details
            
             #Get legend information
             if i == subplots_needed-1:

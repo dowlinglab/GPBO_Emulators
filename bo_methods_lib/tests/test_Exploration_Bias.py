@@ -29,8 +29,9 @@ set_ep_list = [[1, None, Ep_enum(1), 0, 100, 1.5, 0.01, False, 0.2, 0.02, 1],
                [3, None, Ep_enum(1), 0, 100, 1.5, 0.01, False, 0.2, 0.02, 3],
                [1, None, Ep_enum(2), 0, 100, 1.5, 0.01, False, 0.2, 0.02, 1],
                [1, None, Ep_enum(2), 1, 100, 1.5, 0.01, False, 0.2, 0.02, 0.9802],
-               [1, None, Ep_enum(3), 0, 100, 1.5, 0.01, False, 0.2, 0.02, 0.6667],
-               [1, None, Ep_enum(3), 0, 100, 1.5, 0.01, True, 0.2, 0.02, 1.5],
+               [1, 1, Ep_enum(3), 0, 100, 1.5, 0.01, False, 0.2, 0.02, 0.6667],
+               [1, 1, Ep_enum(3), 0, 100, 1.5, 0.01, True, 0.2, 0.02, 1.5],
+               [1, None, Ep_enum(3), 0, 100, 1.5, 0.01, True, 0.2, 0.02, 1],
                [1, None, Ep_enum(4), 0, 100, 1.5, 0.01, False, 0.2, 0.02, 0.1]]
 @pytest.mark.parametrize("ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var, expected", set_ep_list)
 def test_set_ep_list(ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var, expected):
@@ -40,7 +41,7 @@ def test_set_ep_list(ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, 
     
 #This test function tests whether set_ep throws the correct errors
                ## ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var
-set_ep_list = [[1, None, "Constant", None, None, None, None, None, None, None],
+set_ep_err_list = [[1, None, "Constant", None, None, None, None, None, None, None],
                [3, None, Ep_enum(1), "iter 1", None, None, None, None, None, None],
                [1, None, Ep_enum(2), 1.1, 100, None, None, None, None, None],
                [None, None, Ep_enum(2), 0, 100, None, 0.01, None, None, None],
@@ -52,8 +53,8 @@ set_ep_list = [[1, None, "Constant", None, None, None, None, None, None, None],
                [None, None, None, None, None, None, None, None, 0.2, 0.02],
                [None, None, Ep_enum(4), None, None, None, None, None, None, 0.02],
                [None, None, Ep_enum(4), None, None, None, None, None, 0.2, None]]
-@pytest.mark.parametrize("ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var", set_ep_list)
-def test_set_ep_list(ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var):
+@pytest.mark.parametrize("ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var", set_ep_err_list)
+def test_set_ep_err_list(ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var):
     with pytest.raises((AssertionError, ValueError)):   
         ep_bias = Exploration_Bias(ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var)
         ep_bias.set_ep()
