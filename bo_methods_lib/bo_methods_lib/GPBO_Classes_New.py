@@ -159,6 +159,7 @@ class GPBO_Methods:
         ----------
         method_name, Method_name_enum Class instance, The name associated with the method being tested. Enum type
         """
+        assert isinstance(method_name, Method_name_enum), "method_name must be an instance of Method_name_enum"
         # Constructor method
         self.method_name = method_name
         self.emulator = self.get_emulator()
@@ -1083,7 +1084,7 @@ class GP_Emulator:
         -------
         num_data: int, the number of data the GP will have access to
         """
-        
+        assert isinstance(self.gp_sim_data, Data), "self.gp_sim_data must be instance of Data class"
         #Number of available gp data determined by number of sim data
         num_gp_data = int(self.gp_sim_data.get_num_theta())
         
@@ -1194,6 +1195,8 @@ class GP_Emulator:
         gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor, The untrained, fully defined gp model
             
         """  
+        assert isinstance(gp_model, GaussianProcessRegressor), "gp_model must be GaussianProcessRegressor"
+        assert isinstance(self.feature_train_data, np.ndarray), "self.feature_train_data must be np.ndarray"
         assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
         #Train GP
         fit_gp_model = gp_model.fit(self.feature_train_data, self.train_data.y_vals)
@@ -1298,6 +1301,7 @@ class GP_Emulator:
         """
         
         assert self.feature_val_data is not None, "Must have validation data. Run set_train_test_data() to generate"
+        assert isinstance(self.feature_val_data, np.ndarray), "self.feature_val_data must by np.ndarray"
         #Evaluate test data for GP
         val_gp_mean, val_gp_var = self.__eval_gp_mean_var(self.feature_val_data)
         
@@ -1402,6 +1406,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         feature_eval_data: ndarray, The feature data for the GP
         
         """
+        assert isinstance(data, Data), "data must be an instance of Data"
         assert np.all(data.theta_vals is not None), "Must have validation data theta_vals and x_vals to evaluate the GP"
         
         #Assign feature evaluation data as theta and x values. Create empty list to store gp approximations
@@ -1430,6 +1435,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(sep_fact, (float,int)), "Separation factor must be float or int > 0"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
         assert isinstance(seed, int), "seed must be int!"
+        assert isinstance(self.gp_sim_data, Data), "self.gp_sim_data must be instance of Data"
         assert np.all(self.gp_sim_data.x_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
         assert np.all(self.gp_sim_data.theta_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
         assert np.all(self.gp_sim_data.y_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
@@ -1522,7 +1528,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         test_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
         
         """
-        assert self.test_data is not None, "Must have self.test_data"
+        assert isinstance(self.test_data , Data), "self.test_data must be type Data"
         assert np.all(self.test_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
         assert np.all(self.test_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
         
@@ -1541,7 +1547,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         val_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the validation data 
         
         """
-        assert self.gp_val_data is not None, "Must have self.gp_val_data"
+        assert isinstance(self.gp_val_data , Data), "self.gp_val_data must be type Data"
         assert np.all(self.gp_val_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         assert np.all(self.gp_val_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         
@@ -1560,7 +1566,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the candidate theta data 
         
         """
-        assert self.cand_data is not None, "Must have self.cand_data"
+        assert isinstance(self.cand_data , Data), "self.cand_data must be type Data"
         assert np.all(self.cand_data.gp_mean is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         assert np.all(self.cand_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         
@@ -1580,7 +1586,6 @@ class Type_1_GP_Emulator(GP_Emulator):
         """   
         assert self.train_data is not None, "Must have self.train_data"
         assert isinstance(self.train_data , Data), "self.train_data must be type Data"
-        assert np.all(self.train_data.theta_vals is not None), "Must have simulation theta and y data to calculate best error"
         assert np.all(self.train_data.y_vals is not None), "Must have simulation theta and y data to calculate best error"
         
         #Best error is the minimum sse value of the training data for Type 1
@@ -1711,7 +1716,8 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert self.train_data is not None, "self.train_data must be Data"
         assert isinstance(self.train_data, Data), "self.train_data must be Data"
         assert isinstance(theta_best_sse_data, Data), "theta_best_sse_data must be Data"
-        assert all(isinstance(var, np.ndarray) for var in [self.train_data.theta_vals,self.train_data.y_vals]), "self.train_data.theta_vals and self.train_data.y_vals must not be None"
+        assert all(isinstance(var, np.ndarray) for var in [self.train_data.theta_vals,self.train_data.y_vals]), "self.train_data.theta_vals and self.train_data.y_vals must be np.ndarray"
+        assert all(isinstance(var, np.ndarray) for var in [theta_best_sse_data.theta_vals, theta_best_sse_data.y_vals]), "theta_best_sse_data.theta_vals and self.theta_best_sse_data.y_vals must be np.ndarray"
         #Update training theta, x, and y separately
         self.train_data.theta_vals = np.vstack((self.train_data.theta_vals, theta_best_sse_data.theta_vals))
         self.train_data.y_vals = np.concatenate((self.train_data.y_vals, theta_best_sse_data.y_vals))
@@ -1775,6 +1781,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         -------
         dim_gp_data: int, the dimensions of the training data the GP will have access to
         """
+        assert isinstance(self.gp_sim_data, Data), "self.gp_sim_data must be instance of Data"
         assert np.all(self.gp_sim_data.x_vals is not None), "Must have sim data theta_vals and x_vals"
         assert np.all(self.gp_sim_data.theta_vals is not None), "Must have sim data theta_vals and x_vals"
         
@@ -1796,6 +1803,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         feature_eval_data: ndarray, The feature data for the GP
         
         """
+        assert isinstance(data, Data), "data must be instance of Data"
         assert np.all(data.x_vals is not None), "Must have validation data theta_vals and x_vals to evaluate the GP"
         assert np.all(data.theta_vals is not None), "Must have validation data theta_vals and x_vals to evaluate the GP"
         
@@ -1825,6 +1833,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(sep_fact, (float,int)), "Separation factor must be float or int > 0"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
         assert isinstance(seed, int), "seed must be int!"
+        assert isinstance(self.gp_sim_data, Data), "self.gp_sim_data must be instance of Data"
         assert np.all(self.gp_sim_data.x_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
         assert np.all(self.gp_sim_data.theta_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
         assert np.all(self.gp_sim_data.y_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
@@ -2108,6 +2117,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error, (float, int)), "best_error must be float or int"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
+        assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
         ei = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error, method)
         
         return ei
@@ -2133,6 +2143,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error, (float, int)), "best_error must be float or int"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
+        assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
                    
         ei = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error, method)
         return ei
@@ -2158,6 +2169,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error, (float, int)), "best_error must be float or int"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
+        assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
         ei = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error, method)
         
         return ei
@@ -2183,6 +2195,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error, (float, int)), "best_error must be float or int"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
+        assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
         ei = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error, method)
         
         return ei
@@ -2198,7 +2211,8 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert self.train_data is not None, "self.train_data must be Data"
         assert isinstance(self.train_data, Data), "self.train_data must be Data"
         assert isinstance(theta_best_data, Data), "theta_best_data must be Data"
-        assert all(isinstance(var, np.ndarray) for var in [self.train_data.theta_vals,self.train_data.y_vals]), "self.train_data.theta_vals and self.train_data.y_vals must not be None"
+        assert all(isinstance(var, np.ndarray) for var in [self.train_data.theta_vals,self.train_data.y_vals]), "self.train_data.theta_vals and self.train_data.y_vals must be np.ndarray"
+        assert all(isinstance(var, np.ndarray) for var in [theta_best_data.theta_vals, theta_best_data.y_vals]), "self.train_data.theta_vals and self.train_data.y_vals must be np.ndarray"
         
         #Update training theta, x, and y separately
         self.train_data.theta_vals = np.vstack((self.train_data.theta_vals, theta_best_data.theta_vals))

@@ -24,6 +24,14 @@ GPBO_Methods_array = [[Method_name_enum(1), "A1", False, "OBJ", False],
                       [Method_name_enum(4), "B2", True, "LN_OBJ", False],
                       [Method_name_enum(5), "C2", True, "OBJ", True]]
 @pytest.mark.parametrize("meth_id, meth_name_e, emulator_e, obj_e, sparse_grid_e", GPBO_Methods_array)
-def test_CaseStudyParameters(meth_id, meth_name_e, emulator_e, obj_e, sparse_grid_e):
+def test_GPBO_Methods(meth_id, meth_name_e, emulator_e, obj_e, sparse_grid_e):
     method = GPBO_Methods(meth_id)
     assert method.method_name.name == meth_name_e and method.emulator == emulator_e and method.obj.name == obj_e and method.sparse_grid == sparse_grid_e
+    
+#This test function tests whether GPBO_Method throws correct errors
+                            #meth_id
+GPBO_Methods_err_array =   ["C2", None, 3]
+@pytest.mark.parametrize("meth_id", GPBO_Methods_err_array)
+def test_GPBO_Methods_err(meth_id):
+    with pytest.raises((AssertionError, AttributeError, ValueError)): 
+        method = GPBO_Methods(meth_id)
