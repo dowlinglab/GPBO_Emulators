@@ -1579,7 +1579,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         
         """   
         assert self.train_data is not None, "Must have self.train_data"
-        assert all(isinstance(self.train_data , Data)), "self.train_data must be type Data"
+        assert isinstance(self.train_data , Data), "self.train_data must be type Data"
         assert np.all(self.train_data.theta_vals is not None), "Must have simulation theta and y data to calculate best error"
         assert np.all(self.train_data.y_vals is not None), "Must have simulation theta and y data to calculate best error"
         
