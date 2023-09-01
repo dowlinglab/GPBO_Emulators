@@ -81,12 +81,12 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
 #Set Method
-meth_name_vals = [1,2,3,4,5]
+meth_name_vals = [1,2,3,5,4]
 
 #Set Initial Parameters
 ep0 = 1
 ep_enum_vals = [1,2,3,4]
-sep_fact = 0.8
+sep_fact = 1
 normalize = False
 gen_heat_map_data = True
 noise_mean = 0
