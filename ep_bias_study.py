@@ -81,11 +81,11 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
 #Set Method
-meth_name_vals = [4]
+meth_name_vals = [3]
 
 #Set Initial Parameters
 ep0 = 1
-ep_enum_vals = [1,2,3,4]
+ep_enum_vals = [2,3,4]
 sep_fact = 1
 normalize = False
 gen_heat_map_data = True
@@ -128,6 +128,7 @@ val_data = simulator.gen_sim_data(num_theta_data_val, num_x_data, gen_meth_theta
 for name in meth_name_vals:
     meth_name = Method_name_enum(name)
     method = GPBO_Methods(meth_name)
+    print(method.method_name.name)
     
     #Gen sse_sim_data and sse_sim_val_data
     sim_sse_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, False)
