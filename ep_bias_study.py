@@ -81,7 +81,7 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
 #Set Method
-meth_name_vals = [1,2,3,5,4]
+meth_name_vals = [4]
 
 #Set Initial Parameters
 ep0 = 1
@@ -91,7 +91,7 @@ normalize = False
 gen_heat_map_data = True
 noise_mean = 0
 noise_std = 0.01
-kernel = Kernel_enum(1)
+kernel = Kernel_enum(1) #Using a Matern 5/2 Kernel
 lenscl = None
 outputscl = 1 #We know the scale on this test problem
 retrain_GP = 5
@@ -105,14 +105,14 @@ obj_tol = 1e-4
 
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)
-num_theta_data = 20
+num_theta_data = 40
 gen_meth_theta = Gen_meth_enum(1)
-num_theta_data_val = 20
+num_theta_data_val = 40
 gen_meth_theta_val = Gen_meth_enum(2)
 
 #Define Simulator Class
-cs_name_enum  = CS_name_enum(1)
-indecies_to_consider = list(range(0, 2)) #This is what changes for different subproblems of CS1
+cs_name_enum  = CS_name_enum(2)
+indecies_to_consider = list(range(0, 4)) #This is what changes for different subproblems of CS1
 simulator = simulator_helper_test_fxns(cs_name_enum, indecies_to_consider, noise_mean, noise_std, normalize, seed)
 
 #Generate Exp Data

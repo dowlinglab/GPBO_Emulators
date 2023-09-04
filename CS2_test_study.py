@@ -81,7 +81,7 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
 #Set Method
-meth_name_vals = [4]
+meth_name_vals = [2]
 
 #Set Initial Parameters
 ep0 = 1
