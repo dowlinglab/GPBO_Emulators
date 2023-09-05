@@ -61,7 +61,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         
     else:
         raise ValueError("self.CaseStudyParameters.cs_name.value must exist!")
-
+    
     return Simulator(indecies_to_consider, 
                      theta_ref,
                      theta_names,
@@ -80,12 +80,15 @@ dateTimeObj = datetime.now()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
-#Set Method
-meth_name_vals = [3]
+#Set Method and Case Study
+cs_name_enum  = CS_name_enum(2)
+cs_name_str = cs_name_enum.name
+indecies_to_consider = list(range(0, 4)) #This is what changes for different subproblems of CS
+meth_name_vals = [4]
 
 #Set Initial Parameters
 ep0 = 1
-ep_enum_vals = [2,3,4]
+ep_enum_vals = [1,2,3,4]
 sep_fact = 1
 normalize = False
 gen_heat_map_data = True
@@ -105,14 +108,12 @@ obj_tol = 1e-4
 
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)
-num_theta_data = 40
+num_theta_data = 20
 gen_meth_theta = Gen_meth_enum(1)
-num_theta_data_val = 40
+num_theta_data_val = 20
 gen_meth_theta_val = Gen_meth_enum(2)
 
 #Define Simulator Class
-cs_name_enum  = CS_name_enum(2)
-indecies_to_consider = list(range(0, 4)) #This is what changes for different subproblems of CS1
 simulator = simulator_helper_test_fxns(cs_name_enum, indecies_to_consider, noise_mean, noise_std, normalize, seed)
 
 #Generate Exp Data
@@ -148,7 +149,7 @@ for name in meth_name_vals:
             ep_bias = Exploration_Bias(None, None, ep_enum, None, None, None, None, None, None, None)
 
         #Define cs_name and cs_params class
-        cs_name = "CS1_BO_method_" + meth_name.name + "_ep_method_" + ep_bias.ep_enum.name
+        cs_name = cs_name_str + "_BO_method_" + meth_name.name + "_ep_method_" + ep_bias.ep_enum.name
         cs_params = CaseStudyParameters(cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, 
                                     reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, 
                                     seed, ei_tol, obj_tol)

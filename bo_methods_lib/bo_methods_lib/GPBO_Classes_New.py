@@ -1908,10 +1908,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         #Iterates over evey combination of theta to find the sse for each combination
         #Note to do this Xexp and X **must** use the same values
-        for i in range(0, len_theta, len_x):
-            sse_mean.append( sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) ) #Scaler 
-            error_point = (data.gp_mean[i:i+len_x] - exp_data.y_vals) #This SSE_variance CAN be negative
-            sse_var.append ( 2*error_point@data.gp_var[i:i+len_x] ) #Error Propogation approach
+        if len_theta > 0: #Only do this if you actually have data
+            for i in range(0, len_theta, len_x):
+                sse_mean.append( sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) ) #Scaler 
+                error_point = (data.gp_mean[i:i+len_x] - exp_data.y_vals) #This SSE_variance CAN be negative
+                sse_var.append ( 2*error_point@data.gp_var[i:i+len_x] ) #Error Propogation approach
         
         #Lists to arrays
         sse_mean = np.array(sse_mean)

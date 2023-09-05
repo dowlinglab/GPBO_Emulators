@@ -7,7 +7,7 @@ import os
 import matplotlib.ticker
 
 import matplotlib.pyplot as plt
-from  .GPBO_Classes_New import Data
+from .GPBO_Classes_New import Data
 
 def save_fig(path, ext='png', close=True, verbose=True):
     """Save a figure from pyplot.
@@ -162,7 +162,7 @@ def set_plot_titles(fig, title, x_label, y_label, title_fontsize = 24, other_fon
     return
     
     
-def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
+def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_label, log_data = False, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
     Plots 2D values of the same value on multiple subplots
     
@@ -226,6 +226,8 @@ def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_la
                 if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
                     ax[i].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
                 #Plot data
+                if log_data == True:
+                    data_df_j = np.log(data_df_j)
                 ax[i].step(bo_space, data_df_j, label = label)
                 #Plot true value if applicable
                 if data_true is not None and j == one_data_type.shape[0] - 1:
@@ -240,7 +242,7 @@ def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_la
             
         #Fetch handles and labels on last iteration
         if i == num_subplots-1:
-            handles, labels = ax[i].get_legend_handles_labels()
+            handles, labels = ax[data.shape[-1]-1].get_legend_handles_labels()
             
     #Plots legend and title
     plt.tight_layout()
@@ -415,7 +417,8 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
         #plot training data, testing data, and true values
         plt.scatter(train_data[:,i1],train_data[:,i2], color="green",s=50, label = "Training", marker = "x", zorder = 1)        
         plt.scatter(test_data[:,i1],test_data[:,i2], color="red",s=25, label = "Testing", marker = "x", zorder = 2)
-        plt.scatter(val_data[:,i1],val_data[:,i2], color="blue",s=20, label = "Validation", marker = "D", zorder = 3)
+        if val_data is not None:
+            plt.scatter(val_data[:,i1],val_data[:,i2], color="blue",s=20, label = "Validation", marker = "D", zorder = 3)
         #How to plot theta true given that a combination of x and theta can be chosen?
 #         plt.scatter(true_params[i1],true_params[i2], color="blue", label = "True argmin"+r'$(e(\theta))$', s=100, marker=(5,1), zorder = 3)
         #Set plot labels
@@ -459,7 +462,8 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
         # Plot the values
         ax.scatter(train_data[:,i1], train_data[:,i2], train_data[:,i3], color = "green", s=100, label = "Training", marker='o',zorder = 1)
         ax.scatter(test_data[:,i1],test_data[:,i2], test_data[:,i3], color="red", s=50, label = "Testing", marker = "x", zorder = 2)
-        ax.scatter(val_data[:,i1],val_data[:,i2], val_data[:,i3], color="blue", s=40, label = "Validation", marker = "D", zorder = 3)
+        if val_data is not None:
+            ax.scatter(val_data[:,i1],val_data[:,i2], val_data[:,i3], color="blue", s=40, label = "Validation", marker = "D", zorder = 3)
 #         ax.scatter(p_true_3D_full[:,0], p_true_3D_full[:,1], p_true_3D_full[:,2], color="blue", label = "True argmin" + r'$(e(\theta))$', 
 #                     s=100, marker = (5,1), zorder = 3)
         #Set Labels
@@ -510,13 +514,13 @@ def parity_plot(y_data, y_sse_data, sse_data, method, xbins, ybins, x_label, y_l
         gp_mean = y_data.gp_mean
         gp_stdev = np.sqrt(y_data.gp_var)
         sse_sim = y_sse_data.y_vals
-        sse_mean = y_data.sse_mean      
+        sse_mean = y_data.sse      
         sse_stdev = np.sqrt(y_data.sse_var)
     else:
         subplots_needed = 1
         assert isinstance(sse_data, Data), "sse_data must be type Data and not None!"
         sse_sim = sse_data.y_vals
-        sse_mean = sse_data.sse_mean      
+        sse_mean = sse_data.sse      
         sse_stdev = np.sqrt(sse_data.sse_var)
         
     fig, ax, num_subplots = create_subplots(subplots_needed)
