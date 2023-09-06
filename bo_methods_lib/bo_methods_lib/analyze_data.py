@@ -50,7 +50,7 @@ def analyze_SF_data_for_plot(date_time_str, bo_method, sep_fact_list, name_cs_st
             min_sse = run_results['Min Obj'].iloc[min_sse_index]
             min_sse_act = run_results['Min Obj Act'].iloc[min_sse_index]
 
-            if min_sse_act < sse_min_all[i]:
+            if abs(min_sse_act) < abs(sse_min_all[i]): #Use Abs for cases of 1B and 1A?
                 sse_min_all[i] = min_sse
                 sse_min_act_all[i] = min_sse_act
 
@@ -125,7 +125,7 @@ def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, stu
                 min_sse_act = run_results['Min Obj Act'].iloc[min_sse_index]
                 min_sse_theta = run_results['Theta Min Obj'].iloc[min_sse_index]
 
-                if min_sse_act < sse_min_all[i]:
+                if abs(min_sse_act) < abs(sse_min_all[i]):
                     sse_min_all[i] = min_sse
                     sse_min_act_all[i] = min_sse_act
                     theta_min_all[i,:] = min_sse_theta
@@ -146,7 +146,7 @@ def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, stu
         #Save CSV Data
 
     if save_csv == True:
-        path_to_save_df = DateTime + csv_name
+        path_to_save_df = date_time_str + csv_name
         EP_Analysis.to_csv(path_to_save_df, index=False)
     else:
         print(EP_Analysis)
