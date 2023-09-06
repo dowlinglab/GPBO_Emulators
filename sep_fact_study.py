@@ -80,13 +80,15 @@ dateTimeObj = datetime.now()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
-#Set Method
-meth_name_vals = [1,2,3,5,4]
+#Set Method and Case Study
+cs_name_enum  = CS_name_enum(1)
+indecies_to_consider = list(range(0, 2)) #This is what changes for different subproblems of CS1
+meth_name_vals = [1,2,3,5]
 
 #Set Initial Parameters
 ep0 = 1
-ep_enum_list = [Ep_enum(1), Ep_enum(1), Ep_enum(2), Ep_enum(1), Ep_enum(3)]
-sep_fact_list = np.linspace(0.5,1,6)
+ep_enum_list = [Ep_enum(3), Ep_enum(2), Ep_enum(1), Ep_enum(3)]
+sep_fact_list = np.linspace(0.5,1,6) #For CS1 use 0.5 to 1, for CS2 use 0.5, 0.75, and 1
 normalize = False
 gen_heat_map_data = True
 noise_mean = 0
@@ -105,14 +107,12 @@ obj_tol = 1e-4
 
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)
-num_theta_data = 20
+num_theta_data = 30 #Use 1.5x amount of training data in ep bias study
 gen_meth_theta = Gen_meth_enum(1)
 num_theta_data_val = 20
 gen_meth_theta_val = Gen_meth_enum(2)
 
 #Define Simulator Class
-cs_name_enum  = CS_name_enum(1)
-indecies_to_consider = list(range(0, 2)) #This is what changes for different subproblems of CS1
 simulator = simulator_helper_test_fxns(cs_name_enum, indecies_to_consider, noise_mean, noise_std, normalize, seed)
 
 #Generate Exp Data

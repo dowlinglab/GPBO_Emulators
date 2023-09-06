@@ -14,14 +14,64 @@ from .GPBO_Class_fxns import * #Fix this later
 import pickle
 
 #Open Data File
-def analyze_ep_bias_study(date_time_str, bo_meth_list, ep_meth_list, name_cs_str, save_csv):
+def analyze_SF_data_for_plot(date_time_str, bo_method, sep_fact_list, name_cs_str):
     """
-    Saves or prints results for Exploration Bias Study
+    Returns the results of the Separation Factor Study SSE data for plotting
+    
+    Parameters
+    ----------
+    date_time_str: str, The DateTime string in format year/month/day (numbers only)
+    bo_method: str, the BO method name to consider
+    sep_fact_list: list of str, the Separation Factors to consider
+    name_cs_str: str, The case study name. Ex CS1
+    
+    Returns
+    -------
+    y_data: ndarray (n_sfs x 2), The array of the gp predicted minimum sse and actual sse data
+    param_names: list of str, the names of the gp predicted minimum sse and actual sse data
+    """
+    
+    y_data = np.zeros((len(sep_fact_list) , 2))
+    sse_min_all = np.ones(len(sep_fact_list))*np.inf
+    sse_min_act_all = np.ones(len(sep_fact_list))*np.inf
+
+    for i in range(len(sep_fact_list)):
+        #Pull out file
+        path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_method + "_sep_fact_" + sep_fact_list[i]
+        fileObj = open(path + ".pickle", 'rb')
+        results = pickle.load(fileObj)   
+        fileObj.close()
+        tot_runs = results[0].configuration["Number of Workflow Restarts"]
+        #Loop over runs
+        for j in range(tot_runs):
+            run_results = results[j].results_df
+            #Find lowest sse and corresponding theta
+            min_sse_index = np.argmin(run_results['Min Obj']) #Should use Actual or GP min?
+            min_sse = run_results['Min Obj'].iloc[min_sse_index]
+            min_sse_act = run_results['Min Obj Act'].iloc[min_sse_index]
+
+            if min_sse_act < sse_min_all[i]:
+                sse_min_all[i] = min_sse
+                sse_min_act_all[i] = min_sse_act
+
+            min_sse = run_results['Min Obj']
+            min_sse_act = run_results['Min Obj Act']
+
+    y_data[:,0] = sse_min_all
+    y_data[:,1] = sse_min_act_all
+    data_names = ['Min Obj', 'Min Obj Act']
+    
+    return y_data, data_names
+    
+def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, study_id, name_cs_str, save_csv):
+    """
+    Saves or prints results for Exploration Bias or Separation factor Study
     
     Parameters:
+    -----------
     date_time_str: str, The DateTime string in format year/month/day (numbers only)
     bo_meth_list: list of str, the BO method names to consider
-    ep_meth_list: list of str, the Exploration Bias Methods to consider. Capital letters
+    study_param_list: list of str, the Exploration Bias Methods/ Separation Factors to consider. Capital letters 2 param numbers
     name_cs_str: str, The case study name. Ex CS1
     save_csv: bool, Determines whether to print results or save them as a csv
     """
@@ -29,38 +79,48 @@ def analyze_ep_bias_study(date_time_str, bo_meth_list, ep_meth_list, name_cs_str
     # DateTime = "2023/09/04/"
 
     #Get theta dimensions from any file
-    path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[0] + "_ep_method_" + ep_meth_list[0]
+    if study_id == "EP":
+        path_study_name = "_ep_method_"
+        col_name = 'Best EP Method'
+        csv_name = "Exploration_Bias_Exp.csv"
+    else:
+        path_study_name = "_sep_fact_"
+        col_name = 'Best Sep Fact'
+        csv_name = "Separation_Factor_Exp.csv"
+        
+    path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[0] + path_study_name + study_param_list[0]
     fileObj = open(path + ".pickle", 'rb')
-    results = pickle.load(fileObj)  
+    results = pickle.load(fileObj) 
+    fileObj.close()
     try:
         theta_dim = results[0].configuration["Number of Parameters"]
     except:
         theta_dim = 2
-    fileObj.close()
-
+    
     #Initialize overall min params
     sse_min_all = np.ones(len(bo_meth_list))*np.inf
     sse_min_act_all = np.ones(len(bo_meth_list))*np.inf
     theta_min_all = np.zeros((len(bo_meth_list),theta_dim))
     run_all = np.zeros(len(bo_meth_list))
     iter_all = np.zeros(len(bo_meth_list))
-    best_ep_meth = ["None"]*len(bo_meth_list)
+    best_study_param = ["None"]*len(bo_meth_list)
 
     #Loop over methods
     for i in range(len(bo_meth_list)):
         #Loop over ep_methods
-        for j in range(len(ep_meth_list)):
+        for j in range(len(study_param_list)):
             #Pull out file
-            path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[i] + "_ep_method_" + ep_meth_list[j]
+            path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[i] + path_study_name + study_param_list[j]
             fileObj = open(path + ".pickle", 'rb')
-            results = pickle.load(fileObj)        
+            results = pickle.load(fileObj)   
+            fileObj.close()
             param_names = results[0].simulator_class.theta_true_names
             tot_runs = results[0].configuration["Number of Workflow Restarts"]
             #Loop over runs
             for k in range(tot_runs):
                 run_results = results[k].results_df
                 #Find lowest sse and corresponding theta
-                min_sse_index = np.argmin(run_results['Min Obj'])
+                min_sse_index = np.argmin(run_results['Min Obj']) #Should use Actual or GP min?
                 min_sse = run_results['Min Obj'].iloc[min_sse_index]
                 min_sse_act = run_results['Min Obj Act'].iloc[min_sse_index]
                 min_sse_theta = run_results['Theta Min Obj'].iloc[min_sse_index]
@@ -71,13 +131,11 @@ def analyze_ep_bias_study(date_time_str, bo_meth_list, ep_meth_list, name_cs_str
                     theta_min_all[i,:] = min_sse_theta
                     iter_all[i] = min_sse_index + 1 #Plus one to start count at 1 and not 0
                     run_all[i] = k + 1 #Plus one to start count at 1 and not 0
-                    best_ep_meth[i] = ep_meth_list[j]
-            #Close file
-            fileObj.close()
+                    best_study_param[i] = study_param_list[j]
         #Pandas dataframe of the lowest sse overall and corresponding theta
-        column_names = ['BO Method', 'Best EP Method', 'Min SSE', 'Min SSE Act'] + [f'{param_names[i]}' for i in range(theta_dim)] + ['BO Restart', 'BO Iter']
+        column_names = ['BO Method', col_name, 'Min SSE', 'Min SSE Act'] + [f'{param_names[i]}' for i in range(theta_dim)] + ['BO Restart', 'BO Iter']
         data = {'BO Method': bo_meth_list,
-            'Best EP Method': best_ep_meth,
+            col_name: best_study_param,
             'Min SSE': sse_min_all,
             'Min SSE Act': sse_min_act_all}
         for i in range(theta_dim):
@@ -88,7 +146,7 @@ def analyze_ep_bias_study(date_time_str, bo_meth_list, ep_meth_list, name_cs_str
         #Save CSV Data
 
     if save_csv == True:
-        path_to_save_df = DateTime + "Exploration_Bias_Exp.csv"
+        path_to_save_df = DateTime + csv_name
         EP_Analysis.to_csv(path_to_save_df, index=False)
     else:
         print(EP_Analysis)

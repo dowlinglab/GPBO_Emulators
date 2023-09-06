@@ -162,7 +162,7 @@ def set_plot_titles(fig, title, x_label, y_label, title_fontsize = 24, other_fon
     return
     
     
-def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_label, log_data = False, title_fontsize = 24, other_fontsize = 20, save_path = None):
+def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_label, y_label, log_data = False, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
     Plots 2D values of the same value on multiple subplots
     
@@ -257,6 +257,80 @@ def plot_2D_Data(data, data_names, data_true, xbins, ybins, title, x_label, y_la
 
     return
 
+def plot_SF_data(x_data, y_data, data_names, data_true, xbins, ybins, title, x_label, y_label, log_data = False, title_fontsize = 24, other_fontsize = 20, save_path = None):
+    """
+    Plots 2D values of the same value on multiple subplots
+    
+    Parameters
+    -----------
+    x_data: ndarray, Array of X data
+    y_data: ndarray, Array of y data
+    data_names: list of str, List of data names
+    data_true: list/ndarray of float/int or None, The true values of each parameter
+    xbins: int, Number of bins for x
+    ybins: int, Number of bins for y
+    title: str or None, Title of graph
+    x_label: str or None, title of x-axis
+    y_label: str or None, title of y-axis
+    title_fontsize: int, fontisize for title. Default 24
+    other_fontsize: int, fontisize for other values. Default 20
+    save_path: str or None, Path to save figure to. Default None (do not save figure).
+    """
+    #Assert Statements
+    none_str_vars = [x_label, y_label, title, save_path]
+    int_vars = [xbins, ybins, title_fontsize, other_fontsize]
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, save_path, and ylabel must be string or None"
+    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
+    assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
+    assert isinstance(x_data, (list, np.ndarray)), "x_data must be list of float or ndarray"
+    assert isinstance(y_data, np.ndarray) or data is None, "y_data must be np.ndarray"
+    assert len(y_data.shape) == 2, "y_data must be a 2D array"
+    assert isinstance(data_true, (list, np.ndarray)) or data_true is None, "data_true must be list, ndarray, or None"
+    if data_true is not None:
+         assert all(isinstance(item, (float,int)) for item in data_true), "data_true elements must be float/int"
+    assert isinstance(data_names, list), "data_names must be list"
+    assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
+   
+    #Set figure details. Set bins turn on ticks
+    plt.figure(figsize = (6,6))
+    plt.xticks(fontsize=other_fontsize)
+    plt.yticks(fontsize=other_fontsize)
+    plt.tick_params(direction="in",top=True, right=True)
+    plt.locator_params(axis='y', nbins=ybins)
+    plt.locator_params(axis='x', nbins=xbins)
+    plt.minorticks_on() # turn on minor ticks
+    plt.tick_params(which="minor",direction="in",top=True, right=True)
+
+    #plot training data, testing data, and true values
+    if log_data == True:
+        y_data = np.log(y_data)
+        
+    plt.plot(x_data, y_data[:,0], color="green", label = data_names[0], zorder = 1)        
+    plt.plot(x_data, y_data[:,1], color="red", label = data_names[1], zorder = 2)
+    
+    #Set plot labels
+    plt.legend(loc= "upper left", bbox_to_anchor=(1.05, 0.95), borderaxespad=0)
+    plt.xlabel(x_label, fontsize=other_fontsize, fontweight='bold')
+    plt.ylabel(y_label, fontsize=other_fontsize, fontweight='bold')
+
+    #Set axis limits based on the maximum and minimum of the parameter search space      
+    x_lim_l = np.amin(x_data)
+    y_lim_l = np.amin(y_data)
+    x_lim_u = np.amax(x_data)
+    y_lim_u = np.amax(y_data)
+    plt.xlim((x_lim_l,x_lim_u))
+    plt.ylim((y_lim_l,y_lim_u))
+    #Set plot title
+    plt.title(title, fontsize=title_fontsize, fontweight='bold')
+    
+    #save or show figure
+    if save_path is None:
+        plt.show()
+        plt.close()
+    else:
+        save_fig(save_path, ext='png', close=True, verbose=False)  
+
+    return
 def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
     Plots x data vs y data for any given parameter set theta
