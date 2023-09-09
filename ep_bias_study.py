@@ -84,7 +84,7 @@ DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 cs_name_enum  = CS_name_enum(2)
 cs_name_str = cs_name_enum.name
 indecies_to_consider = list(range(0, 4)) #This is what changes for different subproblems of CS
-meth_name_vals = [4]
+meth_name_vals = [1, 2, 3, 5]
 
 #Set Initial Parameters
 ep0 = 1

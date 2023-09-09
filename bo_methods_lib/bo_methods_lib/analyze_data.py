@@ -62,10 +62,10 @@ def analyze_SF_data_for_plot(date_time_str, bo_method, sep_fact_list, name_cs_st
     data_names = ['Min Obj', 'Min Obj Act']
     
     return y_data, data_names
-    
-def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, study_id, name_cs_str, save_csv):
+
+def get_all_ep_sep_fact_data(date_time_str, bo_meth_list, study_param_list, study_id, name_cs_str, save_csv):
     """
-    Saves or prints results for Exploration Bias or Separation factor Study
+    Saves all results for Exploration Bias or Separation factor Study
     
     Parameters:
     -----------
@@ -75,8 +75,72 @@ def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, stu
     name_cs_str: str, The case study name. Ex CS1
     save_csv: bool, Determines whether to print results or save them as a csv
     """
-    # DateTime = "2023/09/01/"
-    # DateTime = "2023/09/04/"
+    
+    #Get theta dimensions from any file
+    if study_id == "EP":
+        path_study_name = "_ep_method_"
+        col_name = 'EP Method'
+        csv_name = "Exploration_Bias_Data.csv"
+    else:
+        path_study_name = "_sep_fact_"
+        col_name = 'Sep Fact'
+        csv_name = "Separation_Factor_Data.csv"
+        
+    path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[0] + path_study_name + study_param_list[0]
+    fileObj = open(path + ".pickle", 'rb')
+    results = pickle.load(fileObj) 
+    fileObj.close()
+    try:
+        theta_dim = results[0].configuration["Number of Parameters"]
+    except:
+        theta_dim = 2
+
+    # Create an empty target DataFrame
+    all_result_df = pd.DataFrame()
+
+    #Loop over methods
+    for i in range(len(bo_meth_list)):
+        #Loop over ep_methods
+        for j in range(len(study_param_list)):
+            #Pull out file
+            path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[i] + path_study_name + study_param_list[j]
+            fileObj = open(path + ".pickle", 'rb')
+            results = pickle.load(fileObj)   
+            fileObj.close()
+            param_names = results[0].simulator_class.theta_true_names
+            tot_runs = results[0].configuration["Number of Workflow Restarts"]
+            #Loop over runs
+            for k in range(tot_runs):
+                run_results = results[k].results_df
+                run_results["index"] = k
+                run_results[col_name] = study_param_list[j]
+                run_results["BO Method"] = bo_meth_list[i]
+                all_result_df = pd.concat([all_result_df, run_results], ignore_index=False)
+                
+    all_result_df.rename(columns={'index': 'Run Number'}, inplace=True)
+    all_result_df.index.names = ['BO Iter']
+                
+    if save_csv == True:
+        path_to_save_df = date_time_str + csv_name
+        all_result_df.to_csv(path_to_save_df, index=False)
+    else:
+        print(all_result_df.head())
+        print(all_result_df.tail())
+        
+    return 
+    
+def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, study_id, name_cs_str, save_csv):
+    """
+    Saves or prints relavent optimal results for Exploration Bias or Separation factor Study
+    
+    Parameters:
+    -----------
+    date_time_str: str, The DateTime string in format year/month/day (numbers only)
+    bo_meth_list: list of str, the BO method names to consider
+    study_param_list: list of str, the Exploration Bias Methods/ Separation Factors to consider. Capital letters 2 param numbers
+    name_cs_str: str, The case study name. Ex CS1
+    save_csv: bool, Determines whether to print results or save them as a csv
+    """
 
     #Get theta dimensions from any file
     if study_id == "EP":

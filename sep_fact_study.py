@@ -83,11 +83,11 @@ DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 #Set Method and Case Study
 cs_name_enum  = CS_name_enum(1)
 indecies_to_consider = list(range(0, 2)) #This is what changes for different subproblems of CS1
-meth_name_vals = [1,2,3,5]
+meth_name_vals = [4]
 
 #Set Initial Parameters
 ep0 = 1
-ep_enum_list = [Ep_enum(3), Ep_enum(2), Ep_enum(1), Ep_enum(3)]
+ep_enum_list = [Ep_enum(1)]
 sep_fact_list = np.linspace(0.5,1,6) #For CS1 use 0.5 to 1, for CS2 use 0.5, 0.75, and 1
 normalize = False
 gen_heat_map_data = True
