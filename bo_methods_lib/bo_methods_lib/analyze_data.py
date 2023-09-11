@@ -14,6 +14,74 @@ from .GPBO_Class_fxns import * #Fix this later
 import pickle
 
 #Open Data File
+def get_median_data(date_time_str, study_id):
+    """
+    Returns the results of the Separation Factor Study SSE data for plotting
+    
+    Parameters
+    ----------
+    date_time_str: str, The DateTime string in format year/month/day (numbers only)
+    study_id: str, "EP" or "SF", Whether to get data for ep exp or sf exp
+    name_cs_str: str, The case study name. Ex CS1
+    
+    Returns
+    -------
+    df_median: pd.DataFrame, The dataframe containing the median values of the data
+    """
+    #Find the best run for each method and SF/EP
+    #Set study ID names
+    if study_id == "EP":
+        path_study_name = "_ep_method_"
+        col_name = 'EP Method'
+        csv_name = "Exploration_Bias_Data.csv"
+        save_csv_name = "Median_Data_EP"
+    else:
+        path_study_name = "_sep_fact_"
+        col_name = 'Sep Fact'
+        csv_name = "Separation_Factor_Data.csv"
+        save_csv_name = "Median_Data_SF"
+        
+    #Get file and information
+    df = pd.read_csv(date_time_str+csv_name, header = 0)
+    
+    #Get median values
+    #Get list of names
+    names=df['BO Method'].unique().tolist()
+    # Create a list containing 1 dataframe for each method
+    df_list = []
+    for name in names:
+        df_meth = df.loc[df["BO Method"]==name]   
+        df_list.append(df_meth)
+
+    #Create new df for median values
+    df_median = pd.DataFrame()
+
+    #Loop over all method dataframes
+    for df_meth in df_list:
+        #Add the row corresponding to the median value of SSE to the list
+        df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act']==df_meth['Min Obj Act'].quantile(interpolation='nearest')]])
+    
+    return df_median
+
+#The following code makes a dataframe of the best iter for each run. CHECK ME
+##Initialize best idcs
+#     best_indecies = []
+#     #Loop over methods, SFs/EPs/, and runs
+#     for meth in df['BO Method'].unique():
+#         for param in df[col_name].unique():
+#             for run in df['Run Number'].unique():
+#                 #Find best run value and index
+#                 sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & (df['Run Number'] == run) 
+#                                               & (df['BO Iter']+1 == df["Max Evals"]) ]
+
+#                 index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & (df["Min Obj Act"]==sse_run_best_value.iloc[0])]
+                
+#                 #Append idx
+#                 best_indecies.append(index[0])
+                
+#     #Make new df of only best runs
+#     df_best_run_sse = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
+    
 def analyze_SF_data_for_plot(date_time_str, bo_method, sep_fact_list, name_cs_str):
     """
     Returns the results of the Separation Factor Study SSE data for plotting
@@ -72,6 +140,7 @@ def get_all_ep_sep_fact_data(date_time_str, bo_meth_list, study_param_list, stud
     date_time_str: str, The DateTime string in format year/month/day (numbers only)
     bo_meth_list: list of str, the BO method names to consider
     study_param_list: list of str, the Exploration Bias Methods/ Separation Factors to consider. Capital letters 2 param numbers
+    study_id: str, "EP" or "SF", Whether to get data for ep exp or sf exp
     name_cs_str: str, The case study name. Ex CS1
     save_csv: bool, Determines whether to print results or save them as a csv
     """
@@ -115,6 +184,8 @@ def get_all_ep_sep_fact_data(date_time_str, bo_meth_list, study_param_list, stud
                 run_results["index"] = k
                 run_results[col_name] = study_param_list[j]
                 run_results["BO Method"] = bo_meth_list[i]
+                run_results["Max Evals"] = len(run_results)
+                run_results["Total Run Time"] = run_results["Time/Iter"]*run_results["Max Evals"]
                 all_result_df = pd.concat([all_result_df, run_results], ignore_index=False)
                 
     all_result_df.rename(columns={'index': 'Run Number'}, inplace=True)
@@ -122,7 +193,7 @@ def get_all_ep_sep_fact_data(date_time_str, bo_meth_list, study_param_list, stud
                 
     if save_csv == True:
         path_to_save_df = date_time_str + csv_name
-        all_result_df.to_csv(path_to_save_df, index=False)
+        all_result_df.to_csv(path_to_save_df, index=True)
     else:
         print(all_result_df.head())
         print(all_result_df.tail())
