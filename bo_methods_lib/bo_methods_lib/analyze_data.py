@@ -239,7 +239,7 @@ def analyze_hypers(file_path, run_num):
     fileObj.close()
     runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
     num_sets = loaded_results[run_num].configuration["Max BO Iters"]
-    dim_hps = len(loaded_results[run_num].list_gp_emulator_class[run_num].trained_hyperparams[run_num]) + 2
+    dim_hps = len(loaded_results[run_num].list_gp_emulator_class[0].trained_hyperparams[0]) + 2
     hps = np.zeros((runs, num_sets, dim_hps))
     hp_names = [f"\\ell_{i}" for i in range(1, dim_hps+1)]
     hp_names[-2] = "\sigma"
@@ -363,7 +363,7 @@ def analyze_train_test(file_path, run_num, bo_iter):
     fileObj.close()
     
     x_exp = loaded_results[run_num].exp_data_class.x_vals
-    dim_data = loaded_results[run_num].list_gp_emulator_class[run_num].get_dim_gp_data() #dim training data
+    dim_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].get_dim_gp_data() #dim training data
     data_true = loaded_results[run_num].simulator_class.theta_true
 
     param_names = loaded_results[run_num].simulator_class.theta_true_names

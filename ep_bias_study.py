@@ -79,16 +79,19 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
 dateTimeObj = datetime.now()
 timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
+DateTime = "2023/09/05/11-05"
 
 #Set Method and Case Study
 cs_name_enum  = CS_name_enum(2)
 cs_name_str = cs_name_enum.name
 indecies_to_consider = list(range(0, 4)) #This is what changes for different subproblems of CS
-meth_name_vals = [1, 2, 3, 5]
+meth_name_vals = [4]
+num_theta_data = 40
+num_theta_data_val = 40
 
 #Set Initial Parameters
 ep0 = 1
-ep_enum_vals = [1,2,3,4]
+ep_enum_vals = [4]
 sep_fact = 1
 normalize = False
 gen_heat_map_data = True
@@ -108,9 +111,7 @@ obj_tol = 1e-4
 
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)
-num_theta_data = 20
 gen_meth_theta = Gen_meth_enum(1)
-num_theta_data_val = 20
 gen_meth_theta_val = Gen_meth_enum(2)
 
 #Define Simulator Class
