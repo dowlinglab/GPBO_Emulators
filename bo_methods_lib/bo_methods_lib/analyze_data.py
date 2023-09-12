@@ -14,7 +14,7 @@ from .GPBO_Class_fxns import * #Fix this later
 import pickle
 
 #Open Data File
-def get_median_data(date_time_str, study_id):
+def get_median_data(date_time_str, name_cs_str, study_id, theta_true, save_csv):
     """
     Returns the results of the Separation Factor Study SSE data for plotting
     
@@ -23,6 +23,8 @@ def get_median_data(date_time_str, study_id):
     date_time_str: str, The DateTime string in format year/month/day (numbers only)
     study_id: str, "EP" or "SF", Whether to get data for ep exp or sf exp
     name_cs_str: str, The case study name. Ex CS1
+    theta_true: ndarray, The true values of the parameters
+    save_csv: bool, Determines whether to print results or save them as a csv
     
     Returns
     -------
@@ -34,15 +36,17 @@ def get_median_data(date_time_str, study_id):
         path_study_name = "_ep_method_"
         col_name = 'EP Method'
         csv_name = "Exploration_Bias_Data.csv"
-        save_csv_name = "Median_Data_EP"
+        save_csv_name = name_cs_str + "_Median_Data_EP"
     else:
         path_study_name = "_sep_fact_"
         col_name = 'Sep Fact'
         csv_name = "Separation_Factor_Data.csv"
-        save_csv_name = "Median_Data_SF"
+        save_csv_name = name_cs_str + "_Median_Data_SF"
         
     #Get file and information
-    df = pd.read_csv(date_time_str+csv_name, header = 0)
+    df = pd.read_csv(date_time_str+csv_name, header = 0, converters={'Theta Min Obj' : converter, 
+                                                                'Theta Max EI' : converter,
+                                                                'Min Obj Cum.' : converter})
     
     #Get median values
     #Get list of names
@@ -60,27 +64,127 @@ def get_median_data(date_time_str, study_id):
     for df_meth in df_list:
         #Add the row corresponding to the median value of SSE to the list
         df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act']==df_meth['Min Obj Act'].quantile(interpolation='nearest')]])
+        
+    #Calculate the L2 Norm for the median values
+    df_median = calc_L2_norm(df_median, theta_true)  
     
-    return df_median
+    #Save or show df
+    if save_csv == True:
+        path_to_save_df = date_time_str + save_csv_name
+        df_median.to_csv(path_to_save_df, index=True)
+        return 
+    else:
+        return df_median 
 
-#The following code makes a dataframe of the best iter for each run. CHECK ME
-##Initialize best idcs
-#     best_indecies = []
-#     #Loop over methods, SFs/EPs/, and runs
-#     for meth in df['BO Method'].unique():
-#         for param in df[col_name].unique():
-#             for run in df['Run Number'].unique():
-#                 #Find best run value and index
-#                 sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & (df['Run Number'] == run) 
-#                                               & (df['BO Iter']+1 == df["Max Evals"]) ]
+def get_best_data(date_time_str, name_cs_str, study_id, theta_true, save_csv):
+    """
+    get the best bo iter data for each run of the algorithm for the SF or EP experiments
+    
+    Parameters
+    ----------
+    date_time_str: str, The DateTime string in format year/month/day (numbers only)
+    study_id: str, "EP" or "SF", Whether to get data for ep exp or sf exp
+    name_cs_str: str, The case study name. Ex CS1
+    theta_true: ndarray, The true values of the parameters
+    save_csv: bool, Determines whether to print results or save them as a csv
+    
+    Returns
+    -------
+    df_best: pd.DataFrame, The dataframe containing the best values of the data for each run   
+    """
+    #Set study ID names
+    if study_id == "EP":
+        path_study_name = "_ep_method_"
+        col_name = 'EP Method'
+        csv_name = "Exploration_Bias_Data.csv"
+        save_csv_name = name_cs_str + "_Best_Data_EP"
+    else:
+        path_study_name = "_sep_fact_"
+        col_name = 'Sep Fact'
+        csv_name = "Separation_Factor_Data.csv"
+        save_csv_name = name_cs_str + "_Best_Data_SF"
+        
+    #Get file and information
+    df = pd.read_csv(date_time_str+csv_name, header = 0, converters={'Theta Min Obj' : converter, 
+                                                                'Theta Max EI' : converter} )
+    
+    #Initialize best idcs
+    meth_id = 0
+    best_indecies = np.zeros(len(df['BO Method'].unique()))
+    #Loop over methods, SFs/EPs/, and runs
+    for meth in df['BO Method'].unique():
+        sse_best_overall = np.inf
+        for param in df[col_name].unique():
+            for run in df['Run Number'].unique():
+                #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
+                sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & (df['Run Number'] == run) 
+                                              & (df['BO Iter']+1 == df["Max Evals"]) ]
+                float_sse_best_val = sse_run_best_value.str.strip("[]").astype(float).iloc[0]
+                if float_sse_best_val < sse_best_overall:
+                    #Find the first instance where the minimum sse is found
+                    index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & (df["Min Obj Act"]==sse_run_best_value.iloc[0])]
+                    #Set that value as the new minimum 
+                    sse_best_overall = float_sse_best_val
+                    #Append idx to the best idcs
+                    best_indecies[meth_id] = index[0]
+        meth_id += 1
 
-#                 index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & (df["Min Obj Act"]==sse_run_best_value.iloc[0])]
-                
-#                 #Append idx
-#                 best_indecies.append(index[0])
-                
-#     #Make new df of only best runs
-#     df_best_run_sse = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
+    #Make new df of only best single iter over all runs and SFs
+    df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
+    
+    #Calculate the L2 norm of the best runs
+    df_best = calc_L2_norm(df_best, theta_true)
+    
+    #save or show DF
+    if save_csv == True:
+        path_to_save_df = date_time_str + save_csv_name
+        df_best.to_csv(path_to_save_df, index=True)
+        return
+    else:
+        return df_best
+    
+    return 
+
+def converter(instr):
+    """
+    Converts strings to arrays when loading pandas dataframes
+    
+    Parameters
+    ----------
+    instr: str, The string form of the array
+    
+    Returns 
+    -------
+    outstr: ndarry (object type), array of the string
+    
+    """
+    outstr = np.fromstring(instr[1:-1],sep=' ')
+    return outstr
+
+def calc_L2_norm(df, theta_true):
+    """
+    Calculates the L2 norm of Theta Values in a Pandas DataFrame
+    
+    Parameters
+    ----------
+    df: pd.DataFrame, The original dataframe containing the parameters you want to calculate the L2 norm for
+    theta_true: ndarray, The true values of the parameters
+    
+    Returns
+    -------
+    df: pd.DataFrame, The original dataframe containing the L2 norm values of the parameters
+    """
+    #Calculate the difference between the true values and the GP best values in the dataframe for each parameter
+    theta_min_obj = np.array(list(df['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
+    del_theta = theta_min_obj - theta_true
+    theta_L2_norm = np.zeros(del_theta.shape[0])
+    for i in range(del_theta.shape[0]):
+        theta_L2_norm[i] = np.linalg.norm(del_theta[i,:], ord = 2)
+        
+    df["L2 Norm Theta"] = theta_L2_norm
+        
+    return df
+    
     
 def analyze_SF_data_for_plot(date_time_str, bo_method, sep_fact_list, name_cs_str):
     """
@@ -194,11 +298,9 @@ def get_all_ep_sep_fact_data(date_time_str, bo_meth_list, study_param_list, stud
     if save_csv == True:
         path_to_save_df = date_time_str + csv_name
         all_result_df.to_csv(path_to_save_df, index=True)
-    else:
-        print(all_result_df.head())
-        print(all_result_df.tail())
-        
-    return 
+        return 
+    else:       
+        return all_result_df
     
 def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, study_id, name_cs_str, save_csv):
     """
@@ -283,11 +385,9 @@ def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, stu
     if save_csv == True:
         path_to_save_df = date_time_str + csv_name
         EP_Analysis.to_csv(path_to_save_df, index=False)
+        return 
     else:
-        print(EP_Analysis)
-        print(results[0].simulator_class.theta_true)
-        
-    return
+        return EP_Analysis
 
 def analyze_hypers(file_path, run_num):
     """
