@@ -175,12 +175,12 @@ def get_best_data(date_time_str, name_cs_str, study_id, theta_true, save_csv):
         path_study_name = "_ep_method_"
         col_name = 'EP Method'
         csv_name = "Exploration_Bias_Data.csv"
-        save_csv_name = name_cs_str + "_Best_Data_EP"
+        save_csv_name = name_cs_str + "_Best_Data_EP.csv"
     else:
         path_study_name = "_sep_fact_"
         col_name = 'Sep Fact'
         csv_name = "Separation_Factor_Data.csv"
-        save_csv_name = name_cs_str + "_Best_Data_SF"
+        save_csv_name = name_cs_str + "_Best_Data_SF.csv"
         
     #Get file and information
     df = pd.read_csv(date_time_str+csv_name, header = 0, converters={'Theta Min Obj' : converter, 
@@ -382,7 +382,8 @@ def get_all_ep_sep_fact_data(date_time_str, bo_meth_list, study_param_list, stud
         return 
     else:       
         return all_result_df
-    
+
+#Delete me later
 def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, study_id, name_cs_str, save_csv):
     """
     Saves or prints relavent optimal results for Exploration Bias or Separation factor Study
@@ -460,8 +461,9 @@ def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, stu
             data[param_names[i]] = theta_min_all[:, i]
         data['BO Restart'] = run_all
         data['BO Iter'] = iter_all
-        EP_Analysis = pd.DataFrame(data, columns=column_names)
-        #Save CSV Data
+    
+    EP_Analysis = pd.DataFrame(data, columns=column_names)
+    #Save CSV Data
 
     if save_csv == True:
         path_to_save_df = date_time_str + csv_name
