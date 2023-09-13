@@ -145,7 +145,7 @@ for j in range(len(meth_name_vals)):
         val_sse_data = simulator.sim_data_to_sse_sim_data(method, val_data, exp_data, sep_fact, True)
 
         #Define cs_name and cs_params class
-        cs_name = "CS1_BO_method_" + meth_name.name + "_sep_fact_" + str(round(sep_fact_list[i],2))
+        cs_name = CS_name_enum.name + "_BO_method_" + meth_name.name + "_sep_fact_" + str(round(sep_fact_list[i],2))
         cs_params = CaseStudyParameters(cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, 
                                     reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, 
                                     seed, ei_tol, obj_tol)

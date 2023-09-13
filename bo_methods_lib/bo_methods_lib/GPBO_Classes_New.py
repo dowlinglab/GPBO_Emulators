@@ -109,15 +109,25 @@ class CS_name_enum(Enum):
     
     Notes: 
     -------
-    1 = CS1
-    2 = CS2
+    1 = CS1 2 Param
+    2 = CS2 4 Param
+    3 = CS2 8 Param
+    4 = CS2 12 Param
+    5 = CS2 16 Param
+    6 = CS2 20 Param
+    7 = CS2 24 Param
     """
     #Check that values are only 1 to 2
-    if Enum in range(1, 3) == False:
-        raise ValueError("There are only two options for Enum: 1 to 2")
+    if Enum in range(1, 8) == False:
+        raise ValueError("There are 7 options for Enum: 1 to 7")
         
     CS1 = 1
-    CS2 = 2
+    CS2_4 = 2
+    CS2_8 = 3
+    CS2_12 = 4
+    CS2_16 = 5
+    CS2_20 = 6
+    CS2_24 = 7
     
 class Ep_enum(Enum):
     """
@@ -3141,6 +3151,9 @@ class GPBO_Driver:
                 min_sse_sim = np.exp(min_theta_data.y_vals)
             else:
                 min_sse_sim = min_theta_data.y_vals
+        
+        #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
+        min_sse_sim = min_sse_sim[0]
                 
         #calculate improvement if using Boyle's method to update the exploration bias
         if self.ep_bias.ep_enum.value == 3:
