@@ -97,8 +97,8 @@ if run_sf_study:
         #Loop over methods
         for meth_name_val in meth_val_list:
             #Get best data from signac project jobs
-            df, study_id, cs_name = get_study_data_signac(project, cs_name_val, meth_name_val, "ep", save_csv = True)
-            df_best = get_best_data_signac(df, study_id, cs_name, save_csv = True)
+            df, study_id, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, "ep", save_csv = True)
+            df_best = get_best_data_signac(df, study_id, cs_name, theta_true, save_csv = True)
             
             #Set ep enum val to the best one for that cs and method
             ep_enum_val = df_best["EP Method Val"].iloc[0]

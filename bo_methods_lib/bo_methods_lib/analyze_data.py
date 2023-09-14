@@ -63,7 +63,8 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
             df_job[col_name] = col_vals
             #Add data to the dataframe with all the data
             df = pd.concat([df, df_job])
-            
+    #get theta_true from 1st run since it never changes
+    theta_true = results[0].simulator_class.theta_true
     #Put it in a csv file in a directory based on the method and case study
     if save_csv:
         #Make directory name
@@ -75,9 +76,9 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
         file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
         df.to_csv(file_name1) 
 
-    return df, study_id, cs_name_enum.name
+    return df, study_id, cs_name_enum.name, theta_true
 
-def get_best_data_signac(df, study_id, cs_name, save_csv = False):
+def get_best_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
     """
     Given all data from a study, find the best value
     
@@ -85,6 +86,7 @@ def get_best_data_signac(df, study_id, cs_name, save_csv = False):
     ----------
     df: pd.DataFrame, dataframe including study data
     col_name: str, column name in the pandas dataframe to find the best value w.r.t
+    theta_true: true parameter values from case study. Important for calculating L2 Norms
     save_csv: bool, Whether or not to save csv data from analysis
     
     Returns
@@ -118,6 +120,9 @@ def get_best_data_signac(df, study_id, cs_name, save_csv = False):
     #Make new df of only best single iter over all runs and SFs
     df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
     
+    #Calculate the L2 norm of the best runs
+    df_best = calc_L2_norm(df_best, theta_true)
+    
     if save_csv:
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
@@ -130,7 +135,7 @@ def get_best_data_signac(df, study_id, cs_name, save_csv = False):
         
     return df_best
 
-def get_median_data_signac(df, study_id, cs_name, save_csv = False):
+def get_median_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
     """
     Given data from a study, find the median value(s)
     
@@ -138,6 +143,7 @@ def get_median_data_signac(df, study_id, cs_name, save_csv = False):
     ----------
     df: pd.DataFrame, dataframe including study data
     col_name: str, column name in the pandas dataframe to find the best value w.r.t
+    theta_true: true parameter values from case study. Important for calculating L2 Norms
     save_csv: bool, Whether or not to save csv data from analysis
     
     Returns
