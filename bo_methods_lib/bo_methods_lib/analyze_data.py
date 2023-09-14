@@ -13,7 +13,176 @@ from .GPBO_Classes_New import * #Fix this later
 from .GPBO_Class_fxns import * #Fix this later
 import pickle
 
-#Open Data File
+def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_csv = False):
+    """
+    Get best ep or sf data from jobs and optionally save the csvs for the data
+    
+    Parameters
+    ----------
+    project: Signac Project class, project storing the study jobs
+    cs_name_val: int, the number value of the case study
+    meth_name_val: int, the number value of the BO method
+    study_id: str "ep" or "sf", whether to analyze data for the 
+    save_csv: bool, Whether or not to save csv data from analysis
+    
+    Returns
+    -------
+    df: pd.DataFrame, Dataframe containing the results from the study given a case study and method name
+    
+    """
+    if study_id == "ep":
+        col_name = 'EP Method Val'
+    elif study_id == "sf":
+        col_name = 'Sep Fact'
+    else:
+        raise Warning("study_id must be EP or SF!")
+    
+    #Do analysis for study
+    #Initialize df for all sf/ep method data for each case study and method
+    df = pd.DataFrame()
+    #Find all jobs for the sf/ep studies
+    jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val})
+    #Initialize df for all sf/ep method data for each case study and method
+    df = pd.DataFrame()
+    for job in jobs:
+        data_file = job.fn("BO_Results.pickle")
+        #Open the file and get the dataframe
+        fileObj = open(path + ".pickle", 'rb')
+        results = pickle.load(fileObj)   
+        fileObj.close()
+        tot_runs = results[0].configuration["Number of Workflow Restarts"]
+        #Loop over runs
+        for run in range(tot_runs):
+            #Read data
+            df_job = results[run].results_df
+            #Add the value of the SF/EP enum as a column
+            if study_id == "ep":
+                col_vals = job.sp.ep_enum_val
+            else:
+                col_vals = job.sp.sep_fact
+            df_job[col_name] = col_vals
+            #Add data to the dataframe with all the data
+            df = pd.concat([df, df_job])
+            
+    #Put it in a csv file in a directory based on the method and case study
+    if save_csv:
+        #Make directory name
+        meth_name = Method_name_enum(meth_name_vals[job.sp.meth_name_val])
+        method = GPBO_Methods(meth_name)
+        cs_name_enum = CS_name_enum(job.sp.cs_name_val)
+        dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + method.name
+        os.makedirs(dir_name)
+        file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
+        df.to_csv(file_name1) 
+
+    return df, study_id, cs_name_enum.name
+
+def get_best_data_signac(df, study_id, cs_name, save_csv = False):
+    """
+    Given all data from a study, find the best value
+    
+    Parameters
+    ----------
+    df: pd.DataFrame, dataframe including study data
+    col_name: str, column name in the pandas dataframe to find the best value w.r.t
+    save_csv: bool, Whether or not to save csv data from analysis
+    
+    Returns
+    -------
+    df_best: pd.DataFrame, Dataframe containing the best result from the study given a case study and method name
+    
+    """
+    if study_id == "ep":
+        col_name = 'EP Method Val'
+    elif study_id == "sf":
+        col_name = 'Sep Fact'
+    else:
+        raise Warning("study_id must be EP or SF!")
+    
+    #Analyze for best data
+    #Initialize best idcs
+    best_idx = 0
+    #Loop over EPs or SFs and runs
+    sse_best_overall = np.inf
+    for param in df[col_name].unique():
+        for run in df['Run Number'].unique():
+            #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
+            sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & 
+                                                    (df['Run Number'] == run)  & (df['BO Iter']+1 == df["Max Evals"]) ]
+            #Find the first instance where the minimum sse is found
+            index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & 
+                             (df["Min Obj Act"] == sse_run_best_value.iloc[0])]
+            #Append idx to the best idcs
+            best_idx = index[0]
+
+    #Make new df of only best single iter over all runs and SFs
+    df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
+    
+    if save_csv:
+        #Save this as a csv in the same directory as all data
+        #Make directory if it doesn't already exist
+        dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+        if not os.exists(dir_name):
+            os.makedirs(dir_name)
+        #Add file to directory
+        file_name2 = dir_name + "/" + study_id + "_study_best.csv"
+        df_best.to_csv(file_name2)
+        
+    return df_best
+
+def get_median_data_signac(df, study_id, cs_name, save_csv = False):
+    """
+    Given data from a study, find the median value(s)
+    
+    Parameters
+    ----------
+    df: pd.DataFrame, dataframe including study data
+    col_name: str, column name in the pandas dataframe to find the best value w.r.t
+    save_csv: bool, Whether or not to save csv data from analysis
+    
+    Returns
+    -------
+    df_median: pd.DataFrame, Dataframe containing the median result from the study given a case study and method name
+    
+    """
+    if study_id == "ep":
+        col_name = 'EP Method Val'
+    elif study_id == "sf":
+        col_name = 'Sep Fact'
+    else:
+        raise Warning("study_id must be EP or SF!")
+        
+    #Get median values from df_best
+    # Create a list containing 1 dataframe for each method in df_best
+    df_list = []
+    for meth in df['BO Method'].unique():
+        df_meth = df.loc[df["BO Method"]==meth]   
+        df_list.append(df_meth)
+
+    #Create new df for median values
+    df_median = pd.DataFrame()
+
+    #Loop over all method dataframes
+    for df_meth in df_list:
+        #Add the row corresponding to the median value of SSE to the list
+        df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act']==df_meth['Min Obj Act'].quantile(interpolation='nearest')]])
+        
+    #Calculate the L2 Norm for the median values
+    df_median = calc_L2_norm(df_median, theta_true)  
+    
+    #Save or show df
+    if save_csv:
+        #Save this as a csv in the same directory as all data
+        #Make directory if it doesn't already exist
+        dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+        if not os.exists(dir_name):
+            os.makedirs(dir_name)
+        #Add file to directory
+        file_name2 = dir_name + "/" + study_id + "_study_best.csv"
+        df_median.to_csv(file_name2) 
+        
+    return df_median
+
 def get_median_data(date_time_str, name_cs_str, study_id, theta_true, save_csv):
     """
     Returns the results of the Separation Factor Study SSE data for plotting
