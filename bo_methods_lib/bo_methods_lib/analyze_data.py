@@ -82,7 +82,8 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
         method = GPBO_Methods(meth_name)
         cs_name_enum = CS_name_enum(job.sp.cs_name_val)
         dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + method.name
-        os.makedirs(dir_name)
+        if not os.path.isdir(dir_name):
+            os.makedirs(dir_name)
         file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
         df.to_csv(file_name1) 
 
@@ -229,7 +230,7 @@ def get_best_data(df, study_id, cs_name, theta_true, date_time_str = None, save_
             dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
         else:
             dir_name =  date_time_str + study_id + "_study/" + cs_name
-        if not os.exists(dir_name):
+        if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         #Add file to directory
         file_name2 = dir_name + "/" + study_id + "_study_best.csv"
@@ -291,7 +292,7 @@ def get_median_data(df, study_id, cs_name, theta_true, date_time_str = None, sav
             dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
         else:
             dir_name =  date_time_str + study_id + "_study/" + cs_name
-        if not os.exists(dir_name):
+        if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         #Add file to directory
         file_name2 = dir_name + "/" + study_id + "_study_best.csv"
