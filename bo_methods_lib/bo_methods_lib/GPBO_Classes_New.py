@@ -14,6 +14,7 @@ from scipy.stats import qmc
 import pandas as pd
 from enum import Enum
 import pickle
+import gzip
 import itertools
 from itertools import combinations
 
@@ -3160,7 +3161,7 @@ class GPBO_Driver:
         #Create Results Pandas DataFrame for 1 iter
         column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Time/Iter']
         iter_df = pd.DataFrame(columns=column_names)
-        bo_iter_results = [best_error, self.ep_bias.ep_curr, max_ei, max_ei_theta, min_sse, min_sse_sim, min_sse_theta, time_per_iter]
+        bo_iter_results = [best_error, float(self.ep_bias.ep_curr), max_ei, max_ei_theta, min_sse, min_sse_sim, min_sse_theta, time_per_iter]
         # Add the new row to the DataFrame
         iter_df.loc[0] = bo_iter_results
         
@@ -3354,7 +3355,7 @@ class GPBO_Driver:
         ##Create directory if it doesn't already exist
         # Extract the directory and filename from the given path
         directory = os.path.split(path)[0]
-        filename = "%s.%s" % (os.path.split(path)[1], "pickle")
+        filename = "%s.%s" % (os.path.split(path)[1], "gz")
         if directory == '':
             directory = '.'
 
@@ -3366,7 +3367,7 @@ class GPBO_Driver:
         savepath = os.path.join(directory, filename)
         
         #Open the file
-        fileObj = open(savepath, 'wb')
+        fileObj = gzip.open(savepath, 'wb', compresslevel  = 1)
         
         #Turn this class into a pickled object and save to the file
         pickled_results = pickle.dump(restart_bo_results, fileObj)

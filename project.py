@@ -10,6 +10,7 @@ from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import Method_name_enum, Ep_
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import GPBO_Methods, Exploration_Bias, CaseStudyParameters, GPBO_Driver
 from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns, calc_muller, calc_cs1_polynomial
 import pickle
+import gzip
 
 #Ignore warnings caused by "nan" values
 import warnings
@@ -27,7 +28,7 @@ class Project(FlowProject):
 @Project.label
 def results_computed(job):
     #Write script that checks whether the .pickle file is there
-    return job.isfile("BO_Results.pickle")
+    return job.isfile("BO_Results.gz")
 
 @Project.post(results_computed)
 @Project.operation(with_job = True)
@@ -82,11 +83,11 @@ def run_ep_or_sf_exp(job):
     #Get results
     restart_bo_results = driver.run_bo_restarts()
     
-    #Save results in a .pickle file in the job directory
+    #Save results in a .gz file in the job directory
     #Set path
-    savepath = job.fn(cs_name + ".pickle")
+    savepath = job.fn(cs_name + ".gz")
     #Open the file
-    fileObj = open(savepath, 'wb')
+    fileObj = gzip.open(savepath, 'wb', compresslevel = 1)
     #Turn this class into a pickled object and save to the file
     pickled_results = pickle.dump(restart_bo_results, fileObj)
     # Close the file

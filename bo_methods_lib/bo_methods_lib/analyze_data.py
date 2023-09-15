@@ -6,6 +6,7 @@ import copy
 from .GPBO_Classes_New import *
 from .GPBO_Class_fxns import * 
 import pickle
+import gzip
 
 def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_csv = False):
     """
@@ -22,6 +23,7 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     Returns
     -------
     df: pd.DataFrame, Dataframe containing the results from the study given a case study and method name
+    study_id: str "ep" or "sf", whether to analyze data for the 
     
     """
     if study_id == "ep":
@@ -30,6 +32,9 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
         col_name = 'Sep Fact'
     else:
         raise Warning("study_id must be EP or SF!")
+    #Get method
+    meth_name = Method_name_enum(meth_name_val)
+    method = GPBO_Methods(meth_name)
     
     #Do analysis for study
     #Initialize df for all sf/ep method data for each case study and method
@@ -39,7 +44,7 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     #Initialize df for all sf/ep method data for each case study and method
     df = pd.DataFrame()
     for job in jobs:
-        data_file = job.fn("BO_Results.pickle")
+        data_file = job.fn("BO_Results.gz")
         #Open the file and get the dataframe
         fileObj = open(path + ".pickle", 'rb')
         results = pickle.load(fileObj)   
@@ -55,8 +60,19 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
             else:
                 col_vals = job.sp.sep_fact
             df_job[col_name] = col_vals
+            #Add other important columns
+            df_job["index"] = run
+            df_job["BO Method"] = meth_name.name
+            df_job["Max Evals"] = len(df_job)
+            df_job["Total Run Time"] = df_job["Time/Iter"]*df_job["Max Evals"]  
             #Add data to the dataframe with all the data
-            df = pd.concat([df, df_job])
+            df = pd.concat([df, df_job], ignore_index=False)
+    
+    #Set BO and run numbers as columns        
+    df.rename(columns={'index': 'Run Number'}, inplace=True)   
+    df.insert(1, "BO Iter", all_result_df.index)
+    df = df.reset_index()
+        
     #get theta_true from 1st run since it never changes
     theta_true = results[0].simulator_class.theta_true
     #Put it in a csv file in a directory based on the method and case study
@@ -70,9 +86,83 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
         file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
         df.to_csv(file_name1) 
 
-    return df, study_id, cs_name_enum.name, theta_true
+    return df, cs_name_enum.name, theta_true
 
-def get_best_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
+def get_study_data_org(date_time_str, name_cs_str, meth_name_str_list, study_id, study_param_list, save_csv = False):
+    """
+    Saves all results for Exploration Bias or Separation factor Study
+    
+    Parameters:
+    -----------
+    date_time_str: str, The DateTime string in format year/month/day/ (numbers only)
+    name_cs_str: str, The case study name. Ex CS1
+    meth_name_str_list: list of str, the BO method names to consider
+    study_id: str, "EP" or "SF", Whether to get data for ep exp or sf exp
+    study_param_list: list of str: Parmeters to consider
+    save_csv: bool, Determines whether to print results or save them as a csv
+    """
+    
+    #Get theta dimensions from any file
+    if study_id == "ep":
+        path_study_name = "_ep_method_"
+        col_name = 'EP Method Val'
+        csv_name = date_time_str + name_cs_str + "/Exploration_Bias_Data.csv"
+    elif study_id == "sf":
+        path_study_name = "_sep_fact_"
+        col_name = 'Sep Fact'
+        csv_name = date_time_str + name_cs_str + "/Separation_Factor_Data.csv"
+    else:
+        raise Warning("study_id must be 'ep' or 'sf'!")
+        
+    path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + meth_name_str_list[0] + path_study_name + study_param_list[0]
+    try:
+        with open(path + ".pickle", 'rb') as fileObj:
+            results = pickle.load(fileObj) 
+    except:
+        with gzip.open(path + ".gz", 'rb') as fileObj:
+            results = pickle.load(fileObj) 
+    fileObj.close()
+
+    # Create an empty target DataFrame
+    all_result_df = pd.DataFrame()
+
+    #Loop over methods
+    for i in range(len(meth_name_str_list)):
+        #Loop over ep_methods
+        for j in range(len(study_param_list)):
+            #Pull out file
+            path = date_time_str+"Data_Files/"+name_cs_str + "_BO_method_" + meth_name_str_list[i] + path_study_name + study_param_list[j]
+            try:
+                with open(path + ".pickle", 'rb') as fileObj:
+                    results = pickle.load(fileObj) 
+            except:
+                with gzip.open(path + ".gz", 'rb') as fileObj:
+                    results = pickle.load(fileObj)   
+            fileObj.close()
+            theta_true = results[0].simulator_class.theta_true
+            tot_runs = results[0].configuration["Number of Workflow Restarts"]
+            #Loop over runs
+            for k in range(tot_runs):
+                #Get Results from pandas df and add more useful columns
+                run_results = results[k].results_df
+                run_results["index"] = k
+                run_results[col_name] = study_param_list[j]
+                run_results["BO Method"] = meth_name_str_list[i]
+                run_results["Max Evals"] = len(run_results)
+                run_results["Total Run Time"] = run_results["Time/Iter"]*run_results["Max Evals"]
+                all_result_df = pd.concat([all_result_df, run_results], ignore_index=False)
+                
+    all_result_df.rename(columns={'index': 'Run Number'}, inplace=True)
+    all_result_df.insert(1, "BO Iter", all_result_df.index)
+    all_result_df = all_result_df.reset_index(drop=True)
+                
+    if save_csv == True:
+        path_to_save_df = date_time_str + csv_name
+        all_result_df.to_csv(path_to_save_df, index=True)
+    
+    return all_result_df, theta_true
+
+def get_best_data(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = False):
     """
     Given all data from a study, find the best value
     
@@ -81,6 +171,7 @@ def get_best_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
     df: pd.DataFrame, dataframe including study data
     col_name: str, column name in the pandas dataframe to find the best value w.r.t
     theta_true: true parameter values from case study. Important for calculating L2 Norms
+    date_time_str: None or str, Saves to a datetime location instead of Results/ if not None
     save_csv: bool, Whether or not to save csv data from analysis
     
     Returns
@@ -97,19 +188,33 @@ def get_best_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
     
     #Analyze for best data
     #Initialize best idcs
-    best_idx = 0
-    #Loop over EPs or SFs and runs
-    sse_best_overall = np.inf
-    for param in df[col_name].unique():
-        for run in df['Run Number'].unique():
-            #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
-            sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & 
-                                                    (df['Run Number'] == run)  & (df['BO Iter']+1 == df["Max Evals"]) ]
-            #Find the first instance where the minimum sse is found
-            index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & 
-                             (df["Min Obj Act"] == sse_run_best_value.iloc[0])]
-            #Append idx to the best idcs
-            best_idx = index[0]
+    best_indecies = np.zeros(len(df['BO Method'].unique()))
+    count = 0
+    #Loop over methods, SFs/EPs/, and runs (capable of doing all or just 1 method)
+    for meth in df['BO Method'].unique():
+        #Loop over EPs or SFs and runs
+        sse_best_overall = np.inf
+        for param in df[col_name].unique():
+            for run in df['Run Number'].unique():
+                #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
+                sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & 
+                                                        (df['Run Number'] == run)  & (df['BO Iter']+1 == df["Max Evals"]) ]
+
+                if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
+                    sse_run_best_value = sse_run_best_value.iloc[0][0]
+                else:
+                    sse_run_best_value = sse_run_best_value.iloc[0]
+                  
+                if sse_run_best_value < sse_best_overall:
+                    #Set value as new best
+                    sse_best_overall = sse_run_best_value
+                    #Find the first instance where the minimum sse is found
+                    index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & 
+                                     (df["Min Obj Act"] == sse_run_best_value)]
+
+                    best_indecies[count] = index[0]
+        count += 1
+
 
     #Make new df of only best single iter over all runs and SFs
     df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
@@ -120,7 +225,10 @@ def get_best_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
     if save_csv:
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
-        dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+        if date_time_str is None:
+            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+        else:
+            dir_name =  date_time_str + study_id + "_study/" + cs_name
         if not os.exists(dir_name):
             os.makedirs(dir_name)
         #Add file to directory
@@ -129,7 +237,7 @@ def get_best_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
         
     return df_best
 
-def get_median_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
+def get_median_data(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = False):
     """
     Given data from a study, find the median value(s)
     
@@ -165,7 +273,12 @@ def get_median_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
     #Loop over all method dataframes
     for df_meth in df_list:
         #Add the row corresponding to the median value of SSE to the list
-        df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act']==df_meth['Min Obj Act'].quantile(interpolation='nearest')]])
+        if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
+            median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')[0]
+        else:
+            median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')
+ 
+        df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
         
     #Calculate the L2 Norm for the median values
     df_median = calc_L2_norm(df_median, theta_true)  
@@ -174,7 +287,10 @@ def get_median_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
     if save_csv:
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
-        dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+        if date_time_str is None:
+            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+        else:
+            dir_name =  date_time_str + study_id + "_study/" + cs_name
         if not os.exists(dir_name):
             os.makedirs(dir_name)
         #Add file to directory
@@ -182,218 +298,7 @@ def get_median_data_signac(df, study_id, cs_name, theta_true, save_csv = False):
         df_median.to_csv(file_name2) 
         
     return df_median
-
-def get_median_data(date_time_str, name_cs_str, study_id, theta_true, save_csv):
-    """
-    Returns the results of the Separation Factor Study SSE data for plotting
     
-    Parameters
-    ----------
-    date_time_str: str, The DateTime string in format year/month/day (numbers only)
-    study_id: str, "EP" or "SF", Whether to get data for ep exp or sf exp
-    name_cs_str: str, The case study name. Ex CS1
-    theta_true: ndarray, The true values of the parameters
-    save_csv: bool, Determines whether to print results or save them as a csv
-    
-    Returns
-    -------
-    df_median: pd.DataFrame, The dataframe containing the median values of the data
-    """
-    #Find the best run for each method and SF/EP
-    #Set study ID names
-    if study_id == "EP":
-        path_study_name = "_ep_method_"
-        col_name = 'EP Method'
-        csv_name = "Exploration_Bias_Data.csv"
-        save_csv_name = name_cs_str + "_Median_Data_EP"
-    else:
-        path_study_name = "_sep_fact_"
-        col_name = 'Sep Fact'
-        csv_name = "Separation_Factor_Data.csv"
-        save_csv_name = name_cs_str + "_Median_Data_SF"
-        
-    #Get file and information
-    df = pd.read_csv(date_time_str+csv_name, header = 0, converters={'Theta Min Obj' : converter, 
-                                                                'Theta Max EI' : converter,
-                                                                'Min Obj Cum.' : converter})
-    
-    #Get median values
-    #Get list of names
-    names=df['BO Method'].unique().tolist()
-    # Create a list containing 1 dataframe for each method
-    df_list = []
-    for name in names:
-        df_meth = df.loc[df["BO Method"]==name]   
-        df_list.append(df_meth)
-
-    #Create new df for median values
-    df_median = pd.DataFrame()
-
-    #Loop over all method dataframes
-    for df_meth in df_list:
-        #Add the row corresponding to the median value of SSE to the list
-        df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act']==df_meth['Min Obj Act'].quantile(interpolation='nearest')]])
-        
-    #Calculate the L2 Norm for the median values
-    df_median = calc_L2_norm(df_median, theta_true)  
-    
-    #Save or show df
-    if save_csv == True:
-        path_to_save_df = date_time_str + save_csv_name
-        df_median.to_csv(path_to_save_df, index=True)
-        return 
-    else:
-        return df_median 
-    
-    
-def get_median_of_best_data(date_time_str, name_cs_str, study_id, theta_true, save_csv):
-    """
-    Returns the results of the Separation Factor Study SSE data for plotting
-    
-    Parameters
-    ----------
-    date_time_str: str, The DateTime string in format year/month/day (numbers only)
-    study_id: str, "EP" or "SF", Whether to get data for ep exp or sf exp
-    name_cs_str: str, The case study name. Ex CS1
-    theta_true: ndarray, The true values of the parameters
-    save_csv: bool, Determines whether to print results or save them as a csv
-    
-    Returns
-    -------
-    df_median: pd.DataFrame, The dataframe containing the median values of the data
-    """
-    #Find the best data for each run and SF
-    #Set study ID names
-    if study_id == "EP":
-        path_study_name = "_ep_method_"
-        col_name = 'EP Method'
-        csv_name = "Exploration_Bias_Data.csv"
-        save_csv_name = name_cs_str + "_Median_Best_Data_EP"
-    else:
-        path_study_name = "_sep_fact_"
-        col_name = 'Sep Fact'
-        csv_name = "Separation_Factor_Data.csv"
-        save_csv_name = name_cs_str + "_Median_Best_Data_SF"
-        
-    #Get file and information
-    df = pd.read_csv(date_time_str+csv_name, header = 0, converters={'Theta Min Obj' : converter, 
-                                                                'Theta Max EI' : converter} )
-    
-    #Initialize best idcs
-    best_indecies = []
-    #Loop over methods, SFs/EPs/, and runs
-    for meth in df['BO Method'].unique():
-        sse_best_overall = np.inf
-        for param in df[col_name].unique():
-            for run in df['Run Number'].unique():
-                #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
-                sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & (df['Run Number'] == run) 
-                                              & (df['BO Iter']+1 == df["Max Evals"]) ]
-                #Find the first instance where the minimum sse is found
-                index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & (df["Min Obj Act"]==sse_run_best_value.iloc[0])]
-                #Append idx to the best idcs
-                best_indecies.append(index[0])
-
-    #Make new df of only best single iter over all runs and SFs
-    df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
-    
-    #Get median values from df_best
-    # Create a list containing 1 dataframe for each method in df_best
-    df_list = []
-    for meth in df_best['BO Method'].unique():
-        df_meth = df_best.loc[df["BO Method"]==meth]   
-        df_list.append(df_meth)
-
-    #Create new df for median values
-    df_median = pd.DataFrame()
-
-    #Loop over all method dataframes
-    for df_meth in df_list:
-        #Add the row corresponding to the median value of SSE to the list
-        df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act']==df_meth['Min Obj Act'].quantile(interpolation='nearest')]])
-        
-    #Calculate the L2 Norm for the median values
-    df_median = calc_L2_norm(df_median, theta_true)  
-    
-    #Save or show df
-    if save_csv == True:
-        path_to_save_df = date_time_str + save_csv_name
-        df_median.to_csv(path_to_save_df, index=True)
-        return 
-    else:
-        return df_median
-
-def get_best_data(date_time_str, name_cs_str, study_id, theta_true, save_csv):
-    """
-    get the best bo iter data for each run of the algorithm for the SF or EP experiments
-    
-    Parameters
-    ----------
-    date_time_str: str, The DateTime string in format year/month/day (numbers only)
-    study_id: str, "EP" or "SF", Whether to get data for ep exp or sf exp
-    name_cs_str: str, The case study name. Ex CS1
-    theta_true: ndarray, The true values of the parameters
-    save_csv: bool, Determines whether to print results or save them as a csv
-    
-    Returns
-    -------
-    df_best: pd.DataFrame, The dataframe containing the best values of the data for each run   
-    """
-    #Set study ID names
-    if study_id == "EP":
-        path_study_name = "_ep_method_"
-        col_name = 'EP Method'
-        csv_name = "Exploration_Bias_Data.csv"
-        save_csv_name = name_cs_str + "_Best_Data_EP.csv"
-    else:
-        path_study_name = "_sep_fact_"
-        col_name = 'Sep Fact'
-        csv_name = "Separation_Factor_Data.csv"
-        save_csv_name = name_cs_str + "_Best_Data_SF.csv"
-        
-    #Get file and information
-    df = pd.read_csv(date_time_str+csv_name, header = 0, converters={'Theta Min Obj' : converter, 
-                                                                'Theta Max EI' : converter} )
-    
-    #Initialize best idcs
-    meth_id = 0
-    best_indecies = np.zeros(len(df['BO Method'].unique()))
-    #Loop over methods, SFs/EPs/, and runs
-    for meth in df['BO Method'].unique():
-        sse_best_overall = np.inf
-        for param in df[col_name].unique():
-            for run in df['Run Number'].unique():
-                #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
-                sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & (df['Run Number'] == run) 
-                                              & (df['BO Iter']+1 == df["Max Evals"]) ]
-                try:
-                    float_sse_best_val = sse_run_best_value.str.strip("[]").astype(float).iloc[0]
-                except:
-                    float_sse_best_val = float(sse_run_best_value)
-                    
-                if float_sse_best_val < sse_best_overall:
-                    #Find the first instance where the minimum sse is found
-                    index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & (df["Min Obj Act"]==sse_run_best_value.iloc[0])]
-                    #Set that value as the new minimum 
-                    sse_best_overall = float_sse_best_val
-                    #Append idx to the best idcs
-                    best_indecies[meth_id] = index[0]
-        meth_id += 1
-
-    #Make new df of only best single iter over all runs and SFs
-    df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
-    
-    #Calculate the L2 norm of the best runs
-    df_best = calc_L2_norm(df_best, theta_true)
-    
-    #save or show DF
-    if save_csv == True:
-        path_to_save_df = date_time_str + save_csv_name
-        df_best.to_csv(path_to_save_df, index=True)
-        return
-    else:
-        return df_best 
-
 def converter(instr):
     """
     Converts strings to arrays when loading pandas dataframes
@@ -433,213 +338,46 @@ def calc_L2_norm(df, theta_true):
     df["L2 Norm Theta"] = theta_L2_norm
         
     return df
-    
-    
-def analyze_SF_data_for_plot(date_time_str, bo_method, sep_fact_list, name_cs_str):
+       
+def analyze_SF_data_for_plot(df, meth_name_str, sep_fact_list):
     """
     Returns the results of the Separation Factor Study SSE data for plotting
     
     Parameters
     ----------
-    date_time_str: str, The DateTime string in format year/month/day (numbers only)
-    bo_method: str, the BO method name to consider
+    df: pd.DataFrame, Dataframe of all SF data
+    meth_name_str: str, String of the method name
     sep_fact_list: list of str, the Separation Factors to consider
-    name_cs_str: str, The case study name. Ex CS1
     
     Returns
     -------
     y_data: ndarray (n_sfs x 2), The array of the gp predicted minimum sse and actual sse data
-    param_names: list of str, the names of the gp predicted minimum sse and actual sse data
+    data_names: list of str, the names of the gp predicted minimum sse and actual sse data
     """
     
     y_data = np.zeros((len(sep_fact_list) , 2))
     sse_min_all = np.ones(len(sep_fact_list))*np.inf
     sse_min_act_all = np.ones(len(sep_fact_list))*np.inf
 
+    #Loop over sfs
     for i in range(len(sep_fact_list)):
-        #Pull out file
-        path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_method + "_sep_fact_" + sep_fact_list[i]
-        fileObj = open(path + ".pickle", 'rb')
-        results = pickle.load(fileObj)   
-        fileObj.close()
-        tot_runs = results[0].configuration["Number of Workflow Restarts"]
         #Loop over runs
-        for j in range(tot_runs):
-            run_results = results[j].results_df
+        for j in range(max(df["Run Number"].unique())):
+            df_meth = df.loc[(df["BO Method"]==meth_name_str) & (df["Sep Fact"] == sep_fact_list[i])]  
             #Find lowest sse and corresponding theta
-            min_sse_index = np.argmin(run_results['Min Obj']) #Should use Actual or GP min?
-            min_sse = run_results['Min Obj'].iloc[min_sse_index]
-            min_sse_act = run_results['Min Obj Act'].iloc[min_sse_index]
+            min_sse_index = np.argmin(df_meth['Min Obj Act']) #Should use Actual or GP min?
+            min_sse = df_meth['Min Obj'].iloc[min_sse_index]
+            min_sse_act = df_meth['Min Obj Act'].iloc[min_sse_index]
 
-            if abs(min_sse_act) < abs(sse_min_all[i]): #Use Abs for cases of 1B and 1A?
+            if min_sse_act < sse_min_all[i]:
                 sse_min_all[i] = min_sse
                 sse_min_act_all[i] = min_sse_act
-
-            min_sse = run_results['Min Obj']
-            min_sse_act = run_results['Min Obj Act']
 
     y_data[:,0] = sse_min_all
     y_data[:,1] = sse_min_act_all
     data_names = ['Min Obj', 'Min Obj Act']
     
     return y_data, data_names
-
-def get_all_ep_sep_fact_data(date_time_str, bo_meth_list, study_param_list, study_id, name_cs_str, save_csv):
-    """
-    Saves all results for Exploration Bias or Separation factor Study
-    
-    Parameters:
-    -----------
-    date_time_str: str, The DateTime string in format year/month/day (numbers only)
-    bo_meth_list: list of str, the BO method names to consider
-    study_param_list: list of str, the Exploration Bias Methods/ Separation Factors to consider. Capital letters 2 param numbers
-    study_id: str, "EP" or "SF", Whether to get data for ep exp or sf exp
-    name_cs_str: str, The case study name. Ex CS1
-    save_csv: bool, Determines whether to print results or save them as a csv
-    """
-    
-    #Get theta dimensions from any file
-    if study_id == "EP":
-        path_study_name = "_ep_method_"
-        col_name = 'EP Method'
-        csv_name = "Exploration_Bias_Data.csv"
-    else:
-        path_study_name = "_sep_fact_"
-        col_name = 'Sep Fact'
-        csv_name = "Separation_Factor_Data.csv"
-        
-    path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[0] + path_study_name + study_param_list[0]
-    fileObj = open(path + ".pickle", 'rb')
-    results = pickle.load(fileObj) 
-    fileObj.close()
-    try:
-        theta_dim = results[0].configuration["Number of Parameters"]
-    except:
-        theta_dim = 2
-
-    # Create an empty target DataFrame
-    all_result_df = pd.DataFrame()
-
-    #Loop over methods
-    for i in range(len(bo_meth_list)):
-        #Loop over ep_methods
-        for j in range(len(study_param_list)):
-            #Pull out file
-            path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[i] + path_study_name + study_param_list[j]
-            fileObj = open(path + ".pickle", 'rb')
-            results = pickle.load(fileObj)   
-            fileObj.close()
-            param_names = results[0].simulator_class.theta_true_names
-            tot_runs = results[0].configuration["Number of Workflow Restarts"]
-            #Loop over runs
-            for k in range(tot_runs):
-                #Get Results from pandas df and add more useful columns
-                run_results = results[k].results_df
-                run_results["index"] = k
-                run_results[col_name] = study_param_list[j]
-                run_results["BO Method"] = bo_meth_list[i]
-                run_results["Max Evals"] = len(run_results)
-                run_results["Total Run Time"] = run_results["Time/Iter"]*run_results["Max Evals"]
-                all_result_df = pd.concat([all_result_df, run_results], ignore_index=False)
-                
-    all_result_df.rename(columns={'index': 'Run Number'}, inplace=True)
-    all_result_df.index.names = ['BO Iter']  
-                
-    if save_csv == True:
-        path_to_save_df = date_time_str + csv_name
-        all_result_df.to_csv(path_to_save_df, index=True)
-        return 
-    else:       
-        return all_result_df
-
-#Delete me later
-def analyze_ep_sep_fact_study(date_time_str, bo_meth_list, study_param_list, study_id, name_cs_str, save_csv):
-    """
-    Saves or prints relavent optimal results for Exploration Bias or Separation factor Study
-    
-    Parameters:
-    -----------
-    date_time_str: str, The DateTime string in format year/month/day (numbers only)
-    bo_meth_list: list of str, the BO method names to consider
-    study_param_list: list of str, the Exploration Bias Methods/ Separation Factors to consider. Capital letters 2 param numbers
-    name_cs_str: str, The case study name. Ex CS1
-    save_csv: bool, Determines whether to print results or save them as a csv
-    """
-
-    #Get theta dimensions from any file
-    if study_id == "EP":
-        path_study_name = "_ep_method_"
-        col_name = 'Best EP Method'
-        csv_name = "Exploration_Bias_Exp.csv"
-    else:
-        path_study_name = "_sep_fact_"
-        col_name = 'Best Sep Fact'
-        csv_name = "Separation_Factor_Exp.csv"
-        
-    path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[0] + path_study_name + study_param_list[0]
-    fileObj = open(path + ".pickle", 'rb')
-    results = pickle.load(fileObj) 
-    fileObj.close()
-    try:
-        theta_dim = results[0].configuration["Number of Parameters"]
-    except:
-        theta_dim = 2
-    
-    #Initialize overall min params
-    sse_min_all = np.ones(len(bo_meth_list))*np.inf
-    sse_min_act_all = np.ones(len(bo_meth_list))*np.inf
-    theta_min_all = np.zeros((len(bo_meth_list),theta_dim))
-    run_all = np.zeros(len(bo_meth_list))
-    iter_all = np.zeros(len(bo_meth_list))
-    best_study_param = ["None"]*len(bo_meth_list)
-
-    #Loop over methods
-    for i in range(len(bo_meth_list)):
-        #Loop over ep_methods
-        for j in range(len(study_param_list)):
-            #Pull out file
-            path = date_time_str + "Data_Files/" + name_cs_str + "_BO_method_" + bo_meth_list[i] + path_study_name + study_param_list[j]
-            fileObj = open(path + ".pickle", 'rb')
-            results = pickle.load(fileObj)   
-            fileObj.close()
-            param_names = results[0].simulator_class.theta_true_names
-            tot_runs = results[0].configuration["Number of Workflow Restarts"]
-            #Loop over runs
-            for k in range(tot_runs):
-                run_results = results[k].results_df
-                #Find lowest sse and corresponding theta
-                min_sse_index = np.argmin(run_results['Min Obj']) #Should use Actual or GP min?
-                min_sse = run_results['Min Obj'].iloc[min_sse_index]
-                min_sse_act = run_results['Min Obj Act'].iloc[min_sse_index]
-                min_sse_theta = run_results['Theta Min Obj'].iloc[min_sse_index]
-
-                if abs(min_sse_act) < abs(sse_min_all[i]):
-                    sse_min_all[i] = min_sse
-                    sse_min_act_all[i] = min_sse_act
-                    theta_min_all[i,:] = min_sse_theta
-                    iter_all[i] = min_sse_index + 1 #Plus one to start count at 1 and not 0
-                    run_all[i] = k + 1 #Plus one to start count at 1 and not 0
-                    best_study_param[i] = study_param_list[j]
-        #Pandas dataframe of the lowest sse overall and corresponding theta
-        column_names = ['BO Method', col_name, 'Min SSE', 'Min SSE Act'] + [f'{param_names[i]}' for i in range(theta_dim)] + ['BO Restart', 'BO Iter']
-        data = {'BO Method': bo_meth_list,
-            col_name: best_study_param,
-            'Min SSE': sse_min_all,
-            'Min SSE Act': sse_min_act_all}
-        for i in range(theta_dim):
-            data[param_names[i]] = theta_min_all[:, i]
-        data['BO Restart'] = run_all
-        data['BO Iter'] = iter_all
-    
-    EP_Analysis = pd.DataFrame(data, columns=column_names)
-    #Save CSV Data
-
-    if save_csv == True:
-        path_to_save_df = date_time_str + csv_name
-        EP_Analysis.to_csv(path_to_save_df, index=False)
-        return 
-    else:
-        return EP_Analysis
 
 def analyze_hypers(file_path, run_num):
     """

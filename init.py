@@ -19,7 +19,6 @@ meth_val_list = [1,2,3,5,4] #Put 2B last because it takes the longest
 
 #Set Initial Parameters
 ep0 = 1
-ep_enum_val = [1,2,3,4]
 sep_fact_list = np.linspace(0.5,0.9,5) #For CS1 use 0.5 to 1, for CS2 use 0.5, 0.75, and 1
 normalize = False
 gen_heat_map_data = True
@@ -47,6 +46,12 @@ num_val_pts = 20
 #Loop over Case Studies
 for cs_name_val in cs_val_list:
     idcs_to_consider_rng = set_idcs_to_consider(cs_name_val)
+    #If CS1, Run the full exploration parameter study and/or the sf study
+    if cs_name_val == 1:
+        ep_val_list = [1,2,3,4]
+    #Otherwise just use a constant ep method
+    else:
+        ep_val_list = [1]
     #Loop over methods
     for meth_name_val in meth_val_list:
         #Loop over exploration parameter methods
@@ -92,15 +97,16 @@ for cs_name_val in cs_val_list:
         #Loop over jobs in project for each case study and method name
         for job in project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val}):
             #Don't create the SF jobs if any of the sep facts are < 1 or the job files for the ep study do not exist
-            if job.sp.sep_fact < 1.0 or not os.exists(job.fn("BO_Results.pickle")):
+            if job.sp.sep_fact < 1.0 or not os.exists(job.fn("BO_Results.gz")):
                 run_sf_study = False
                 break
                 
-        #If we are creating jobs for the SF study        
-        if run_sf_study:
+        #If we are creating jobs for the SF study (CS1 only)      
+        if run_sf_study and cs_name_val == 1:
             #Get best data from signac project jobs
-            df, study_id, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, "ep", save_csv = True)
-            df_best = get_best_data_signac(df, study_id, cs_name, theta_true, save_csv = True)
+            study_id = "ep"
+            df, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_csv = True)
+            df_best = get_best_data_signac(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = True)
 
             #Set ep enum val to the best one for that cs and method
             ep_enum_val = df_best["EP Method Val"].iloc[0]
