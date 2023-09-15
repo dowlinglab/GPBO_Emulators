@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.stats import qmc
 import pandas as pd
+import bo_methods_lib
+from .GPBO_Classes_New import Simulator
 
 #Add your function here. SHould take theta_ref and x values
 def calc_cs1_polynomial(true_model_coefficients, x):

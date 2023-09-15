@@ -1,15 +1,20 @@
 import signac
 import numpy as np
+import os
+from datetime import datetime
 import bo_methods_lib
 from bo_methods_lib.bo_methods_lib.analyze_data import get_study_data_signac, get_best_data_signac
 from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_idcs_to_consider
-import pickle
 
 project = signac.init_project()
 
-#Set Method and Case Study
-cs_val_list  = [1, 2] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7]
+#Set Date and Time
+dateTimeObj = datetime.now()
+timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
+DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
+#Set Method and Case Study (Start w/ just 1 and 2 for now)
+cs_val_list  = [1, 2] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7]
 meth_val_list = [1,2,3,5,4] #Put 2B last because it takes the longest
 
 #Set Initial Parameters
@@ -76,30 +81,27 @@ for cs_name_val in cs_val_list:
                   "gen_meth_x":gen_meth_x,
                   "gen_meth_theta_val":gen_meth_theta_val,
                   "num_theta_multiplier": num_theta_multiplier,
-                  "num_val_pts":num_val_pts}
-            #Create jobs
+                  "num_val_pts":num_val_pts,
+                  "DateTime":DateTime}
+            #Create jobs for exploration bias study
             job = project.open_job(sp).init()
-
-#Check that sep_fact study has not already been completed
-run_sf_study = True
-#Loop over jobs in project
-for job in project:
-    #Don't create the jobs if any of the sep facts are < 1 or the job files for the ep study do not exist
-    if job.sp.sep_fact < 1.0 or not os.exists(job.fn("BO_Results.pickle")):
-        run_sf_study = False
-        break
-
-#If we are creating jobs for the SF study        
-if run_sf_study:
-    #Loop over case studies
-    for cs_name_val in cs_val_list:
-        idcs_to_consider_rng = set_idcs_to_consider(cs_name_val)
-        #Loop over methods
-        for meth_name_val in meth_val_list:
+        
+        #Check that sep_fact study has not already been completed
+        #Initialize flag
+        run_sf_study = True
+        #Loop over jobs in project for each case study and method name
+        for job in project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val}):
+            #Don't create the SF jobs if any of the sep facts are < 1 or the job files for the ep study do not exist
+            if job.sp.sep_fact < 1.0 or not os.exists(job.fn("BO_Results.pickle")):
+                run_sf_study = False
+                break
+                
+        #If we are creating jobs for the SF study        
+        if run_sf_study:
             #Get best data from signac project jobs
             df, study_id, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, "ep", save_csv = True)
             df_best = get_best_data_signac(df, study_id, cs_name, theta_true, save_csv = True)
-            
+
             #Set ep enum val to the best one for that cs and method
             ep_enum_val = df_best["EP Method Val"].iloc[0]
 
@@ -133,7 +135,8 @@ if run_sf_study:
                       "gen_meth_x":gen_meth_x,
                       "gen_meth_theta_val":gen_meth_theta_val,
                       "num_theta_multiplier": num_theta_multiplier,
-                      "num_val_pts":num_val_pts}
+                      "num_val_pts":num_val_pts,
+                      "DateTime":DateTime}
 
                 #Run job
                 job = project.open_job(sp).init()

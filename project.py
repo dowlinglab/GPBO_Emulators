@@ -2,19 +2,12 @@
 import signac
 from flow import FlowProject, with_job
 
-import sys
-import gpytorch
+#Import dependencies
 import numpy as np
-import pandas as pd
-import torch
-from datetime import datetime
-from scipy.stats import qmc
-import itertools
-from itertools import combinations_with_replacement, combinations, permutations
-
 import bo_methods_lib
 import bo_methods_lib.templates.ndcrc
-from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import *
+from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import Method_name_enum, Ep_enum, CS_name_enum, Kernel_enum, Gen_meth_enum
+from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import GPBO_Methods, Exploration_Bias, CaseStudyParameters, GPBO_Driver
 from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns, calc_muller, calc_cs1_polynomial
 import pickle
 
@@ -27,11 +20,6 @@ warnings.simplefilter("ignore", category=UserWarning)
 from warnings import simplefilter
 from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
-
-#Set Date and Time
-dateTimeObj = datetime.now()
-timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
-DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
 class Project(FlowProject):
     pass
