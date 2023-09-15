@@ -3,7 +3,7 @@ import numpy as np
 import os
 from datetime import datetime
 import bo_methods_lib
-from bo_methods_lib.bo_methods_lib.analyze_data import get_study_data_signac, get_best_data_signac
+from bo_methods_lib.bo_methods_lib.analyze_data import get_study_data_signac, get_best_data
 from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_idcs_to_consider
 
 project = signac.init_project()
@@ -14,7 +14,7 @@ timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
 DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
-cs_val_list  = [1, 2] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7]
+cs_val_list  = [1, 2, 3, 4, 5, 6, 7] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7]
 meth_val_list = [1,2,3,5,4] #Put 2B last because it takes the longest
 
 #Set Initial Parameters
@@ -61,14 +61,14 @@ for cs_name_val in cs_val_list:
             #Create job parameter dict
             sp = {"cs_name_val": cs_name_val, 
                   "meth_name_val": meth_name_val,
-                  "idc_lo": idcs_to_consider_rng[0]
-                  "idc_hi": idcs_to_consider_rng[1]
+                  "idc_lo": idcs_to_consider_rng[0],
+                  "idc_hi": idcs_to_consider_rng[1],
                   "ep0": ep0, 
                   "ep_enum_val": ep_enum_val,
                   "sep_fact" : sep_fact,
-                  "normalize" : normalize
+                  "normalize" : normalize,
                   "gen_heat_map_data" : gen_heat_map_data,
-                  "noise_mean":noise_mean
+                  "noise_mean":noise_mean,
                   "noise_std": noise_std,
                   "kernel_enum_val": kernel_enum_val,
                   "lenscl": lenscl,
@@ -97,7 +97,7 @@ for cs_name_val in cs_val_list:
         #Loop over jobs in project for each case study and method name
         for job in project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val}):
             #Don't create the SF jobs if any of the sep facts are < 1 or the job files for the ep study do not exist
-            if job.sp.sep_fact < 1.0 or not os.exists(job.fn("BO_Results.gz")):
+            if job.sp.sep_fact < 1.0 or not os.path.exists(job.fn("BO_Results.gz")):
                 run_sf_study = False
                 break
                 
@@ -106,7 +106,7 @@ for cs_name_val in cs_val_list:
             #Get best data from signac project jobs
             study_id = "ep"
             df, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_csv = True)
-            df_best = get_best_data_signac(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = True)
+            df_best = get_best_data(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = True)
 
             #Set ep enum val to the best one for that cs and method
             ep_enum_val = df_best["EP Method Val"].iloc[0]
@@ -116,14 +116,14 @@ for cs_name_val in cs_val_list:
                 #Create job parameter dict
                 sp = {"cs_name_val": cs_name_val, 
                       "meth_name_val": meth_name_val,
-                      "idc_lo": idcs_to_consider_rng[0]
-                      "idc_hi": idcs_to_consider_rng[1]
+                      "idc_lo": idcs_to_consider_rng[0],
+                      "idc_hi": idcs_to_consider_rng[1],
                       "ep0": ep0, 
                       "ep_enum_val": ep_enum_val,
                       "sep_fact" : sep_fact,
-                      "normalize" : normalize
+                      "normalize" : normalize,
                       "gen_heat_map_data" : gen_heat_map_data,
-                      "noise_mean":noise_mean
+                      "noise_mean":noise_mean,
                       "noise_std": noise_std,
                       "kernel_enum_val": kernel_enum_val,
                       "lenscl": lenscl,

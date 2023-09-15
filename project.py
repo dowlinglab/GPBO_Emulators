@@ -1,6 +1,6 @@
 # project.py
 import signac
-from flow import FlowProject, with_job
+from flow import FlowProject
 
 #Import dependencies
 import numpy as np
