@@ -1,6 +1,9 @@
 # project.py
 import signac
-from flow import FlowProject
+from pathlib import Path
+import os
+import flow
+from flow import FlowProject, directives
 
 #Import dependencies
 import numpy as np
@@ -23,7 +26,9 @@ from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
 
 class Project(FlowProject):
-    pass
+    def __init__(self):
+        super().__init__()
+        current_path = Path(os.getcwd()).absolute()
 
 @Project.label
 def results_computed(job):
