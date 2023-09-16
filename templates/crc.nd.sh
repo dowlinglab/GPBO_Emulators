@@ -1,4 +1,5 @@
 {% extends "base_script.sh" %}
+{% block header %}
 
 #!/bin/bash
 
@@ -13,4 +14,5 @@ export PATH=/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/bin:$PAT
 conda activate Toy_Problem_env
 
 {% block tasks %}
+{% endblock %}
 {% endblock %}
