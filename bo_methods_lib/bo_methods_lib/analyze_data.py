@@ -31,23 +31,23 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     elif study_id == "sf":
         col_name = 'Sep Fact'
     else:
-        raise Warning("study_id must be EP or SF!")
-    #Get method
+        raise Warning("study_id must be ep or sf!")
+    #Get method name
     meth_name = Method_name_enum(meth_name_val)
-    method = GPBO_Methods(meth_name)
     
     #Do analysis for study
     #Initialize df for all sf/ep method data for each case study and method
     df = pd.DataFrame()
-    #Find all jobs for the sf/ep studies
+    #Find all jobs of a certain cs and method type for the sf/ep studies
     jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val})
     #Initialize df for all sf/ep method data for each case study and method
     df = pd.DataFrame()
+    #Loop over all jobs of this category
     for job in jobs:
         data_file = job.fn("BO_Results.gz")
         #Open the file and get the dataframe
-        fileObj = open(path + ".pickle", 'rb')
-        results = pickle.load(fileObj)   
+        with gzip.open(data_file, 'rb') as fileObj:
+            results = pickle.load(fileObj)   
         fileObj.close()
         tot_runs = results[0].configuration["Number of Workflow Restarts"]
         #Loop over runs
@@ -71,17 +71,15 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     #Set BO and run numbers as columns        
     df.rename(columns={'index': 'Run Number'}, inplace=True)   
     df.insert(1, "BO Iter", all_result_df.index)
-    df = df.reset_index()
+    df = df.reset_index(drop=True)
         
     #get theta_true from 1st run since it never changes
     theta_true = results[0].simulator_class.theta_true
     #Put it in a csv file in a directory based on the method and case study
     if save_csv:
         #Make directory name
-        meth_name = Method_name_enum(meth_name_vals[job.sp.meth_name_val])
-        method = GPBO_Methods(meth_name)
-        cs_name_enum = CS_name_enum(job.sp.cs_name_val)
-        dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + method.name
+        cs_name_enum = CS_name_enum(cs_name_val)
+        dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + meth_name.name
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
