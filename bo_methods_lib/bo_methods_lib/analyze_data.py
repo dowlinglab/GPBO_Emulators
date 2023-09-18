@@ -8,6 +8,31 @@ from .GPBO_Class_fxns import *
 import pickle
 import gzip
 
+def open_file_helper(file_path):
+    """
+    Opens a .gz or .pickle file based on the extension
+    
+    Parameters
+    ----------
+    file_path: str, The file path of the data
+    
+    Returns
+    -------
+    results: pickled object, The results stored in the .pickle or .gz file
+    """
+    
+    if file_path.endswith('.pickle'):
+        with open(file_path, 'rb') as fileObj:
+            results = pickle.load(fileObj) 
+    elif file_path.endswith('.gz'):
+        with gzip.open(file_path, 'rb') as fileObj:
+            results = pickle.load(fileObj)          
+    else:
+        raise Warning("File type must be .gz or .pickle!")
+    fileObj.close()
+    
+    return results
+
 def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_csv = False):
     """
     Get best ep or sf data from jobs and optionally save the csvs for the data
@@ -394,9 +419,7 @@ def analyze_hypers(file_path, run_num):
     hp_true: np.ndarray or None, the true values of the hyperparameters
     """
     run_num -= 1
-    fileObj = open(file_path, 'rb')
-    loaded_results = pickle.load(fileObj)
-    fileObj.close()
+    loaded_results = open_file_helper(file_path)
     runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
     num_sets = loaded_results[run_num].configuration["Max BO Iters"]
     dim_hps = len(loaded_results[run_num].list_gp_emulator_class[0].trained_hyperparams[0]) + 2
@@ -434,9 +457,7 @@ def analyze_sse_min_sse_ei(file_path, run_num, value_names):
     data_true: np.ndarray or None, the true values of the data
     """
     run_num -= 1
-    fileObj = open(file_path, 'rb')
-    loaded_results = pickle.load(fileObj)
-    fileObj.close()
+    loaded_results = open_file_helper(file_path)
     runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
     num_sets = loaded_results[run_num].configuration["Max BO Iters"]
     dim_data = len(value_names) #obj, min obj, and ei
@@ -475,9 +496,7 @@ def analyze_thetas(file_path, run_num, string_for_df_theta):
     
     """
     run_num -= 1
-    fileObj = open(file_path, 'rb')
-    loaded_results = pickle.load(fileObj)
-    fileObj.close()
+    loaded_results = open_file_helper(file_path)
     runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
     num_sets = loaded_results[run_num].configuration["Max BO Iters"]
     dim_data = len(loaded_results[run_num].results_df[string_for_df_theta].to_numpy()[0]) #len theta best
@@ -518,9 +537,7 @@ def analyze_train_test(file_path, run_num, bo_iter):
     """
     run_num -= 1
     bo_iter -= 1
-    fileObj = open(file_path, 'rb')
-    loaded_results = pickle.load(fileObj)
-    fileObj.close()
+    loaded_results = open_file_helper(file_path)
     
     x_exp = loaded_results[run_num].exp_data_class.x_vals
     dim_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].get_dim_gp_data() #dim training data
@@ -559,9 +576,7 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id):
     """
     run_num -= 1
     bo_iter -= 1
-    fileObj = open(file_path, 'rb')
-    loaded_results = pickle.load(fileObj)
-    fileObj.close()
+    loaded_results = open_file_helper(file_path)
     
     #Create Heat Map Data for a run and iter
     #Just choose the 1st key for example purposes
@@ -666,9 +681,7 @@ def analyze_xy_plot(file_path, run_num, bo_iter, x_lin_pts):
     """ 
     run_num -= 1
     bo_iter -= 1
-    fileObj = open(file_path, 'rb')
-    loaded_results = pickle.load(fileObj)
-    fileObj.close()
+    loaded_results = open_file_helper(file_path)
     
     #get exp_data and theta_opt
     exp_data = loaded_results[run_num].exp_data_class
@@ -725,9 +738,7 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
     """
     run_num -= 1
     bo_iter -= 1
-    fileObj = open(file_path, 'rb')
-    loaded_results = pickle.load(fileObj)
-    fileObj.close()
+    loaded_results = open_file_helper(file_path)
     
     #get exp_data and theta_opt
     exp_data = loaded_results[run_num].exp_data_class
@@ -768,9 +779,7 @@ def analyze_parity_plot_data(file_path, run_num, bo_iter):
     """
     run_num -= 1
     bo_iter -= 1
-    fileObj = open(file_path, 'rb')
-    loaded_results = pickle.load(fileObj)
-    fileObj.close()
+    loaded_results = open_file_helper(file_path)
     
     #get exp_data and theta_opt
     exp_data = loaded_results[run_num].exp_data_class
@@ -821,9 +830,7 @@ def analyze_param_sens(file_path, run_num, bo_iter, param_id, n_points):
     """
     run_num -= 1
     bo_iter -= 1
-    fileObj = open(file_path, 'rb')
-    loaded_results = pickle.load(fileObj)
-    fileObj.close()
+    loaded_results = open_file_helper(file_path)
         
     #get exp_data and theta_opt
     exp_data = loaded_results[run_num].exp_data_class

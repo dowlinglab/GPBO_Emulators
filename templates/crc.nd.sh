@@ -11,7 +11,6 @@
 #$ -M mcarlozo@nd.edu
 
 export PATH=/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/bin:$PATH
-conda activate Toy_Problem_env
 
 {% block tasks %}
 {% endblock %}

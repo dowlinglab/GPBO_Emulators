@@ -1,17 +1,11 @@
 import signac
 import numpy as np
 import os
-from datetime import datetime
 import bo_methods_lib
 from bo_methods_lib.bo_methods_lib.analyze_data import get_study_data_signac, get_best_data
 from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_idcs_to_consider
 
 project = signac.init_project()
-
-#Set Date and Time
-dateTimeObj = datetime.now()
-timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
-DateTime = dateTimeObj.strftime("%Y/%m/%d/%H-%M")
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
 cs_val_list  = [1, 2, 3, 4, 5, 6, 7] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7]
@@ -86,8 +80,7 @@ for cs_name_val in cs_val_list:
                   "gen_meth_x":gen_meth_x,
                   "gen_meth_theta_val":gen_meth_theta_val,
                   "num_theta_multiplier": num_theta_multiplier,
-                  "num_val_pts":num_val_pts,
-                  "DateTime":DateTime}
+                  "num_val_pts":num_val_pts}
             #Create jobs for exploration bias study
             job = project.open_job(sp).init()
         
@@ -141,8 +134,7 @@ for cs_name_val in cs_val_list:
                       "gen_meth_x":gen_meth_x,
                       "gen_meth_theta_val":gen_meth_theta_val,
                       "num_theta_multiplier": num_theta_multiplier,
-                      "num_val_pts":num_val_pts,
-                      "DateTime":DateTime}
+                      "num_val_pts":num_val_pts}
 
                 #Run job
                 job = project.open_job(sp).init()

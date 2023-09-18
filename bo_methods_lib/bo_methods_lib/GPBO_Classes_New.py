@@ -17,6 +17,7 @@ import pickle
 import gzip
 import itertools
 from itertools import combinations
+import copy
 
 class Method_name_enum(Enum):
     """
@@ -633,7 +634,7 @@ class Simulator:
         sim_theta_vals = self.__vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta, seed))
         
         #Add repeated theta_vals and x_data to sim_data
-        sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis =0)
+        sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis = 0)
         sim_data.x_vals = np.vstack([x_data]*repeat_x)
         
         #Normalize feature data if noramlize is true
@@ -3227,8 +3228,8 @@ class GPBO_Driver:
                     #And the improvement is defined as 0, since it must be non-negative
                     improvement = 0
                 
-                #Add gp emulator data
-                list_gp_emulator_class.append( gp_emulator_class )
+                #Add gp emulator data. Use a copy to ensure the emulator at that state is saved
+                list_gp_emulator_class.append( copy.copy(gp_emulator_class) )
                 
                 #Call stopping criteria after 1st iteration and update improvement counter
                 if improvement < self.cs_params.obj_tol:
@@ -3345,8 +3346,9 @@ class GPBO_Driver:
         ##Define a path for the data. (Use the name of the case study and date)
         #Get Date only from DateTime String
         if self.cs_params.DateTime is not None:
+            #Note, This one uses / in DateTime and not -
             split_date_parts = self.cs_params.DateTime.split("/")
-            Run_Date = "/".join(split_date_parts[:-1])
+            Run_Date = "/".join(split_date_parts[:-1])    
         else:
             Run_Date = "No_Date"
         

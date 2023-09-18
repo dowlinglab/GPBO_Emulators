@@ -39,19 +39,20 @@ def results_computed(job):
 @Project.operation(with_job = True)
 def run_ep_or_sf_exp(job):
     #Define method, ep_enum classes, indecies to consider, and kernel
-    meth_name = Method_name_enum(meth_name_vals[job.sp.meth_name_val])
+    meth_name = Method_name_enum(job.sp.meth_name_val)
     method = GPBO_Methods(meth_name)
     ep_enum = Ep_enum(job.sp.ep_enum_val)
     cs_name_enum = CS_name_enum(job.sp.cs_name_val)
-    indecies_to_consider = list(range(job.sp.idc_lo, j0b.sp.idc_hi))
-    kernel = Kernel_enum(job.sp.kernel_enum_value)
+    indecies_to_consider = list(range(job.sp.idc_lo, job.sp.idc_hi))
+    kernel = Kernel_enum(job.sp.kernel_enum_val)
     
     #Define Simulator Class
     simulator = simulator_helper_test_fxns(cs_name_enum, indecies_to_consider, job.sp.noise_mean, job.sp.noise_std, job.sp.normalize, 
                                            job.sp.seed)
 
     #Generate Exp Data
-    exp_data = simulator.gen_exp_data(job.sp.num_x_data, job.sp.gen_meth_x)
+    gen_meth_x = Gen_meth_enum(job.sp.gen_meth_x)
+    exp_data = simulator.gen_exp_data(job.sp.num_x_data, gen_meth_x)
     
     #Create Exploration Bias Class
     if ep_enum.value == 1:
@@ -68,11 +69,10 @@ def run_ep_or_sf_exp(job):
     #Generate Sim Data
     num_theta_data = len(indecies_to_consider)*job.sp.num_theta_multiplier
     gen_meth_theta = Gen_meth_enum(job.sp.gen_meth_theta)
-    gen_meth_x = Gen_meth_enum(job.sp.gen_meth_x)
     sim_data = simulator.gen_sim_data(num_theta_data, job.sp.num_x_data, gen_meth_theta, gen_meth_x, job.sp.sep_fact, False)
     #Generate Validation Data
     gen_meth_theta_val = Gen_meth_enum(job.sp.gen_meth_theta_val)
-    val_data = simulator.gen_sim_data(job.sp.num_val_pts, num_x_data, gen_meth_theta_val, gen_meth_x, job.sp.sep_fact, True)
+    val_data = simulator.gen_sim_data(job.sp.num_val_pts, job.sp.num_x_data, gen_meth_theta_val, gen_meth_x, job.sp.sep_fact, True)
     #Gen sse_sim_data and sse_sim_val_data
     sim_sse_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, job.sp.sep_fact, False)
     val_sse_data = simulator.sim_data_to_sse_sim_data(method, val_data, exp_data, job.sp.sep_fact, True)
@@ -82,7 +82,7 @@ def run_ep_or_sf_exp(job):
     cs_name = "BO_Results"
     cs_params = CaseStudyParameters(cs_name, job.sp.ep0, job.sp.sep_fact, job.sp.normalize, kernel, job.sp.lenscl, job.sp.outputscl,
                                     job.sp.retrain_GP, job.sp.reoptimize_obj, job.sp.gen_heat_map_data, job.sp.bo_iter_tot,
-                                    job.sp.bo_run_tot, job.sp.save_data, job.sp.DateTime, job.sp.seed, job.sp.ei_tol, job.sp.obj_tol)
+                                    job.sp.bo_run_tot, job.sp.save_data, None, job.sp.seed, job.sp.ei_tol, job.sp.obj_tol)
     #Initialize driver class
     driver = GPBO_Driver(cs_params, method, simulator, exp_data, sim_data, sim_sse_data, val_data, val_sse_data, None, ep_bias, gen_meth_theta_val)
     #Get results
