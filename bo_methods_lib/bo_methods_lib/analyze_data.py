@@ -95,7 +95,7 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     
     #Set BO and run numbers as columns        
     df.rename(columns={'index': 'Run Number'}, inplace=True)   
-    df.insert(1, "BO Iter", all_result_df.index)
+    df.insert(1, "BO Iter", df.index)
     df = df.reset_index(drop=True)
         
     #get theta_true from 1st run since it never changes
