@@ -71,6 +71,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
     calc_y_fxn: function, the function used for calculation is case study cs_name.name
     """
     #Note: Add your function name from GPBO_Class_fxns.py here
+    #CS1
     if cs_name.value == 1:      
         theta_names = ['theta_1', 'theta_2']
         bounds_x_l = [-2]
@@ -80,7 +81,8 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         theta_ref = np.array([1.0, -1.0])     
         calc_y_fxn = calc_cs1_polynomial
         
-    elif cs_name.value == 2:                          
+    #CS2_4 to CS2_24
+    elif 2 <= cs_name.value <= 7:                          
         theta_names = ['A_1', 'A_2', 'A_3', 'A_4', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4', 'c_1', 
                        'c_2', 'c_3', 'c_4', 'x0_1', 'x0_2', 'x0_3', 'x0_4', 'x1_1', 'x1_2', 'x1_3', 'x1_4']
         bounds_x_l = [-1.5, -0.5]
@@ -88,11 +90,10 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_l = [-300,-200,-250, 5,-2,-2,-10, -2, -2,-2,5,-2,-20,-20, -10,-1 ,-2,-2,-2, -2,-2,-2,0,-2]
         bounds_theta_u = [-100,  0, -150, 20,2, 2, 0,  2,  2,  2, 15,2, 0,0   , 0,  2, 2,  2, 2, 2 ,2 , 2, 2,2]
         theta_ref = np.array([-200,-100,-170,15,-1,-1,-6.5,0.7,0,0,11,0.6,-10,-10,-6.5,0.7,1,0,-0.5,-1,0,0.5,1.5,1])      
-#         theta_ref = np.array([0.5, 0.5, 0.8, 2/3, 0.25, 0.25, 0.35, 0.675, 0.5, 0.5, 0.6, 0.65, 0.5, 0.5, 0.35, 28333/50000, 0.75, 0.5,
-#     0.375, 0.25, 0.5, 0.625, 0.75, 0.75])
         calc_y_fxn = calc_muller
         
     else:
+        print(cs_name.value)
         raise ValueError("self.CaseStudyParameters.cs_name.value must exist!")
 
     return Simulator(indecies_to_consider, 

@@ -14,8 +14,9 @@ meth_val_list = [1,2,3,5,4] #Put 2B last because it takes the longest
 #Set Initial Parameters
 ep0 = 1
 sep_fact_list = np.linspace(0.5,0.9,5) #For CS1 use 0.5 to 1, for CS2 use 0.5, 0.75, and 1
-normalize = False
+ep_val_list = [1,2,3,4]
 gen_heat_map_data = True
+normalize = False
 noise_mean = 0
 noise_std = 0.01
 kernel_enum_val = 1
@@ -33,19 +34,24 @@ num_x_data = 5
 gen_meth_theta = 1 
 gen_meth_x = 2
 gen_meth_theta_val = 2
-num_theta_multiplier = 10 #How many simulation data points to generate is equal to num_theta_multiplier*number of parameters
 num_val_pts = 20
+num_theta_multiplier = 10 #How many simulation data points to generate is equal to num_theta_multiplier*number of parameters
+
 
 #Note: Add loop for idc to consider for lo and hi for CS2 based on something
 #Loop over Case Studies
 for cs_name_val in cs_val_list:
     idcs_to_consider_rng = set_idcs_to_consider(cs_name_val)
-    #If CS1, Run the full exploration parameter study and/or the sf study
-    if cs_name_val == 1:
-        ep_val_list = [1,2,3,4]
-    #Otherwise just use a constant ep method
-    else:
+    #If CS1, Run the full exploration parameter study and/or the sf study, otherwise, just use the constant method
+    if cs_name_val > 1:
         ep_val_list = [1]
+        
+    #If cs > 2, do not generate validation or heat map data
+    if cs_name_val > 2::
+        num_val_pts = 0
+        gen_heat_map_data = False
+        gen_meth_theta_val = None
+        
     #Loop over methods
     for meth_name_val in meth_val_list:
         #Loop over exploration parameter methods

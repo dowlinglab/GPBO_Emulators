@@ -70,13 +70,22 @@ def run_ep_or_sf_exp(job):
     num_theta_data = len(indecies_to_consider)*job.sp.num_theta_multiplier
     gen_meth_theta = Gen_meth_enum(job.sp.gen_meth_theta)
     sim_data = simulator.gen_sim_data(num_theta_data, job.sp.num_x_data, gen_meth_theta, gen_meth_x, job.sp.sep_fact, False)
-    #Generate Validation Data
-    gen_meth_theta_val = Gen_meth_enum(job.sp.gen_meth_theta_val)
-    val_data = simulator.gen_sim_data(job.sp.num_val_pts, job.sp.num_x_data, gen_meth_theta_val, gen_meth_x, job.sp.sep_fact, True)
+    
     #Gen sse_sim_data and sse_sim_val_data
     sim_sse_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, job.sp.sep_fact, False)
-    val_sse_data = simulator.sim_data_to_sse_sim_data(method, val_data, exp_data, job.sp.sep_fact, True)
-
+    
+    #Generate validation data if applicable. This is only useful for CS1 and CS2_4. Otherwise this takes up too much memory
+    
+    if job.sp.num_val_pts > 0:
+        gen_meth_theta_val = Gen_meth_enum(job.sp.gen_meth_theta_val) #input is an integer (1 or 2)
+        val_data = simulator.gen_sim_data(job.sp.num_val_pts, job.sp.num_x_data, gen_meth_theta_val, gen_meth_x, job.sp.sep_fact, True)
+        val_sse_data = simulator.sim_data_to_sse_sim_data(method, val_data, exp_data, job.sp.sep_fact, True)        
+    #Set validation data to None if not generating it
+    else:
+        val_data = None
+        val_sse_data = None
+        gen_meth_theta_val = job.sp.gen_meth_theta_val #Value is None
+                       
     #Define cs_name and cs_params class
     #Do I need a different name for each experiment to save its results to or will signac take care of that?
     cs_name = "BO_Results"

@@ -239,7 +239,7 @@ class CaseStudyParameters:
         outputscl: float or None, Determines value of outputscale - None if hyperparameters will be updated during training
         retrain_GP: int, number of times to restart GP training. Note, 0 = 1 optimization
         reoptimize_obj: int, number of times to reoptimize ei/sse with different starting values. Note, 0 = 1 optimization
-        gen_heat_map_data: bool, determines whether all pairs of theta are generated to create heat maps
+        gen_heat_map_data: bool, determines whether validation data are generated to create heat maps
         noise_mean:float, int: The mean of the noise
         noise_std: float, int: The standard deviation of the noise
         bo_iter_tot: int, maximum number of BO iterations per restart
@@ -1034,7 +1034,7 @@ class GP_Emulator:
         Parameters
         ----------
         gp_sim_data: instance of Data class, all simulation data for the GP
-        gp_val_data: instance of Data class, the validation data for the GP
+        gp_val_data: instance of Data class, the validation data for the GP. None if not saving parameter data
         cand_data: instance of Data class, candidate theta value for evaluation with GPBO_Driver.opt-with_scipy()
         kernel: enum class instance, Determines which GP Kerenel to use
         lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
@@ -1059,7 +1059,7 @@ class GP_Emulator:
         assert isinstance(kernel, Enum) == True, "kernel must be type Enum"
         #Check for instance of Data class or None
         assert isinstance(gp_sim_data, (Data)) == True or gp_sim_data == None, "gp_sim_data must be an instance of the Data class or None"
-        assert isinstance(gp_val_data, (Data)) == True or gp_sim_data == None, "gp_sim_data must be an instance of the Data class or None"
+        assert isinstance(gp_val_data, (Data)) == True or gp_val_data == None, "gp_sim_data must be an instance of the Data class or None"
         
         # Constructor method
         self.gp_sim_data = gp_sim_data
@@ -1358,7 +1358,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         Parameters
         ----------
         gp_sim_data: instance of Data class, all simulation data for the GP
-        gp_val_data: instance of Data class, the validation data for the GP
+        gp_val_data: instance of Data class, the validation data for the GP. None if not saving heat map data
         cand_data: instance of Data class, candidate theta value for evaluation with GPBO_Driver.opt-with_scipy()
         train_data: instance of Data class, the training data for the GP
         testing_data: instance of Data class, the testing data for the GP
@@ -1462,11 +1462,14 @@ class Type_1_GP_Emulator(GP_Emulator):
         #Set training and validation data features in GP_Emulator base class
         feature_train_data = self.featurize_data(train_data)
         feature_test_data = self.featurize_data(test_data)
-        feature_val_data = self.featurize_data(self.gp_val_data)
         
         self.feature_train_data = feature_train_data
         self.feature_test_data = feature_test_data
-        self.feature_val_data = feature_val_data
+        
+        if self.gp_val_data is not None:
+            feature_val_data = self.featurize_data(self.gp_val_data)
+            self.feature_val_data = feature_val_data
+        
         
         return train_data, test_data
        
@@ -1753,7 +1756,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         Parameters
         ----------
         gp_sim_data: instance of Data class, all simulation data for the GP
-        gp_val_data: instance of Data class, the validation data for the GP
+        gp_val_data: instance of Data class, the validation data for the GP. None if not saving validation data
         cand_data: instance of Data class, candidate theta value for evaluation with GPBO_Driver.opt-with_scipy()
         train_data: instance of Data class, the training data for the GP
         testing_data: instance of Data class, the testing data for the GP
@@ -1872,12 +1875,14 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Set training and validation data features in GP_Emulator base class
         feature_train_data = self.featurize_data(train_data)
         feature_test_data = self.featurize_data(test_data)
-        feature_val_data = self.featurize_data(self.gp_val_data)
         
         self.feature_train_data = feature_train_data
         self.feature_test_data = feature_test_data
-        self.feature_val_data = feature_val_data
-
+         
+        if self.gp_val_data is not None:
+            feature_val_data = self.featurize_data(self.gp_val_data)
+            self.feature_val_data = feature_val_data
+            
         return train_data, test_data
     
     def __eval_gp_sse_var(self, data, exp_data):
@@ -2753,11 +2758,11 @@ class GPBO_Driver:
         exp_data: Instance of Data class, Class containing at least theta, x, and y experimental data
         sim_data: Instance of Data class, class containing at least theta, x, and y simulation data
         sim_sse_data: Instance of Data class, class containing at least theta, x, and sse simulation data
-        val_data: Instance of Data class, class containing at least theta and x simulation data
-        val_sse_data: Instance of Data class, class containing at least theta and x sse simulation data
+        val_data: Instance of Data class or None, class containing at least theta and x simulation data or None
+        val_sse_data: Instance of Data class or None, class containing at least theta and x sse simulation data or None
         gp_emulator: Instance of GP_Emulator class, class containing gp_emulator data (set after training)
         ep_bias: Instance of Exploration_Bias class, class containing exploration parameter info
-        gen_meth_theta_val: Instance of Gen_meth_enum: The method by which validation data is generated. Important for heat map making
+        gen_meth_theta_val: Instance of Gen_meth_enum or None: The method by which validation data is generated. For heat map making
         """
         # Constructor method
         self.cs_params = cs_params
@@ -2839,8 +2844,8 @@ class GPBO_Driver:
         assert isinstance(neg_ei, bool), "neg_ei must be bool!"
 
         #Find unique theta vals
-        #Note. For reoptimizing -ei/sse a different validation point is chosen as a starting point for optimization. Therefore, we assume that the validation theta set has no repeated points.
-        unique_val_thetas = self.gp_emulator.gp_val_data.get_unique_theta()
+        #Note. For reoptimizing -ei/sse a different training point is chosen as a starting point for optimization
+        unique_val_thetas = self.gp_emulator.train_data.get_unique_theta()
         #Note add +1 because index 0 counts as 1 reoptimization
         assert self.cs_params.reoptimize_obj+1 <= len(unique_val_thetas), "Can not reoptimize more times than there are starting points"
         
@@ -2850,7 +2855,7 @@ class GPBO_Driver:
             
         #Initialize val_best and best_theta
         best_vals = np.full(self.cs_params.reoptimize_obj+1, np.inf)
-        best_thetas = np.zeros((self.cs_params.reoptimize_obj+1, self.gp_emulator.gp_val_data.get_dim_theta()))
+        best_thetas = np.zeros((self.cs_params.reoptimize_obj+1, self.gp_emulator.train_data.get_dim_theta()))
         
         #Calc best error
         best_error = self.__get_best_error()
@@ -2859,7 +2864,7 @@ class GPBO_Driver:
         #Unnormalize feature data for calculation if necessary
         if self.cs_params.normalize == True:
             #If noramlized, bounds for theta normalization are between 0 and 1
-            bnds = np.tile([0, 1], (self.gp_emulator.gp_val_data.get_dim_theta(), 1))
+            bnds = np.tile([0, 1], (self.gp_emulator.train_data.get_dim_theta(), 1))
         else:
             #Otherwise bounds are defined as they are
             bnds = self.simulator.bounds_theta_reg.T #Transpose bounds to work with scipy.optimize
@@ -2883,7 +2888,7 @@ class GPBO_Driver:
             except ValueError:
                 #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
                 best_vals[i] = np.nan
-                best_thetas[i] = np.full(self.gp_emulator.gp_val_data.get_dim_theta(), np.nan)
+                best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
         
         #Choose a single value with the lowest -ei or sse
         #In the case that 2 point have the same -ei or sse and this point is the lowest, this lets us pick one at random rather than always just choosing a certain point
@@ -2969,7 +2974,7 @@ class GPBO_Driver:
 
         return obj
 
-    def __create_heat_map_param_data(self):
+    def create_heat_map_param_data(self):
         """
         Creates parameter sets that can be used to create heat maps of data at any given iteration
                
@@ -2977,6 +2982,9 @@ class GPBO_Driver:
         --------
         heat_map_data_dict: dict, heat map data for each set of 2 parameters indexed by parameter name tuple ("param_1,param_2")
         """      
+        assert isinstance(self.gp_emulator.gp_val_data, Data), "self.gp_emulator.gp_val_data must be an instance of Data!"
+        assert isinstance(self.gen_meth_theta_val, Gen_meth_enum), "self.gen_meth_theta_val must be instance of Gen_meth_enum"
+        
         #Create list of heat map theta data
         heat_map_data_dict = {}
         
@@ -3322,7 +3330,7 @@ class GPBO_Driver:
             if self.cs_params.gen_heat_map_data == True:
                 if i == 0:
                     #Generate heat map data for each combination of parameter values stored in a dictionary
-                    heat_map_data_dict = self.__create_heat_map_param_data()
+                    heat_map_data_dict = self.create_heat_map_param_data()
                 #Save these heat map values in the bo_results object
                 bo_results.heat_map_data_dict = heat_map_data_dict
             restart_bo_results.append(bo_results)
