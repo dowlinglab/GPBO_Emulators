@@ -69,7 +69,7 @@ for cs_name_val in cs_val_list:
                   "outputscl": outputscl,
                   "retrain_GP": retrain_GP,
                   "reoptimize_obj": reoptimize_obj,
-                  "bo_iter_tot": bo_run_tot,
+                  "bo_iter_tot": bo_iter_tot,
                   "bo_run_tot":bo_run_tot,
                   "save_data": save_data,
                   "seed":seed,

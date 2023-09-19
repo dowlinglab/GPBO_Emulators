@@ -53,18 +53,19 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     """
     if study_id == "ep":
         col_name = 'EP Method Val'
+        #Find all jobs of a certain cs and method type for the sf/ep studies
+        jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val, "sep_fact" : 1.0})
     elif study_id == "sf":
         col_name = 'Sep Fact'
+        #Need to fix this
+        jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val})
     else:
         raise Warning("study_id must be ep or sf!")
-    #Get method name
+    #Get method name and CS name
     meth_name = Method_name_enum(meth_name_val)
+    cs_name_enum = CS_name_enum(cs_name_val)
     
     #Do analysis for study
-    #Initialize df for all sf/ep method data for each case study and method
-    df = pd.DataFrame()
-    #Find all jobs of a certain cs and method type for the sf/ep studies
-    jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val})
     #Initialize df for all sf/ep method data for each case study and method
     df = pd.DataFrame()
     #Loop over all jobs of this category
@@ -103,7 +104,6 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     #Put it in a csv file in a directory based on the method and case study
     if save_csv:
         #Make directory name
-        cs_name_enum = CS_name_enum(cs_name_val)
         dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + meth_name.name
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
