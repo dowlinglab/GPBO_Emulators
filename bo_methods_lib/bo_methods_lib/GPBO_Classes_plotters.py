@@ -255,6 +255,71 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_l
     else:
         save_fig(save_path, ext='png', close=True, verbose=False)  
 
+    return 
+
+def plot_all_SF_data(df, xbins, ybins, title, x_label, y_label, log_data = False, title_fontsize = 24, other_fontsize = 20, save_path = None):
+    """
+    Plots the separation factor analysis
+    
+    Parameters
+    -----------
+    df: pd.DataFrame. DataFrame of all SF study data
+    xbins: int, Number of bins for x
+    ybins: int, Number of bins for y
+    title: str or None, Title of graph
+    x_label: str or None, title of x-axis
+    y_label: str or None, title of y-axis
+    title_fontsize: int, fontisize for title. Default 24
+    other_fontsize: int, fontisize for other values. Default 20
+    save_path: str or None, Path to save figure to. Default None (do not save figure).
+    """
+    #Assert Statements
+    none_str_vars = [x_label, y_label, title, save_path]
+    int_vars = [xbins, ybins, title_fontsize, other_fontsize]
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, save_path, and ylabel must be string or None"
+    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
+    assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
+    assert isinstance(log_data, bool), "log_data must be bool!"
+    
+    sep_facts = df["Sep Fact"].unique()
+    bo_methods = df["BO Method"].unique()
+   
+    #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
+    subplots_needed = len(bo_methods)
+    fig, ax, num_subplots = create_subplots(subplots_needed)
+    
+    
+    #Print the title and labels as appropriate
+    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+
+    #Loop over different methods (number of subplots)
+    for i in range(num_subplots):
+        #If you still have data to plot
+        if i < subplots_needed:
+            #Get the values 
+            y_data, data_names = analyze_SF_data_for_plot(df, bo_methods[i], sep_facts)  
+            ax[i].plot(sep_facts, y_data[:,0], color="green", label = data_names[0], zorder = 1)        
+            ax[i].plot(sep_facts, y_data[:,1], color="red", label = data_names[1], zorder = 2)
+            
+            #Set title and subplot details
+            title = "SF Analysis " + df["BO Method"].unique()[i]
+            subplot_details(ax[i], sep_facts, y_data, None, None, title, xbins, ybins, other_fontsize)
+
+        #Set axes off if it's an extra
+        else:
+            ax[i].set_axis_off()
+            
+        #Fetch handles and labels on last iteration
+        if i == num_subplots-1:
+            handles, labels = ax[data.shape[-1]-1].get_legend_handles_labels()
+            
+    #save or show figure
+    if save_path is None:
+        plt.show()
+        plt.close()
+    else:
+        save_fig(save_path, ext='png', close=True, verbose=False)  
+
     return
 
 def plot_SF_data(x_data, y_data, data_names, data_true, xbins, ybins, title, x_label, y_label, log_data = False, title_fontsize = 24, other_fontsize = 20, save_path = None):
@@ -292,7 +357,7 @@ def plot_SF_data(x_data, y_data, data_names, data_true, xbins, ybins, title, x_l
     assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
    
     #Set figure details. Set bins turn on ticks
-    plt.figure(figsize = (6,6))
+    fig = plt.figure(figsize = (6,6))
     plt.xticks(fontsize=other_fontsize)
     plt.yticks(fontsize=other_fontsize)
     plt.tick_params(direction="in",top=True, right=True)
@@ -330,7 +395,7 @@ def plot_SF_data(x_data, y_data, data_names, data_true, xbins, ybins, title, x_l
     else:
         save_fig(save_path, ext='png', close=True, verbose=False)  
 
-    return
+    return fig
 def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
     Plots x data vs y data for any given parameter set theta
