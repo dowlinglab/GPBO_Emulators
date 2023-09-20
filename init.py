@@ -9,7 +9,7 @@ project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
 cs_val_list  = [1, 2, 3, 4, 5, 6, 7] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7]
-meth_val_list = [1,2,3,5,4] #Put 2B last because it takes the longest
+meth_val_list = [1, 2, 3, 4, 5] #Put 2B last because it takes the longest
 
 #Set Initial Parameters
 ep0 = 1
@@ -47,7 +47,7 @@ for cs_name_val in cs_val_list:
         ep_val_list = [1]
         
     #If cs > 2, do not generate validation or heat map data
-    if cs_name_val > 2::
+    if cs_name_val > 2:
         num_val_pts = 0
         gen_heat_map_data = False
         gen_meth_theta_val = None
@@ -129,7 +129,7 @@ for cs_name_val in cs_val_list:
                       "outputscl": outputscl,
                       "retrain_GP": retrain_GP,
                       "reoptimize_obj": reoptimize_obj,
-                      "bo_iter_tot": bo_run_tot,
+                      "bo_iter_tot": bo_iter_tot,
                       "bo_run_tot":bo_run_tot,
                       "save_data": save_data,
                       "seed":seed,
