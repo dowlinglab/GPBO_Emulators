@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 import copy
+import signac
 
 from .GPBO_Classes_New import *
 from .GPBO_Class_fxns import * 
@@ -65,16 +66,16 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
         col_name = 'Sep Fact'
         
         #Get best ep data from Results path if possible
-        path_name = "Results/ep_study/" + cs_name_enum.name + "/" + meth_name.name + "/ep_study_analysis.csv"
+        path_name = "Results/ep_study/" + cs_name_enum.name + "/" + meth_name.name + "/ep_study_best.csv"
         if os.path.exists(path_name):
             df_ep_best = pd.read_csv(path_name, header = 0)
         #If there is no results path infer it directly from the jobs
         else:
-            df_ep, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, "ep", save_csv = False)
-            df_ep_best = get_best_data(df_ep, study_id, cs_name, theta_true, date_time_str = None, save_csv = False)
-
+            df_ep, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, "ep", save_csv = False) 
+            df_ep_best = get_best_data(df_ep, "ep", cs_name, theta_true, date_time_str = None, save_csv = False)
+            
         #Set ep enum val to the best one for that cs and method
-        best_ep_enum_val = df_ep_best["EP Method Val"].iloc[0]
+        best_ep_enum_val = int(df_ep_best["EP Method Val"].iloc[0])
         
         #Get all jobs with that ep enum val
         jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val, "ep_enum_val": best_ep_enum_val})
@@ -87,6 +88,7 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     df = pd.DataFrame()
     #Loop over all jobs of this category
     for job in jobs:
+        assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
         data_file = job.fn("BO_Results.gz")
         #Open the file and get the dataframe
         with gzip.open(data_file, 'rb') as fileObj:
@@ -110,12 +112,12 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
             df_job["Total Run Time"] = df_job["Time/Iter"]*df_job["Max Evals"]  
             #Add data to the dataframe with all the data
             df = pd.concat([df, df_job], ignore_index=False)
-    
+
     #Set BO and run numbers as columns        
     df.rename(columns={'index': 'Run Number'}, inplace=True)   
     df.insert(1, "BO Iter", df.index)
     df = df.reset_index(drop=True)
-        
+
     #get theta_true from 1st run since it never changes
     theta_true = results[0].simulator_class.theta_true
     #Put it in a csv file in a directory based on the method and case study
@@ -335,10 +337,77 @@ def get_median_data(df, study_id, cs_name, theta_true, date_time_str = None, sav
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         #Add file to directory
-        file_name2 = dir_name + "/" + study_id + "_study_best.csv"
+        file_name2 = dir_name + "/" + study_id + "_study_median.csv"
         df_median.to_csv(file_name2) 
         
     return df_median
+
+def get_mean_data(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = False):
+    """
+    Given data from a study, find the mean value(s)
+    
+    Parameters
+    ----------
+    df: pd.DataFrame, dataframe including study data
+    col_name: str, column name in the pandas dataframe to find the best value w.r.t
+    theta_true: true parameter values from case study. Important for calculating L2 Norms
+    save_csv: bool, Whether or not to save csv data from analysis
+    
+    Returns
+    -------
+    df_median: pd.DataFrame, Dataframe containing the median result from the study given a case study and method name
+    
+    """
+    if study_id == "ep":
+        col_name = 'EP Method Val'
+    elif study_id == "sf":
+        col_name = 'Sep Fact'
+    else:
+        raise Warning("study_id must be EP or SF!")
+        
+    #Get median values from df_best
+    # Create a list containing 1 dataframe for each method in df_best
+    df_list = []
+    for meth in df['BO Method'].unique():
+        df_meth = df.loc[df["BO Method"]==meth]   
+        df_list.append(df_meth)
+
+    #Create new df for median values
+    df_mean = pd.DataFrame()
+
+    #Loop over all method dataframes
+    for df_meth in df_list:
+        #Add the row corresponding to the median value of SSE to the list
+        if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
+            #Find true mean
+            df_true_mean = df_meth["Min Obj Act"].mean()[0]
+        else:
+            #Find true mean
+            df_true_mean = df_meth["Min Obj Act"].mean()
+
+        #Find point closest to true mean
+        df_closest_to_mean = df_meth.iloc[(df_meth["Min Obj Act"]-df_true_mean).abs().argsort()[:1]]
+        #Add mean min and max points to dfs
+        df_mean = pd.concat([df_mean, df_closest_to_mean])
+        
+    #Calculate the L2 Norm for the median values
+    df_mean = calc_L2_norm(df_mean, theta_true)  
+    
+    #Save or show df
+    if save_csv:
+        #Save this as a csv in the same directory as all data
+        #Make directory if it doesn't already exist
+        if date_time_str is None:
+            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+        else:
+            dir_name =  date_time_str + study_id + "_study/" + cs_name
+        if not os.path.isdir(dir_name):
+            os.makedirs(dir_name)
+        #Add file to directory
+        file_name2 = dir_name + "/" + study_id + "_study_mean.csv"
+        df_mean.to_csv(file_name2) 
+        
+    return df_mean
     
 def converter(instr):
     """
