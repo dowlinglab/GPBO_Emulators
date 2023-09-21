@@ -51,19 +51,36 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     study_id: str "ep" or "sf", whether to analyze data for the 
     
     """
-    if study_id == "ep":
-        col_name = 'EP Method Val'
-        #Find all jobs of a certain cs and method type for the sf/ep studies
-        jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val, "sep_fact" : 1.0})
-    elif study_id == "sf":
-        col_name = 'Sep Fact'
-        #Need to fix this
-        jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val})
-    else:
-        raise Warning("study_id must be ep or sf!")
     #Get method name and CS name
     meth_name = Method_name_enum(meth_name_val)
     cs_name_enum = CS_name_enum(cs_name_val)
+    
+    #For the ep study
+    if study_id == "ep":
+        col_name = 'EP Method Val'
+        #Find all jobs of a certain cs and method type for the ep studies w/ SF = 1
+        jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val, "sep_fact" : 1.0})
+        
+    elif study_id == "sf":
+        col_name = 'Sep Fact'
+        
+        #Get best ep data from Results path if possible
+        path_name = "Results/ep_study/" + cs_name_enum.name + "/" + meth_name.name + "/ep_study_analysis.csv"
+        if os.path.exists(path_name):
+            df_ep_best = pd.read_csv(path_name, header = 0)
+        #If there is no results path infer it directly from the jobs
+        else:
+            df_ep, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, "ep", save_csv = False)
+            df_ep_best = get_best_data(df_ep, study_id, cs_name, theta_true, date_time_str = None, save_csv = False)
+
+        #Set ep enum val to the best one for that cs and method
+        best_ep_enum_val = df_ep_best["EP Method Val"].iloc[0]
+        
+        #Get all jobs with that ep enum val
+        jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val, "ep_enum_val": best_ep_enum_val})
+    
+    else:
+        raise Warning("study_id must be ep or sf!")
     
     #Do analysis for study
     #Initialize df for all sf/ep method data for each case study and method
@@ -441,7 +458,7 @@ def analyze_hypers(file_path, run_num):
     
     return hps, hp_names, hp_true
 
-def analyze_sse_min_sse_ei(file_path, run_num, value_names):
+def analyze_sse_min_sse_ei(file_path, run_num, strings_for_df):
     """
     Gets the data into an array for any comination of sse, log_sse, and ei
     
@@ -460,21 +477,17 @@ def analyze_sse_min_sse_ei(file_path, run_num, value_names):
     loaded_results = open_file_helper(file_path)
     runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
     num_sets = loaded_results[run_num].configuration["Max BO Iters"]
-    dim_data = len(value_names) #obj, min obj, and ei
+    data_names = ["sse", "min(sse)", "EI"]
+    dim_data = len(strings_for_df) #obj, min obj, and ei
     data = np.zeros((runs, num_sets, dim_data))
     data_true = None
 
     for j in range(runs):
         run = loaded_results[j]
         # Extract the array and convert other elements to float
-        for i in range(len(run.results_df["Min Obj"])):
-            sse = run.results_df["Min Obj"].to_numpy().astype(float)[i]
-            min_sse = run.results_df["Min Obj Cum."].to_numpy().astype(float)[i]
-            max_ei = run.results_df["Max EI"].to_numpy().astype(float)[i]
-            # Create the resulting array of shape (1, 10)
-            data[j,i,0] = sse
-            data[j,i,1] = min_sse
-            data[j,i,2] = max_ei
+        for i in range(len(run.results_df["Min Obj Act"])):
+            for k in range(len(strings_for_df)):
+                data[j,i,k] = run.results_df[strings_for_df[k]].to_numpy().astype(float)[i]
             
     return data, data_true
 

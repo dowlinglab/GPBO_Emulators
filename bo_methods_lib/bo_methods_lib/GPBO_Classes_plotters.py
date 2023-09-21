@@ -8,6 +8,7 @@ import matplotlib.ticker
 
 import matplotlib.pyplot as plt
 from .GPBO_Classes_New import Data
+from.analyze_data import analyze_SF_data_for_plot, analyze_sse_min_sse_ei, analyze_thetas
 
 def save_fig(path, ext='png', close=True, verbose=True):
     """Save a figure from pyplot.
@@ -57,7 +58,7 @@ def save_fig(path, ext='png', close=True, verbose=True):
         print("Done")
         
 
-def create_subplots(num_subplots):
+def create_subplots(num_subplots, sharex = "row"):
     """
     Creates Subplots based on the amount of data
     
@@ -80,7 +81,7 @@ def create_subplots(num_subplots):
         col_num = int(np.ceil(num_subplots/row_num))
         assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
         #Creat subplots
-        fig, axes = plt.subplots(nrows = row_num, ncols = col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = "row")
+        fig, axes = plt.subplots(nrows = row_num, ncols = col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = sharex)
         ax = axes.reshape(row_num * col_num)
     else:
         #One subplot if num_subplots = 1
@@ -133,12 +134,12 @@ def subplot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fon
     
     #Set bounds and aspect ratio
     
-    if np.isclose(np.min(plot_x), np.max(plot_x), rtol =1e-6) == False and plot_x is not None:        
+    if plot_x is not None and not np.isclose(np.min(plot_x), np.max(plot_x), rtol = 1e-6):        
         ax.set_xlim(left = np.min(plot_x), right = np.max(plot_x))
  
     ax.set_box_aspect(1)
     
-    if np.min(plot_y) == 0 and plot_y is not None:
+    if plot_y is not None and np.min(plot_y) == 0:
         ax.set_ylim(bottom = np.min(plot_y)-0.05, top = np.max(plot_y)+0.05)
 #     elif np.isclose(np.min(plot_y), np.max(plot_y), rtol =1e-6) == False:
 #         ax.set_ylim(bottom = np.min(plot_y)-abs(np.min(plot_y)*0.05), top = np.max(plot_y)+abs(np.min(plot_y)*0.05))
@@ -255,8 +256,89 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_l
     else:
         save_fig(save_path, ext='png', close=True, verbose=False)  
 
-    return 
+    return fig
 
+def plot_compare_method_values_over_bo(file_path_list, bo_method_list, run_num, string_for_df, data_names, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
+    """
+    Plots 5 value plots for EI, SSE, Min SSE, and EI values vs BO iter for all 5 methods
+    """
+     #Assert Statements
+    none_str_vars = [x_label, y_label, title, save_path]
+    int_vars = [xbins, ybins, title_fontsize, other_fontsize]
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, save_path, and ylabel must be string or None"
+    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
+    assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
+    assert isinstance(data_names, list) or data_names is None, "data_names must be list or None"
+    if isinstance(data_names, list):
+        assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
+    
+    #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
+    subplots_needed = len(file_path_list)
+    fig, ax, num_subplots = create_subplots(subplots_needed, sharex = False)
+    
+    #Print the title and labels as appropriate
+    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+    
+    #Loop over different hyperparameters (number of subplots)
+    for i in range(num_subplots):
+        #If you still have data to plot
+        if i < subplots_needed:
+            #Get data
+            data, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num, string_for_df)
+
+            #The index of the data is i, and one data type is in the last row of the data
+            one_data_type = data
+            #Loop over all runs
+            for j in range(one_data_type.shape[0]):
+                #Create label based on run #
+                label = "Run: "+str(j+1) 
+                #Remove elements that are numerically 0
+                data_df_run = pd.DataFrame(data = one_data_type[j])
+                data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-6).any(axis=1),0]
+                data_df_i = data_df_run.loc[:,0]
+                #Ensure we have at least 2 elements to plot
+                if len(data_df_j) < 2:
+                    data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
+                #Define x axis
+                bo_len = len(data_df_j)
+                bo_space = np.linspace(1,bo_len,bo_len)
+                #Set appropriate notation
+                if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
+                    ax[i].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                #Plot data
+                if log_data == True:
+                    data_df_j = np.log(data_df_j)
+                ax[i].step(bo_space, data_df_j, label = label)
+                #Plot true value if applicable
+                if data_true is not None and j == one_data_type.shape[0] - 1:
+                    ax[i].axhline(y=data_true[i], color = "red", linestyle='-', label = "True Value")
+                #Set plot details 
+                title = bo_method_list[i]
+                subplot_details(ax[i], bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
+        
+
+        #Set axes off if it's an extra
+        else:
+            ax[i].set_axis_off()
+            
+        #Fetch handles and labels on last iteration
+        if i == 0:
+            handles, labels = ax[0].get_legend_handles_labels()
+    
+    #Plots legend and title
+    plt.tight_layout()
+    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    
+    #save or show figure
+    if save_path is None:
+        plt.show()
+        plt.close()
+    else:
+        save_fig(save_path, ext='png', close=True, verbose=False)  
+        
+    return
+    
+    
 def plot_all_SF_data(df, xbins, ybins, title, x_label, y_label, log_data = False, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
     Plots the separation factor analysis
@@ -282,6 +364,7 @@ def plot_all_SF_data(df, xbins, ybins, title, x_label, y_label, log_data = False
     assert isinstance(log_data, bool), "log_data must be bool!"
     
     sep_facts = df["Sep Fact"].unique()
+    sep_facts_float = np.array(list(map(float, sep_facts)))
     bo_methods = df["BO Method"].unique()
    
     #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
@@ -298,21 +381,25 @@ def plot_all_SF_data(df, xbins, ybins, title, x_label, y_label, log_data = False
         if i < subplots_needed:
             #Get the values 
             y_data, data_names = analyze_SF_data_for_plot(df, bo_methods[i], sep_facts)  
-            ax[i].plot(sep_facts, y_data[:,0], color="green", label = data_names[0], zorder = 1)        
-            ax[i].plot(sep_facts, y_data[:,1], color="red", label = data_names[1], zorder = 2)
+            ax[i].plot(sep_facts_float, y_data[:,0], color="green", label = data_names[0], zorder = 1)        
+            ax[i].plot(sep_facts_float, y_data[:,1], color="red", label = data_names[1], zorder = 2)
             
             #Set title and subplot details
-            title = "SF Analysis " + df["BO Method"].unique()[i]
-            subplot_details(ax[i], sep_facts, y_data, None, None, title, xbins, ybins, other_fontsize)
+            title = df["BO Method"].unique()[i]
+            subplot_details(ax[i], sep_facts_float, y_data, None, None, title, xbins, ybins, other_fontsize)
 
         #Set axes off if it's an extra
         else:
             ax[i].set_axis_off()
             
         #Fetch handles and labels on last iteration
-        if i == num_subplots-1:
-            handles, labels = ax[data.shape[-1]-1].get_legend_handles_labels()
-            
+        if i == 0:
+            handles, labels = ax[0].get_legend_handles_labels()
+     
+    #Plots legend and title
+    plt.tight_layout()
+    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    
     #save or show figure
     if save_path is None:
         plt.show()
@@ -396,6 +483,7 @@ def plot_SF_data(x_data, y_data, data_names, data_true, xbins, ybins, title, x_l
         save_fig(save_path, ext='png', close=True, verbose=False)  
 
     return fig
+
 def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
     Plots x data vs y data for any given parameter set theta
