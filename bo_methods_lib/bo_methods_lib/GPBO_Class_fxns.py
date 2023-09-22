@@ -84,7 +84,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
     #CS2_4 to CS2_24
     elif 2 <= cs_name.value <= 7:                          
         theta_names = ['A_1', 'A_2', 'A_3', 'A_4', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4', 'c_1', 
-                       'c_2', 'c_3', 'c_4', 'x0_1', 'x0_2', 'x0_3', 'x0_4', 'x1_1', 'x1_2', 'x1_3', 'x1_4']
+                       'c_2', 'c_3', 'c_4', 'x0_1', 'x0_2', 'x0_3', 'x0_4', 'y0_1', 'y0_2', 'y0_3', 'y0_4']
         bounds_x_l = [-1.5, -0.5]
         bounds_x_u = [1, 2]
         bounds_theta_l = [-300,-200,-250, 5,-2,-2,-10, -2, -2,-2,5,-2,-20,-20, -10,-1 ,-2,-2,-2, -2,-2,-2,0,-2]
@@ -109,23 +109,77 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      seed,
                      calc_y_fxn)
 
-def set_idcs_to_consider(cs_name_val):
+
+def set_param_str(cs_name_val):
+    """
+    Sets parameter value string
+    
+    Parameters
+    ----------
+    cs_name_val: int, the string of the case study name
+    """
+    assert 7 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 7 inclusive"
+    
+    if cs_name_val == 1:
+        param_name_str = "t1t2"
+    elif cs_name_val == 2:
+        param_name_str = "A"
+    elif cs_name_val == 3:
+        param_name_str = "Aa"
+    elif cs_name_val == 4:
+        param_name_str = "Aab"
+    elif cs_name_val == 5:
+        param_name_str = "Aabc"
+    elif cs_name_val == 6:
+        param_name_str = "Aabcx0"
+    elif cs_name_val == 7:
+        param_name_str = "Aabcx0y0"
+        
+    return param_name_str
+        
+
+def set_idcs_to_consider(cs_name_val, param_name_str):
     """
     Sets indecies to consider based on problem name
     
     Parameters
     ----------
     cs_name_val: int, the string of the case study name
+    param_name_str: str, string of parameter names to include. t1 and t2 for CS1 and A,a,b,cx0,and y0 for CS2 Ex: 't1t2' or 'Aabcx0y0'.
     
     Returns
     -------
-    indecies_to_consider
+    indecies_to_consider, list. List of indecies to consider
     """
-    cs_val_idx = cs_name_val - 1
-    inc_to_consider_lo = [0, 0, 0, 0, 0, 0, 0]
-    inc_to_consider_hi = [2, 4, 8, 12, 16, 20, 24]
-        
-    idc_lo = inc_to_consider_lo[cs_val_idx]
-    idc_hi = inc_to_consider_hi[cs_val_idx]
+    assert 7 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 7 inclusive"
+    assert isinstance(param_name_str, str), "param_list must be str"
     
-    return idc_lo, idc_hi
+    if cs_name_val > 1:
+        indecies_to_consider = []
+        all_param_idx = [0,1,2,3, 4,5,6,7, 8,9,10,11, 12,13,14,15, 16,17,18,19, 20,21,22,23]
+
+        if "A" in param_name_str:
+            indecies_to_consider += all_param_idx[0:4]
+        if "a" in param_name_str:
+            indecies_to_consider += all_param_idx[4:8]
+        if "b" in param_name_str:
+            indecies_to_consider += all_param_idx[8:12]                
+        if "c" in param_name_str:
+            indecies_to_consider += all_param_idx[12:16]
+        if "x0" in param_name_str:
+            indecies_to_consider += all_param_idx[16:20]
+        if "y0" in param_name_str:
+            indecies_to_consider += all_param_idx[20:]
+        
+    elif cs_name_val == 1:
+        param_name_str = "t1t2"
+        indecies_to_consider = []
+        all_param_idx = [0,1]
+        if "t1" in param_name_str:
+            indecies_to_consider += [all_param_idx[0]]
+        if "t2" in param_name_str:
+            indecies_to_consider += [all_param_idx[1]]
+    else:
+        raise Warning("Try again")
+    
+    return indecies_to_consider

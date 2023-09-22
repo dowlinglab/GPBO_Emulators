@@ -2748,7 +2748,7 @@ class GPBO_Driver:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_params, method, simulator, exp_data, sim_data, sim_sse_data, val_data, val_sse_data, gp_emulator, ep_bias, gen_meth_theta_val):
+    def __init__(self, cs_params, method, simulator, exp_data, sim_data, sim_sse_data, val_data, val_sse_data, gp_emulator, ep_bias, gen_meth_theta):
         """
         Parameters
         ----------
@@ -2762,7 +2762,7 @@ class GPBO_Driver:
         val_sse_data: Instance of Data class or None, class containing at least theta and x sse simulation data or None
         gp_emulator: Instance of GP_Emulator class, class containing gp_emulator data (set after training)
         ep_bias: Instance of Exploration_Bias class, class containing exploration parameter info
-        gen_meth_theta_val: Instance of Gen_meth_enum or None: The method by which validation data is generated. For heat map making
+        gen_meth_theta: Instance of Gen_meth_enum or None: The method by which simulation data is generated. For heat map making
         """
         # Constructor method
         self.cs_params = cs_params
@@ -2775,7 +2775,7 @@ class GPBO_Driver:
         self.val_sse_data = val_sse_data
         self.gp_emulator = gp_emulator
         self.ep_bias = ep_bias
-        self.gen_meth_theta_val = gen_meth_theta_val
+        self.gen_meth_theta = gen_meth_theta
         self.bo_iter_term_frac = 0.3 #The fraction of iterations after which to terminate bo if no sse improvement is made
         self.sse_penalty = 1e7 #The penalty the __scipy_opt function gets for choosing nan theta values
                
@@ -2982,22 +2982,22 @@ class GPBO_Driver:
         --------
         heat_map_data_dict: dict, heat map data for each set of 2 parameters indexed by parameter name tuple ("param_1,param_2")
         """      
-        assert isinstance(self.gp_emulator.gp_val_data, Data), "self.gp_emulator.gp_val_data must be an instance of Data!"
-        assert isinstance(self.gen_meth_theta_val, Gen_meth_enum), "self.gen_meth_theta_val must be instance of Gen_meth_enum"
+        assert isinstance(self.gp_emulator.gp_sim_data, Data), "self.gp_emulator.gp_sim_data must be an instance of Data!"
+        assert isinstance(self.gen_meth_theta, Gen_meth_enum), "self.gen_meth_theta must be instance of Gen_meth_enum"
         
         #Create list of heat map theta data
         heat_map_data_dict = {}
         
         #Create a linspace for the number of dimensions and define number of points
         dim_list = np.linspace(0,self.simulator.dim_theta-1,self.simulator.dim_theta)
-        n_thetas_points = len(self.gp_emulator.gp_val_data.get_unique_theta())
+        n_thetas_points = len(self.gp_emulator.gp_sim_data.get_unique_theta())
 
         #Create a list of all combinations (without repeats e.g no (1,1), (2,2)) of dimensions of theta
         mesh_combos = np.array(list(combinations(dim_list, 2)), dtype = int)
         
         #Initialze meshgrid-like set of theta values at their true values 
         #If points were generated with an LHS, the number of points per parameter is n_thetas_points for the meshgrid
-        if self.gen_meth_theta_val.value == 1:
+        if self.gen_meth_theta.value == 1:
             n_points = n_thetas_points
         else:
             #For a meshgrid, the number of theta values/ parameter is n_thetas_points for the meshgrid ^(1/theta_dim)
@@ -3326,13 +3326,14 @@ class GPBO_Driver:
             bo_results.configuration = configuration.copy()
             #Add simulator class
             bo_results.simulator_class = simulator_class
-            #On the 1st iteration, create heat map data if we are actually generating the data
-            if self.cs_params.gen_heat_map_data == True:
-                if i == 0:
+            #On the 1st iteration, create heat map data if we are actually generating the data           
+            if i == 0:
+                if self.cs_params.gen_heat_map_data == True:
                     #Generate heat map data for each combination of parameter values stored in a dictionary
                     heat_map_data_dict = self.create_heat_map_param_data()
-                #Save these heat map values in the bo_results object
-                bo_results.heat_map_data_dict = heat_map_data_dict
+                    # Save these heat map values in the bo_results object 
+                    # Only store in first list entry to avoid repeated data which stays the same for each iteration.
+                    bo_results.heat_map_data_dict = heat_map_data_dict
             restart_bo_results.append(bo_results)
             #Add 2 to the seed for each restart (1 for the sim/exp data seed and 1 for validation data seed) to get completely new seeds
             self.cs_params.seed += 2

@@ -3,7 +3,7 @@ import numpy as np
 import os
 import bo_methods_lib
 from bo_methods_lib.bo_methods_lib.analyze_data import get_study_data_signac, get_best_data
-from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_idcs_to_consider
+from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_param_str
 
 project = signac.init_project()
 
@@ -41,16 +41,19 @@ num_theta_multiplier = 10 #How many simulation data points to generate is equal 
 #Note: Add loop for idc to consider for lo and hi for CS2 based on something
 #Loop over Case Studies
 for cs_name_val in cs_val_list:
-    idcs_to_consider_rng = set_idcs_to_consider(cs_name_val)
+    #Set idcs to consider
+    param_name_str = set_param_str(cs_name_val)
+    
     #If CS1, Run the full exploration parameter study and/or the sf study, otherwise, just use the constant method
+    #If cs > 1, do not generate validation data
     if cs_name_val > 1:
         ep_val_list = [1]
-        
-    #If cs > 2, do not generate validation or heat map data
-    if cs_name_val > 2:
         num_val_pts = 0
-        gen_heat_map_data = False
         gen_meth_theta_val = None
+        
+    #If cs > 2 do not generate heat map data either
+    if cs_name_val > 2:
+        gen_heat_map_data = False
         
     #Loop over methods
     for meth_name_val in meth_val_list:
@@ -61,8 +64,7 @@ for cs_name_val in cs_val_list:
             #Create job parameter dict
             sp = {"cs_name_val": cs_name_val, 
                   "meth_name_val": meth_name_val,
-                  "idc_lo": idcs_to_consider_rng[0],
-                  "idc_hi": idcs_to_consider_rng[1],
+                  "param_name_str": param_name_str,
                   "ep0": ep0, 
                   "ep_enum_val": ep_enum_val,
                   "sep_fact" : sep_fact,
@@ -115,8 +117,7 @@ for cs_name_val in cs_val_list:
                 #Create job parameter dict
                 sp = {"cs_name_val": cs_name_val, 
                       "meth_name_val": meth_name_val,
-                      "idc_lo": idcs_to_consider_rng[0],
-                      "idc_hi": idcs_to_consider_rng[1],
+                      "param_name_str": param_name_str,
                       "ep0": ep0, 
                       "ep_enum_val": ep_enum_val,
                       "sep_fact" : sep_fact,

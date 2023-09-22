@@ -5,10 +5,12 @@ from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 import os
 import matplotlib.ticker
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import matplotlib.pyplot as plt
 from .GPBO_Classes_New import Data
-from.analyze_data import analyze_SF_data_for_plot, analyze_sse_min_sse_ei, analyze_thetas, get_best_data, get_median_data, get_mean_data
+from.analyze_data import analyze_SF_data_for_plot, analyze_sse_min_sse_ei, analyze_thetas, get_best_data, get_median_data, get_mean_data, analyze_heat_maps
+
 
 def save_fig(path, ext='png', close=True, verbose=True):
     """Save a figure from pyplot.
@@ -1004,3 +1006,153 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
         plt.close()
     
     return plt.show()
+
+def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_iter_list, pair, z_choice, levels, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, cmap = "autumn", save_path = None):
+    '''
+    Plots comparison of y_sim, GP_mean, and GP_stdev
+    Parameters
+    ----------
+        file_path_list: list of str, The file paths of data we want to make plots for
+        bo_methods_list: str, The list of bo method names under consideration
+        run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
+        bo_iter_list: list of int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
+        pair: int or tuple of str, The pair of data parameters
+        z_choice: str, "sse_sim", "sse_mean", "sse_var", or "ei". The values that will be plotted
+        levels: int, list of int or None, Number of levels to skip when drawing contour lines
+        xbins: int, Number of bins for x
+        ybins: int, Number of bins for y
+        zbins: int, Number of bins for z
+        title: str or None, Title of graph
+        title_fontsize: int, fontisize for title. Default 24
+        other_fontsize: int, fontisize for other values. Default 20
+        save_path: str or None, Path to save figure to. Default None (do not save figure).    
+    Returns
+    -------
+        plt.show(), A heat map of test_mesh and z
+    '''
+    
+    #Assert Statements
+    none_str_vars = [title, save_path]
+    int_vars = [xbins, ybins, zbins, title_fontsize, other_fontsize]
+    list_vars = [file_path_list, bo_methods_list, run_num_list, bo_iter_list]
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path  must be string or None"
+    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
+    assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive" 
+    assert isinstance(levels, (list, int)) or levels is None, "levels must be list of int, int, or None"
+    if isinstance(levels, (list)) == True:
+        assert all(isinstance(var, int) for var in levels), "If a list, levels must be list of int"
+    assert all(isinstance(item, int) for item in run_num_list), "run_num_list elements must be int"
+    assert all(isinstance(item, int) for item in bo_iter_list), "bo_iter_list elements must be int"
+    assert all(isinstance(item, str) for item in file_path_list), "file_path_list elements must be str"
+    assert all(isinstance(item, str) for item in bo_methods_list), "bo_methods_list elements must be str"
+    assert isinstance(z_choice, str), "z_choice must be string"
+    assert z_choice in ['sse_sim', 'sse_mean', 'sse_var','ei'], "z_choice must be 'sse_sim', 'sse_mean', 'sse_var', or 'ei'"
+    
+    
+    #Define plot levels
+    if levels is None:
+        tot_lev = None
+    elif len(levels) == 1:
+        tot_lev = levels*len(z) 
+    else:
+        tot_lev = levels
+    
+    #Make figures and define number of subplots based on number of files (different methods)  
+    subplots_needed = len(file_path_list)
+    fig, ax, num_subplots = create_subplots(subplots_needed)
+
+    #Set plot details
+    #Loop over number of subplots
+    for i in range(num_subplots):
+        if i < len(file_path_list):
+            #Get data
+            analysis_list = analyze_heat_maps(file_path_list[i], run_num_list[i], bo_iter_list[i], pair)
+            sim_sse_var_ei, test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, idcs_to_plot = analysis_list
+            sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
+            
+            #Assert sattements
+            #Get x and y data from test_mesh
+            xx , yy = test_mesh #NxN, NxN
+            assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
+            
+            #Find z based on 
+            if z_choice == "sse_sim":
+                z = sse_sim
+            elif z_choice == "sse_mean":
+                z = sse_mean
+            elif z_choice == "sse_var":
+                z = sse_var
+            elif z_choice == "ei":
+                z = ei
+            else:
+                raise Warning("choice must be 'sse_sim', 'sse_mean', 'sse_var', or 'ei'")
+                
+            #Assert statements
+            assert z.shape==xx.shape, "Array z must be NxN"
+
+            #Set number format based on magnitude
+            if np.amax(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000:
+                fmt = '%.2e'           
+            else:
+                fmt = '%2.2f'
+
+            #Create a colormap and colorbar for each subplot
+            cs_fig = ax[i].contourf(xx, yy, z, levels = zbins, cmap = plt.cm.get_cmap(cmap))
+                
+            
+            #Create a line contour for each colormap
+            if levels is not None:   
+                cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+                ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
+
+            #plot min obj, max ei, true and training param values as appropriate
+            if theta_true is not None:
+                ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1))
+            if train_theta is not None:
+                ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]],color="green",s=100,label="Train",marker= "x")
+            if theta_opt is not None:
+                ax[i].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
+            if theta_next is not None:
+                ax[i].scatter(theta_next[idcs_to_plot[0]],theta_next[idcs_to_plot[1]],color="black",s=150,label ="Max EI",marker = ".")
+
+            #Set plot details
+            subplot_details(ax[i], xx, yy, None, None, bo_methods_list[i], xbins, ybins, other_fontsize)
+            
+            #Get legend information
+            if i == len(file_path_list)-1:
+                handles, labels = ax[i].get_legend_handles_labels() 
+
+        else:
+           #Set axes off if it's an extra
+            ax[i].set_axis_off()
+            
+        #Make colorbar on last plot which is invisible
+        if i == num_subplots - 1:
+            divider1 = make_axes_locatable(ax[i])
+            cax1 = divider1.append_axes("left", size="8%", pad=0.01)
+            cbar = fig.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
+            cbar.ax.tick_params(labelsize=other_fontsize)
+                      
+    #Print the title
+    if title is not None:
+        title = title + str(plot_axis_names)
+        
+    #Print the title and labels as appropriate
+    #Define x and y labels
+    xlabel = r'$\mathbf{'+ plot_axis_names[0]+ '}$'
+    ylabel = r'$\mathbf{'+ plot_axis_names[1]+ '}$'
+    set_plot_titles(fig, title, xlabel, ylabel, title_fontsize, other_fontsize)
+    
+    #Plots legend and title
+    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    plt.tight_layout()
+
+    #Save or show figure
+    if save_path is not None:
+        save_fig(save_path, ext='png', close=True, verbose=False)  
+    else:
+        plt.show()
+        plt.close()
+    
+    return plt.show()
+

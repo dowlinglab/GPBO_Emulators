@@ -715,6 +715,12 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id):
     #Calculate SSE, SSE var, and EI with GP
     if method.emulator == False:
         heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data)
+        #Take exp of sse data for method B1
+        if method.obj.value == 2:
+            heat_map_data.sse = np.exp(heat_map_data.sse)
+            heat_map_data.sse_var = np.exp(heat_map_data.sse)
+            heat_map_sse_data.y_vals = np.exp(heat_map_sse_data.y_vals)
+            
     else:
         heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data, exp_data)
 

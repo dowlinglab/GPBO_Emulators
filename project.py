@@ -11,7 +11,7 @@ import bo_methods_lib
 import templates.ndcrc
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import Method_name_enum, Ep_enum, CS_name_enum, Kernel_enum, Gen_meth_enum
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import GPBO_Methods, Exploration_Bias, CaseStudyParameters, GPBO_Driver
-from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns, calc_muller, calc_cs1_polynomial
+from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns, calc_muller, calc_cs1_polynomial, set_idcs_to_consider
 import pickle
 import gzip
 
@@ -43,7 +43,7 @@ def run_ep_or_sf_exp(job):
     method = GPBO_Methods(meth_name)
     ep_enum = Ep_enum(job.sp.ep_enum_val)
     cs_name_enum = CS_name_enum(job.sp.cs_name_val)
-    indecies_to_consider = list(range(job.sp.idc_lo, job.sp.idc_hi))
+    indecies_to_consider = set_idcs_to_consider(job.sp.cs_name_val, job.sp.param_name_str)
     kernel = Kernel_enum(job.sp.kernel_enum_val)
     
     #Define Simulator Class
@@ -93,7 +93,7 @@ def run_ep_or_sf_exp(job):
                                     job.sp.retrain_GP, job.sp.reoptimize_obj, job.sp.gen_heat_map_data, job.sp.bo_iter_tot,
                                     job.sp.bo_run_tot, job.sp.save_data, None, job.sp.seed, job.sp.ei_tol, job.sp.obj_tol)
     #Initialize driver class
-    driver = GPBO_Driver(cs_params, method, simulator, exp_data, sim_data, sim_sse_data, val_data, val_sse_data, None, ep_bias, gen_meth_theta_val)
+    driver = GPBO_Driver(cs_params, method, simulator, exp_data, sim_data, sim_sse_data, val_data, val_sse_data, None, ep_bias, gen_meth_theta)
     #Get results
     restart_bo_results = driver.run_bo_restarts()
     
