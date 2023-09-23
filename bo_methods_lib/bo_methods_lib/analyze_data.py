@@ -34,15 +34,15 @@ def open_file_helper(file_path):
     
     return results
 
-def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_csv = False):
+def get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, study_id, save_csv = False):
     """
     Get best ep or sf data from jobs and optionally save the csvs for the data
     
     Parameters
     ----------
     project: Signac Project class, project storing the study jobs
-    cs_name_val: int, the number value of the case study
-    meth_name_val: int, the number value of the BO method
+    param_name_str: str, string of parameters in case study
+    meth_name_val: int, the number value of the BO method    
     study_id: str "ep" or "sf", whether to analyze data for the 
     save_csv: bool, Whether or not to save csv data from analysis
     
@@ -60,7 +60,7 @@ def get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_cs
     if study_id == "ep":
         col_name = 'EP Method Val'
         #Find all jobs of a certain cs and method type for the ep studies w/ SF = 1
-        jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val, "sep_fact" : 1.0})
+        jobs = project.find_jobs({"param_name_str": param_name_str, "meth_name_val" : meth_name_val, "sep_fact" : 1.0})
         
     elif study_id == "sf":
         col_name = 'Sep Fact'
