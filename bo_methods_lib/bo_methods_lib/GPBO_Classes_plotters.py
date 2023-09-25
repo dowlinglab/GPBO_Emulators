@@ -961,7 +961,11 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
                 fmt = '%2.2f'
 
             #Create a colormap and colorbar for each subplot
-            cs_fig = ax[i].contourf(xx, yy, z[i], levels = zbins, cmap = plt.cm.get_cmap(cmap))
+            try:
+                cs_fig = ax[i].contourf(xx, yy, z[i], levels = zbins, cmap = plt.cm.get_cmap(cmap))
+            except:
+                cs_fig = ax[i].contourf(xx, yy, z[i], levels = [np.max(z[i])-1e-9, np.max(z[i])], cmap = plt.cm.get_cmap(cmap))
+            
             cbar = plt.colorbar(cs_fig, ax = ax[i], format=fmt)
             cbar.ax.tick_params(labelsize=other_fontsize)
 
@@ -996,10 +1000,11 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
               
     #Plots legend and title
     fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
-    plt.tight_layout()
+    fig.tight_layout()
 
     #Save or show figure
-    if save_path is not None:
+    if save_path is not None:          
+        save_path = save_path + "Heat_Maps/" + param_names[0] + "-" + param_names[1] + "/" +'-'.join(z_titles)
         save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()

@@ -2348,8 +2348,8 @@ class Expected_Improvement():
                     #Add that x data point's ei to the total ei
                     ei_theta += ei_temp
 
-                    #Save ei to array
-                    ei[i] = ei_theta            
+                #Save ei to array
+                ei[i] = ei_theta            
                 
             else:
                 raise ValueError("method.method_name.value must be 3 (2A), 4 (2B), or 5 (2C)")
@@ -2491,23 +2491,21 @@ class Expected_Improvement():
         -------
         ei: ndarray, the expected improvement for one term of the GP model
         """
+
         #Obtain Sparse Grid points and weights
-        points_p, weights_p = self.__get_sparse_grids(len(y_target),output=0,depth=3, rule='gauss-hermite', verbose = False)
+        points_p, weights_p = self.__get_sparse_grids(len(y_target), output=0, depth=3, rule='gauss-hermite', verbose=False)
         
-        #Initialize EI
-        ei_temp = 0
-        #Loop over sparse grid weights and nodes
-        for i in range(len(points_p)):
-            #Initialize SSE
-            sse_temp = 0
-            #Loop over experimental data points
-            
-            for j in range(len(y_target)):
-                sse_temp += (y_target[j] - gp_mean[j] - gp_var[j]*points_p[i,j])**2
-    #             SSE_Temp += (Yexp[j] - GP_mean[j] - ep - GP_stdev[j]*points_p[i,j])**2 #If there is an ep, need to add
-            #Apply max operator (equivalent to max[SSE_Temp - (best_error*ep),0])
-            min_list = [sse_temp - (self.best_error*self.ep_bias.ep_curr),0] 
-            ei_temp += weights_p[i]*(-np.min(min_list)) 
+        # Calculate gp_var multiplied by points_p
+        gp_var_points_p = gp_var * points_p
+        
+        # Calculate the SSE for all data points simultaneously
+        sse_temp = np.sum((y_target[:, np.newaxis] - gp_mean[:, np.newaxis] - gp_var_points_p.T)**2, axis=0)
+        
+        # Apply -min operator (equivalent to max[SSE_Temp - (best_error*ep),0])
+        min_list = -np.minimum(sse_temp - (self.best_error*self.ep_bias.ep_curr), 0)
+        
+        # Calculate EI_temp using vectorized operations
+        ei_temp = np.dot(weights_p, min_list)
             
         return ei_temp
 
@@ -3316,7 +3314,8 @@ class GPBO_Driver:
                          "Number of Workflow Restarts" : self.cs_params.bo_run_tot,
                          "Seed" : self.cs_params.seed,
                          "EI Tolerance" : self.cs_params.ei_tol,
-                         "Obj Improvement Tolerance" : self.cs_params.obj_tol}
+                         "Obj Improvement Tolerance" : self.cs_params.obj_tol,
+                         "Theta Generation Enum Value": gen_meth_theta.value}
                 
         for i in range(self.cs_params.bo_run_tot):
             bo_results = self.__run_bo_workflow()

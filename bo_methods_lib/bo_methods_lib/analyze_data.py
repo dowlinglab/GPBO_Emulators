@@ -123,7 +123,7 @@ def get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, s
     #Put it in a csv file in a directory based on the method and case study
     if save_csv:
         #Make directory name
-        dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + meth_name.name
+        dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + param_name_str + "/" + meth_name.name
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
@@ -205,7 +205,7 @@ def get_study_data_org(date_time_str, name_cs_str, meth_name_str_list, study_id,
     
     return all_result_df, theta_true
 
-def get_best_data(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = False):
+def get_best_data(df, study_id, cs_name, theta_true, param_name_str = None, date_time_str = None, save_csv = False):
     """
     Given all data from a study, find the best value
     
@@ -269,7 +269,10 @@ def get_best_data(df, study_id, cs_name, theta_true, date_time_str = None, save_
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
         if date_time_str is None:
-            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+            if len(df['BO Method'].unique()) == 1:
+                dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
+            else:
+                dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str
         else:
             dir_name =  date_time_str + study_id + "_study/" + cs_name
         if not os.path.isdir(dir_name):
@@ -280,7 +283,7 @@ def get_best_data(df, study_id, cs_name, theta_true, date_time_str = None, save_
         
     return df_best
 
-def get_median_data(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = False):
+def get_median_data(df, study_id, cs_name, theta_true, param_name_str = None, date_time_str = None, save_csv = False):
     """
     Given data from a study, find the median value(s)
     
@@ -331,7 +334,7 @@ def get_median_data(df, study_id, cs_name, theta_true, date_time_str = None, sav
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
         if date_time_str is None:
-            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
         else:
             dir_name =  date_time_str + study_id + "_study/" + cs_name
         if not os.path.isdir(dir_name):
@@ -342,7 +345,7 @@ def get_median_data(df, study_id, cs_name, theta_true, date_time_str = None, sav
         
     return df_median
 
-def get_mean_data(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = False):
+def get_mean_data(df, study_id, cs_name, theta_true, param_name_str = None, date_time_str = None, save_csv = False):
     """
     Given data from a study, find the mean value(s)
     
@@ -398,7 +401,7 @@ def get_mean_data(df, study_id, cs_name, theta_true, date_time_str = None, save_
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
         if date_time_str is None:
-            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + df['BO Method'].iloc[0]
+            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
         else:
             dir_name =  date_time_str + study_id + "_study/" + cs_name
         if not os.path.isdir(dir_name):
@@ -661,24 +664,33 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id):
     loaded_results = open_file_helper(file_path)
     
     #Create Heat Map Data for a run and iter
-    #Just choose the 1st key for example purposes
-    if isinstance(pair_id, str):
-        param_names = pair_id
-    elif isinstance(pair_id, int):
-        param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[0]
-    else:
-        raise Warning("Invalid pair_id!")
 
     #Regeneate simulator, gp_emulator, exerimental data, best error, true theta, lowest obj theta, and highest ei theta
     gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
-    heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
+    exp_data = loaded_results[run_num].exp_data_class
+    simulator = loaded_results[run_num].simulator_class
+    
+    if loaded_results[run_num].heat_map_data_dict is not None:
+        heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
+    else:
+        cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
+        driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, None, gen_meth_theta)
+        loaded_results[run_num].heat_map_data_dict = driver.create_heat_map_param_data()
+        heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
+        
+    #Get pair ID
+    if isinstance(pair_id, str):
+        param_names = pair_id
+    elif isinstance(pair_id, int):
+        param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[pair_id]
+    else:
+        raise Warning("Invalid pair_id!")
+        
     heat_map_data = heat_map_data_dict[param_names]
     featurized_hm_data = gp_emulator.featurize_data(heat_map_data)
-    simulator = loaded_results[run_num].simulator_class
-
+    
     #Get index of param set
-    idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]
-    exp_data = loaded_results[run_num].exp_data_class
+    idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]   
     best_error =  loaded_results[run_num].results_df["Best Error"].iloc[bo_iter]
     theta_true = loaded_results[run_num].simulator_class.theta_true
     theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
@@ -800,7 +812,40 @@ def analyze_xy_plot(file_path, run_num, bo_iter, x_lin_pts):
     
     return theta_opt_data, exp_data, train_data, test_data
 
-def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice, seed):
+def get_driver_dependencies_from_results(loaded_results, run_num):
+    """
+    builds instance of CaseStudyParameters from saved file data
+    """
+    simulator = loaded_results[run_num].simulator_class
+    configuration = loaded_results[run_num].configuration
+    method = GPBO_Methods(Method_name_enum(configuration["Method Name Enum Value"]))
+    cs_name = configuration["Case Study Name"]
+    ep0 = loaded_results[run_num].results_df["Exploration Bias"].iloc[0]
+    sep_fact = configuration["Separation Factor"]
+    normalize = simulator.normalize
+    kernel = configuration["Initial Kernel"]
+    lenscl = configuration["Initial Lengthscale"]
+    outputscl = configuration["Initial Outputscale"]
+    retrain_GP = configuration["Retrain GP"]
+    reoptimize_obj = configuration["Reoptimize Obj"]
+    gen_heat_map_data = configuration["Heat Map Points Generated"]
+    bo_iter_tot = configuration["Max BO Iters"]
+    bo_run_tot = configuration["Number of Workflow Restarts"]
+    save_data = False
+    DateTime = configuration["DateTime String"]
+    seed = configuration["Seed"]
+    obj_tol = configuration["Obj Improvement Tolerance"]
+    ei_tol = configuration["EI Tolerance"]
+    if "Theta Generation Enum Value" in configuration.keys():
+        gen_meth_theta = Gen_meth_enum(configuration["Theta Generation Method"])
+    else:
+        gen_meth_theta = Gen_meth_enum(1)
+    
+    cs_params = CaseStudyParameters(cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, seed, obj_tol, ei_tol)
+    
+    return cs_params, method, gen_meth_theta
+    
+def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice, seed, gen_meth_theta = Gen_meth_enum(1)):
     """
     Compares simulation and GP data for the Muller potential over a heat map
     
@@ -810,7 +855,7 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
     run_num: int, The run you want to analyze. Note, run_num 1 corresponds to index 0
     bo_iter: int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
     x_val_num: int, The number of x values to make heat maps over in each dimension of x data
-    theta_choice: 1D ndarray or None, the theta_value to evaluate the heat map at. If none, chosen based off seed
+    theta_choice: 1D ndarray, or None, the theta_value to evaluate the heat map at. If none, chosen based off seed
     seed: int, the seed for theta_choice if applicable
     
     Returns
@@ -827,17 +872,26 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
     run_num -= 1
     bo_iter -= 1
     loaded_results = open_file_helper(file_path)
-    
     #get exp_data and theta_opt
     exp_data = loaded_results[run_num].exp_data_class
     gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
     simulator = loaded_results[run_num].simulator_class
     sep_fact = loaded_results[run_num].configuration["Separation Factor"]
+    method = GPBO_Methods(Method_name_enum(loaded_results[run_num].configuration["Method Name Enum Value"]))
+    
     theta_true = loaded_results[run_num].simulator_class.theta_true
     theta_obj_min =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
     theta_ei_max = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
     train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
-    param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[0]
+    
+    if loaded_results[run_num].heat_map_data_dict is not None:
+        param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[0]
+    else:
+        cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
+        driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, None, gen_meth_theta)
+        loaded_results[run_num].heat_map_data_dict = driver.create_heat_map_param_data()
+        param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[0]
+        
     idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]
     idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]
     
@@ -846,6 +900,7 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
     sim_data_x = simulator.gen_sim_data(1, x_val_num, Gen_meth_enum(1), Gen_meth_enum(2), sep_fact, False)
     if theta_choice is not None:
         sim_data_x.theta_vals[:] = theta_choice
+        sim_data_x.y_vals = simulator.gen_y_data(sim_data_x, 0, 0)
     
     theta_value = sim_data_x.theta_vals[0]
     featurized_sim_x_data = gp_emulator.featurize_data(sim_data_x)
@@ -858,6 +913,10 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
     y_sim = sim_data_x.y_vals.reshape(x_val_num, x_val_num).T
     gp_mean = sim_data_x.gp_mean.reshape(x_val_num, x_val_num).T
     gp_var = sim_data_x.gp_var.reshape(x_val_num, x_val_num).T
+    
+    if method.emulator == False and method.obj.value ==2:
+        gp_mean = np.exp(sim_data_x.gp_mean.reshape(x_val_num, x_val_num).T)
+        gp_var  =  np.exp(sim_data_x.gp_var.reshape(x_val_num, x_val_num).T)
     
     return test_mesh, y_sim, gp_mean, gp_var, theta_value, exp_data.x_vals, idcs_to_plot
 
