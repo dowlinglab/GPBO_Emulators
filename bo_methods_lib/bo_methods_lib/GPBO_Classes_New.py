@@ -1917,9 +1917,10 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Note to do this Xexp and X **must** use the same values
         if len_theta > 0: #Only do this if you actually have data
             for i in range(0, len_theta, len_x):
-                sse_mean.append( sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) ) #Scaler 
-                error_point = (data.gp_mean[i:i+len_x] - exp_data.y_vals) #This SSE_variance CAN be negative
-                sse_var.append( 2*error_point@data.gp_var[i:i+len_x] ) #Error Propogation approach
+                sse_mean.append( sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) ) #Vector 
+                error_points_sq = (2*(data.gp_mean[i:i+len_x] - exp_data.y_vals))**2 #Vector
+                #sse_var = (2*(GP -y ))**2 * var
+                sse_var.append( (error_points_sq@data.gp_var[i:i+len_x]) ) #This SSE_variance CAN'T be negative
         
         #Lists to arrays
         sse_mean = np.array(sse_mean)
@@ -2383,47 +2384,57 @@ class Expected_Improvement():
         ei: ndarray, the expected improvement for one term of the GP model
         """
         
-        #Defines standard devaition
-        pred_stdev = np.sqrt(gp_var)
+        #Initialize ei as all zeros
+        ei = np.zeros(len(gp_var))
+
+        #Create a mask for values where var > 0. Set a value of 1e-14?
+        pos_stdev_mask = (gp_var > 0)
+
+        #Assuming all standard deviations are not zero
+        if np.any(pos_stdev_mask):
+            #Get indices and values where stdev > 0
+            valid_indices = np.where(pos_stdev_mask)[0]
+            pred_stdev_val = np.sqrt(gp_var[valid_indices])
+            gp_var_val = gp_var[valid_indices]
+            gp_mean_val = gp_mean[valid_indices]
+            y_target_val = y_target[valid_indices]
+
+            #If variance is close to zero this is important
+            with np.errstate(divide = 'warn'):
+                #Creates upper and lower bounds and described by Equation X in Manuscript
+                bound_a = ((y_target_val - gp_mean_val) + np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev_val
+                bound_b = ((y_target_val - gp_mean_val) - np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev_val
+                bound_lower = np.minimum(bound_a,bound_b)
+                bound_upper = np.maximum(bound_a,bound_b)        
+
+                #Creates EI terms in terms of Equation X in Manuscript
+                ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
+                ei_term1_comp2 = (self.best_error*self.ep_bias.ep_curr) - (y_target_val - gp_mean_val)**2
+
+                ei_term2_comp1 = 2*(y_target_val - gp_mean_val)*pred_stdev_val
+                ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
+                ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
+                ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
+
+                ei_term3_comp1 = bound_upper*ei_eta_upper
+                ei_term3_comp2 = bound_lower*ei_eta_lower
+
+                ei_term3_comp3 = (1/2)*scipy.special.erf(bound_upper/np.sqrt(2))
+                ei_term3_comp4 = (1/2)*scipy.special.erf(bound_lower/np.sqrt(2))  
+
+                ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3
+                ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4
+
+                ei_term1 = ei_term1_comp1*ei_term1_comp2
+                ei_term2 = ei_term2_comp1*ei_term2_comp2
+                ei_term3 = -gp_var_val*(ei_term3_psi_upper-ei_term3_psi_lower)
+
+                #Set EI values of indecies where pred_stdev > 0 
+                ei[valid_indices] = ei_term1 + ei_term2 + ei_term3
         
-        #For calculations, set stdev <= 0 to 1e-14. EI may be slightly different for these points, but allow calculations to continue
-        pred_stdev[pred_stdev <= 0] = 1e-14
-
-        #If variance is close to zero this is important
-        with np.errstate(divide = 'warn'):
-            #Creates upper and lower bounds and described by Equation X in Manuscript
-            bound_a = ((y_target - gp_mean) + np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev
-            bound_b = ((y_target - gp_mean) - np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev
-            bound_lower = np.minimum(bound_a,bound_b)
-            bound_upper = np.maximum(bound_a,bound_b)        
-
-            #Creates EI terms in terms of Equation X in Manuscript
-            ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
-            ei_term1_comp2 = (self.best_error*self.ep_bias.ep_curr) - (y_target - gp_mean)**2
-
-            ei_term2_comp1 = 2*(y_target - gp_mean)*pred_stdev
-            ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
-            ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
-            ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
-
-            ei_term3_comp1 = bound_upper*ei_eta_upper
-            ei_term3_comp2 = bound_lower*ei_eta_lower
-
-            ei_term3_comp3 = (1/2)*scipy.special.erf(bound_upper/np.sqrt(2))
-            ei_term3_comp4 = (1/2)*scipy.special.erf(bound_lower/np.sqrt(2))  
-
-            ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3
-            ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4
-
-            ei_term1 = ei_term1_comp1*ei_term1_comp2
-            ei_term2 = ei_term2_comp1*ei_term2_comp2
-            ei_term3 = -gp_var*(ei_term3_psi_upper-ei_term3_psi_lower)
-
-            ei = ei_term1 + ei_term2 + ei_term3
-            
         #The Ei is the sum of the ei at each value of x
         ei_temp = np.sum(ei)
-
+        
         return ei_temp
 
     def __calc_ei_log_emulator(self, gp_mean, gp_var, y_target):
@@ -2440,28 +2451,40 @@ class Expected_Improvement():
         -------
         ei: ndarray, the expected improvement for one term of the GP model
         """
-        #Defines standard devaition
-        pred_stdev = np.sqrt(gp_var) #1xn
             
-        #For calculations, set stdev == 0 to 1e-14. EI may be slightly different, but allow calculations to continue
-        pred_stdev[pred_stdev <= 0] = 1e-14
+        #Initialize ei as all zeros
+        ei = np.zeros(len(gp_var))
+
+        #Create a mask for values where pred_stdev > 0 
+        pos_stdev_mask = (gp_var > 0)
+
+        #Assuming all standard deviations are not zero
+        if np.any(pos_stdev_mask):
+            #Get indices and values where stdev > 0
+            valid_indices = np.where(pos_stdev_mask)[0]
+            pred_stdev_val = np.sqrt(gp_var[valid_indices])
+            gp_mean_val = gp_mean[valid_indices]
+            y_target_val = y_target[valid_indices]
         
-        with np.errstate(divide = 'warn'):
-            #Creates upper and lower bounds and described by Alex Dowling's Derivation
-            bound_a = ((y_target - gp_mean) +np.sqrt(np.exp(self.best_error*self.ep_bias.ep_curr)))/pred_stdev #1xn
-            bound_b = ((y_target - gp_mean) -np.sqrt(np.exp(self.best_error*self.ep_bias.ep_curr)))/pred_stdev #1xn
+            #Important when stdev is close to 0
+            with np.errstate(divide = 'warn'):
+                #Creates upper and lower bounds and described by Alex Dowling's Derivation
+                bound_a = ((y_target_val - gp_mean_val) +np.sqrt(np.exp(self.best_error*self.ep_bias.ep_curr)))/pred_stdev_val #1xn
+                bound_b = ((y_target_val - gp_mean_val) -np.sqrt(np.exp(self.best_error*self.ep_bias.ep_curr)))/pred_stdev_val #1xn
+                bound_lower = np.minimum(bound_a,bound_b)
+                bound_upper = np.maximum(bound_a,bound_b) 
 
-            bound_lower = np.minimum(bound_a,bound_b)
-            bound_upper = np.maximum(bound_a,bound_b) 
+                #Calculate EI
+                args = (self.best_error, gp_mean_val, pred_stdev_val, y_target_val, self.ep_bias.ep_curr)
+                ei_term_1 = (self.best_error*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
+                ei_term_2_out = np.array([integrate.quad(self.__ei_approx_ln_term, bl, bu, args=(self.best_error, gm, ps, yt, self.ep_bias.ep_curr)) for bl, bu, gm, ps, yt in zip(bound_lower, bound_upper, gp_mean_val, pred_stdev_val, y_target_val)])
 
-            args = (self.best_error, gp_mean, pred_stdev, y_target, self.ep_bias.ep_curr)
-            ei_term_1 = (self.best_error*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
-            ei_term_2_out = np.array([integrate.quad(self.__ei_approx_ln_term, bl, bu, args=(self.best_error, gm, ps, yt, self.ep_bias.ep_curr)) for bl, bu, gm, ps, yt in zip(bound_lower, bound_upper, gp_mean, pred_stdev, y_target)])
-
-            ei_term_2 = (-2)*ei_term_2_out[:,0] 
-            term_2_abs_err = ei_term_2_out[:,1]
-            ei = ei_term_1 + ei_term_2
-                    
+                ei_term_2 = (-2)*ei_term_2_out[:,0] 
+                term_2_abs_err = ei_term_2_out[:,1]
+                
+                #Add ei values to correct indecies.
+                ei[valid_indices] = ei_term_1 + ei_term_2
+        
         #The Ei is the sum of the ei at each value of x
         ei_temp = np.sum(ei)
   
@@ -2505,23 +2528,37 @@ class Expected_Improvement():
         ei: ndarray, the expected improvement for one term of the GP model
         """
         
-        #Defines standard devaition
-        gp_stdev = np.sqrt(gp_var) #1xn
+        #Create a mask for values where pred_stdev >= 0 (Here approximation includes domain stdev >= 0) 
+        pos_stdev_mask = (gp_var >= 0)
 
-        #Obtain Sparse Grid points and weights
-        points_p, weights_p = self.__get_sparse_grids(len(y_target), output=0, depth=3, rule='gauss-hermite', verbose=False)
+        #Assuming all standard deviations are not zero
+        if np.any(pos_stdev_mask):
+            #Get indices and values where stdev > 0
+            valid_indices = np.where(pos_stdev_mask)[0]
+            gp_stdev_val = np.sqrt(gp_var[valid_indices])
+            gp_mean_val = gp_mean[valid_indices]
+            y_target_val = y_target[valid_indices]
+        
+            #Defines standard devaition
+            gp_stdev = np.sqrt(gp_var) #1xn
 
-        # Calculate gp_var multiplied by points_p
-        gp_stdev_points_p = gp_stdev * points_p
+            #Obtain Sparse Grid points and weights
+            points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=3, rule='gauss-hermite', verbose=False)
 
-        # Calculate the SSE for all data points simultaneously
-        sse_temp = np.sum((y_target[:, np.newaxis] - gp_mean[:, np.newaxis] - gp_stdev_points_p.T)**2, axis=0)
+            # Calculate gp_var multiplied by points_p
+            gp_stdev_points_p = gp_stdev_val * points_p
 
-        # Apply -min operator (equivalent to max[SSE_Temp - (best_error*ep),0])
-        min_list = -np.minimum(sse_temp - (self.best_error*self.ep_bias.ep_curr), 0)
+            # Calculate the SSE for all data points simultaneously
+            sse_temp = np.sum((y_target_val[:, np.newaxis] - gp_mean_val[:, np.newaxis] - gp_stdev_points_p.T)**2, axis=0)
 
-        # Calculate EI_temp using vectorized operations
-        ei_temp = np.dot(weights_p, min_list)
+            # Apply -min operator (equivalent to max[SSE_Temp - (best_error*ep),0])
+            min_list = -np.minimum(sse_temp - (self.best_error*self.ep_bias.ep_curr), 0)
+
+            # Calculate EI_temp using vectorized operations
+            ei_temp = np.dot(weights_p, min_list)
+            
+        else:
+            ei_temp = 0
             
         return ei_temp
 
@@ -2588,8 +2625,17 @@ class Exploration_Bias():
         improvement: Bool, Determines whether last objective was an improvement. Default False
         best_error: float, The lowest error value in the training data
         mean_of_var: float, The value of the average of all posterior variances
+        
+        
+        Notes
+        ------
+        For all methods, ep is on domain [0, best_error (initial)] inclusive
         """
         assert all((isinstance(param, (float, int)) or param is None) for param in [ep0, ep_curr, ep_inc, ep_f, best_error, mean_of_var]), "ep0, ep_curr, ep_inc, ep_f, best_error, and mean_of_var must be int, float, or None"
+        if isinstance(ep0, (float, int)):
+            assert ep0 >= 0, "Starting exploration bias (ep0) must be greater than or equal to 0!"
+        if isinstance(ep_f, (float, int)):
+            assert ep_f >= 0, "Final exploration bias (ep_f) must be greater than or equal to 0 !"
         assert isinstance(ep_enum, Enum) == True, "ep_enum must be an Enum instance of Class Ep_enum"
         assert isinstance(improvement, bool) == True or improvement is None, "improvement must be bool or None"
         assert all((isinstance(param, (int)) or param is None) for param in [bo_iter, bo_iter_max]), "bo_iter and bo_iter_max must be int or None"
@@ -2604,6 +2650,7 @@ class Exploration_Bias():
         self.improvement = improvement
         self.best_error = best_error
         self.mean_of_var = mean_of_var
+        self.ep_max = self.best_error #This is a placeholder. It will be overwritten with the calculated best error even if it is None now
         
     def set_ep(self):
         """
@@ -2613,9 +2660,19 @@ class Exploration_Bias():
         --------
         Sets the current exploration parameter self.ep_curr, but does not return anything. Use Exploration_Bias.ep_curr() to return it
         
-        """        
+        """
+        #Set ep0 and ep_f to the max if they are too large
+        if isinstance(self.ep0, (float, int)) and self.ep_max is not None:
+            if self.ep0 > self.ep_max:
+                warnings.warn("setting self.ep0 to self.ep_max because it was too large")
+                self.ep0 = self.ep_max
+        if isinstance(self.ep_f, (float, int)) and self.ep_max is not None:
+            if self.ep_f > self.ep_max:
+                warnings.warn("setting self.ep_f to self.ep_max because it was too large")
+                self.ep_f = self.ep_max
+                
         if self.ep_enum.value == 1: #Constant if using constant method
-            assert self.ep0 is not None
+            assert self.ep0 is not None 
             ep = self.__set_ep_constant()
             
         elif self.ep_enum.value == 2: #Decay
@@ -2649,7 +2706,7 @@ class Exploration_Bias():
     
     def __set_ep_decay(self):
         """
-        Creates a value for the exploration parameter based off of a decay heuristic
+        Creates a value for the exploration parameter based off of a decay heuristic. Note. Full decay by 1/2 max BO iters
         
         Returns
         --------
@@ -2657,10 +2714,13 @@ class Exploration_Bias():
         """
         assert self.bo_iter is not None
         assert self.bo_iter_max-1 >= self.bo_iter >= 0
+        
+        #Set ep_f to max value if it is too big
+        (float, int)
         #Initialize number of decay steps
         decay_steps = int(self.bo_iter_max/2)
-        #Apply heuristic
-        if self.bo_iter < decay_steps:
+        #Apply heuristic on 1st iteration and all steps until end of decay steps
+        if self.bo_iter < decay_steps or self.bo_iter == 0:
             ep = self.ep0 + (self.ep_f - self.ep0)*(self.bo_iter/self.bo_iter_max)
         else: 
             ep = self.ep_f
@@ -2669,7 +2729,7 @@ class Exploration_Bias():
     
     def __set_ep_boyle(self):
         """
-        Creates a value for the exploration parameter based on Boyle's Heuristic 
+        Creates a value for the exploration parameter based on Boyle's Heuristic for GPO bounds
             
         Returns
         --------
@@ -2677,7 +2737,8 @@ class Exploration_Bias():
         
         Notes
         -----
-        Heuristic from Boyle, P., Gaussian Processes for regression and Optimisation, Ph.D, Victoria University of Wellington, Wellington, New Zealand, 2007
+        Based on Heuristic from Boyle, P., Gaussian Processes for regression and Optimisation, Ph.D, Victoria University of Wellington, Wellington, New Zealand, 2007
+        For these parameters, ep gets normalized between 0 and 2 given an even mix of 1 is the starting point
         """
         #Set ep_curr as ep0 if it is not set
         if self.ep_curr is None:
@@ -2685,11 +2746,18 @@ class Exploration_Bias():
         else:
             #Assert that improvement is not None
             assert self.improvement is not None
-            #Apply Boyle's heuristic
+            #Apply a version of Boyle's heuristic
+            #In original Boyle, you want to gradually expand or shrink your bounds
+            #We take this concept for ep to increase exploration when improvement is FALSE and increase it when TRUE
             if self.improvement == True:
-                ep = self.ep_curr*self.ep_inc
-            else:
+                #If we improved last time, Decrease exploration
                 ep = self.ep_curr/self.ep_inc
+            else:
+                #If we did not, Increase Exploration
+                ep = self.ep_curr*self.ep_inc
+                
+        # Ensure that ep stays within the max
+        ep = min(self.ep_max, ep)
 
         return ep
     
@@ -2709,10 +2777,13 @@ class Exploration_Bias():
         assert self.mean_of_var is not None
             
         #Apply Jasrasaria's Heuristic
-        if self.best_error != 0:
+        if self.best_error > 0:
             ep = self.mean_of_var/self.best_error
         else:
-            ep = 0
+            ep = self.ep_max
+            
+        # Ensure that ep stays within the max value
+        ep = min(self.ep_max, ep)
         
         return ep
 
@@ -3130,28 +3201,43 @@ class GPBO_Driver:
         
         #Calcuate best error
         best_error = self.__get_best_error()
-            
+        
+        #Add not log best error to ep_bias
+        if iteration == 0 or self.ep_bias.ep_enum.value == 4:
+            if self.method.obj.value == 2:
+                #Give ep best error on a non log scaled since we want to keep parameter in domain >= 0               
+                self.ep_bias.best_error = np.exp(best_error)            
+            else:
+                #Give ep best error on a non log scaled since we want to keep parameter in domain >= 0               
+                self.ep_bias.best_error = best_error
+
+            #Only on the 1st iteration, set the maximum value of alpha to the larger of 1 or the best error
+            if iteration == 0:
+                self.ep_bias.ep_max = max(self.ep_bias.best_error,1)
+                        
         #Calculate mean of var for validation set if using Jasrasaria heuristic
         if self.ep_bias.ep_enum.value == 4:
-            #Calculate average mean and variance of the validation set
+            #Calculate average gp mean and variance of the validation set
             val_gp_mean, val_gp_var = self.gp_emulator.eval_gp_mean_var_val()
             #For emulator methods, the mean of the variance should come from the sse variance
             if self.method.emulator == True:
-                val_gp_sse_mean, val_gp_sse_var = self.gp_emulator.eval_gp_sse_var_val(self.method, self.exp_data)
-                mean_of_var = np.average(val_gp_sse_var)
-            #For type 1 methods the gp and sse variances are equivalent
-            else:
-                mean_of_var = np.average(val_gp_var)
-            #Set mean of variance
-            self.ep_bias.mean_of_var = mean_of_var
-            #Set best error
-            self.ep_bias.best_error = best_error
+                #Redefine gp_mean and gp_var to be the mean and variane of the sse
+                val_gp_mean, val_gp_var = self.gp_emulator.eval_gp_sse_var_val(self.method, self.exp_data)
                 
+            #Check for ln(sse) values
+            if self.method.obj.value == 2:
+                #For 2B and 1B, propogate errors associated with an unlogged sse value
+                val_gp_var = val_gp_var*np.exp(val_gp_mean)**2             
+
+            #Set mean of sse variance
+            mean_of_var = np.average(val_gp_var)
+            self.ep_bias.mean_of_var = mean_of_var
+            
         #Set initial exploration bias and bo_iter
         if self.ep_bias.ep_enum.value == 2:
             self.ep_bias.bo_iter = iteration
         
-        #Calculate new ep
+        #Calculate new ep. Note. It is extemely important to do this AFTER setting the ep_max
         self.ep_bias.set_ep()
             
         #Call optimize acquistion fxn
@@ -3303,6 +3389,9 @@ class GPBO_Driver:
         
         #Initilize gp model
         gp_model = self.gp_emulator.set_gp_model()
+        
+        #Reset ep_bias to None for each workflow restart
+        self.ep_bias.ep_curr = None
         
         ##Call bo_iter
         results_df, list_gp_emulator_class = self.__run_bo_to_term(gp_model)

@@ -12,7 +12,7 @@ cs_val_list  = [1, 2, 3, 4, 5, 6, 7] #Corresponds to CS1 and all subproblems of 
 meth_val_list = [1, 2, 3, 4, 5] #Put 2B last because it takes the longest
 
 #Set Initial Parameters
-ep0 = 1
+ep0 = 1 #Set initial ep as an even mix between exploration and exploitation
 sep_fact_list = np.linspace(0.5,0.9,5) #For CS1 use 0.5 to 1, for CS2 use 0.5, 0.75, and 1
 ep_val_list = [1,2,3,4]
 gen_heat_map_data = True
