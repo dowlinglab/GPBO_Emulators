@@ -123,15 +123,15 @@ def set_param_str(cs_name_val):
     if cs_name_val == 1:
         param_name_str = "t1t2"
     elif cs_name_val == 2:
-        param_name_str = "A"
+        param_name_str = "y0"
     elif cs_name_val == 3:
-        param_name_str = "Aa"
+        param_name_str = "x0y0"
     elif cs_name_val == 4:
-        param_name_str = "Aab"
+        param_name_str = "abc"
     elif cs_name_val == 5:
-        param_name_str = "Aabc"
+        param_name_str = "abcx0"
     elif cs_name_val == 6:
-        param_name_str = "Aabcx0"
+        param_name_str = "abcx0y0"
     elif cs_name_val == 7:
         param_name_str = "Aabcx0y0"
         

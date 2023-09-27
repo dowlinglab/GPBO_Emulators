@@ -18,6 +18,7 @@ import gzip
 import itertools
 from itertools import combinations
 import copy
+import scipy
 
 class Method_name_enum(Enum):
     """
@@ -694,8 +695,8 @@ class Simulator:
 
             sum_error_sq = np.array(sum_error_sq)
 
-            #objective function only explicitly log if using 1B
-            if method.method_name.value == 2:
+            #objective function only log if using 1B or 2B
+            if method.obj.value == 2:
                 sum_error_sq = np.log(sum_error_sq) #Scaler
 
             #Add y_values to data class instance
@@ -1885,13 +1886,14 @@ class Type_2_GP_Emulator(GP_Emulator):
             
         return train_data, test_data
     
-    def __eval_gp_sse_var(self, data, exp_data):
+    def __eval_gp_sse_var(self, data, method, exp_data):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO
         
         Parameters
         ----------
         data, instance of Data class, parameter sets you want to evaluate the sse and sse variance for
+        method, Instance of GPBO_Methods, containing data for methods
         exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
         
         Returns
@@ -1917,11 +1919,18 @@ class Type_2_GP_Emulator(GP_Emulator):
             for i in range(0, len_theta, len_x):
                 sse_mean.append( sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) ) #Scaler 
                 error_point = (data.gp_mean[i:i+len_x] - exp_data.y_vals) #This SSE_variance CAN be negative
-                sse_var.append ( 2*error_point@data.gp_var[i:i+len_x] ) #Error Propogation approach
+                sse_var.append( 2*error_point@data.gp_var[i:i+len_x] ) #Error Propogation approach
         
         #Lists to arrays
         sse_mean = np.array(sse_mean)
         sse_var = np.array(sse_var)
+        
+        
+        #For Method 2B, make sse and sse_var data in the log form
+        if method.obj.value == 2:
+            sse_mean = np.log(sse_mean)
+            #Propogation of errors: stdev_ln(val) = stdev/val
+            sse_var = sse_var/(sse_mean**2)
         
         #Set class parameters
         data.sse = sse_mean
@@ -1929,13 +1938,14 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return sse_mean, sse_var
     
-    def eval_gp_sse_var_misc(self, misc_data, exp_data):
+    def eval_gp_sse_var_misc(self, misc_data, method, exp_data):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the heat map data
         
         Parameters
         ----------
         misc_data, Instance of Data class, data to evaluate gp sse and sse variance for
+        method, Instance of GPBO_Methods, containing data for methods
         exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
         
         Returns
@@ -1952,16 +1962,17 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        misc_sse_mean, misc_sse_var = self.__eval_gp_sse_var(misc_data, exp_data)
+        misc_sse_mean, misc_sse_var = self.__eval_gp_sse_var(misc_data, method, exp_data)
         
         return misc_sse_mean, misc_sse_var
     
-    def eval_gp_sse_var_test(self, exp_data):
+    def eval_gp_sse_var_test(self, method, exp_data):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the test data
         
         Parameters
         ----------
+        method, Instance of GPBO_Methods, containing data for methods
         exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
         
         Returns
@@ -1978,16 +1989,17 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        test_sse_mean, test_sse_var = self.__eval_gp_sse_var(self.test_data, exp_data)
+        test_sse_mean, test_sse_var = self.__eval_gp_sse_var(self.test_data, method, exp_data)
         
         return test_sse_mean, test_sse_var
     
-    def eval_gp_sse_var_val(self, exp_data):
+    def eval_gp_sse_var_val(self, method, exp_data):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the validation data
         
         Parameters
         ----------
+        method, Instance of GPBO_Methods, containing data for methods
         exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
         
         Returns
@@ -2004,16 +2016,17 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        val_sse_mean, val_sse_var = self.__eval_gp_sse_var(self.gp_val_data, exp_data)
+        val_sse_mean, val_sse_var = self.__eval_gp_sse_var(self.gp_val_data, method, exp_data)
         
         return val_sse_mean, val_sse_var
     
-    def eval_gp_sse_var_cand(self, exp_data):
+    def eval_gp_sse_var_cand(self, method, exp_data):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the candidate theta data
         
         Parameters
         ----------
+        method, Instance of GPBO_Methods, containing data for methods
         exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
         
         Returns
@@ -2030,16 +2043,17 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        cand_sse_mean, cand_sse_var = self.__eval_gp_sse_var(self.cand_data, exp_data)
+        cand_sse_mean, cand_sse_var = self.__eval_gp_sse_var(self.cand_data, method, exp_data)
         
         return cand_sse_mean, cand_sse_var
     
-    def calc_best_error(self, exp_data):
+    def calc_best_error(self, method, exp_data):
         """
         Calculates the best error of the model
         
         Parameters
         ----------
+        method: Instance of GPBO_Methods, Class containing method information
         exp_data: Instance of Data class, Class containing at least theta, x, and y experimental data
         
         Returns
@@ -2073,6 +2087,10 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Best error is the minimum of these values
         best_error = np.amin(sse_train_vals)
 #         print(self.train_data.theta_vals[true_idx_list[np.argmin(sse_train_vals)]]) #For Error Checking, Returns theta associated with best value
+        
+        #For method 2B, use a log scaled best error
+        if method.obj.value == 2:
+            best_error = np.log(best_error)
         
         return best_error
     
@@ -2328,29 +2346,23 @@ class Expected_Improvement():
         ei = np.zeros(num_thetas)
         #Loop over number of thetas in theta_val_set
         for i in range(num_thetas): #1 ei per theta and also 1 sse per theta   
-            #For method 2C
-            if method.method_name.value == 5: #2C
-                #for ei, ensure that a gp mean and gp_var corresponding to a certain theta are sent to self.__calc_ei_sparse()
-                ei[i] = self.__calc_ei_sparse(self.gp_mean[i*n:i*n+n], self.gp_var[i*n:i*n+n], self.exp_data.y_vals)
+            #Get gp mean and var for each set of x values
+            #for ei, ensure that a gp mean and gp_var corresponding to a certain theta are sent
+            gp_mean_i = self.gp_mean[i*n:(i+1)*n]
+            gp_var_i = self.gp_var[i*n:(i+1)*n]
             
-            elif method.method_name.value in (3,4): #2A and 2B
-                #Initialize ei for specific theta
-                ei_theta = 0
-                #Loop over number of exp data points
-                for j in range(self.exp_data.get_num_x_vals()):
-                    #Calculate ei for a given theta (sum of ei for each x over all thetas)
-                    if method.method_name.value == 3: #2A
-                        ei_temp = self.__calc_ei_emulator(self.gp_mean[i*n+j], self.gp_var[i*n+j], self.exp_data.y_vals[j])
-
-                    else: #2B
-                        ei_temp = self.__calc_ei_log_emulator(self.gp_mean[i*n+j], self.gp_var[i*n+j], self.exp_data.y_vals[j])
-                    
-                    #Add that x data point's ei to the total ei
-                    ei_theta += ei_temp
-
-                #Save ei to array
-                ei[i] = ei_theta            
+            #Calculate ei for a given theta (ei for all x over each theta)
+            
+            if method.method_name.value == 3: #2A
+                #Calculate ei for a given theta (ei for all x over each theta)
+                ei[i] = self.__calc_ei_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
                 
+            elif method.method_name.value == 4: #2B
+                ei[i] = self.__calc_ei_log_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
+                
+            elif method.method_name.value == 5: #2C
+                ei[i] = self.__calc_ei_sparse(gp_mean_i, gp_var_i, self.exp_data.y_vals)
+
             else:
                 raise ValueError("method.method_name.value must be 3 (2A), 4 (2B), or 5 (2C)")
         
@@ -2373,44 +2385,46 @@ class Expected_Improvement():
         
         #Defines standard devaition
         pred_stdev = np.sqrt(gp_var)
+        
+        #For calculations, set stdev <= 0 to 1e-14. EI may be slightly different for these points, but allow calculations to continue
+        pred_stdev[pred_stdev <= 0] = 1e-14
 
-        if pred_stdev > 0:
-            #If variance is close to zero this is important
-            with np.errstate(divide = 'warn'):
-                #Creates upper and lower bounds and described by Equation X in Manuscript
-                bound_a = ((y_target - gp_mean) + np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev
-                bound_b = ((y_target - gp_mean) - np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev
-                bound_lower = np.min([bound_a,bound_b])
-                bound_upper = np.max([bound_a,bound_b])        
+        #If variance is close to zero this is important
+        with np.errstate(divide = 'warn'):
+            #Creates upper and lower bounds and described by Equation X in Manuscript
+            bound_a = ((y_target - gp_mean) + np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev
+            bound_b = ((y_target - gp_mean) - np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev
+            bound_lower = np.minimum(bound_a,bound_b)
+            bound_upper = np.maximum(bound_a,bound_b)        
 
-                #Creates EI terms in terms of Equation X in Manuscript
-                ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
-#                 print(gp_mean, gp_var, y_target, self.best_error, self.ep_bias.ep_curr, pred_stdev)
-                ei_term1_comp2 = (self.best_error**self.ep_bias.ep_curr) - (y_target - gp_mean)**2
+            #Creates EI terms in terms of Equation X in Manuscript
+            ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
+            ei_term1_comp2 = (self.best_error*self.ep_bias.ep_curr) - (y_target - gp_mean)**2
 
-                ei_term2_comp1 = 2*(y_target - gp_mean)*pred_stdev
-                ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
-                ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
-                ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
+            ei_term2_comp1 = 2*(y_target - gp_mean)*pred_stdev
+            ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
+            ei_eta_lower = -np.exp(-bound_lower**2/2)/np.sqrt(2*np.pi)
+            ei_term2_comp2 = (ei_eta_upper-ei_eta_lower)
 
-                ei_term3_comp1 = bound_upper*ei_eta_upper
-                ei_term3_comp2 = bound_lower*ei_eta_lower
+            ei_term3_comp1 = bound_upper*ei_eta_upper
+            ei_term3_comp2 = bound_lower*ei_eta_lower
 
-                ei_term3_comp3 = (1/2)*math.erf(bound_upper/np.sqrt(2))
-                ei_term3_comp4 = (1/2)*math.erf(bound_lower/np.sqrt(2))  
+            ei_term3_comp3 = (1/2)*scipy.special.erf(bound_upper/np.sqrt(2))
+            ei_term3_comp4 = (1/2)*scipy.special.erf(bound_lower/np.sqrt(2))  
 
-                ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3
-                ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4
+            ei_term3_psi_upper = ei_term3_comp1 + ei_term3_comp3
+            ei_term3_psi_lower = ei_term3_comp2 + ei_term3_comp4
 
-                ei_term1 = ei_term1_comp1*ei_term1_comp2
-                ei_term2 = ei_term2_comp1*ei_term2_comp2
-                ei_term3 = -gp_var*(ei_term3_psi_upper-ei_term3_psi_lower)
+            ei_term1 = ei_term1_comp1*ei_term1_comp2
+            ei_term2 = ei_term2_comp1*ei_term2_comp2
+            ei_term3 = -gp_var*(ei_term3_psi_upper-ei_term3_psi_lower)
 
-                ei = ei_term1 + ei_term2 + ei_term3
-        else:
-            ei = 0
+            ei = ei_term1 + ei_term2 + ei_term3
+            
+        #The Ei is the sum of the ei at each value of x
+        ei_temp = np.sum(ei)
 
-        return ei
+        return ei_temp
 
     def __calc_ei_log_emulator(self, gp_mean, gp_var, y_target):
         """ 
@@ -2429,23 +2443,29 @@ class Expected_Improvement():
         #Defines standard devaition
         pred_stdev = np.sqrt(gp_var) #1xn
             
-        if pred_stdev > 0:
-            with np.errstate(divide = 'warn'):
-                #Creates upper and lower bounds and described by Alex Dowling's Derivation
-                bound_a = ((y_target - gp_mean) +np.sqrt(np.exp(self.best_error**self.ep_bias.ep_curr)))/pred_stdev #1xn
-                bound_b = ((y_target - gp_mean) -np.sqrt(np.exp(self.best_error**self.ep_bias.ep_curr)))/pred_stdev #1xn
-                bound_lower = np.min([bound_a,bound_b])
-                bound_upper = np.max([bound_a,bound_b])
-                args = (self.best_error, gp_mean, pred_stdev, y_target, self.ep_bias.ep_curr)
-                ei_term_1 = (self.best_error*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
-                ei_term_2_out = integrate.quad(self.__ei_approx_ln_term, bound_lower, bound_upper, args = args, full_output = 1)
-                ei_term_2 = (-2)*ei_term_2_out[0] 
-                term_2_abs_err = ei_term_2_out[1]
-                ei = ei_term_1 + ei_term_2
-        else:
-            ei = 0
+        #For calculations, set stdev == 0 to 1e-14. EI may be slightly different, but allow calculations to continue
+        pred_stdev[pred_stdev <= 0] = 1e-14
+        
+        with np.errstate(divide = 'warn'):
+            #Creates upper and lower bounds and described by Alex Dowling's Derivation
+            bound_a = ((y_target - gp_mean) +np.sqrt(np.exp(self.best_error*self.ep_bias.ep_curr)))/pred_stdev #1xn
+            bound_b = ((y_target - gp_mean) -np.sqrt(np.exp(self.best_error*self.ep_bias.ep_curr)))/pred_stdev #1xn
+
+            bound_lower = np.minimum(bound_a,bound_b)
+            bound_upper = np.maximum(bound_a,bound_b) 
+
+            args = (self.best_error, gp_mean, pred_stdev, y_target, self.ep_bias.ep_curr)
+            ei_term_1 = (self.best_error*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
+            ei_term_2_out = np.array([integrate.quad(self.__ei_approx_ln_term, bl, bu, args=(self.best_error, gm, ps, yt, self.ep_bias.ep_curr)) for bl, bu, gm, ps, yt in zip(bound_lower, bound_upper, gp_mean, pred_stdev, y_target)])
+
+            ei_term_2 = (-2)*ei_term_2_out[:,0] 
+            term_2_abs_err = ei_term_2_out[:,1]
+            ei = ei_term_1 + ei_term_2
+                    
+        #The Ei is the sum of the ei at each value of x
+        ei_temp = np.sum(ei)
   
-        return ei
+        return ei_temp
 
     def __ei_approx_ln_term(self, epsilon, best_error, gp_mean, gp_stdev, y_target, ep): 
         """ 
@@ -2464,17 +2484,10 @@ class Expected_Improvement():
         -------
         ei_term_2_integral: ndarray, the expected improvement for term 2 of the GP model for method 2B
         """
-        #Define inside term
-        #In the case that this is zero, what should happen?
-        inside_term = max(1e-12, abs((y_target - gp_mean - gp_stdev*epsilon)) )
-        
-        #Check that inside term is > numerical 0
-        if inside_term > 0:
-            ei_term_2_integral = math.log( inside_term )*norm.pdf(epsilon) 
-            
-        else:
-            #If it is 0, then ei tern 2 int is negative infinity
-            ei_term_2_integral = -np.inf
+        #Define inside term as the maximum of 1e-14 or abs((y_target - gp_mean - gp_stdev*epsilon))
+        inside_term = max(1e-14, abs((y_target - gp_mean - gp_stdev*epsilon)) )
+
+        ei_term_2_integral = math.log( inside_term )*norm.pdf(epsilon) 
         
         return ei_term_2_integral
 
@@ -2491,19 +2504,22 @@ class Expected_Improvement():
         -------
         ei: ndarray, the expected improvement for one term of the GP model
         """
+        
+        #Defines standard devaition
+        gp_stdev = np.sqrt(gp_var) #1xn
 
         #Obtain Sparse Grid points and weights
         points_p, weights_p = self.__get_sparse_grids(len(y_target), output=0, depth=3, rule='gauss-hermite', verbose=False)
-        
+
         # Calculate gp_var multiplied by points_p
-        gp_var_points_p = gp_var * points_p
-        
+        gp_stdev_points_p = gp_stdev * points_p
+
         # Calculate the SSE for all data points simultaneously
-        sse_temp = np.sum((y_target[:, np.newaxis] - gp_mean[:, np.newaxis] - gp_var_points_p.T)**2, axis=0)
-        
+        sse_temp = np.sum((y_target[:, np.newaxis] - gp_mean[:, np.newaxis] - gp_stdev_points_p.T)**2, axis=0)
+
         # Apply -min operator (equivalent to max[SSE_Temp - (best_error*ep),0])
         min_list = -np.minimum(sse_temp - (self.best_error*self.ep_bias.ep_curr), 0)
-        
+
         # Calculate EI_temp using vectorized operations
         ei_temp = np.dot(weights_p, min_list)
             
@@ -2693,7 +2709,10 @@ class Exploration_Bias():
         assert self.mean_of_var is not None
             
         #Apply Jasrasaria's Heuristic
-        ep = self.mean_of_var/self.best_error
+        if self.best_error != 0:
+            ep = self.mean_of_var/self.best_error
+        else:
+            ep = 0
         
         return ep
 
@@ -2820,7 +2839,7 @@ class GPBO_Driver:
             best_error = self.gp_emulator.calc_best_error()
         else:
             #Type 2 best error must be calculated given the experimental data
-            best_error = self.gp_emulator.calc_best_error(self.exp_data)
+            best_error = self.gp_emulator.calc_best_error(self.method, self.exp_data)
         
         return best_error
         
@@ -2876,14 +2895,15 @@ class GPBO_Driver:
             #Choose a random index of theta to start with
             unique_theta_index = random.sample(theta_val_idc, 1)
             theta_guess = unique_val_thetas[unique_theta_index]
+
             try:
                 #Call scipy method to optimize EI given theta
                 #Using L-BFGS-B instead of BFGS because it allowd for bounds
-                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei, best_error))
+                best_result = optimize.minimize(self.__scipy_fxn, theta_guess,bounds=bnds, method = "L-BFGS-B", args=(neg_ei, best_error))
                 #Add ei and best_thetas to lists as appropriate
                 best_vals[i] = best_result.fun
                 best_thetas[i] = best_result.x
-            except ValueError:
+            except ValueError: 
                 #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
                 best_vals[i] = np.nan
                 best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
@@ -2955,15 +2975,13 @@ class GPBO_Driver:
                 cand_sse_mean, cand_sse_var = self.gp_emulator.eval_gp_sse_var_cand()
             else:
                 #For Type 2 GP, the sse and sse_var are calculated from the gp_mean, gp_var, and experimental data
-                cand_sse_mean, cand_sse_var = self.gp_emulator.eval_gp_sse_var_cand(self.exp_data)
+                cand_sse_mean, cand_sse_var = self.gp_emulator.eval_gp_sse_var_cand(self.method, self.exp_data)
 
             #Calculate objective fxn
             if neg_ei == False:
-                #Objective to minimize is exp(mean) if using 1B, and mean for all other methods
-                if self.method.method_name.value == 2: 
-                    obj = np.exp(cand_sse_mean)
-                else:
-                    obj = cand_sse_mean
+                #Objective to minimize is log(sse) if using 1B or 2B, and sse for all other methods
+                obj = cand_sse_mean
+                
             else:
                 if self.method.emulator == False:
                     obj = -1*self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error)
@@ -3135,25 +3153,22 @@ class GPBO_Driver:
         #Find min sse using the true function value
         #Turn min_sse_theta into a data instance (including generating y_data)
         min_theta_data = self.create_data_instance_from_theta(min_sse_theta)
+        
         #If type 2, turn it into sse_data
         #Set the best data to be in sse form if using a type 2 GP and find the min sse
         if self.method.emulator == True:
             min_sse_theta_data = self.simulator.sim_data_to_sse_sim_data(self.method, min_theta_data, self.exp_data, self.cs_params.sep_fact, False)
-            min_sse_sim = min_sse_theta_data.y_vals
-        #Otherwise the sse data is the original data
+            min_sse_sim = min_sse_theta_data.y_vals        
+        #Otherwise the sse data is the original (scaled) data
         else:
-            #Make sure to return sse and not log sse if using method 1B
-            if self.method.method_name.value == 2: 
-                min_sse_sim = np.exp(min_theta_data.y_vals)
-            else:
-                min_sse_sim = min_theta_data.y_vals
+            min_sse_sim = min_theta_data.y_vals
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
         min_sse_sim = min_sse_sim[0]
                 
         #calculate improvement if using Boyle's method to update the exploration bias
         if self.ep_bias.ep_enum.value == 3:
-            #Improvement is true if the min sim sse found is lower than the best error, otherwise it's false
+            #Improvement is true if the min sim sse found is lower than (not log) best error, otherwise it's false
             if min_sse_sim < best_error:
                 improvement = True
             else:
@@ -3166,6 +3181,7 @@ class GPBO_Driver:
         time_per_iter = time_end-time_start
         
         #Create Results Pandas DataFrame for 1 iter
+        #Return SSE and not log(SSE) for 'Min Obj', 'Min Obj Act', 'Theta Min Obj'
         column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Time/Iter']
         iter_df = pd.DataFrame(columns=column_names)
         bo_iter_results = [best_error, float(self.ep_bias.ep_curr), max_ei, max_ei_theta, min_sse, min_sse_sim, min_sse_theta, time_per_iter]
@@ -3315,7 +3331,7 @@ class GPBO_Driver:
                          "Seed" : self.cs_params.seed,
                          "EI Tolerance" : self.cs_params.ei_tol,
                          "Obj Improvement Tolerance" : self.cs_params.obj_tol,
-                         "Theta Generation Enum Value": gen_meth_theta.value}
+                         "Theta Generation Enum Value": self.gen_meth_theta.value}
                 
         for i in range(self.cs_params.bo_run_tot):
             bo_results = self.__run_bo_workflow()
