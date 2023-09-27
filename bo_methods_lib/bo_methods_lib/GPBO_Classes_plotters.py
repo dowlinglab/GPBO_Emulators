@@ -393,9 +393,13 @@ def plot_compare_mean_med_best(df, cs_name, theta_true, xbins, ybins, title, log
             #Loop over different subplots (number of subplots)
             for i in range(num_subplots):            
                 #If plotting log sse, make sure the data is log
-                if i == 0 and log_data == True:
+                if i == 0 and log_data == True and not "B" in name:
                     ax[i].plot(x_data, np.log(df_plot[ax_df_key_list[i]]), label = str(name))
                     y_data = np.log(df_plot[ax_df_key_list[i]])
+                elif i == 0 and log_data == False and "B" in name:
+                    ax[i].plot(x_data, np.exp(df_plot[ax_df_key_list[i]]), label = str(name))
+                    y_data = np.exp(df_plot[ax_df_key_list[i]])
+                    
                 #Add +1 to BO iter for number of iterations when plotting
                 if i == 2:
                     ax[i].plot(x_data, df_plot[ax_df_key_list[i]] + 1, label = str(name))

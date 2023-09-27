@@ -3133,15 +3133,25 @@ class GPBO_Driver:
             
         #Calculate mean of var for validation set if using Jasrasaria heuristic
         if self.ep_bias.ep_enum.value == 4:
-            val_gp_var = self.gp_emulator.eval_gp_mean_var_val()[1]
-            mean_of_var = np.average(val_gp_var)
+            #Calculate average mean and variance of the validation set
+            val_gp_mean, val_gp_var = self.gp_emulator.eval_gp_mean_var_val()
+            #For emulator methods, the mean of the variance should come from the sse variance
+            if self.method.emulator == True:
+                val_gp_sse_mean, val_gp_sse_var = self.gp_emulator.eval_gp_sse_var_val(self.method, self.exp_data)
+                mean_of_var = np.average(val_gp_sse_var)
+            #For type 1 methods the gp and sse variances are equivalent
+            else:
+                mean_of_var = np.average(val_gp_var)
+            #Set mean of variance
             self.ep_bias.mean_of_var = mean_of_var
+            #Set best error
             self.ep_bias.best_error = best_error
-            
+                
         #Set initial exploration bias and bo_iter
         if self.ep_bias.ep_enum.value == 2:
             self.ep_bias.bo_iter = iteration
         
+        #Calculate new ep
         self.ep_bias.set_ep()
             
         #Call optimize acquistion fxn
