@@ -549,7 +549,12 @@ def analyze_sse_min_sse_ei(file_path, run_num, strings_for_df):
     loaded_results = open_file_helper(file_path)
     runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
     num_sets = loaded_results[run_num].configuration["Max BO Iters"]
-    data_names = ["sse", "min(sse)", "EI"]
+    
+    #Get Method from loaded results
+    enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
+    meth_name = Method_name_enum(enum_method)
+    method = GPBO_Methods(meth_name)
+    
     dim_data = len(strings_for_df) #obj, min obj, and ei
     data = np.zeros((runs, num_sets, dim_data))
     data_true = None
@@ -559,7 +564,11 @@ def analyze_sse_min_sse_ei(file_path, run_num, strings_for_df):
         # Extract the array and convert other elements to float
         for i in range(len(run.results_df["Min Obj Act"])):
             for k in range(len(strings_for_df)):
-                data[j,i,k] = run.results_df[strings_for_df[k]].to_numpy().astype(float)[i]
+                #For 2B and 1B, need exp values for sse
+                if method.obj.value == 2 and "Obj" in strings_for_df[k]:
+                    data[j,i,k] = np.exp(run.results_df[strings_for_df[k]].to_numpy().astype(float)[i])
+                else:
+                    data[j,i,k] = run.results_df[strings_for_df[k]].to_numpy().astype(float)[i]
             
     return data, data_true
 
@@ -847,7 +856,7 @@ def get_driver_dependencies_from_results(loaded_results, run_num):
     obj_tol = configuration["Obj Improvement Tolerance"]
     ei_tol = configuration["EI Tolerance"]
     if "Theta Generation Enum Value" in configuration.keys():
-        gen_meth_theta = Gen_meth_enum(configuration["Theta Generation Method"])
+        gen_meth_theta = Gen_meth_enum(configuration["Theta Generation Enum Value"])
     else:
         gen_meth_theta = Gen_meth_enum(1)
     
@@ -957,10 +966,10 @@ def analyze_parity_plot_data(file_path, run_num, bo_iter):
         sse_data = copy.copy(test_data) 
         test_data_sse_data = None
     else:
-        test_data.sse, test_data.sse_var = gp_emulator.eval_gp_sse_var_test(exp_data)
+        test_data.sse, test_data.sse_var = gp_emulator.eval_gp_sse_var_test(method, exp_data)
         test_data_sse_data = simulator.sim_data_to_sse_sim_data(method, test_data, exp_data, sep_fact, False)
-        sse_data = None
-
+        sse_data = None                           
+                   
     return test_data, test_data_sse_data, sse_data, method
 
 def analyze_param_sens(file_path, run_num, bo_iter, param_id, n_points):

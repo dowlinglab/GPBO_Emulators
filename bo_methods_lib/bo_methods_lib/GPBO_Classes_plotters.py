@@ -217,8 +217,8 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_l
                 label = "Run: "+str(j+1) 
                 #Remove elements that are numerically 0
                 data_df_run = pd.DataFrame(data = one_data_type[j])
-                data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-6).any(axis=1),0]
-                data_df_i = data_df_run.loc[:,0]
+                data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-14).any(axis=1),0]
+                data_df_i = data_df_run.loc[:,0] #Used to be df_i
                 #Ensure we have at least 2 elements to plot
                 if len(data_df_j) < 2:
                     data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
@@ -258,9 +258,9 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_l
     else:
         save_fig(save_path, ext='png', close=True, verbose=False)  
 
-    return fig
+    return
 
-def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num, string_for_df, data_names, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
+def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, string_for_df, data_names, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
     """
     Plots 5 value plots for EI, SSE, Min SSE, and EI values vs BO iter for all 5 methods
     """
@@ -286,7 +286,7 @@ def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num, string_f
         #If you still have data to plot
         if i < subplots_needed:
             #Get data
-            data, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num, string_for_df)
+            data, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num_list[i], string_for_df)
 
             #The index of the data is i, and one data type is in the last row of the data
             one_data_type = data
@@ -296,8 +296,8 @@ def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num, string_f
                 label = "Run: "+str(j+1) 
                 #Remove elements that are numerically 0
                 data_df_run = pd.DataFrame(data = one_data_type[j])
-                data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-6).any(axis=1),0]
-                data_df_i = data_df_run.loc[:,0]
+                data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-14).any(axis=1),0]
+                data_df_i = data_df_run.loc[:,0] #Used to be data_df_i
                 #Ensure we have at least 2 elements to plot
                 if len(data_df_j) < 2:
                     data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
@@ -817,13 +817,12 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
 
     return 
 
-def parity_plot(y_data, y_sse_data, sse_data, method, xbins, ybins, x_label, y_label, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
+def parity_plot(y_data, y_sse_data, sse_data, method, log_plot, xbins, ybins, x_label, y_label, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
     Creates parity plots of data
     """      
         
     #Make figures and define number of subplots  
-    titles = ["sse", "y_sim"]
     if method.emulator == True:
         assert all(isinstance(var, Data) for var in [y_data, y_sse_data]), "y_data and y_sse_data must be type Data and not None!"
         subplots_needed = 2
@@ -831,16 +830,39 @@ def parity_plot(y_data, y_sse_data, sse_data, method, xbins, ybins, x_label, y_l
         gp_mean = y_data.gp_mean
         gp_stdev = np.sqrt(y_data.gp_var)
         sse_sim = y_sse_data.y_vals
-        sse_mean = y_data.sse      
-        sse_stdev = np.sqrt(y_data.sse_var)
+        sse_mean = y_data.sse    
+        sse_var = y_data.sse_var
     else:
         subplots_needed = 1
         assert isinstance(sse_data, Data), "sse_data must be type Data and not None!"
         sse_sim = sse_data.y_vals
-        sse_mean = sse_data.sse      
-        sse_stdev = np.sqrt(sse_data.sse_var)
+        sse_mean = sse_data.sse  
+        sse_var = sse_data.sse_var
         
-    fig, ax, num_subplots = create_subplots(subplots_needed)
+        
+    #If not getting log values    
+    if log_plot == False:
+        titles = ["sse", "y_sim"]
+        #Change sse sim, mean, and stdev to not log for 1B and 2B
+        if method.obj.value == 2:
+            #SSE variance is var*(e^((log(sse)))^2
+            sse_sim = np.exp(sse_sim)
+            sse_mean = np.exp(sse_mean)
+            sse_var = sse_var*sse_mean**2
+            
+    #If getting log values
+    else:
+        titles = ["log(sse)", "y_sim"]
+        #Get log data from 1A, 2A, and 2C
+        if method.obj.value == 1:            
+            #SSE Variance is var/sse**2
+            sse_var = sse_var/sse_mean**2
+            sse_mean = np.log(sse_mean)
+            sse_sim = np.log(sse_sim)
+                
+    sse_stdev = np.sqrt(sse_var)
+        
+    fig, ax, num_subplots = create_subplots(subplots_needed, sharex = False)
     
     #Print the title and labels as appropriate
     set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
@@ -1137,8 +1159,14 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
             
         #Make colorbar on last plot which is invisible
         if i == num_subplots - 1:
+            if num_subplots == subplots_needed:
+                side = "right"
+                pad = 0.2
+            else:
+                side = "left"
+                pad = 0.01
             divider1 = make_axes_locatable(ax[i])
-            cax1 = divider1.append_axes("left", size="8%", pad=0.01)
+            cax1 = divider1.append_axes(side, size="8%", pad=pad)
             cbar = fig.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
             cbar.ax.tick_params(labelsize=other_fontsize)
                       
