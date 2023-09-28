@@ -1744,7 +1744,7 @@ class Type_2_GP_Emulator(GP_Emulator):
     __eval_gp_sse_var(data, exp_data)
     eval_gp_sse_var_heat_map(heat_map_data, exp_data)
     eval_gp_sse_var_test/val/cand(exp_data)
-    calc_best_error(exp_data)
+    calc_best_error(method, exp_data)
     __eval_gp_ei(sim_data, exp_data, ep_bias, best_error, method)
     eval_ei_heat_map(heat_map_data, exp_data, ep_bias, best_error, method)
     eval_ei_test(exp_data, ep_bias, best_error, method)
@@ -2096,10 +2096,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         #For method 2B, use a log scaled best error
         if method.obj.value == 2:
-            if best_error == 0:
-                best_error = -np.inf
-            else:
-                best_error = np.log(best_error)
+            best_error = np.log(best_error)
         
         return best_error
     
