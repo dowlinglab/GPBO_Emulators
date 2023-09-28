@@ -278,19 +278,20 @@ calc_best_error_list = [[gp_emulator1_e, exp_data1, sim_sse_data1],
 @pytest.mark.parametrize("gp_emulator, exp_data, sim_sse_data", calc_best_error_list)
 def test_calc_best_error(gp_emulator, exp_data, sim_sse_data):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    best_error = gp_emulator.calc_best_error(exp_data)
+    best_error = gp_emulator.calc_best_error(method, exp_data)
     assert np.isclose(best_error, min(sim_sse_data.y_vals), rtol = 1e-6)
 
 #This test function tests whether calc_best_error throws correct errors
-                          #gp_emulator, exp_data, train_data, y_vals
-calc_best_error_err_list = [[gp_emulator1_e, exp_data1, None, True],
-                            [gp_emulator1_e, exp_data1, True, None],
-                            [gp_emulator1_e, None, True, True],
-                            [gp_emulator2_e, exp_data2, None, True],
-                            [gp_emulator2_e, exp_data2, True, None]]
+                          #gp_emulator, exp_data, train_data, y_vals, method
+calc_best_error_err_list = [[gp_emulator1_e, exp_data1, None, True, method],
+                            [gp_emulator1_e, exp_data1, True, None, method],
+                            [gp_emulator1_e, None, True, True, method],
+                            [gp_emulator2_e, exp_data2, None, True, method],
+                            [gp_emulator2_e, exp_data2, True, None, method],
+                            [gp_emulator2_e, exp_data2, True, True, None]]
                                 
-@pytest.mark.parametrize("gp_emulator, exp_data, train_data, y_vals", calc_best_error_err_list)
-def test_calc_best_error_err(gp_emulator, exp_data, train_data, y_vals):
+@pytest.mark.parametrize("gp_emulator, exp_data, train_data, y_vals, method", calc_best_error_err_list)
+def test_calc_best_error_err(gp_emulator, exp_data, train_data, y_vals, method):
     with pytest.raises((AssertionError, AttributeError, ValueError)):               
         gp_emulator_fail = copy.copy(gp_emulator)
         if train_data is True:
@@ -301,7 +302,7 @@ def test_calc_best_error_err(gp_emulator, exp_data, train_data, y_vals):
         if y_vals is None:
             gp_emulator_fail.train_data.y_vals = y_vals
             
-        best_error = gp_emulator_fail.calc_best_error(exp_data)
+        best_error = gp_emulator_fail.calc_best_error(method, exp_data)
         
 #This test function tests whether eval_gp_ei works correctly
 #Define exploration bias and set ep_curr
@@ -317,22 +318,22 @@ def test_eval_ei_test(gp_emulator, exp_data, method):
     gp_model = gp_emulator.set_gp_model()#Set model
     gp_emulator.train_gp(gp_model) #Train model    
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_test() #Calc mean, var of gp 
-    best_error = gp_emulator.calc_best_error(exp_data) #Calc best error
+    best_error = gp_emulator.calc_best_error(method, exp_data) #Calc best error
     ei = gp_emulator.eval_ei_test(exp_data, ep_bias, best_error, method)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei)*num_x_data == len(gp_emulator.test_data.theta_vals)
-    
+
                  #gp_emulator, exp_data, method
 eval_ei_val_list = [[gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(3))],
                    [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(4))],
                    [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(5))]]
-@pytest.mark.parametrize("gp_emulator, exp_data, method", eval_ei_val_list)
-def test_eval_ei_val(gp_emulator, exp_data, method):
+@pytest.mark.parametrize("gp_emulator, exp_data, method_val", eval_ei_val_list)
+def test_eval_ei_val(gp_emulator, exp_data, method_val):
     gp_model = gp_emulator.set_gp_model()#Set model
     gp_emulator.train_gp(gp_model) #Train model    
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_val() #Calc mean, var of gp 
-    best_error = gp_emulator.calc_best_error(exp_data) #Calc best error
-    ei = gp_emulator.eval_ei_val(exp_data, ep_bias, best_error, method)
+    best_error = gp_emulator.calc_best_error(method_val, exp_data) #Calc best error
+    ei = gp_emulator.eval_ei_val(exp_data, ep_bias, best_error, method_val)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei)*num_x_data == len(gp_emulator.gp_val_data.theta_vals)
     
@@ -352,7 +353,7 @@ def test_eval_ei_cand(gp_emulator, simulator, exp_data, method):
     gp_emulator.cand_data = candidate #Set candidate point
     gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data)
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_cand() #Calc mean, var of gp 
-    best_error = gp_emulator.calc_best_error(exp_data) #Calc best error
+    best_error = gp_emulator.calc_best_error(method, exp_data) #Calc best error
     ei = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error, method)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei)*num_x_data == len(gp_emulator.cand_data.theta_vals)
@@ -372,7 +373,7 @@ def test_eval_ei_misc(gp_emulator, simulator, exp_data, method):
     misc_data.theta_vals = theta_vals
     feature_misc_data = gp_emulator.featurize_data(misc_data)
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_misc(misc_data, feature_misc_data) #Calc mean, var of gp 
-    best_error = gp_emulator.calc_best_error(exp_data) #Calc best error
+    best_error = gp_emulator.calc_best_error(method, exp_data) #Calc best error
     ei = gp_emulator.eval_ei_misc(misc_data, exp_data, ep_bias, best_error, method)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei)*num_x_data == len(misc_data.theta_vals)
@@ -384,7 +385,8 @@ calc_best_error_err_list = [[gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, 
                             [gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, GPBO_Methods(Method_name_enum(1)), True],
                             [gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, "str", True],
                             [gp_emulator1_e, simulator1, exp_data1, None, 1, method, True],
-                            [gp_emulator2_e, simulator2, exp_data2, None, 1, method, True]]
+                            [gp_emulator2_e, simulator2, exp_data2, None, 1, method, True],
+                            [gp_emulator2_e, simulator2, exp_data2, ep_bias, 1, None, True]]
                                 
 @pytest.mark.parametrize("gp_emulator, simulator, exp_data, ep_bias, best_error, method, data", calc_best_error_err_list)
 def test_calc_ei_err(gp_emulator, simulator, exp_data, ep_bias, best_error, method, data):
@@ -688,19 +690,20 @@ def test_eval_gp_mean_var_err(gp_emulator):
         
 #This test function tests whether eval_gp_sse_var checker works correctly
 expected_mean1_test_sse = np.array([65.34755447, 232.47635892])
-expected_var1_test_sse = np.array([15.3409606, 20.5801417])
+expected_var1_test_sse = np.array([176.10174577, 397.08295714])
 expected_mean2_test_sse = np.array([4198532.10241006])
-expected_var2_test_sse = np.array([-12768.34763098])
-                             #gp_emulator, exp_data, expected_mean, expected_var
-eval_gp_sse_var_test_list = [[gp_emulator1_e, exp_data1, expected_mean1_test_sse, expected_var1_test_sse],
-                              [gp_emulator2_e, exp_data2, expected_mean2_test_sse, expected_var2_test_sse]]
-@pytest.mark.parametrize("gp_emulator, exp_data, expected_mean, expected_var", eval_gp_sse_var_test_list)
-def test_eval_gp_sse_var_test(gp_emulator, exp_data, expected_mean, expected_var):
+expected_var2_test_sse = np.array([16795745.21889133])
+                             #gp_emulator, exp_data, method, expected_mean, expected_var
+eval_gp_sse_var_test_list = [[gp_emulator1_e, exp_data1, method, expected_mean1_test_sse, expected_var1_test_sse],
+                             [gp_emulator1_e, exp_data1, method, expected_mean1_test_sse, expected_var1_test_sse],
+                             [gp_emulator2_e, exp_data2, method, expected_mean2_test_sse, expected_var2_test_sse]]
+@pytest.mark.parametrize("gp_emulator, exp_data, method, expected_mean, expected_var", eval_gp_sse_var_test_list)
+def test_eval_gp_sse_var_test(gp_emulator, exp_data, method, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model) 
     gp_emulator.test_data.gp_mean, gp_emulator.test_data.gp_var = gp_emulator.eval_gp_mean_var_test() #Calc mean, var of gp 
-    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_test(exp_data) #Calc mean, var of gp sse
+    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_test(method, exp_data) #Calc mean, var of gp sse
     mult_factor = exp_data.get_num_x_vals()
     
     assert len(sse_mean)*mult_factor == len(test_data.theta_vals) == len(sse_var)*mult_factor
@@ -713,11 +716,11 @@ expected_mean1_val_sse = np.array([
     125.29782846, 3.38655573, 47.26048286, 111.21227011, 92.2305308
 ])
 expected_var1_val_sse = np.array([
-    10.99636609, 0.57237519, 22.86886745, 2.34167966, 0.50989066,
-    14.41751719, 1.72935713, 0.43609671, 12.27918108, -0.16262392
+    157.75010099,  45.44968465, 323.6090499,  28.03556547,   5.63685049,
+ 306.79847918,   5.96730938,  55.39150969, 152.10276292,   4.89184276
 ])
 expected_mean2_val_sse = np.array([3089941.63524772, 71489867.45474209, 3106795.59862653, 3660414.45898299, 2804455.57688683])
-expected_var2_val_sse = np.array([-6214.3944027, -63857.74441299, -6207.2523478, -10393.46744796, 10364.33372449])
+expected_var2_val_sse = np.array([1.23608424e+07, 2.85957962e+08, 1.24284244e+07, 1.46431204e+07, 1.12144710e+07])
                              #gp_emulator, exp_data, expected_mean, expected_var
 eval_gp_sse_var_val_list = [[gp_emulator1_e, exp_data1, expected_mean1_val_sse, expected_var1_val_sse],
                               [gp_emulator2_e, exp_data2, expected_mean2_val_sse, expected_var2_val_sse]]
@@ -727,17 +730,18 @@ def test_eval_gp_sse_var_val(gp_emulator, exp_data, expected_mean, expected_var)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model) 
     gp_emulator.gp_val_data.gp_mean, gp_emulator.gp_val_data.gp_var = gp_emulator.eval_gp_mean_var_val() #Calc mean, var of gp 
-    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_val(exp_data) #Calc mean, var of gp sse
+    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_val(method, exp_data) #Calc mean, var of gp sse
     mult_factor = exp_data.get_num_x_vals()
     
     assert len(sse_mean)*mult_factor == len(gp_emulator.gp_val_data.theta_vals) == len(sse_var)*mult_factor
     assert np.allclose(sse_mean, expected_mean, rtol=1e-02)
+    print(sse_var)
     assert np.allclose(sse_var, expected_var, rtol=1e-02)
 
 expected_mean1_sse = np.array([148.09705927])
-expected_var1_sse = np.array([10.99636609])
+expected_var1_sse = np.array([157.75010099])
 expected_mean2_sse = np.array([3089941.63524772])
-expected_var2_sse = np.array([-6214.3944027])
+expected_var2_sse = np.array([12360842.39680868])
 
                              #gp_emulator, simulator, exp_data, expected_mean, expected_var
 eval_gp_sse_var_misc_list = [[gp_emulator1_e, simulator1, exp_data1, expected_mean1_sse, expected_var1_sse],
@@ -753,7 +757,7 @@ def test_eval_gp_sse_var_misc_cand(gp_emulator, simulator, exp_data, expected_me
     misc_data.theta_vals = theta_vals #Set misc thetas
     feature_misc_data = gp_emulator.featurize_data(misc_data) #Set feature vals
     misc_data.gp_mean, misc_data.gp_var = gp_emulator.eval_gp_mean_var_misc(misc_data, feature_misc_data) #Calc mean, var of gp 
-    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_misc(misc_data, exp_data) #Calc mean, var of gp sse
+    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_misc(misc_data, method, exp_data) #Calc mean, var of gp sse
     
     candidate = Data(None, exp_data.x_vals, None,None,None,None,None,None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
     theta = gp_emulator.gp_val_data.theta_vals[0].reshape(1,-1) #Set "candidate thetas"
@@ -762,7 +766,7 @@ def test_eval_gp_sse_var_misc_cand(gp_emulator, simulator, exp_data, expected_me
     gp_emulator.cand_data = candidate #Set candidate point
     gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data) #Set feature vals
     gp_emulator.cand_data.gp_mean, gp_emulator.cand_data.gp_var = gp_emulator.eval_gp_mean_var_cand() #Calc mean, var of gp 
-    sse_mean_cand, sse_var_cand = gp_emulator.eval_gp_sse_var_cand(exp_data) #Calc mean, var of gp sse
+    sse_mean_cand, sse_var_cand = gp_emulator.eval_gp_sse_var_cand(method, exp_data) #Calc mean, var of gp sse
 
     mult_factor = exp_data.get_num_x_vals()
     
@@ -773,12 +777,13 @@ def test_eval_gp_sse_var_misc_cand(gp_emulator, simulator, exp_data, expected_me
     assert np.allclose(sse_var_cand, expected_var, rtol=1e-02)
 
 #This function tests whether eval_gp_sse_var_test/val/cand/misc throw the correct errors     
-                             #gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var
-eval_gp_sse_var_err_list = [[gp_emulator1_e, simulator1, exp_data1, False, True, True],
-                            [gp_emulator1_e, simulator1, exp_data1, True, False, True],
-                            [gp_emulator1_e, simulator1, exp_data1, True, True, False]]
-@pytest.mark.parametrize("gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var", eval_gp_sse_var_err_list)
-def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var):
+                             #gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method
+eval_gp_sse_var_err_list = [[gp_emulator1_e, simulator1, exp_data1, False, True, True, method],
+                            [gp_emulator1_e, simulator1, exp_data1, True, False, True, method],
+                            [gp_emulator1_e, simulator1, exp_data1, True, True, False, method],
+                            [gp_emulator1_e, simulator1, exp_data1, True, True, False, None]]
+@pytest.mark.parametrize("gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method", eval_gp_sse_var_err_list)
+def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method):
     gp_emulator_fail = copy.copy(gp_emulator)
     train_data, test_data = gp_emulator_fail.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator_fail.set_gp_model()
@@ -799,7 +804,7 @@ def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_
             gp_emulator_fail.gp_val_data.gp_mean = None
         if set_gp_var is False:
             gp_emulator_fail.gp_val_data.gp_var = None
-        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_val(exp_data)        
+        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_val(method, exp_data)        
     with pytest.raises((AssertionError, AttributeError, ValueError)):  
         gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_test() 
         if set_data is False:
@@ -808,7 +813,7 @@ def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_
             gp_emulator_fail.test_data.gp_mean = None
         if set_gp_var is False:
             gp_emulator_fail.test_data.gp_var = None
-        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_test(exp_data)
+        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_test(method, exp_data)
     with pytest.raises((AssertionError, AttributeError, ValueError)):  
         gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_cand() 
         if set_data is False:
@@ -817,7 +822,7 @@ def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_
             gp_emulator_fail.cand_data.gp_mean = None
         if set_gp_var is False:
             gp_emulator_fail.cand_data.gp_var = None
-        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_cand(exp_data)
+        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_cand(method, exp_data)
     with pytest.raises((AssertionError, AttributeError, ValueError)): 
         misc_data = candidate
         feat_misc_data = gp_emulator_fail.feature_cand_data
@@ -828,12 +833,12 @@ def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_
             misc_data.gp_mean = None
         if set_gp_var is False:
             misc_data.gp_var = None
-        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_misc(misc_data, exp_data)
+        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_misc(misc_data, method, exp_data)
     with pytest.raises((AssertionError, AttributeError, ValueError)): 
         misc_data = candidate
         feat_misc_data = gp_emulator_fail.feature_cand_data
         gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_misc(misc_data, feat_misc_data) #Calc mean, var of gp 
-        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_misc(misc_data, None)
+        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_misc(misc_data, method, None)
 
 #Test that add_next_theta_to_train_data(theta_best_sse_data) works correctly
                              #gp_emulator, simulator, exp_data, expected_mean, expected_var

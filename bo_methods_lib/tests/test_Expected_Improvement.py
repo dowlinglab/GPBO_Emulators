@@ -123,7 +123,7 @@ def test_ei_init_err_list(ep_bias, gp_mean, gp_var, exp_data, best_error, method
                ## gp_mean, gp_var, best_error, method, ei_expected
 type_2_list = [[np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(3)), 0.98698],
                [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.04**2, 0.5, GPBO_Methods(Method_name_enum(4)), 40.721],
-               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(5)), 3.489],
+               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(5)), 3.380],
                [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.2, GPBO_Methods(Method_name_enum(3)), 0],
                [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(4)), 0]]
 

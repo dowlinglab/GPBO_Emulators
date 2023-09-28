@@ -1955,6 +1955,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         misc_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
         
         """
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods class"
         assert isinstance(misc_data , Data), "misc_data must be type Data"
         assert np.all(misc_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(misc_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
@@ -1982,6 +1983,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         test_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the test data 
         
         """
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods class"
         assert all(isinstance(var , Data) for var in [self.test_data, exp_data]), "self.test_data and exp_data must be type Data"
         assert np.all(self.test_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(self.test_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
@@ -2009,6 +2011,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         val_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the validation data 
         
         """
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods class"
         assert all(isinstance(var , Data) for var in [self.gp_val_data, exp_data]), "self.gp_val_data and exp_data must be type Data"
         assert np.all(self.gp_val_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(self.gp_val_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
@@ -2036,6 +2039,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         cand_sse_var: tensor, The sse variance derived from the GP model's variance evaluated over the candidate theta data 
         
         """
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods class"
         assert all(isinstance(var , Data) for var in [self.cand_data, exp_data]), "self.cand_data and exp_data must be type Data"
         assert np.all(self.cand_data.x_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
         assert np.all(self.cand_data.theta_vals is not None), "Must have testing data theta_vals and x_vals to evaluate the GP"
@@ -2061,7 +2065,8 @@ class Type_2_GP_Emulator(GP_Emulator):
         -------
         best_error: float, the best error of the method
         
-        """  
+        """ 
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods class"
         assert all(isinstance(var , Data) for var in [self.train_data, exp_data]), "self.tain_data and exp_data must be type Data"
         assert np.all(self.train_data.x_vals is not None), "Must have simulation x, theta, and y data to calculate best error"
         assert np.all(self.train_data.theta_vals is not None), "Must have simulation x, theta, and y data to calculate best error"
@@ -2091,7 +2096,10 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         #For method 2B, use a log scaled best error
         if method.obj.value == 2:
-            best_error = np.log(best_error)
+            if best_error == 0:
+                best_error = -np.inf
+            else:
+                best_error = np.log(best_error)
         
         return best_error
     
@@ -2650,7 +2658,8 @@ class Exploration_Bias():
         self.improvement = improvement
         self.best_error = best_error
         self.mean_of_var = mean_of_var
-        self.ep_max = self.best_error #This is a placeholder. It will be overwritten with the calculated best error even if it is None now
+        self.ep_max = None
+        #self.ep_max is a placeholder. It will be overwritten with the calculated best error even if it is None now
         
     def set_ep(self):
         """
