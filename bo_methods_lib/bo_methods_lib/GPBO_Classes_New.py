@@ -2832,8 +2832,9 @@ class GPBO_Driver:
     __gen_emulator()
     __opt_with_scipy(neg_ei)
     __scipy_fxn(theta,neg_ei, best_error)
-    __create_heat_map_param_data()
+    create_heat_map_param_data()
     __augment_train_data(theta_best)
+    create_data_instance_from_theta(theta_array)
     __run_bo_iter(gp_model, iteration)
     __run_bo_to_term(gp_model)
     __run_bo_workflow()
@@ -2858,6 +2859,18 @@ class GPBO_Driver:
         ep_bias: Instance of Exploration_Bias class, class containing exploration parameter info
         gen_meth_theta: Instance of Gen_meth_enum or None: The method by which simulation data is generated. For heat map making
         """
+        assert isinstance(cs_params, CaseStudyParameters), "cs_params must be instance of CaseStudyParameters"
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
+        assert isinstance(simulator, Simulator), "simulator must be instance of Simulator"
+        assert isinstance(exp_data, Data), "exp_data must be instance of Data"
+        assert isinstance(sim_data, Data), "sim_data must be instance of Data"
+        assert isinstance(sim_sse_data, Data), "sim_sse_data must be instance of Data"
+        assert isinstance(val_data, Data) or val_data is None, "val_data must be instance of Data or None"
+        assert isinstance(val_sse_data, Data) or val_sse_data is None, "val_sse_data must be instance of Data or None"
+        assert isinstance(gp_emulator, (Type_1_GP_Emulator, Type_2_GP_Emulator)) or gp_emulator is None, "gp_emulator must be instance of Type_1_GP_Emulator, Type_2_GP_Emulator, or None"
+        assert isinstance(ep_bias, Exploration_Bias), "ep_bias must be instance of Exploration_Bias"
+        assert isinstance(gen_meth_theta, Gen_meth_enum), "gen_meth_theta must be instance of Gen_meth_enum"
+
         # Constructor method
         self.cs_params = cs_params
         self.method = method
@@ -3077,6 +3090,7 @@ class GPBO_Driver:
         """      
         assert isinstance(self.gp_emulator.gp_sim_data, Data), "self.gp_emulator.gp_sim_data must be an instance of Data!"
         assert isinstance(self.gen_meth_theta, Gen_meth_enum), "self.gen_meth_theta must be instance of Gen_meth_enum"
+        assert isinstance(self.exp_data.x_vals, (np.ndarray)), "self.exp_data.x_vals must be np.ndarray"
         
         #Create list of heat map theta data
         heat_map_data_dict = {}
@@ -3171,6 +3185,8 @@ class GPBO_Driver:
         """
         assert isinstance(theta_array, np.ndarray), "theta_array must be np.ndarray"
         assert len(theta_array.shape) == 1, "theta_array must be 1D"
+        assert isinstance(self.exp_data.x_vals, (np.ndarray)), "self.exp_data.x_vals must be np.ndarray"
+        
         #Repeat the theta best array once for each x value
         #Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
         theta_arr_repeated = np.repeat(theta_array.reshape(1,-1), self.exp_data.get_num_x_vals() , axis =0)
