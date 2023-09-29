@@ -1172,7 +1172,7 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
                       
     #Print the title
     if title is not None:
-        title = title + str(plot_axis_names)
+        title = title + " " + str(plot_axis_names)
         
     #Print the title and labels as appropriate
     #Define x and y labels

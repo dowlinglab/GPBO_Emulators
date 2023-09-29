@@ -679,11 +679,16 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data):
     exp_data = loaded_results[run_num].exp_data_class
     simulator = loaded_results[run_num].simulator_class
     
+    enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
+    enum_ep = Ep_enum(loaded_results[run_num].configuration["Exploration Bias Method Value"])
+    ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
+    ep_bias = Exploration_Bias(None, ep_at_iter, enum_ep, None, None, None, None, None, None, None)
+    
     if loaded_results[run_num].heat_map_data_dict is not None:
         heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
     else:
         cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
-        driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, None, gen_meth_theta)
+        driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, ep_bias, gen_meth_theta)
         loaded_results[run_num].heat_map_data_dict = driver.create_heat_map_param_data()
         heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
         
@@ -705,14 +710,10 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data):
     theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
     theta_next = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
     train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
-    enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
-    enum_ep = Ep_enum(loaded_results[run_num].configuration["Exploration Bias Method Value"])
     sep_fact = loaded_results[run_num].configuration["Separation Factor"]
-    seed = loaded_results[run_num].configuration["Seed"]
-    ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
+    seed = loaded_results[run_num].configuration["Seed"]    
     meth_name = Method_name_enum(enum_method)
-    method = GPBO_Methods(meth_name)
-    ep_bias = Exploration_Bias(None, ep_at_iter, enum_ep, None, None, None, None, None, None, None)
+    method = GPBO_Methods(meth_name)    
     
     #Calculate GP mean and var for heat map data
     heat_map_data.gp_mean, heat_map_data.gp_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data, featurized_hm_data)
