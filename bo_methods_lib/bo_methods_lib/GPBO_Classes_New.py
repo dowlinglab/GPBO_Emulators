@@ -3088,6 +3088,7 @@ class GPBO_Driver:
         --------
         heat_map_data_dict: dict, heat map data for each set of 2 parameters indexed by parameter name tuple ("param_1,param_2")
         """      
+        assert isinstance(self.gp_emulator, (Type_1_GP_Emulator, Type_2_GP_Emulator)), "self.gp_emulator must be instance of Type_1_GP_Emulator or Type_2_GP_Emulator"
         assert isinstance(self.gp_emulator.gp_sim_data, Data), "self.gp_emulator.gp_sim_data must be an instance of Data!"
         assert isinstance(self.gen_meth_theta, Gen_meth_enum), "self.gen_meth_theta must be instance of Gen_meth_enum"
         assert isinstance(self.exp_data.x_vals, (np.ndarray)), "self.exp_data.x_vals must be np.ndarray"
