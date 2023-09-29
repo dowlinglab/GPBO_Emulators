@@ -647,7 +647,7 @@ def analyze_train_test(file_path, run_num, bo_iter):
     
     return train_data, test_data, val_data, x_exp, data_names, data_true
 
-def analyze_heat_maps(file_path, run_num, bo_iter, pair_id):
+def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data):
     """
     Gets the heat map data necessary for plotting heat maps
     
@@ -739,26 +739,29 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id):
     else:
         heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data, method, exp_data)
 
-    #Take exp of sse data for method B1 and B2. Get 
-    if method.obj.value == 2:        
-        if method.emulator == False:  
+    #Get log or unlogged data values        
+    if log_data == False:
+        #Change sse sim, mean, and stdev to not log for 1B and 2B
+        if method.obj.value == 2:
             #SSE variance is var*(e^((log(sse)))^2
-            heat_map_data.sse_var = heat_map_data.sse_var*np.exp(heat_map_data.sse)**2
             heat_map_data.sse = np.exp(heat_map_data.sse)
-        else:
-            heat_map_data.sse = np.exp(heat_map_data.sse)
-            #SSE Variance is var*sse**2
-            heat_map_data.sse_var = heat_map_data.sse_var*heat_map_data.sse**2
+            heat_map_data.sse_var = heat_map_data.sse_var*heat_map_data.sse**2            
+            heat_map_sse_data.y_vals = np.exp(heat_map_sse_data.y_vals)
             
-        heat_map_sse_data.y_vals = np.exp(heat_map_sse_data.y_vals)
+    #If getting log values
+    else:
+        #Get log data from 1A, 2A, and 2C
+        if method.obj.value == 1:            
+            #SSE Variance is var/sse**2
+            heat_map_data.sse_var = heat_map_data.sse_var/heat_map_data.sse**2
+            heat_map_data.sse = np.log(heat_map_data.sse)
+            heat_map_sse_data.y_vals = np.log(heat_map_sse_data.y_vals)
             
     
     if method.emulator == False:
         heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error)
     else:
-        heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error, method)
-        
-    
+        heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error, method)   
         
     #Create test mesh
     #Define original theta_vals (for restoration later)

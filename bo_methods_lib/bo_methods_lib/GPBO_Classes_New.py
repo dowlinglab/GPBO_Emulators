@@ -3348,7 +3348,7 @@ class GPBO_Driver:
                     #The minimum objective for all the runs is the same as it was before
                     results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj Cum."].iloc[i-1]
                     #And so are the thetas
-                    results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i-1]
+                    results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj Cum."].iloc[i-1]
                     #And the improvement is defined as 0, since it must be non-negative
                     improvement = 0
                 

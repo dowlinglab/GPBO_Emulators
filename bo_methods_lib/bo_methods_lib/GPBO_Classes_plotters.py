@@ -1038,7 +1038,7 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
     
     return plt.show()
 
-def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_iter_list, pair, z_choice, levels, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, cmap = "autumn", save_path = None):
+def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_iter_list, pair, z_choice, log_data, levels, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, cmap = "autumn", save_path = None):
     '''
     Plots comparison of y_sim, GP_mean, and GP_stdev
     Parameters
@@ -1097,7 +1097,7 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
     for i in range(num_subplots):
         if i < len(file_path_list):
             #Get data
-            analysis_list = analyze_heat_maps(file_path_list[i], run_num_list[i], bo_iter_list[i], pair)
+            analysis_list = analyze_heat_maps(file_path_list[i], run_num_list[i], bo_iter_list[i], pair, log_data)
             sim_sse_var_ei, test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, idcs_to_plot = analysis_list
             sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
             
@@ -1107,16 +1107,16 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
             assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
             
             #Find z based on 
-            if z_choice == "sse_sim":
+            if "sim" in z_choice:
                 z = sse_sim
-            elif z_choice == "sse_mean":
+            elif "mean" in z_choice:
                 z = sse_mean
-            elif z_choice == "sse_var":
+            elif "var" in z_choice:
                 z = sse_var
-            elif z_choice == "ei":
+            elif "ei" in z_choice:
                 z = ei
             else:
-                raise Warning("choice must be 'sse_sim', 'sse_mean', 'sse_var', or 'ei'")
+                raise Warning("choice must contain 'sim', 'mean', 'var', or 'ei'")
                 
             #Assert statements
             assert z.shape==xx.shape, "Array z must be NxN"
