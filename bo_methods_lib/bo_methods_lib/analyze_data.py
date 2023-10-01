@@ -66,13 +66,13 @@ def get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, s
         col_name = 'Sep Fact'
         
         #Get best ep data from Results path if possible
-        path_name = "Results/ep_study/" + cs_name_enum.name + "/" + meth_name.name + "/ep_study_best.csv"
+        path_name = "Results/ep_study/" + cs_name_enum.name + "/" + param_name_str + "/" + meth_name.name + "/ep_study_best.csv"
         if os.path.exists(path_name):
             df_ep_best = pd.read_csv(path_name, header = 0)
         #If there is no results path infer it directly from the jobs
         else:
-            df_ep, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, "ep", save_csv = False) 
-            df_ep_best = get_best_data(df_ep, "ep", cs_name, theta_true, date_time_str = None, save_csv = False)
+            df_ep, cs_name, theta_true = get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, "ep", save_csv = False) 
+            df_ep_best = get_best_data(df_ep, "ep", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
             
         #Set ep enum val to the best one for that cs and method
         best_ep_enum_val = int(df_ep_best["EP Method Val"].iloc[0])
@@ -486,6 +486,10 @@ def analyze_SF_data_for_plot(df, meth_name_str, sep_fact_list):
                 sse_min_all[i] = min_sse
                 sse_min_act_all[i] = min_sse_act
 
+    if "B" in meth_name_str:
+        sse_min_all = np.exp(sse_min_all)
+        sse_min_act_all = np.exp(sse_min_act_all)
+        
     y_data[:,0] = sse_min_all
     y_data[:,1] = sse_min_act_all
     data_names = ['Min Obj', 'Min Obj Act']

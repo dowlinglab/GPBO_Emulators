@@ -397,8 +397,8 @@ def plot_compare_mean_med_best(df, cs_name, theta_true, xbins, ybins, title, log
                     ax[i].plot(x_data, np.log(df_plot[ax_df_key_list[i]]), label = str(name))
                     y_data = np.log(df_plot[ax_df_key_list[i]])
                 elif i == 0 and log_data == False and "B" in name:
-                    ax[i].plot(x_data, np.exp(df_plot[ax_df_key_list[i]]), label = str(name))
-                    y_data = np.exp(df_plot[ax_df_key_list[i]])
+                    ax[i].plot(x_data, np.exp(df_plot[ax_df_key_list[i]].astype(np.float64)), label = str(name))
+                    y_data = np.exp(df_plot[ax_df_key_list[i]].astype(np.float64))
                     
                 #Add +1 to BO iter for number of iterations when plotting
                 if i == 2:
