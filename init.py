@@ -106,8 +106,8 @@ for cs_name_val in cs_val_list:
         if run_sf_study and cs_name_val == 1:
             #Get best data from signac project jobs
             study_id = "ep"
-            df, cs_name, theta_true = get_study_data_signac(project, cs_name_val, meth_name_val, study_id, save_csv = True)
-            df_best = get_best_data(df, study_id, cs_name, theta_true, date_time_str = None, save_csv = True)
+            df, cs_name, theta_true = get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, study_id, save_csv = True)
+            df_best = get_best_data(df, study_id, cs_name, theta_true, param_name_str, date_time_str = None, save_csv = True)
 
             #Set ep enum val to the best one for that cs and method
             ep_enum_val = df_best["EP Method Val"].iloc[0]
