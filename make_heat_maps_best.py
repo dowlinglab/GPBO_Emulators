@@ -17,10 +17,11 @@ warnings.simplefilter("ignore", category=RuntimeWarning)
 warnings.simplefilter("ignore", category=UserWarning)
 
 #Set Stuff
-meth_name_str_list = [1, 2, 3, 5]
+meth_name_str_list = [1, 2, 3, 4, 5]
 study_id = "ep"
-param_name_str = "y0"
+param_name_str = "A"
 cs_name_val = 2  
+log_data = False
 
 #Get project
 project = signac.get_project()
@@ -71,7 +72,7 @@ for meth_val in meth_name_str_list:
     pairs = len((list(combinations(dim_list, 2))))
     
     for pair in range(pairs):
-        analysis_list = analyze_heat_maps(file_path, run_num, bo_iter, pair)
+        analysis_list = analyze_heat_maps(file_path, run_num, bo_iter, pair, log_data)
         sim_sse_var_ei, test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, idcs_to_plot = analysis_list
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
 
@@ -82,3 +83,25 @@ for meth_val in meth_name_str_list:
 
         plot_heat_maps(test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, levels, idcs_to_plot, 
                        z, z_titles, xbins, ybins, zbins, title, title_fontsize, other_fontsize, cmap, save_path)
+        
+        
+    #Create mp4/gif files from png
+    dir_name = "Results/ep_study/" + cs_name_enum.name + "/" + param_name_str + "/Heat_Maps/" +  meth_name.name + "/"
+    if not os.path.isdir(dir_name):
+        os.makedirs(dir_name)
+    gif_path = dir_name + "param_combos.mp4"
+
+    filenames = []
+
+    for job in jobs:
+        heat_map_files = glob.glob(job.fn("Heat_Maps/*/*.png"))
+        filenames += heat_map_files
+
+    with imageio.get_writer(gif_path, mode='I', fps=0.3) as writer: #Note. For gif use duration instead of fps
+        for filename in filenames:           
+            image = imageio.imread(filename)
+            if filename == filenames[0]: #Get shape of first item
+                shape = image.shape
+            if image.shape is not shape: #If item shapes not the same force them to be the same
+                image.resize(shape)
+            writer.append_data(image) #Add file to move

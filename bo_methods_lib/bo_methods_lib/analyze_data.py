@@ -938,6 +938,10 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
     sep_fact = loaded_results[run_num].configuration["Separation Factor"]
     method = GPBO_Methods(Method_name_enum(loaded_results[run_num].configuration["Method Name Enum Value"]))
     
+    enum_ep = Ep_enum(loaded_results[run_num].configuration["Exploration Bias Method Value"])
+    ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
+    ep_bias = Exploration_Bias(None, ep_at_iter, enum_ep, None, None, None, None, None, None, None)
+    
     theta_true = loaded_results[run_num].simulator_class.theta_true
     theta_obj_min =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
     theta_ei_max = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
@@ -947,7 +951,7 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
         param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[0]
     else:
         cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
-        driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, None, gen_meth_theta)
+        driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, ep_bias, gen_meth_theta)
         loaded_results[run_num].heat_map_data_dict = driver.create_heat_map_param_data()
         param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[0]
         
