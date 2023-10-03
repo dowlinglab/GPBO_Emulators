@@ -310,7 +310,7 @@ def get_median_data(df, study_id, cs_name, theta_true, param_name_str = None, da
     # Create a list containing 1 dataframe for each method in df_best
     df_list = []
     for meth in df['BO Method'].unique():
-        df_meth = df.loc[df["BO Method"]==meth]   
+        df_meth = df[df["BO Method"]==meth]   
         df_list.append(df_meth)
 
     #Create new df for median values
@@ -372,7 +372,7 @@ def get_mean_data(df, study_id, cs_name, theta_true, param_name_str = None, date
     # Create a list containing 1 dataframe for each method in df_best
     df_list = []
     for meth in df['BO Method'].unique():
-        df_meth = df.loc[df["BO Method"]==meth]   
+        df_meth = df[df["BO Method"]==meth]   
         df_list.append(df_meth)
 
     #Create new df for median values
@@ -411,6 +411,38 @@ def get_mean_data(df, study_id, cs_name, theta_true, param_name_str = None, date
         df_mean.to_csv(file_name2) 
         
     return df_mean
+
+def get_mean_med_best_over_sf(df, cs_name, theta_true, param_name_str):
+    df_list = []
+    choices = ["mean", "median", "median_best", "best"]
+    for choice in choices:        
+        #Get df containing the best value at each sf for each method
+        df_meth_sf = pd.DataFrame()
+        names = df['BO Method'].unique()
+        sep_fact_list = df['Sep Fact'].unique()
+        #Loop over sfs
+        for sf in range(len(sep_fact_list)):
+            #Loop over names
+            for name in names:
+                df_meth = df[ (df["BO Method"]==name) & (df["Sep Fact"] == sep_fact_list[sf]) ]   
+        #                 df_meth = df[(df["BO Method"]==name) & (df["Sep Fact"] == sep_fact_list[sf])]                  
+                if choice == "mean":
+                    df_piece = get_mean_data(df_meth, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
+                elif choice == "median":
+                    df_piece = get_median_data(df_meth, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
+                    if len(df_piece) > 0:
+                        df_piece = df_piece.iloc[0:1].reset_index(drop=True)
+                elif choice == "median_best":
+                    df_best = get_best_data(df_meth, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
+                    df_piece = get_median_data(df_best, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
+                elif choice == "best":
+                    df_piece = get_best_data(df_meth, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
+                df_meth_sf = pd.concat([df_meth_sf, df_piece])
+        df_list.append(df_meth_sf)
+        
+    return df_list
+                
+        
     
 def converter(instr):
     """
@@ -476,7 +508,7 @@ def analyze_SF_data_for_plot(df, meth_name_str, sep_fact_list):
     for i in range(len(sep_fact_list)):
         #Loop over runs
         for j in range(max(df["Run Number"].unique())):
-            df_meth = df.loc[(df["BO Method"]==meth_name_str) & (df["Sep Fact"] == sep_fact_list[i])]  
+            df_meth = df[(df["BO Method"]==meth_name_str) & (df["Sep Fact"] == sep_fact_list[i])]  
             #Find lowest sse and corresponding theta
             min_sse_index = np.argmin(df_meth['Min Obj Act']) #Should use Actual or GP min?
             min_sse = df_meth['Min Obj'].iloc[min_sse_index]
