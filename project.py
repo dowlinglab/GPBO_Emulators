@@ -59,8 +59,8 @@ def run_ep_or_sf_exp(job):
         #Constant value stays constant
         ep_bias = Exploration_Bias(job.sp.ep0, None, ep_enum, None, None, None, None, None, None, None)
     elif ep_enum.value == 2:
-        #For decay method, decay from mixed to full exploitation (alpha of 0) for this example
-        ep_bias = Exploration_Bias(job.sp.ep0, None, ep_enum, None, job.sp.bo_iter_tot, None, 0, None, None, None)
+        #For decay method, decay from mixed to full exploitation (alpha of 0.5) for this example
+        ep_bias = Exploration_Bias(job.sp.ep0, None, ep_enum, None, job.sp.bo_iter_tot, None, 0.5, None, None, None)
     elif ep_enum.value == 3:
         #Set ep multiplier to 1.5 as recommended in Boyle
         ep_bias = Exploration_Bias(job.sp.ep0, None, ep_enum, None, None, 1.5, None, None, None, None)

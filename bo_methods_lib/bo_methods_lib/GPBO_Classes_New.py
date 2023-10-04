@@ -2637,10 +2637,6 @@ class Exploration_Bias():
         For all methods, ep is on domain [0, best_error (initial)] inclusive
         """
         assert all((isinstance(param, (float, int)) or param is None) for param in [ep0, ep_curr, ep_inc, ep_f, best_error, mean_of_var]), "ep0, ep_curr, ep_inc, ep_f, best_error, and mean_of_var must be int, float, or None"
-        if isinstance(ep0, (float, int)):
-            assert ep0 >= 0, "Starting exploration bias (ep0) must be greater than or equal to 0!"
-        if isinstance(ep_f, (float, int)):
-            assert ep_f >= 0, "Final exploration bias (ep_f) must be greater than or equal to 0 !"
         assert isinstance(ep_enum, Enum) == True, "ep_enum must be an Enum instance of Class Ep_enum"
         assert isinstance(improvement, bool) == True or improvement is None, "improvement must be bool or None"
         assert all((isinstance(param, (int)) or param is None) for param in [bo_iter, bo_iter_max]), "bo_iter and bo_iter_max must be int or None"
@@ -2655,9 +2651,33 @@ class Exploration_Bias():
         self.improvement = improvement
         self.best_error = best_error
         self.mean_of_var = mean_of_var
-        self.ep_max = None
-        #self.ep_max is a placeholder. It will be overwritten with the calculated best error even if it is None now
+        self.ep_max = 2
+        self.ep_min = 0.5
         
+    def __bound_ep(self, ep_val):
+        """
+        Bounds the value of a given exploration parameter between the minimum and maximum value
+        
+        Parameters
+        ----------
+        ep_val: int or float, the value of the exploration parameter
+        
+        Returns:
+        --------
+        ep_val: int/float, the value of the exploration parameter within self.ep_min and self.ep_max
+        """
+        assert isinstance(ep_val, (float, int)), "ep_val must be float or int!"
+        if ep_val > self.ep_max:
+            warnings.warn("setting ep_val to self.ep_max because it was too large")
+            ep_val = self.ep_max
+        elif ep_val < self.ep_min:
+            warnings.warn("setting ep_val to self.ep_min because it was too small")
+            ep_val = self.ep_min
+        else:
+            assert self.ep_max >= ep_val >= self.ep_min, "Starting exploration bias (ep0) must be greater than or equal to 0.5!"
+                
+        return ep_val
+    
     def set_ep(self):
         """
         Updates value of exploration parameter based on one of the four alpha heuristics
@@ -2668,14 +2688,10 @@ class Exploration_Bias():
         
         """
         #Set ep0 and ep_f to the max if they are too large
-        if isinstance(self.ep0, (float, int)) and self.ep_max is not None:
-            if self.ep0 > self.ep_max:
-                warnings.warn("setting self.ep0 to self.ep_max because it was too large")
-                self.ep0 = self.ep_max
-        if isinstance(self.ep_f, (float, int)) and self.ep_max is not None:
-            if self.ep_f > self.ep_max:
-                warnings.warn("setting self.ep_f to self.ep_max because it was too large")
-                self.ep_f = self.ep_max
+        if self.ep0 is not None:
+            self.ep0 = self.__bound_ep(self.ep0)
+        if self.ep_f is not None:
+            self.ep_f = self.__bound_ep(self.ep_f)
                 
         if self.ep_enum.value == 1: #Constant if using constant method
             assert self.ep0 is not None 
@@ -2722,7 +2738,6 @@ class Exploration_Bias():
         assert self.bo_iter_max-1 >= self.bo_iter >= 0
         
         #Set ep_f to max value if it is too big
-        (float, int)
         #Initialize number of decay steps
         decay_steps = int(self.bo_iter_max/2)
         #Apply heuristic on 1st iteration and all steps until end of decay steps
@@ -2762,8 +2777,8 @@ class Exploration_Bias():
                 #If we did not, Increase Exploration
                 ep = self.ep_curr*self.ep_inc
                 
-        # Ensure that ep stays within the max
-        ep = min(self.ep_max, ep)
+        # Ensure that ep stays within the bounds
+        ep = self.__bound_ep(ep)
 
         return ep
     
@@ -2784,12 +2799,12 @@ class Exploration_Bias():
             
         #Apply Jasrasaria's Heuristic
         if self.best_error > 0:
-            ep = self.mean_of_var/self.best_error
+            ep = 1 + (self.mean_of_var/self.best_error**2)
         else:
             ep = self.ep_max
             
-        # Ensure that ep stays within the max value
-        ep = min(self.ep_max, ep)
+        # Ensure that ep stays within the bounds
+        ep = self.__bound_ep(ep)
         
         return ep
 
@@ -3227,16 +3242,8 @@ class GPBO_Driver:
         
         #Add not log best error to ep_bias
         if iteration == 0 or self.ep_bias.ep_enum.value == 4:
-            if self.method.obj.value == 2:
-                #Give ep best error on a non log scaled since we want to keep parameter in domain >= 0               
-                self.ep_bias.best_error = np.exp(best_error)            
-            else:
-                #Give ep best error on a non log scaled since we want to keep parameter in domain >= 0               
-                self.ep_bias.best_error = best_error
-
-            #Only on the 1st iteration, set the maximum value of alpha to the larger of 1 or the best error
-            if iteration == 0:
-                self.ep_bias.ep_max = max(self.ep_bias.best_error,1)
+            #Since best error is squared when used in Jasrasaria calculations, the value will always be >=0      
+            self.ep_bias.best_error = best_error
                         
         #Calculate mean of var for validation set if using Jasrasaria heuristic
         if self.ep_bias.ep_enum.value == 4:

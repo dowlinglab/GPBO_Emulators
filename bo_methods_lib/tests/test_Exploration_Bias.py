@@ -25,19 +25,18 @@ def test_bo_methods_lib_imported():
 
 #This test function tests whether set_ep works as intended
                ## ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var, expected
-set_ep_list = [[1, None, Ep_enum(1), 0, 100, 1.5, 0.01, False, 0.2, 0.02, 1],
-               [3, None, Ep_enum(1), 0, 100, 1.5, 0.01, False, 0.2, 0.02, 3],
-               [1, None, Ep_enum(2), 0, 100, 1.5, 0.01, False, 0.2, 0.02, 1],
-               [1, None, Ep_enum(2), 1, 100, 1.5, 0.01, False, 0.2, 0.02, 0.9802],
-               [1, 1, Ep_enum(3), 0, 100, 1.5, 0.01, False, 10, 0.02, 1.5],
-               [1, 1, Ep_enum(3), 0, 100, 1.5, 0.01, True, 10, 0.02, 0.6667],
-               [1, None, Ep_enum(3), 0, 100, 1.5, 0.01, True, 10, 0.02, 1],
-               [1, None, Ep_enum(4), 0, 100, 1.5, 0.01, False, 10, 0.02, 0.002]]
+set_ep_list = [[1, None, Ep_enum(1), 0, 100, 1.5, 0.5, False, 0.2, 0.02, 1],
+               [3, None, Ep_enum(1), 0, 100, 1.5, 0.5, False, 0.2, 0.02, 2],
+               [0, None, Ep_enum(1), 0, 100, 1.5, 0.5, False, 0.2, 0.02, 0.5],
+               [1, None, Ep_enum(2), 0, 100, 1.5, 0.5, False, 0.2, 0.02, 1],
+               [1, None, Ep_enum(2), 1, 100, 1.5, 0.5, False, 0.2, 0.02, 0.995],
+               [1, 1, Ep_enum(3), 0, 100, 1.5, 0.5, False, 10, 0.02, 1.5],
+               [1, 1, Ep_enum(3), 0, 100, 1.5, 0.5, True, 10, 0.02, 0.6667],
+               [1, None, Ep_enum(3), 0, 100, 1.5, 0.5, True, 10, 0.02, 1],
+               [1, None, Ep_enum(4), 0, 100, 1.5, 0.5, False, 10, 0.02, 1.0002]]
 @pytest.mark.parametrize("ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var, expected", set_ep_list)
 def test_set_ep_list(ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var, expected):
     ep_bias = Exploration_Bias(ep0, ep_curr, ep_enum, bo_iter, bo_iter_max, ep_inc, ep_f, improvement, best_error, mean_of_var)
-    if ep_enum.value >= 3:
-        ep_bias.ep_max = best_error
     ep_bias.set_ep()
     assert np.isclose(ep_bias.ep_curr, expected, atol = 1e-2)
     
