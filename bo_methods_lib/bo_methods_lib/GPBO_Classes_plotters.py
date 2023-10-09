@@ -1017,11 +1017,18 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
                 ax[i].scatter(theta_ei_max[idcs_to_plot[0]],theta_ei_max[idcs_to_plot[1]],color="black",s=150,label ="Max EI",marker = ".")
 
             #Define x and y labels
-            xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
-            ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
+            if "theta" in param_names[0]:
+                xlabel = r'$\mathbf{'+ "\\" + param_names[0]+ '}$'
+                ylabel = r'$\mathbf{'+ "\\" + param_names[1]+ '}$'
+            else:
+                xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
+                ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
 
             #Set plot details
-            subplot_details(ax[i], xx, yy, xlabel, ylabel, z_titles[i], xbins, ybins, other_fontsize)
+            if title is not None:
+                subplot_details(ax[i], xx, yy, xlabel, ylabel, z_titles[i], xbins, ybins, other_fontsize)
+            else:
+                subplot_details(ax[i], xx, yy, xlabel, ylabel, z_titles[i], xbins, ybins, other_fontsize)
 
             #Get legend information
             if i == len(z)-1:
