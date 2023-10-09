@@ -47,4 +47,4 @@ def get_unfinished_ep_jobs(project, cs_name_val):
         return
 
 project = signac.get_project()
-get_unfinished_ep_jobs(project, 1)
+get_unfinished_ep_jobs(project, 3)
