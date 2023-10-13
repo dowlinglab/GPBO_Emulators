@@ -34,15 +34,13 @@ def open_file_helper(file_path):
     
     return results
 
-def get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, study_id, save_csv = False):
+def get_study_data_signac(criteria_dict, study_id, save_csv = False):
     """
     Get best ep or sf data from jobs and optionally save the csvs for the data
     
     Parameters
     ----------
-    project: Signac Project class, project storing the study jobs
-    param_name_str: str, string of parameters in case study
-    meth_name_val: int, the number value of the BO method    
+    criteria_dict: dictionary, Criteria for jobs to analyze   
     study_id: str "ep" or "sf", whether to analyze data for the 
     save_csv: bool, Whether or not to save csv data from analysis
     
@@ -52,33 +50,52 @@ def get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, s
     study_id: str "ep" or "sf", whether to analyze data for the 
     
     """
+    project = signac.get_project()
+    
     #Get method name and CS name
+    cs_name_val = criteria_dict["cs_name_val"]
+    param_name_str = criteria_dict["param_name_str"]
+    meth_name_val = criteria_dict["meth_name_val"]
+    
+    
     meth_name = Method_name_enum(meth_name_val)
     cs_name_enum = CS_name_enum(cs_name_val)
     
     #For the ep study
     if study_id == "ep":
         col_name = 'EP Method Val'
-        #Find all jobs of a certain cs and method type for the ep studies w/ SF = 1
-        jobs = project.find_jobs({"param_name_str": param_name_str, "meth_name_val" : meth_name_val, "sep_fact" : 1.0})
+        criteria_dict_ep = criteria_dict.copy()
+        criteria_dict_ep["sep_fact"] = 1.0
+        #Find all jobs of a certain cs and method type for the ep studies w/ SF = 1 in order of job id
+        jobs = sorted(project.find_jobs(criteria_dict_ep), key=lambda job: job._id)
         
     elif study_id == "sf":
         col_name = 'Sep Fact'
+    
+        #Get best ep data from previous results if possible
+        criteria_dict_ep = criteria_dict.copy()
+        criteria_dict_ep["sep_fact"] = 1.0
+        jobs_ep = project.find_jobs(criteria_dict_ep)
         
-        #Get best ep data from Results path if possible
-        path_name = "Results/ep_study/" + cs_name_enum.name + "/" + param_name_str + "/" + meth_name.name + "/ep_study_best.csv"
+        #Note, this will only ever be 1 job
+        for job in jobs_ep:
+            path_name = job.fn("ep_study_best_all.csv")
         if os.path.exists(path_name):
-            df_ep_best = pd.read_csv(path_name, header = 0)
+            df_ep_best = pd.read_csv(path_name, index_col = 0, header = 0)
+            
         #If there is no results path infer it directly from the jobs
         else:
-            df_ep, cs_name, theta_true = get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, "ep", save_csv = False) 
+            df_ep, jobs_ep_out, cs_name, theta_true = get_study_data_signac(criteria_dict, "ep", save_csv = False) 
             df_ep_best = get_best_data(df_ep, "ep", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
             
         #Set ep enum val to the best one for that cs and method
-        best_ep_enum_val = int(df_ep_best["EP Method Val"].iloc[0])
+        best_ep_enum_val = int(df_ep_best["EP Method Val"][(df_ep_best['BO Method'] == meth_name.name)])
+#         best_ep_enum_val = int(df_ep_best["EP Method Val"].iloc[0])
+        criteria_dict_sf = criteria_dict.copy()
+        criteria_dict_sf["ep_enum_val"] = best_ep_enum_val
         
         #Get all jobs with that ep enum val
-        jobs = project.find_jobs({"cs_name_val": cs_name_val, "meth_name_val" : meth_name_val, "ep_enum_val": best_ep_enum_val})
+        jobs = project.find_jobs(criteria_dict_sf)
     
     else:
         raise Warning("study_id must be ep or sf!")
@@ -123,13 +140,14 @@ def get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, s
     #Put it in a csv file in a directory based on the method and case study
     if save_csv:
         #Make directory name
-        dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + param_name_str + "/" + meth_name.name
-        if not os.path.isdir(dir_name):
-            os.makedirs(dir_name)
-        file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
+#         dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + param_name_str + "/" + meth_name.name
+#         if not os.path.isdir(dir_name):
+#             os.makedirs(dir_name)
+#         file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
+        file_name1 = job.fn(study_id + "_study_analysis.csv")
         df.to_csv(file_name1) 
 
-    return df, cs_name_enum.name, theta_true
+    return df, jobs, cs_name_enum.name, theta_true
 
 def get_study_data_org(date_time_str, name_cs_str, meth_name_str_list, study_id, study_param_list, save_csv = False):
     """
@@ -205,7 +223,7 @@ def get_study_data_org(date_time_str, name_cs_str, meth_name_str_list, study_id,
     
     return all_result_df, theta_true
 
-def get_best_data(df, study_id, cs_name, theta_true, param_name_str = None, date_time_str = None, save_csv = False):
+def get_best_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str = None, save_csv = False):
     """
     Given all data from a study, find the best value
     
@@ -247,7 +265,7 @@ def get_best_data(df, study_id, cs_name, theta_true, param_name_str = None, date
                     sse_run_best_value = sse_run_best_value.iloc[0][0]
                 else:
                     sse_run_best_value = sse_run_best_value.iloc[0]
-                  
+                
                 if sse_run_best_value < sse_best_overall:
                     #Set value as new best
                     sse_best_overall = sse_run_best_value
@@ -269,17 +287,20 @@ def get_best_data(df, study_id, cs_name, theta_true, param_name_str = None, date
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
         if date_time_str is None:
-            if len(df['BO Method'].unique()) == 1:
-                dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
+            if len(jobs) > 1:
+                file_name2 = [job.fn(study_id + "_study_best_all.csv") for job in jobs]
             else:
-                dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str
+                file_name2 = [job.fn(study_id + "_study_best.csv") for job in jobs]
         else:
             dir_name =  date_time_str + study_id + "_study/" + cs_name
-        if not os.path.isdir(dir_name):
-            os.makedirs(dir_name)
-        #Add file to directory
-        file_name2 = dir_name + "/" + study_id + "_study_best.csv"
-        df_best.to_csv(file_name2)
+            
+            if not os.path.isdir(dir_name):
+                os.makedirs(dir_name)
+                
+            file_name2 = [dir_name + "/" + study_id + "_study_best.csv"]
+        #Add file to directory 
+        for file in file_name2:
+            df_best.to_csv(file)
         
     return df_best
 
@@ -334,14 +355,26 @@ def get_median_data(df, study_id, cs_name, theta_true, param_name_str = None, da
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
         if date_time_str is None:
-            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
+            file_name2 = [job.fn(study_id + "_study_median.csv") for job in jobs]
         else:
             dir_name =  date_time_str + study_id + "_study/" + cs_name
+            file_name2 = dir_name + "/" + study_id + "_study_median.csv"
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        #Add file to directory
-        file_name2 = dir_name + "/" + study_id + "_study_median.csv"
-        df_median.to_csv(file_name2) 
+        #Add file to directory        
+        df_median.to_csv(file_name2)
+#     if save_csv:
+#         #Save this as a csv in the same directory as all data
+#         #Make directory if it doesn't already exist
+#         if date_time_str is None:
+#             dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
+#         else:
+#             dir_name =  date_time_str + study_id + "_study/" + cs_name
+#         if not os.path.isdir(dir_name):
+#             os.makedirs(dir_name)
+#         #Add file to directory
+#         file_name2 = dir_name + "/" + study_id + "_study_median.csv"
+#         df_median.to_csv(file_name2) 
         
     return df_median
 
@@ -401,18 +434,18 @@ def get_mean_data(df, study_id, cs_name, theta_true, param_name_str = None, date
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
         if date_time_str is None:
-            dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
+            file_name2 = [job.fn(study_id + "_study_mean.csv") for job in jobs]
         else:
             dir_name =  date_time_str + study_id + "_study/" + cs_name
+            file_name2 = dir_name + "/" + study_id + "_study_mean.csv"
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        #Add file to directory
-        file_name2 = dir_name + "/" + study_id + "_study_mean.csv"
-        df_mean.to_csv(file_name2) 
+        #Add file to directory        
+        df_mean.to_csv(file_name2)
         
     return df_mean
 
-def get_mean_med_best_over_sf(df, cs_name, theta_true, param_name_str):
+def get_mean_med_best_over_sf(df, cs_name, theta_true, job_list):
     df_list = []
     choices = ["mean", "median", "median_best", "best"]
     for choice in choices:        
@@ -427,16 +460,16 @@ def get_mean_med_best_over_sf(df, cs_name, theta_true, param_name_str):
                 df_meth = df[ (df["BO Method"]==name) & (df["Sep Fact"] == sep_fact_list[sf]) ]   
         #                 df_meth = df[(df["BO Method"]==name) & (df["Sep Fact"] == sep_fact_list[sf])]                  
                 if choice == "mean":
-                    df_piece = get_mean_data(df_meth, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
+                    df_piece = get_mean_data(df_meth, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
                 elif choice == "median":
-                    df_piece = get_median_data(df_meth, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
+                    df_piece = get_median_data(df_meth, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
                     if len(df_piece) > 0:
                         df_piece = df_piece.iloc[0:1].reset_index(drop=True)
                 elif choice == "median_best":
-                    df_best = get_best_data(df_meth, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
-                    df_piece = get_median_data(df_best, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
+                    df_best = get_best_data(df_meth, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
+                    df_piece = get_median_data(df_best, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
                 elif choice == "best":
-                    df_piece = get_best_data(df_meth, "sf", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
+                    df_piece = get_best_data(df_meth, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
                 df_meth_sf = pd.concat([df_meth_sf, df_piece])
         df_list.append(df_meth_sf)
         
