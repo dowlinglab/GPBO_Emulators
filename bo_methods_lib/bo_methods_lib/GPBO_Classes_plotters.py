@@ -1125,16 +1125,16 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
             #Find z based on 
             if "sim" in z_choice:
                 z = sse_sim
-                title2 = r"$e(\theta)_{sim}$"
+                title2 = r"$\mathbf{e(\theta)_{sim}}$"
             elif "mean" in z_choice:
                 z = sse_mean
-                title2 = r"$e(\theta)_{gp}$"
+                title2 = r"$\mathbf{e(\theta)_{gp}}$"
             elif "var" in z_choice:
                 z = sse_var
-                title2 = r"$e(\theta)_{gp_{var}}$"
+                title2 = r"$\mathbf{e(\theta)_{gp_{var}}}$"
             elif "ei" in z_choice:
                 z = ei
-                title2 = r"$EI(\theta)$"
+                title2 = r"$\mathbf{EI(\theta)}$"
             else:
                 raise Warning("choice must contain 'sim', 'mean', 'var', or 'ei'")
                 
