@@ -998,7 +998,10 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
             except:
                 cs_fig = ax[i].contourf(xx, yy, z[i], levels = [np.max(z[i])-1e-9, np.max(z[i])], cmap = plt.cm.get_cmap(cmap))
             
-            cbar = plt.colorbar(cs_fig, ax = ax[i], format=fmt)
+            divider1 = make_axes_locatable(ax[i])
+            cax1 = divider1.append_axes("right", size="8%", pad=0.2)
+            cbar = plt.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
+#             cbar = ax.colorbar(cs_fig, ax = ax[i], format=fmt)
             cbar.ax.tick_params(labelsize=other_fontsize)
 
             #Create a line contour for each colormap
@@ -1122,12 +1125,16 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
             #Find z based on 
             if "sim" in z_choice:
                 z = sse_sim
+                title2 = r"$e(\theta)_{sim}$"
             elif "mean" in z_choice:
                 z = sse_mean
+                title2 = r"$e(\theta)_{gp}$"
             elif "var" in z_choice:
                 z = sse_var
+                title2 = r"$e(\theta)_{gp_{var}}$"
             elif "ei" in z_choice:
                 z = ei
+                title2 = r"$EI(\theta)$"
             else:
                 raise Warning("choice must contain 'sim', 'mean', 'var', or 'ei'")
                 
@@ -1142,13 +1149,12 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
 
             #Create a colormap and colorbar for each subplot
             cs_fig = ax[i].contourf(xx, yy, z, levels = zbins, cmap = plt.cm.get_cmap(cmap))
-                
             
             #Create a line contour for each colormap
             if levels is not None:   
                 cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
                 ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
-
+                
             #plot min obj, max ei, true and training param values as appropriate
             if theta_true is not None:
                 ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1))
@@ -1173,15 +1179,24 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
         #Make colorbar on last plot which is invisible
         if i == num_subplots - 1:
             if num_subplots == subplots_needed:
-                side = "right"
-                pad = 0.2
+                if subplots_needed == 1:
+                    cbar = plt.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
+                else:
+                    side = "right"
+                    pad = 0.2
             else:
                 side = "left"
                 pad = 0.01
-            divider1 = make_axes_locatable(ax[i])
-            cax1 = divider1.append_axes(side, size="8%", pad=pad)
-            cbar = fig.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
+            
+                divider1 = make_axes_locatable(ax[i])
+                cax1 = divider1.append_axes(side, size="5%", pad=pad)
+                cbar = plt.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
             cbar.ax.tick_params(labelsize=other_fontsize)
+            if log_data == True:
+                title2 = "log(" + title2 + ")"
+#             cbar.set_label(title2, rotation=270, fontsize = other_fontsize)
+            cbar.ax.set_ylabel(title2, fontsize=other_fontsize, fontweight='bold')
+     
                       
     #Print the title
     if title is not None:
@@ -1189,12 +1204,23 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
         
     #Print the title and labels as appropriate
     #Define x and y labels
-    xlabel = r'$\mathbf{'+ plot_axis_names[0]+ '}$'
-    ylabel = r'$\mathbf{'+ plot_axis_names[1]+ '}$'
+    #Define x and y labels
+    if "theta" in plot_axis_names[0]:
+        xlabel = r'$\mathbf{'+ "\\" + plot_axis_names[0]+ '}$'
+        ylabel = r'$\mathbf{'+ "\\" + plot_axis_names[1]+ '}$'
+    else:
+        xlabel = r'$\mathbf{'+ plot_axis_names[0]+ '}$'
+        ylabel = r'$\mathbf{'+ plot_axis_names[1]+ '}$'
+                
+#     xlabel = r'$\mathbf{'+ plot_axis_names[0]+ '}$'
+#     ylabel = r'$\mathbf{'+ plot_axis_names[1]+ '}$'
     set_plot_titles(fig, title, xlabel, ylabel, title_fontsize, other_fontsize)
     
     #Plots legend and title
-    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    if not subplots_needed == 5:
+        fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    else:
+        fig.legend(handles, labels, loc= "lower right", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.1), borderaxespad=0)
     plt.tight_layout()
 
     #Save or show figure
