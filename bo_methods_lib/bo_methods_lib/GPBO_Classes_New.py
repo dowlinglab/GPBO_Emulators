@@ -1102,14 +1102,15 @@ class GP_Emulator:
         """ 
         #Set noise kernel
         noise_kern = WhiteKernel(noise_level=self.noise_std**2, noise_level_bounds= "fixed") #bounds = "fixed"
-    
+        #Set Constant Kernel
+        cont_kern = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))
         #Set the rest of the kernel
         if self.kernel.value == 3: #RBF
-            kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))*RBF(length_scale_bounds=(1e-5, 1e5)) + noise_kern 
+            kernel = cont_kern*( RBF(length_scale_bounds=(1e-5, 1e5)) + noise_kern )
         elif self.kernel.value == 2: #Matern 3/2
-            kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))*Matern(length_scale_bounds=(1e-05, 1e5), nu=1.5) + noise_kern
+            kernel = cont_kern*( Matern(length_scale_bounds=(1e-05, 1e5), nu=1.5) + noise_kern )
         else: #Matern 5/2
-            kernel = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))*Matern(length_scale_bounds=(1e-05, 1e5), nu=2.5) + noise_kern 
+            kernel =cont_kern*( Matern(length_scale_bounds=(1e-05, 1e5), nu=2.5) + noise_kern )
             
         return kernel
     
@@ -1129,12 +1130,12 @@ class GP_Emulator:
         if self.lenscl != None:
             assert self.lenscl > 0, "lenscl must be positive"
             lengthscale_val = np.ones(self.get_dim_gp_data())*self.lenscl
-            kernel.k1.k2.length_scale_bounds = "fixed"
+            kernel.k2.k1.length_scale_bounds = "fixed"           
         else:
             lengthscale_val = np.ones(self.get_dim_gp_data())
 
         #Set initial model lengthscale
-        kernel.k1.k2.length_scale = lengthscale_val
+        kernel.k2.k1.length_scale = lengthscale_val
         
         return kernel
     
@@ -1153,10 +1154,10 @@ class GP_Emulator:
         #Set outputscl kernel to be optimized if necessary or set it to the default of 1 to be optimized
         if self.outputscl != None:
             assert self.outputscl> 0, "outputscl must be positive"
-            kernel.k1.k1.constant_value = self.outputscl
-            kernel.k1.k1.constant_value_bounds = "fixed"
+            kernel.k1.constant_value = self.outputscl
+            kernel.k1.constant_value_bounds = "fixed"
         else:
-            kernel.k1.k1.constant_value = 1.0
+            kernel.k1.constant_value = 1.0
             
         return kernel
     
@@ -1203,9 +1204,9 @@ class GP_Emulator:
         fit_gp_model = gp_model.fit(self.feature_train_data, self.train_data.y_vals)
         #Pull out kernel parameters after GP training
         opt_kern_params = fit_gp_model.kernel_
-        outputscl_final = opt_kern_params.k1.k1.constant_value
-        lenscl_final = opt_kern_params.k1.k2.length_scale
-        noise_final = opt_kern_params.k2.noise_level
+        outputscl_final = opt_kern_params.k1.constant_value
+        lenscl_final = opt_kern_params.k2.k1.length_scale
+        noise_final = opt_kern_params.k2.k2.noise_level
         
         #Put hyperparameters in a list
         trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
