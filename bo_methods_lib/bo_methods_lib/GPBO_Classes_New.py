@@ -240,7 +240,7 @@ class CaseStudyParameters:
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         normalize: bool, Determines whether feature data will be normalized for problem analysis
         kernel: enum class instance, Determines which GP Kerenel to use
-        lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        lenscl: float, np.ndarray, or None, Value of the lengthscale hyperparameter - None if hyperparameters will be trained
         outputscl: float or None, Determines value of outputscale - None if hyperparameters will be updated during training
         retrain_GP: int, number of times to restart GP training. Note, 0 = 1 optimization
         reoptimize_obj: int, number of times to reoptimize ei/sse with different starting values. Note, 0 = 1 optimization
@@ -268,15 +268,23 @@ class CaseStudyParameters:
         assert all(isinstance(var, (bool)) for var in [normalize, gen_heat_map_data, save_data]) == True, "normalize, gen_heat_map_data, save_fig, and save_data must be bool"
         #Check for int
         assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, seed, retrain_GP, reoptimize_obj]) == True, "bo_iter_tot, bo_run_tot, seed, retrain_GP, and reoptimize_obj must be int"
-        assert all(isinstance(var, (float, int)) or var is None for var in [lenscl, outputscl]), "lenscl and outputscl must be float, int, or None"
-        #Check for sep fact number between 0 and 1
-        assert 0 < sep_fact <= 1, "Separation factor must be between 0 and 1. Not including zero"
-        #Check for > 0
-        assert all(var > 0 for var in [bo_iter_tot, bo_run_tot, seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be > 0"
-        if lenscl is not None:
-            assert lenscl > 0, "lenscl must be > 0 initially if it is not None"
+        assert isinstance(outputscl, (float, int)) or outputscl is None, "outputscl must be float, int, or None"
+        #Outputscl must be >0 if not None
         if outputscl is not None:
             assert outputscl > 0, "outputscl must be > 0 initially if it is not None"
+            
+        #Check lenscl, float, int, array, or None
+        assert isinstance(lenscl, (float, int, np.ndarray)) or lenscl is None, "lenscl must be float, int, np.ndarray, or None"
+        if lenscl is not None:
+            if isinstance(lenscl, (float, int)):
+                assert lenscl > 0, "lenscl must be > 0 initially if lenscl is not None"
+            else:
+                assert all(isinstance(var, (np.int64, np.float64, float, int)) for var in lenscl), "All lenscl elements must float or int"
+                assert all(item > 0 for item in lenscl), "lenscl elements must be > 0 initially if lenscl is not None"
+        #Check for sep fact number between 0 and 1        
+        assert 0 < sep_fact <= 1, "Separation factor must be between 0 and 1. Not including zero"
+        #Check for > 0
+        assert all(var > 0 for var in [bo_iter_tot, bo_run_tot, seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be > 0"        
         #Check for >=0
         assert all(var >= 0 for var in [retrain_GP, reoptimize_obj]) == True, "retrain_GP and reoptimize_obj must be >= 0"
         #Check for str or None
@@ -1054,9 +1062,20 @@ class GP_Emulator:
         """
         #Assert statements
         #Check for int/float
-        assert all(isinstance(var, (float,int)) or var is None for var in [lenscl, outputscl]) == True, "lenscl and outputscl must be float, int, or None"
-        assert sum(value is None or value > 0 for value in [lenscl, outputscl]) >=2, "lenscl and outputscl must positive or None"
-        #CHeck for int
+        #Outputscl must be >0 if not None
+        if outputscl is not None:
+            assert outputscl > 0, "outputscl must be > 0 initially if it is not None"
+            
+        #Check lenscl, float, int, array, or None
+        assert isinstance(lenscl, (float, int, np.ndarray)) or lenscl is None, "lenscl must be float, int, np.ndarray, or None"
+        if lenscl is not None:
+            if isinstance(lenscl, (float, int)):
+                assert lenscl > 0, "lenscl must be > 0 initially if lenscl is not None"
+            else:
+                assert all(isinstance(var, (np.int64, np.float64, float, int)) for var in lenscl), "All lenscl elements must float or int"
+                assert all(item > 0 for item in lenscl), "lenscl elements must be > 0 initially if lenscl is not None"
+        
+        #Check for int
         assert isinstance(retrain_GP, int) == True, "retrain_GP must be int"
         #Check for > 0
         assert all(var >= 0 for var in [retrain_GP]) == True, "retrain_GP must be greater than or equal to 0"
@@ -1110,11 +1129,11 @@ class GP_Emulator:
         cont_kern = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))
         #Set the rest of the kernel
         if self.kernel.value == 3: #RBF
-            kernel = cont_kern*( RBF(length_scale_bounds=(1e-5, 1e5)) + noise_kern )
+            kernel = cont_kern*( RBF(length_scale_bounds=(1e-03, 1e3)) + noise_kern )
         elif self.kernel.value == 2: #Matern 3/2
-            kernel = cont_kern*( Matern(length_scale_bounds=(1e-05, 1e5), nu=1.5) + noise_kern )
+            kernel = cont_kern*( Matern(length_scale_bounds=(1e-03, 1e3), nu=1.5) + noise_kern )
         else: #Matern 5/2
-            kernel =cont_kern*( Matern(length_scale_bounds=(1e-05, 1e5), nu=2.5) + noise_kern )
+            kernel =cont_kern*( Matern(length_scale_bounds=(1e-03, 1e3), nu=2.5) + noise_kern )
             
         return kernel
     
@@ -1130,12 +1149,25 @@ class GP_Emulator:
         -------
         kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
         """
-        #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim, otherwise initialize them at 1
-        if self.lenscl != None:
-            assert self.lenscl > 0, "lenscl must be positive"
+        if isinstance(self.lenscl, np.ndarray):
+            assert len(self.lenscl) >= self.get_dim_gp_data(), "Length of self.lenscl must be at least self.get_gim_gp_data()!"
+            #Cut the lengthscale to correct length if too long, by cutting the ends
+            if len(self.lenscl) > self.get_dim_gp_data():
+                self.lenscl =  self.lenscl[:self.get_dim_gp_data()]
+        
+            #Anisotropic but different
+            lengthscale_val = self.lenscl
+            kernel.k2.k1.length_scale_bounds = "fixed"
+            
+        #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim,\
+        elif isinstance(self.lenscl, (float, int)):            
+            #Anisotropic but the same
             lengthscale_val = np.ones(self.get_dim_gp_data())*self.lenscl
-            kernel.k2.k1.length_scale_bounds = "fixed"           
+            kernel.k2.k1.length_scale_bounds = "fixed"
+            
+        #Otherwise initialize them at 1 (lenscl is trained) 
         else:
+            #Anisotropic but initialized to 1
             lengthscale_val = np.ones(self.get_dim_gp_data())
 
         #Set initial model lengthscale
@@ -1175,7 +1207,9 @@ class GP_Emulator:
         """
         
         #Don't optimize anything if lengthscale and outputscale are being fixed
-        if self.lenscl != None and self.outputscl != None:
+        if isinstance(self.lenscl, np.ndarray) and all(var is not None for var in self.lenscl) and self.outputscl != None:
+            optimizer = None
+        elif isinstance(self.lenscl, (float, int)) and self.lenscl != None and self.outputscl != None:
             optimizer = None
         else:
             optimizer = "fmin_l_bfgs_b"

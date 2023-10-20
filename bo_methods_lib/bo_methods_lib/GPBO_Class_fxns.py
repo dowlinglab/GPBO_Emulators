@@ -36,7 +36,7 @@ def calc_cs3_polynomial(true_model_coefficients, x):
     --------
     y_poly: ndarray, The noiseless values of y given theta_true and x
     """
-    assert len(true_model_coefficients) == 5, "5 Coefficients"
+    assert len(true_model_coefficients) == 5, "true_model_coefficients must be length 5"
     t1, t2, t3, t4, t5 = true_model_coefficients
     
     #If array is not 2D, give it shape (len(array), 1)
