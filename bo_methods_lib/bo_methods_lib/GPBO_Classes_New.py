@@ -274,6 +274,9 @@ class CaseStudyParameters:
             assert outputscl > 0, "outputscl must be > 0 initially if it is not None"
             
         #Check lenscl, float, int, array, or None
+        if isinstance(lenscl, list):
+            lenscl = np.array(lenscl)
+            
         assert isinstance(lenscl, (float, int, np.ndarray)) or lenscl is None, "lenscl must be float, int, np.ndarray, or None"
         if lenscl is not None:
             if isinstance(lenscl, (float, int)):
@@ -1063,10 +1066,13 @@ class GP_Emulator:
         #Assert statements
         #Check for int/float
         #Outputscl must be >0 if not None
+        assert isinstance(outputscl, (float, int)) or outputscl is None, "outputscl must be float, int, or None"
         if outputscl is not None:
             assert outputscl > 0, "outputscl must be > 0 initially if it is not None"
             
         #Check lenscl, float, int, array, or None
+        if isinstance(lenscl, list):
+            lenscl = np.array(lenscl)
         assert isinstance(lenscl, (float, int, np.ndarray)) or lenscl is None, "lenscl must be float, int, np.ndarray, or None"
         if lenscl is not None:
             if isinstance(lenscl, (float, int)):

@@ -2,6 +2,7 @@
 import signac
 from pathlib import Path
 import os
+import json
 import flow
 from flow import FlowProject, directives
 
@@ -45,6 +46,11 @@ def run_ep_or_sf_exp(job):
     cs_name_enum = CS_name_enum(job.sp.cs_name_val)
     indecies_to_consider = set_idcs_to_consider(job.sp.cs_name_val, job.sp.param_name_str)
     kernel = Kernel_enum(job.sp.kernel_enum_val)
+    lenscl = job.sp.lenscl
+    try:
+        lenscl = json.loads(lenscl)
+    except:
+        lenscl = job.sp.lenscl
     
     #Define Simulator Class
     simulator = simulator_helper_test_fxns(cs_name_enum, indecies_to_consider, job.sp.noise_mean, job.sp.noise_std, job.sp.normalize, 
@@ -93,7 +99,7 @@ def run_ep_or_sf_exp(job):
     #Define cs_name and cs_params class
     #Do I need a different name for each experiment to save its results to or will signac take care of that?
     cs_name = "BO_Results"
-    cs_params = CaseStudyParameters(cs_name, job.sp.ep0, job.sp.sep_fact, job.sp.normalize, kernel, job.sp.lenscl, job.sp.outputscl,
+    cs_params = CaseStudyParameters(cs_name, job.sp.ep0, job.sp.sep_fact, job.sp.normalize, kernel, lenscl, job.sp.outputscl,
                                     job.sp.retrain_GP, job.sp.reoptimize_obj, job.sp.gen_heat_map_data, job.sp.bo_iter_tot,
                                     job.sp.bo_run_tot, job.sp.save_data, None, job.sp.seed, job.sp.ei_tol, job.sp.obj_tol)
     #Initialize driver class
