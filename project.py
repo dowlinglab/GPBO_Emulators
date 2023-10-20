@@ -11,7 +11,7 @@ import bo_methods_lib
 import templates.ndcrc
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import Method_name_enum, Ep_enum, CS_name_enum, Kernel_enum, Gen_meth_enum
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import GPBO_Methods, Exploration_Bias, CaseStudyParameters, GPBO_Driver
-from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns, calc_muller, calc_cs1_polynomial, set_idcs_to_consider
+from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns, calc_muller, calc_cs1_polynomial, set_idcs_to_consider, calc_cs3_polynomial, calc_cs4_isotherm
 import pickle
 import gzip
 

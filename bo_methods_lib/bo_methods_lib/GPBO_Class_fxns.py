@@ -23,6 +23,60 @@ def calc_cs1_polynomial(true_model_coefficients, x):
     
     return y_poly
 
+def calc_cs3_polynomial(true_model_coefficients, x):
+    """
+    Calculates the value of y for case study 1
+    
+    Parameters
+    ----------
+    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
+    x: ndarray, The list of xs that will be used to generate y
+    
+    Returns
+    --------
+    y_poly: ndarray, The noiseless values of y given theta_true and x
+    """
+    assert len(true_model_coefficients) == 5, "5 Coefficients"
+    t1, t2, t3, t4, t5 = true_model_coefficients
+    
+    #If array is not 2D, give it shape (len(array), 1)
+    if not len(x.shape) > 1:
+        x = x.reshape(-1,1)
+
+    assert x.shape[0] == 2, "Polynomial x_data must be 2 dimensional"
+    x1, x2 = x #Split x into 2 parts by splitting the rows
+
+    y_model =  t1*x1 + t2*x2 + t3*x1*x2 + t4*x1**2 + t5*x2**2
+       
+    return y_model
+
+def calc_cs4_isotherm(true_model_coefficients, x):
+    """
+    Calculates the value of y for case study 1
+    
+    Parameters
+    ----------
+    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
+    x: ndarray, The list of xs that will be used to generate y
+    
+    Returns
+    --------
+    y_poly: ndarray, The noiseless values of y given theta_true and x
+    """
+    assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
+    t1, t2, t3, t4 = true_model_coefficients
+    
+    #If array is not 2D, give it shape (len(array), 1)
+    if not len(x.shape) > 1:
+        x = x.reshape(-1,1)
+
+    assert x.shape[0] == 2, "Isotherm x_data must be 2 dimensional"
+    x1, x2 = x #Split x into 2 parts by splitting the rows
+
+    y_model =  (t1*t2*x1)/(1+t2*x1) + (t3*t4*x2)/(1+t4*x2)
+       
+    return y_model
+
 def calc_muller(model_coefficients, x):
     """
     Caclulates the Muller Potential
@@ -91,6 +145,26 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_u = [-100,  0, -150, 20,2, 2, 0,  2,  2,  2, 15,2, 0,0   , 0,  2, 2,  2, 2, 2 ,2 , 2, 2,2]
         theta_ref = np.array([-200,-100,-170,15,-1,-1,-6.5,0.7,0,0,11,0.6,-10,-10,-6.5,0.7,1,0,-0.5,-1,0,0.5,1.5,1])      
         calc_y_fxn = calc_muller
+       
+    #5 parameter Polynomial (CS3)
+    elif cs_name.value == 8:
+        theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4', 'theta_5']
+        bounds_x_l = [-5, -5]
+        bounds_x_u = [ 5,  5]
+        bounds_theta_l = [-300,-5.0,-5.0, -20, -20]
+        bounds_theta_u = [   0, 5.0, 5.0,  20,  20]
+        theta_ref = np.array([-100, 1.0, -0.1, 10, -10])      
+        calc_y_fxn = calc_cs3_polynomial
+    
+    #4 parameter Isotherm (CS4)
+    elif cs_name.value == 9:
+        theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        bounds_x_l = [-5, -5]
+        bounds_x_u = [ 5,  5]
+        bounds_theta_l = [1e-5, 1e-5, 1e-5, 1e-5]
+        bounds_theta_u = [50  , 50  , 50  ,  50]
+        theta_ref =  np.array([25, 30, 15, 20])
+        calc_y_fxn = calc_cs4_isotherm
         
     else:
         print(cs_name.value)
@@ -118,7 +192,7 @@ def set_param_str(cs_name_val):
     ----------
     cs_name_val: int, the string of the case study name
     """
-    assert 7 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 7 inclusive"
+    assert 9 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 9 inclusive"
     
     if cs_name_val == 1:
         param_name_str = "t1t2"
@@ -134,6 +208,10 @@ def set_param_str(cs_name_val):
         param_name_str = "abcx0y0"
     elif cs_name_val == 7:
         param_name_str = "Aabcx0y0"
+    elif cs_name_val == 8:
+        param_name_str = "t1t2t3t4t5"
+    elif cs_name_val == 9:
+        param_name_str = "t1t2t3t4"
         
     return param_name_str
         
@@ -151,10 +229,10 @@ def set_idcs_to_consider(cs_name_val, param_name_str):
     -------
     indecies_to_consider, list. List of indecies to consider
     """
-    assert 7 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 7 inclusive"
+    assert 9 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 9 inclusive"
     assert isinstance(param_name_str, str), "param_list must be str"
     
-    if cs_name_val > 1:
+    if 7 >= cs_name_val > 1:
         indecies_to_consider = []
         all_param_idx = [0,1,2,3, 4,5,6,7, 8,9,10,11, 12,13,14,15, 16,17,18,19, 20,21,22,23]
 
@@ -171,14 +249,21 @@ def set_idcs_to_consider(cs_name_val, param_name_str):
         if "y0" in param_name_str:
             indecies_to_consider += all_param_idx[20:]
         
-    elif cs_name_val == 1:
-        param_name_str = "t1t2"
+            
+    elif 9 >= cs_name_val >= 8 or cs_name_val == 1:
         indecies_to_consider = []
-        all_param_idx = [0,1]
+        all_param_idx = [0,1,2,3,4]
         if "t1" in param_name_str:
             indecies_to_consider += [all_param_idx[0]]
         if "t2" in param_name_str:
             indecies_to_consider += [all_param_idx[1]]
+        if "t3" in param_name_str:
+            indecies_to_consider += [all_param_idx[2]]
+        if "t4" in param_name_str:
+            indecies_to_consider += [all_param_idx[3]]
+        if "t5" in param_name_str:
+            indecies_to_consider += [all_param_idx[4]]
+            
     else:
         raise Warning("Try again")
     

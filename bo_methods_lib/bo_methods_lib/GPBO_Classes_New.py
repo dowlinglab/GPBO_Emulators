@@ -100,17 +100,19 @@ class CS_name_enum(Enum):
     
     Notes: 
     -------
-    1 = CS1 2 Param
-    2 = CS2 4 Param
-    3 = CS2 8 Param
-    4 = CS2 12 Param
-    5 = CS2 16 Param
-    6 = CS2 20 Param
-    7 = CS2 24 Param
+    1 = CS1 2 Param Polynomial
+    2 = CS2 4 Param Muller Potential
+    3 = CS2 8 Param Muller Potential
+    4 = CS2 12 Param Muller Potential
+    5 = CS2 16 Param Muller Potential
+    6 = CS2 20 Param Muller Potential
+    7 = CS2 24 Param Muller Potential
+    8 = CS3 5 Param Polynomial
+    9 = CS4 4 Param Isotherm
     """
     #Check that values are only 1 to 2
-    if Enum in range(1, 8) == False:
-        raise ValueError("There are 7 options for Enum: 1 to 7")
+    if Enum in range(1, 10) == False:
+        raise ValueError("There are 9 options for Enum: 1 to 9")
         
     CS1 = 1
     CS2_4 = 2
@@ -119,6 +121,8 @@ class CS_name_enum(Enum):
     CS2_16 = 5
     CS2_20 = 6
     CS2_24 = 7
+    CS3 = 8
+    CS4 = 9
     
 class Ep_enum(Enum):
     """
