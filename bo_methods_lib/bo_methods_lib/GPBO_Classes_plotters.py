@@ -723,7 +723,7 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
         plt.show(), A plot of the original training data points and the true value
     '''
     assert len(idcs_to_plot) in [2,3], "idcs_to_plot must be a length 2 or 3"
-    
+    val_label = "EI Max"
     #If there are less 2 parameters, plot in 2D
     if len(idcs_to_plot) == 2:
         i1, i2 = idcs_to_plot
@@ -741,7 +741,7 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
         plt.scatter(train_data[:,i1],train_data[:,i2], color="green",s=50, label = "Training", marker = "x", zorder = 1)        
         plt.scatter(test_data[:,i1],test_data[:,i2], color="red",s=25, label = "Testing", marker = "x", zorder = 2)
         if val_data is not None:
-            plt.scatter(val_data[:,i1],val_data[:,i2], color="blue",s=20, label = "Validation", marker = "D", zorder = 3)
+            plt.scatter(val_data[:,i1],val_data[:,i2], color="blue",s=20, label = val_label, marker = "D", zorder = 3)
         #How to plot theta true given that a combination of x and theta can be chosen?
 #         plt.scatter(true_params[i1],true_params[i2], color="blue", label = "True argmin"+r'$(e(\theta))$', s=100, marker=(5,1), zorder = 3)
         #Set plot labels
@@ -786,7 +786,7 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
         ax.scatter(train_data[:,i1], train_data[:,i2], train_data[:,i3], color = "green", s=100, label = "Training", marker='o',zorder = 1)
         ax.scatter(test_data[:,i1],test_data[:,i2], test_data[:,i3], color="red", s=50, label = "Testing", marker = "x", zorder = 2)
         if val_data is not None:
-            ax.scatter(val_data[:,i1],val_data[:,i2], val_data[:,i3], color="blue", s=40, label = "Validation", marker = "D", zorder = 3)
+            ax.scatter(val_data[:,i1],val_data[:,i2], val_data[:,i3], color="blue", s=40, label = val_label, marker = "D", zorder = 3)
 #         ax.scatter(p_true_3D_full[:,0], p_true_3D_full[:,1], p_true_3D_full[:,2], color="blue", label = "True argmin" + r'$(e(\theta))$', 
 #                     s=100, marker = (5,1), zorder = 3)
         #Set Labels

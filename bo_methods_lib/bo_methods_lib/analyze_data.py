@@ -712,7 +712,10 @@ def analyze_train_test(file_path, run_num, bo_iter):
 
     train_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].feature_train_data
     test_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].feature_test_data
-    val_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].feature_val_data
+    if loaded_results[run_num].list_gp_emulator_class[bo_iter].gp_val_data is not None:
+        val_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].feature_val_data
+    else:
+        val_data = None
     
     return train_data, test_data, val_data, x_exp, data_names, data_true
 
