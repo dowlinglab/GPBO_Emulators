@@ -1177,16 +1177,18 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
             ax[i].set_axis_off()
             
         #Make colorbar on last plot which is invisible
-        if i == num_subplots - 1:
-            if num_subplots == subplots_needed:
-                if subplots_needed == 1:
-                    cbar = plt.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
-                else:
+        if i == num_subplots - 1:            
+            if subplots_needed == 1:
+                cbar = plt.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
+
+            else:
+                if num_subplots == subplots_needed:
                     side = "right"
                     pad = 0.2
-            else:
-                side = "left"
-                pad = 0.01
+
+                else:
+                    side = "left"
+                    pad = 0.01
             
                 divider1 = make_axes_locatable(ax[i])
                 cax1 = divider1.append_axes(side, size="5%", pad=pad)
