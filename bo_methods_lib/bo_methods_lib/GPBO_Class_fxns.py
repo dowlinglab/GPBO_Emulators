@@ -151,9 +151,9 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4', 'theta_5']
         bounds_x_l = [-5, -5]
         bounds_x_u = [ 5,  5]
-        bounds_theta_l = [-300,-5.0,-5.0, -20, -20]
-        bounds_theta_u = [   0, 5.0, 5.0,  20,  20]
-        theta_ref = np.array([-100, 1.0, -0.1, 10, -10])      
+        bounds_theta_l = [-300,-5.0,-20, -5.0, -20]
+        bounds_theta_u = [   0, 5.0, 20,  5.0,  20]
+        theta_ref = np.array([-100, -1.0, 10, -0.1, 10])      
         calc_y_fxn = calc_cs3_polynomial
     
     #4 parameter Isotherm (CS4)

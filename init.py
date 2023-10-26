@@ -9,7 +9,7 @@ from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_param_str
 project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
-cs_val_list  = [2, 8, 9] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7, 8, 9]
+cs_val_list  = [8] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7, 8, 9]
 meth_val_list = [1, 2, 3, 4, 5]
 
 #Set Initial Parameters
