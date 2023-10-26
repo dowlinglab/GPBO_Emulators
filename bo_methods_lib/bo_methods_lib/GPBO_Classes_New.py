@@ -9,7 +9,7 @@ import os
 import time
 import Tasmanian
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
+from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel, DotProduct
 from scipy.stats import qmc
 import pandas as pd
 from enum import Enum
@@ -1143,6 +1143,31 @@ class GP_Emulator:
             
         return kernel
     
+    def __set_kernel_copy(self):
+        """
+        Sets kernel of the model
+        
+        Returns
+        ----------
+        kernel: The original kernel of the model
+        
+        """ 
+        #Set noise kernel
+        noise_kern = WhiteKernel(noise_level=self.noise_std**2, noise_level_bounds= "fixed") #bounds = "fixed"
+        #Set Constant Kernel
+        cont_kern = ConstantKernel(constant_value=1, constant_value_bounds = (1e-3,1e4))
+        dot_kern = DotProduct(sigma_0=1e-3, sigma_0_bounds= (1e-14,1))
+#         dot_kern = ConstantKernel(constant_value=1, constant_value_bounds = "fixed")
+        #Set the rest of the kernel
+        if self.kernel.value == 3: #RBF
+            kernel = cont_kern*( dot_kern*RBF(length_scale_bounds=(1e-3, 1e3)) + noise_kern )
+        elif self.kernel.value == 2: #Matern 3/2
+            kernel = cont_kern*( dot_kern*Matern(length_scale_bounds=(1e-3, 1e3), nu=1.5) + noise_kern )
+        else: #Matern 5/2
+            kernel =cont_kern*( dot_kern*Matern(length_scale_bounds=(1e-3, 1e3), nu=2.5) + noise_kern )
+            
+        return kernel
+    
     def __set_lenscl(self, kernel):
         """
         Set the lengthscale of the model. Need to have training data before 
@@ -1178,6 +1203,44 @@ class GP_Emulator:
 
         #Set initial model lengthscale
         kernel.k2.k1.length_scale = lengthscale_val
+        
+        return kernel
+    
+    def __set_lenscl_copy(self, kernel):
+        """
+        Set the lengthscale of the model. Need to have training data before 
+        
+        Parameters
+        ----------
+        kernel: The kernel of the model defined by __set_kernel
+        
+        Returns
+        -------
+        kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
+        """
+        if isinstance(self.lenscl, np.ndarray):
+            assert len(self.lenscl) >= self.get_dim_gp_data(), "Length of self.lenscl must be at least self.get_gim_gp_data()!"
+            #Cut the lengthscale to correct length if too long, by cutting the ends
+            if len(self.lenscl) > self.get_dim_gp_data():
+                self.lenscl =  self.lenscl[:self.get_dim_gp_data()]
+        
+            #Anisotropic but different
+            lengthscale_val = self.lenscl
+            kernel.k2.k1.k2.length_scale_bounds = "fixed"
+            
+        #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim,\
+        elif isinstance(self.lenscl, (float, int)):            
+            #Anisotropic but the same
+            lengthscale_val = np.ones(self.get_dim_gp_data())*self.lenscl
+            kernel.k2.k1.k2.length_scale_bounds = "fixed"
+            
+        #Otherwise initialize them at 1 (lenscl is trained) 
+        else:
+            #Anisotropic but initialized to 1
+            lengthscale_val = np.ones(self.get_dim_gp_data())
+
+        #Set initial model lengthscale
+        kernel.k2.k1.k2.length_scale = lengthscale_val
         
         return kernel
     
@@ -1230,6 +1293,34 @@ class GP_Emulator:
                                             random_state = self.seed, optimizer = optimizer)
         
         return gp_model
+    
+    def set_gp_model_copy(self):
+        """
+        Generates the GP model for the process in sklearn
+            
+        Returns
+        --------
+        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor containing kernel, optimizer, etc.
+        """
+        
+        #Don't optimize anything if lengthscale and outputscale are being fixed
+        if isinstance(self.lenscl, np.ndarray) and all(var is not None for var in self.lenscl) and self.outputscl != None:
+            optimizer = None
+        elif isinstance(self.lenscl, (float, int)) and self.lenscl != None and self.outputscl != None:
+            optimizer = None
+        else:
+            optimizer = "fmin_l_bfgs_b"
+        
+        #Set kernel
+        kernel = self.__set_kernel_copy()
+        kernel = self.__set_lenscl_copy(kernel)
+        kernel = self.__set_outputscl(kernel)
+
+        #Define model
+        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=0, n_restarts_optimizer=self.retrain_GP, 
+                                            random_state = self.seed, optimizer = optimizer)
+        
+        return gp_model
         
         
     def train_gp(self, gp_model):
@@ -1250,6 +1341,34 @@ class GP_Emulator:
         opt_kern_params = fit_gp_model.kernel_
         outputscl_final = opt_kern_params.k1.constant_value
         lenscl_final = opt_kern_params.k2.k1.length_scale
+        noise_final = opt_kern_params.k2.k2.noise_level
+        
+        #Put hyperparameters in a list
+        trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
+        
+        #Assign self parameters
+        self.trained_hyperparams = trained_hyperparams
+        self.fit_gp_model = fit_gp_model
+        
+        
+    def train_gp_copy(self, gp_model):
+        """
+        Trains the GP given training data. Sets self.trained_hyperparams and self.fit_gp_model
+        
+        Parameters
+        ----------
+        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor, The untrained, fully defined gp model
+            
+        """  
+        assert isinstance(gp_model, GaussianProcessRegressor), "gp_model must be GaussianProcessRegressor"
+        assert isinstance(self.feature_train_data, np.ndarray), "self.feature_train_data must be np.ndarray"
+        assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
+        #Train GP
+        fit_gp_model = gp_model.fit(self.feature_train_data, self.train_data.y_vals)
+        #Pull out kernel parameters after GP training
+        opt_kern_params = fit_gp_model.kernel_
+        outputscl_final = opt_kern_params.k1.constant_value
+        lenscl_final = opt_kern_params.k2.k1.k2.length_scale
         noise_final = opt_kern_params.k2.k2.noise_level
         
         #Put hyperparameters in a list
