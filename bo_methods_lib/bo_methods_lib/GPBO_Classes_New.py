@@ -1132,14 +1132,14 @@ class GP_Emulator:
         #Set noise kernel
         noise_kern = WhiteKernel(noise_level=self.noise_std**2, noise_level_bounds= "fixed") #bounds = "fixed"
         #Set Constant Kernel
-        cont_kern = ConstantKernel(constant_value=1, constant_value_bounds = (1e-2,10))
+        cont_kern = ConstantKernel(constant_value=1, constant_value_bounds = (1e-3,1e3))
         #Set the rest of the kernel
         if self.kernel.value == 3: #RBF
-            kernel = cont_kern*( RBF(length_scale_bounds=(1e-03, 1e3)) + noise_kern )
+            kernel = cont_kern*RBF(length_scale_bounds=(1e-03, 1e3)) + noise_kern
         elif self.kernel.value == 2: #Matern 3/2
-            kernel = cont_kern*( Matern(length_scale_bounds=(1e-03, 1e3), nu=1.5) + noise_kern )
+            kernel = cont_kern*Matern(length_scale_bounds=(1e-03, 1e3), nu=1.5) + noise_kern 
         else: #Matern 5/2
-            kernel = cont_kern*( Matern(length_scale_bounds=(1e-03, 1e3), nu=2.5) + noise_kern )
+            kernel = cont_kern*Matern(length_scale_bounds=(1e-03, 1e3), nu=2.5) + noise_kern 
             
         return kernel
     
@@ -1188,13 +1188,13 @@ class GP_Emulator:
         
             #Anisotropic but different
             lengthscale_val = self.lenscl
-            kernel.k2.k1.length_scale_bounds = "fixed"
+            kernel.k1.k2.length_scale_bounds = "fixed"
             
         #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim,\
         elif isinstance(self.lenscl, (float, int)):            
             #Anisotropic but the same
             lengthscale_val = np.ones(self.get_dim_gp_data())*self.lenscl
-            kernel.k2.k1.length_scale_bounds = "fixed"
+            kernel.k1.k2.length_scale_bounds = "fixed"
             
         #Otherwise initialize them at 1 (lenscl is trained) 
         else:
@@ -1202,7 +1202,7 @@ class GP_Emulator:
             lengthscale_val = np.ones(self.get_dim_gp_data())
 
         #Set initial model lengthscale
-        kernel.k2.k1.length_scale = lengthscale_val
+        kernel.k1.k2.length_scale = lengthscale_val
         
         return kernel
     
@@ -1245,6 +1245,28 @@ class GP_Emulator:
         return kernel
     
     def __set_outputscl(self, kernel):
+        """
+        Set the outputscale of the model
+        
+        Parameters
+        ----------
+        kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
+        
+        Returns
+        -------
+        kernel: The kernel of the model defined by __set_kernel with the outputscale bounds set
+        """
+        #Set outputscl kernel to be optimized if necessary or set it to the default of 1 to be optimized
+        if self.outputscl != None:
+            assert self.outputscl> 0, "outputscl must be positive"
+            kernel.k1.k1.constant_value = self.outputscl
+            kernel.k1.k1.constant_value_bounds = "fixed"
+        else:
+            kernel.k1.k1.constant_value = 1.0
+            
+        return kernel
+    
+    def __set_outputscl_copy(self, kernel):
         """
         Set the outputscale of the model
         
@@ -1314,7 +1336,7 @@ class GP_Emulator:
         #Set kernel
         kernel = self.__set_kernel_copy()
         kernel = self.__set_lenscl_copy(kernel)
-        kernel = self.__set_outputscl(kernel)
+        kernel = self.__set_outputscl_copy(kernel)
 
         #Define model
         gp_model = GaussianProcessRegressor(kernel=kernel, alpha=0, n_restarts_optimizer=self.retrain_GP, 
@@ -1339,9 +1361,9 @@ class GP_Emulator:
         fit_gp_model = gp_model.fit(self.feature_train_data, self.train_data.y_vals)
         #Pull out kernel parameters after GP training
         opt_kern_params = fit_gp_model.kernel_
-        outputscl_final = opt_kern_params.k1.constant_value
-        lenscl_final = opt_kern_params.k2.k1.length_scale
-        noise_final = opt_kern_params.k2.k2.noise_level
+        outputscl_final = opt_kern_params.k1.k1.constant_value
+        lenscl_final = opt_kern_params.k1.k2.length_scale
+        noise_final = opt_kern_params.k2.noise_level
         
         #Put hyperparameters in a list
         trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
@@ -1400,7 +1422,7 @@ class GP_Emulator:
         for i in range(len(data)):
             eval_point = np.array([data[i]])
             #Evaluate GP given parameter set theta and state point value
-            model_mean, model_std = self.fit_gp_model.predict(eval_point[0:1], return_std=True)
+            model_mean, model_std = self.fit_gp_model.predict(eval_point[0:1], return_std=True)            
             model_variance = model_std**2
             #Add values to list
             gp_mean[i] = model_mean
