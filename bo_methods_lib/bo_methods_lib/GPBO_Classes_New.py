@@ -1139,7 +1139,7 @@ class GP_Emulator:
         elif self.kernel.value == 2: #Matern 3/2
             kernel = cont_kern*( Matern(length_scale_bounds=(1e-03, 1e3), nu=1.5) + noise_kern )
         else: #Matern 5/2
-            kernel =cont_kern*( Matern(length_scale_bounds=(1e-03, 1e3), nu=2.5) + noise_kern )
+            kernel = cont_kern*( Matern(length_scale_bounds=(1e-03, 1e3), nu=2.5) + noise_kern )
             
         return kernel
     
@@ -2416,9 +2416,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         #Reset training data feature array
         self.feature_train_data = feature_train_data
-        
-        
-                                                             
+                                                                   
 ##Again, composition instead of inheritance      
 class Expected_Improvement():  
     """
@@ -3393,7 +3391,7 @@ class GPBO_Driver:
         Returns:
         --------
         iter_df: pd.DataFrame, Dataframe containing the results from the GPBO Workflow for iteration
-        self.gp_emulator: Instance of GP_Emulator, The class used for this iteration of the GPBO workflow
+        gp_emulator_curr: Instance of GP_Emulator, The class used for this iteration of the GPBO workflow
         """
         #Start timer
         time_start = time.time()
@@ -3478,10 +3476,13 @@ class GPBO_Driver:
         # Add the new row to the DataFrame
         iter_df.loc[0] = bo_iter_results
         
+        #Create a copy of the GP Emulator Class for this iteration
+        gp_emulator_curr = copy.deepcopy(self.gp_emulator)
+              
         #Call __augment_train_data to append training data
         self.__augment_train_data(max_ei_theta)
         
-        return iter_df, self.gp_emulator
+        return iter_df, gp_emulator_curr
     
     def __run_bo_to_term(self, gp_model):
         """
@@ -3540,8 +3541,8 @@ class GPBO_Driver:
                     #And the improvement is defined as 0, since it must be non-negative
                     improvement = 0
                 
-                #Add gp emulator data. Use a copy to ensure the emulator at that state is saved
-                list_gp_emulator_class.append( copy.copy(gp_emulator_class) )
+                #Add gp emulator data from that iteration to list
+                list_gp_emulator_class.append( gp_emulator_class )
                 
                 #Call stopping criteria after 1st iteration and update improvement counter
                 if improvement < self.cs_params.obj_tol:
@@ -3631,7 +3632,7 @@ class GPBO_Driver:
             #Update the seed in configuration
             configuration["Seed"] = self.cs_params.seed
             #Add this updated copy of configuration with the new seed to the bo_results
-            bo_results.configuration = configuration.copy()
+            bo_results.configuration = configuration.copy()           
             #Add simulator class
             bo_results.simulator_class = simulator_class
             #On the 1st iteration, create heat map data if we are actually generating the data           
@@ -3645,7 +3646,7 @@ class GPBO_Driver:
             restart_bo_results.append(bo_results)
             #Add 2 to the seed for each restart (1 for the sim/exp data seed and 1 for validation data seed) to get completely new seeds
             self.cs_params.seed += 2
-        
+                   
         #Save data automatically if save_data is true
         if self.cs_params.save_data == True:
             self.save_data(restart_bo_results)
