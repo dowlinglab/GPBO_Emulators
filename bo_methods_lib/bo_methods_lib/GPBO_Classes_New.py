@@ -1132,7 +1132,7 @@ class GP_Emulator:
         #Set noise kernel
         noise_kern = WhiteKernel(noise_level=self.noise_std**2, noise_level_bounds= "fixed") #bounds = "fixed"
         #Set Constant Kernel
-        cont_kern = ConstantKernel(constant_value=1, constant_value_bounds = (1e-3,1e3))
+        cont_kern = ConstantKernel(constant_value = 1, constant_value_bounds = (1e-3,1e4))
         #Set the rest of the kernel
         if self.kernel.value == 3: #RBF
             kernel = cont_kern*RBF(length_scale_bounds=(1e-03, 1e3)) + noise_kern
