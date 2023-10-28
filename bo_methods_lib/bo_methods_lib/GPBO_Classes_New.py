@@ -1143,31 +1143,6 @@ class GP_Emulator:
             
         return kernel
     
-    def __set_kernel_copy(self):
-        """
-        Sets kernel of the model
-        
-        Returns
-        ----------
-        kernel: The original kernel of the model
-        
-        """ 
-        #Set noise kernel
-        noise_kern = WhiteKernel(noise_level=self.noise_std**2, noise_level_bounds= "fixed") #bounds = "fixed"
-        #Set Constant Kernel
-        cont_kern = ConstantKernel(constant_value=1, constant_value_bounds = (1e-3,1e4))
-        dot_kern = DotProduct(sigma_0=1e-3, sigma_0_bounds= (1e-14,1))
-#         dot_kern = ConstantKernel(constant_value=1, constant_value_bounds = "fixed")
-        #Set the rest of the kernel
-        if self.kernel.value == 3: #RBF
-            kernel = cont_kern*( dot_kern*RBF(length_scale_bounds=(1e-3, 1e3)) + noise_kern )
-        elif self.kernel.value == 2: #Matern 3/2
-            kernel = cont_kern*( dot_kern*Matern(length_scale_bounds=(1e-3, 1e3), nu=1.5) + noise_kern )
-        else: #Matern 5/2
-            kernel =cont_kern*( dot_kern*Matern(length_scale_bounds=(1e-3, 1e3), nu=2.5) + noise_kern )
-            
-        return kernel
-    
     def __set_lenscl(self, kernel):
         """
         Set the lengthscale of the model. Need to have training data before 
@@ -1206,44 +1181,6 @@ class GP_Emulator:
         
         return kernel
     
-    def __set_lenscl_copy(self, kernel):
-        """
-        Set the lengthscale of the model. Need to have training data before 
-        
-        Parameters
-        ----------
-        kernel: The kernel of the model defined by __set_kernel
-        
-        Returns
-        -------
-        kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
-        """
-        if isinstance(self.lenscl, np.ndarray):
-            assert len(self.lenscl) >= self.get_dim_gp_data(), "Length of self.lenscl must be at least self.get_gim_gp_data()!"
-            #Cut the lengthscale to correct length if too long, by cutting the ends
-            if len(self.lenscl) > self.get_dim_gp_data():
-                self.lenscl =  self.lenscl[:self.get_dim_gp_data()]
-        
-            #Anisotropic but different
-            lengthscale_val = self.lenscl
-            kernel.k2.k1.k2.length_scale_bounds = "fixed"
-            
-        #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim,\
-        elif isinstance(self.lenscl, (float, int)):            
-            #Anisotropic but the same
-            lengthscale_val = np.ones(self.get_dim_gp_data())*self.lenscl
-            kernel.k2.k1.k2.length_scale_bounds = "fixed"
-            
-        #Otherwise initialize them at 1 (lenscl is trained) 
-        else:
-            #Anisotropic but initialized to 1
-            lengthscale_val = np.ones(self.get_dim_gp_data())
-
-        #Set initial model lengthscale
-        kernel.k2.k1.k2.length_scale = lengthscale_val
-        
-        return kernel
-    
     def __set_outputscl(self, kernel):
         """
         Set the outputscale of the model
@@ -1263,28 +1200,6 @@ class GP_Emulator:
             kernel.k1.k1.constant_value_bounds = "fixed"
         else:
             kernel.k1.k1.constant_value = 1.0
-            
-        return kernel
-    
-    def __set_outputscl_copy(self, kernel):
-        """
-        Set the outputscale of the model
-        
-        Parameters
-        ----------
-        kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
-        
-        Returns
-        -------
-        kernel: The kernel of the model defined by __set_kernel with the outputscale bounds set
-        """
-        #Set outputscl kernel to be optimized if necessary or set it to the default of 1 to be optimized
-        if self.outputscl != None:
-            assert self.outputscl> 0, "outputscl must be positive"
-            kernel.k1.constant_value = self.outputscl
-            kernel.k1.constant_value_bounds = "fixed"
-        else:
-            kernel.k1.constant_value = 1.0
             
         return kernel
     
@@ -1315,35 +1230,6 @@ class GP_Emulator:
                                             random_state = self.seed, optimizer = optimizer)
         
         return gp_model
-    
-    def set_gp_model_copy(self):
-        """
-        Generates the GP model for the process in sklearn
-            
-        Returns
-        --------
-        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor containing kernel, optimizer, etc.
-        """
-        
-        #Don't optimize anything if lengthscale and outputscale are being fixed
-        if isinstance(self.lenscl, np.ndarray) and all(var is not None for var in self.lenscl) and self.outputscl != None:
-            optimizer = None
-        elif isinstance(self.lenscl, (float, int)) and self.lenscl != None and self.outputscl != None:
-            optimizer = None
-        else:
-            optimizer = "fmin_l_bfgs_b"
-        
-        #Set kernel
-        kernel = self.__set_kernel_copy()
-        kernel = self.__set_lenscl_copy(kernel)
-        kernel = self.__set_outputscl_copy(kernel)
-
-        #Define model
-        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=0, n_restarts_optimizer=self.retrain_GP, 
-                                            random_state = self.seed, optimizer = optimizer)
-        
-        return gp_model
-        
         
     def train_gp(self, gp_model):
         """
@@ -1364,34 +1250,6 @@ class GP_Emulator:
         outputscl_final = opt_kern_params.k1.k1.constant_value
         lenscl_final = opt_kern_params.k1.k2.length_scale
         noise_final = opt_kern_params.k2.noise_level
-        
-        #Put hyperparameters in a list
-        trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
-        
-        #Assign self parameters
-        self.trained_hyperparams = trained_hyperparams
-        self.fit_gp_model = fit_gp_model
-        
-        
-    def train_gp_copy(self, gp_model):
-        """
-        Trains the GP given training data. Sets self.trained_hyperparams and self.fit_gp_model
-        
-        Parameters
-        ----------
-        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor, The untrained, fully defined gp model
-            
-        """  
-        assert isinstance(gp_model, GaussianProcessRegressor), "gp_model must be GaussianProcessRegressor"
-        assert isinstance(self.feature_train_data, np.ndarray), "self.feature_train_data must be np.ndarray"
-        assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
-        #Train GP
-        fit_gp_model = gp_model.fit(self.feature_train_data, self.train_data.y_vals)
-        #Pull out kernel parameters after GP training
-        opt_kern_params = fit_gp_model.kernel_
-        outputscl_final = opt_kern_params.k1.constant_value
-        lenscl_final = opt_kern_params.k2.k1.k2.length_scale
-        noise_final = opt_kern_params.k2.k2.noise_level
         
         #Put hyperparameters in a list
         trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
@@ -3132,6 +2990,28 @@ class GPBO_Driver:
         
         return best_error
         
+    def __make_starting_opt_pts(self):
+        """
+        Makes starting point for optimization with scipy
+        """
+        #If validation data doesn't exist or is shorter than the number of times you want to retrain
+        if self.gp_emulator.gp_val_data is None or len(self.gp_emulator.gp_val_data.get_unique_theta()) < self.cs_params.retrain_GP:
+            #Create validation points equal to number of retrain_GP
+            #Number of x points will always be 1 because we only need the theta values
+            num_x = 1
+            #Gen method will always be LHS for starting points theta and x
+            gen_meth = Gen_meth_enum(1) 
+            #Create starting point data
+            sp_data = self.simulator.gen_sim_data(self.cs_params.retrain_GP, num_x, gen_meth, gen_meth, self.cs_params.sep_fact, True)
+            #Find unique theta values
+            starting_pts = sp_data.get_unique_theta()
+        #Otherwise, your starting point array is your validation data unique theta values
+        else:
+            #Find unique theta values
+            starting_pts = self.gp_emulator.gp_val_data.get_unique_theta()
+            
+        return starting_pts
+    
     
     def __opt_with_scipy(self, neg_ei):
         """
@@ -3148,16 +3028,17 @@ class GPBO_Driver:
         """
         
         assert isinstance(neg_ei, bool), "neg_ei must be bool!"
-
-        #Find unique theta vals
-        #Note. For reoptimizing -ei/sse a different training point is chosen as a starting point for optimization
-        unique_val_thetas = self.gp_emulator.train_data.get_unique_theta()
         #Note add +1 because index 0 counts as 1 reoptimization
-        assert self.cs_params.reoptimize_obj+1 <= len(unique_val_thetas), "Can not reoptimize more times than there are starting points"
+        if self.cs_params.reoptimize_obj > 50:
+            warnings.warn("The objective will be reoptimized more than 50 times!")
         
         #Set seed
         if self.cs_params.seed is not None:
             np.random.seed(self.cs_params.seed)
+                           
+        #Note. For reoptimizing -ei/sse generate and use a validation point as a starting point for optimization
+        unique_val_thetas = self.__make_starting_opt_pts()
+#         unique_val_thetas = self.gp_emulator.train_data.get_unique_theta()
             
         #Initialize val_best and best_theta
         best_vals = np.full(self.cs_params.reoptimize_obj+1, np.inf)
@@ -3188,7 +3069,7 @@ class GPBO_Driver:
             try:
                 #Call scipy method to optimize EI given theta
                 #Using L-BFGS-B instead of BFGS because it allowd for bounds
-                best_result = optimize.minimize(self.__scipy_fxn, theta_guess,bounds=bnds, method = "L-BFGS-B", args=(neg_ei, best_error))
+                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei,best_error))
                 #Add ei and best_thetas to lists as appropriate
                 best_vals[i] = best_result.fun
                 best_thetas[i] = best_result.x
