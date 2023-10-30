@@ -260,6 +260,95 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_l
 
     return
 
+def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, string_for_df, data_names, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
+    """
+    Plots 5 value plots for EI, SSE, Min SSE, and EI values vs BO iter for all 5 methods
+    """
+     #Assert Statements
+    none_str_vars = [x_label, y_label, title, save_path]
+    int_vars = [xbins, ybins, title_fontsize, other_fontsize]
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, save_path, and ylabel must be string or None"
+    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
+    assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
+    assert isinstance(data_names, list) or data_names is None, "data_names must be list or None"
+    if isinstance(data_names, list):
+        assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
+    
+    colors = ["red", "blue", "green", "purple", "orange"]
+    method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid"]
+    #Number of subplots is 1
+    fig, ax, num_subplots = create_subplots(1, sharex = False)
+    
+    #Print the title and labels as appropriate
+    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+    
+    #Loop over different methdods (number of subplots)
+    for i in range(len(file_path_list)):
+        #Get best data for method
+        data, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num_list[i], string_for_df)
+        #The index of the data is i, and one data type is in the last row of the data
+        one_data_type = data
+
+        #Create label based on method #
+        label = method_names[i] 
+
+        #Loop over all runs
+        for j in range(one_data_type.shape[0]):
+            #Get data
+            data, data_true = analyze_sse_min_sse_ei(file_path_list[i], j, string_for_df)
+            #The index of the data is i, and one data type is in the last row of the data
+            one_data_type = data
+            #Remove elements that are numerically 0            
+            data_df_j = get_data_to_bo_iter_term(one_data_type[j])
+            #Define x axis
+            bo_len = len(data_df_j)
+            bo_space = np.linspace(1,bo_len,bo_len)
+            #Set appropriate notation
+            if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
+                ax[0].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+            #Plot data
+            if log_data == True:
+                data_df_j = np.log(data_df_j)
+
+            #For the best result, print a solid line                    
+            if run_num_list[i] == j:
+                ax[0].step(bo_space, data_df_j, alpha = 1, color = colors[i], label = label)
+            else:
+                ax[0].step(bo_space, data_df_j, alpha = 0.3, color = colors[i])
+                
+    #Set plot details 
+    bo_space_org = np.linspace(1,10,100)
+    subplot_details(ax[0], bo_space_org, None, None, None, None, xbins, ybins, other_fontsize)
+
+    handles, labels = ax[0].get_legend_handles_labels()
+    
+    #Plots legend and title
+    plt.tight_layout()
+    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    
+    #save or show figure
+    if save_path is None:
+        plt.show()
+        plt.close()
+    else:
+        save_fig(save_path, ext='png', close=True, verbose=False)  
+        
+    return
+
+def get_data_to_bo_iter_term(data_all_iters):
+    """
+    Gets data that is not zero for plotting from data array
+    """
+    #Remove elements that are numerically 0
+    data_df_run = pd.DataFrame(data = data_all_iters)
+    data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-14).any(axis=1),0]
+    data_df_i = data_df_run.loc[:,0] #Used to be data_df_i
+    #Ensure we have at least 2 elements to plot
+    if len(data_df_j) < 2:
+        data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
+        
+    return data_df_j
+                    
 def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, string_for_df, data_names, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
     """
     Plots 5 value plots for EI, SSE, Min SSE, and EI values vs BO iter for all 5 methods
@@ -294,26 +383,26 @@ def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, str
             for j in range(one_data_type.shape[0]):
                 #Create label based on run #
                 label = "Run: "+str(j+1) 
-                #Remove elements that are numerically 0
-                data_df_run = pd.DataFrame(data = one_data_type[j])
-                data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-14).any(axis=1),0]
-                data_df_i = data_df_run.loc[:,0] #Used to be data_df_i
-                #Ensure we have at least 2 elements to plot
-                if len(data_df_j) < 2:
-                    data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
+                
+                data_df_j = get_data_to_bo_iter_term(one_data_type[j])
+                
                 #Define x axis
                 bo_len = len(data_df_j)
                 bo_space = np.linspace(1,bo_len,bo_len)
+                
                 #Set appropriate notation
                 if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
                     ax[i].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                    
                 #Plot data
                 if log_data == True:
                     data_df_j = np.log(data_df_j)
                 ax[i].step(bo_space, data_df_j, label = label)
+                
                 #Plot true value if applicable
                 if data_true is not None and j == one_data_type.shape[0] - 1:
                     ax[i].axhline(y=data_true[i], color = "red", linestyle='-', label = "True Value")
+                    
                 #Set plot details 
                 title = bo_method_list[i]
                 subplot_details(ax[i], bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
