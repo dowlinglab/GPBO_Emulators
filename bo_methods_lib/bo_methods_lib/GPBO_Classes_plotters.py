@@ -280,22 +280,26 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
     fig, ax, num_subplots = create_subplots(1, sharex = False)
     
     #Print the title and labels as appropriate
-    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+    set_plot_titles(fig, title, None, None, title_fontsize, other_fontsize)
     
+    bo_len_max = 1
     #Loop over different methdods (number of subplots)
     for i in range(len(file_path_list)):
         #Get best data for method
         data, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num_list[i], string_for_df)
         #The index of the data is i, and one data type is in the last row of the data
-        one_data_type = data
+        one_data_type = data        
 
         #Create label based on method #
         label = method_names[i] 
+        
+#         if log_data == False:
+#             ax[0].semilogy()
 
         #Loop over all runs
         for j in range(one_data_type.shape[0]):
             #Get data
-            data, data_true = analyze_sse_min_sse_ei(file_path_list[i], j, string_for_df)
+            data, data_true = analyze_sse_min_sse_ei(file_path_list[i], j+1, string_for_df)
             #The index of the data is i, and one data type is in the last row of the data
             one_data_type = data
             #Remove elements that are numerically 0            
@@ -303,6 +307,10 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
             #Define x axis
             bo_len = len(data_df_j)
             bo_space = np.linspace(1,bo_len,bo_len)
+            
+            if bo_len > bo_len_max:
+                bo_len_max = bo_len
+                
             #Set appropriate notation
             if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
                 ax[0].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
@@ -311,19 +319,23 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
                 data_df_j = np.log(data_df_j)
 
             #For the best result, print a solid line                    
-            if run_num_list[i] == j:
+            if run_num_list[i] == j + 1:
+#                 print(run_num_list[i]-1, j)
                 ax[0].step(bo_space, data_df_j, alpha = 1, color = colors[i], label = label)
             else:
                 ax[0].step(bo_space, data_df_j, alpha = 0.3, color = colors[i])
                 
     #Set plot details 
-    bo_space_org = np.linspace(1,10,100)
-    subplot_details(ax[0], bo_space_org, None, None, None, None, xbins, ybins, other_fontsize)
+    bo_len_max = 10
+    bo_space_org = np.linspace(1,bo_len_max,100)
+    subplot_details(ax[0], bo_space_org, None, x_label, y_label, None, xbins, ybins, other_fontsize)
 
     handles, labels = ax[0].get_legend_handles_labels()
     
     #Plots legend and title
     plt.tight_layout()
+    if log_data == False:
+        plt.yscale("log")
     fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
     
     #save or show figure

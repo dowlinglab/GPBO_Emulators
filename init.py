@@ -24,7 +24,7 @@ kernel_enum_val = 1
 lenscl = None #list([0.136113749, 221.573761, 830.968019, 1.67917241, 0.3, 0.2])
 if isinstance(lenscl, list):
     lenscl = json.dumps(lenscl)
-outputscl = 1
+outputscl = 25
 retrain_GP = 25
 reoptimize_obj = 5
 bo_iter_tot = 100
