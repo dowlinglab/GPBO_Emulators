@@ -326,7 +326,7 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
                 ax[0].step(bo_space, data_df_j, alpha = 0.3, color = colors[i])
                 
     #Set plot details 
-    bo_len_max = 10
+#     bo_len_max = 10
     bo_space_org = np.linspace(1,bo_len_max,100)
     subplot_details(ax[0], bo_space_org, None, x_label, y_label, None, xbins, ybins, other_fontsize)
 
