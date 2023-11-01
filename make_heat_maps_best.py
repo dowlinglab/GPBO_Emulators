@@ -4,7 +4,6 @@ import signac
 import os
 import imageio
 import glob
-
 import itertools
 from itertools import combinations
 
@@ -18,14 +17,27 @@ import warnings
 warnings.simplefilter("ignore", category=RuntimeWarning)
 warnings.simplefilter("ignore", category=UserWarning)
 warnings.simplefilter("ignore", category=DeprecationWarning)
+from sklearn.exceptions import InconsistentVersionWarning
+warnings.filterwarnings(action='ignore', category=InconsistentVersionWarning)
 
 #Set Stuff
-meth_name_str_list = [1, 2, 3, 4, 5]
+date_time_str = None
+meth_name_str_list = [1]
 study_id = "ep"
-param_name_str = "y0"
-cs_name_val = 2 
-cs_name_enum = CS_name_enum(cs_name_val)
 log_data = False
+save_csv = False
+get_ei = False 
+save_fig = False
+
+
+#Set criteria dict
+criteria_dict = {"cs_name_val" : 2,
+                 "param_name_str" : "y0",
+                 "retrain_GP": 10,
+                 "num_x_data": 5,
+                 "outputscl":1,
+                 "num_val_pts": 0,
+                 "lenscl": None}
 
 #Set plot details
 title_fontsize = 24
@@ -39,67 +51,90 @@ cmap = "autumn"
 project = signac.get_project()
 
 #Get Best Data from ep experiment
-df_best_path = "Results/ep_study/" + CS_name_enum(cs_name_val).name + "/" + param_name_str + "/ep_study_best.csv"
+df = pd.DataFrame()
+job_list = []
+for meth_name_val in meth_name_str_list:
+    criteria_dict["meth_name_val"] = meth_name_val
+    df_piece, jobs, name_cs_str, theta_true = get_study_data_signac(criteria_dict, study_id, save_csv)
+    job_list += [job for job in jobs]
+    df = pd.concat([df, df_piece], ignore_index=True)
 
-if os.path.exists(df_best_path):
-    df_best = pd.read_csv(df_best_path, header = 0, index_col = 0)
-else:
-    df = pd.DataFrame()
-    for meth_name_val in meth_name_str_list:
-        df_piece, name_cs_str, theta_true = get_study_data_signac(project, cs_name_val, param_name_str, meth_name_val, 
-                                                                  study_id, True)
-        df = pd.concat([df, df_piece], ignore_index=True)
-        df_best = get_best_data(df, study_id, name_cs_str, theta_true, param_name_str, None, True)
+df_best = get_best_data(df, study_id, name_cs_str, theta_true, job_list, date_time_str, True)
+
+
+#Get only the jobs which are the best
+job_list_best = []
+for meth_name_val in meth_name_str_list:
+    #Get best ep data from previous results if possible    
+    criteria_dict_ep = criteria_dict.copy()
+    criteria_dict_ep["meth_name_val"] = meth_name_val
+    criteria_dict_ep["sep_fact"] = 1.0
+    meth_name = Method_name_enum(meth_name_val).name
+    
+    path_name = job_list[0].fn(study_id + "_study_best_all.csv")
+    df_ep_best = pd.read_csv(path_name, header = 0)
+    best_ep_enum_val = int(df_ep_best["EP Method Val"][(df_ep_best['BO Method'] == meth_name)])
+    criteria_dict_ep["ep_enum_val"] = best_ep_enum_val
+    
+    #Get all jobs with that ep enum val
+    jobs_best = project.find_jobs(criteria_dict_ep)
+    job_list_best += [job for job in jobs_best]
 
 #Make heat maps
-#Loop over each method
-for meth_val in meth_name_str_list:    
-    #Find jobs and necessary files
-    jobs = project.find_jobs({"cs_name_val":cs_name_val, "param_name_str":param_name_str, "num_val_pts": 0, "meth_name_val":meth_val}) 
-    
-    #Get file and job path
-    for job in jobs:
-        job_path = job.fn("")
-        file_path = job.fn("BO_Results.gz")
+#Get Best Data from ep experiment
+df_best_path = job_list_best[0].fn("ep_study_best_all.csv")
+df_best = pd.read_csv(df_best_path, header = 0, index_col = 0)
 
-    #Get method name and best iter and run from results
-    loaded_results = open_file_helper(file_path)
-    meth_name = Method_name_enum(loaded_results[0].configuration["Method Name Enum Value"]).name
-    run_num = df_best.loc[df_best['BO Method'].str.contains(meth_name), 'Run Number'].iloc[0] + 1
-    bo_iter = df_best.loc[df_best['BO Method'].str.contains(meth_name), 'BO Iter'].iloc[0] + 1
-        
-    #Set the save path as the job path
-    save_path = job_path
-    
+run_num_list = list(map(int, df_best["Run Number"].to_numpy() + 1))
+bo_iter_list = list(map(int, df_best["BO Iter"].to_numpy() + 1))
+meth_names = list(df_best["BO Method"])
+
+#Loop over best run/iter for each method
+for i in range(len(job_list_best)):    
+    run_num = run_num_list[i]
+    bo_iter = bo_iter_list[i]
+    file_path = job_list_best[i].fn("BO_Results.gz")
+    string_val = df_best["Theta Min Obj"].iloc[0]
+    numbers = [float(num) for num in string_val.replace('[', '').replace(']', '').split()]
+    dim_theta = np.array(numbers).reshape(-1, 1)
+    dim_theta = len(dim_theta)
+    dim_list = np.linspace(0, dim_theta-1, dim_theta)
+
     #Get Number of pairs
-    dim_list = np.linspace(0, loaded_results[0].simulator_class.dim_theta-1, loaded_results[0].simulator_class.dim_theta)
     pairs = len((list(combinations(dim_list, 2))))
     
+    #Set the save path as the job path
+    if save_fig == True:
+        save_path = job_list_best[i].fn("")
+    else:
+        save_path = None
+
     #For each pair
     for pair in range(pairs):
-        #Get the heat map data
-        analysis_list = analyze_heat_maps(file_path, run_num, bo_iter, pair, log_data)
+        analysis_list = analyze_heat_maps(file_path, run_num, bo_iter, pair, log_data, get_ei)
         sim_sse_var_ei, test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, idcs_to_plot = analysis_list
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
-
-        #Organize the heat map data
         title = "Heat Map Pair " + "-".join(map(str, plot_axis_names))
-        z = [sse_sim, sse_mean, sse_var, ei]
-        z_titles = ["sse_sim", "sse", "sse_var", "ei"]
-        levels = [100,100,100, 100]
+        title = None
+    #     z = [sse_sim, sse_mean, sse_var, ei]
+    #     z_titles = ["ln(sse_sim)", "ln(sse)", "ln(sse_var)", "log(ei)"]
+    #     levels = [100,100,100,100]
+        z = [sse_sim, sse_mean, sse_var]
+        z_titles = ["ln("+ r"$\mathbf{e(\theta)_{sim}}$" + ")", 
+                    "ln("+ r"$\mathbf{e(\theta)_{gp}}$" + ")", 
+                    "ln("+ r"$\sigma^2_{gp}$" + ")"]
+        z_save_names = ["sse_sim", "sse_gp_mean", "sse_var"]
+        levels = [100,100,100]
 
-        #Plot and save heat maps in the signac workspace
+        save_path = job_list[i].fn("")
+
         plot_heat_maps(test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, levels, idcs_to_plot, 
-                       z, z_titles, xbins, ybins, zbins, title, title_fontsize, other_fontsize, cmap, save_path)
-        
+                    z, z_titles, xbins, ybins, zbins, title, title_fontsize, other_fontsize, cmap, save_path, z_save_names)
         
     #Create mp4/gif files from pngs
     #Create directory to store Heat Map Movies
-    dir_name = "Results/ep_study/" + cs_name_enum.name + "/" + param_name_str + "/" +  meth_name + "/Heat_Maps/"
-    if not os.path.isdir(dir_name):
-        os.makedirs(dir_name)
-    gif_path = dir_name + "param_combos.mp4"
-
+    dir_name = "Results/ep_study/" + name_cs_str + "/" + criteria_dict["param_name_str"] + "/" +  meth_names[i] + "/Heat_Maps/"
+    
     #Initialize filename list
     filenames = []
 
@@ -108,17 +143,22 @@ for meth_val in meth_name_str_list:
         heat_map_files = glob.glob(job.fn("Heat_Maps/*/*.png"))
         filenames += heat_map_files
 
-    #Create .mp4 file
-    with imageio.get_writer(gif_path, mode='I', fps=0.3) as writer: #Note. For gif use duration instead of fps
-        #For each file
-        for filename in filenames: 
-            #Get image
-            image = imageio.imread(filename)
-            #Get the correct shape for the pngs based on the 1st file
-            if filename == filenames[0]: 
-                shape = image.shape
-            #If item shapes not the same force them to be the same. Fixes issues where pixels are off by 1
-            if image.shape is not shape: 
-                image.resize(shape)
-            #Add file to movie
-            writer.append_data(image) 
+    if save_fig is True:
+        if not os.path.isdir(dir_name):
+            os.makedirs(dir_name)
+        gif_path = dir_name + "param_combos.mp4"
+
+        #Create .mp4 file
+        with imageio.get_writer(gif_path, mode='I', fps=0.3) as writer: #Note. For gif use duration instead of fps
+            #For each file
+            for filename in filenames: 
+                #Get image
+                image = imageio.imread(filename)
+                #Get the correct shape for the pngs based on the 1st file
+                if filename == filenames[0]: 
+                    shape = image.shape
+                #If item shapes not the same force them to be the same. Fixes issues where pixels are off by 1
+                if image.shape is not shape: 
+                    image.resize(shape)
+                #Add file to movie
+                writer.append_data(image) 

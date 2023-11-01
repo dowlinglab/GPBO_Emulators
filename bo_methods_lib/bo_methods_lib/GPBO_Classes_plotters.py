@@ -632,7 +632,7 @@ def plot_SF_data(x_data, y_data, data_names, data_true, xbins, ybins, title, x_l
     assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
     assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
     assert isinstance(x_data, (list, np.ndarray)), "x_data must be list of float or ndarray"
-    assert isinstance(y_data, np.ndarray) or data is None, "y_data must be np.ndarray"
+    assert isinstance(y_data, np.ndarray) or y_data is None, "y_data must be np.ndarray"
     assert len(y_data.shape) == 2, "y_data must be a 2D array"
     assert isinstance(data_true, (list, np.ndarray)) or data_true is None, "data_true must be list, ndarray, or None"
     if data_true is not None:
@@ -1014,7 +1014,7 @@ def parity_plot(y_data, y_sse_data, sse_data, method, log_plot, xbins, ybins, x_
     
     return
 
-def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_theta, param_names, levels, idcs_to_plot, z, z_titles, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, cmap = "autumn", save_path = None):
+def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_theta, param_names, levels, idcs_to_plot, z, z_titles, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, cmap = "autumn", save_path = None, z_save_names = None):
     '''
     Plots comparison of y_sim, GP_mean, and GP_stdev
     Parameters
@@ -1146,8 +1146,12 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
     fig.tight_layout()
 
     #Save or show figure
-    if save_path is not None:          
-        save_path = save_path + "Heat_Maps/" + param_names[0] + "-" + param_names[1] + "/" +'-'.join(z_titles)
+    if save_path is not None:   
+        if z_save_names:
+            path_end =  '-'.join(z_save_names)  
+        else:
+            path_end = '-'.join(z_titles)
+        save_path = save_path + "Heat_Maps/" + param_names[0] + "-" + param_names[1] + "/" + path_end
         save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()

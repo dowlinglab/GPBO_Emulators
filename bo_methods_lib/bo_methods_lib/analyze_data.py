@@ -304,7 +304,7 @@ def get_best_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str 
         
     return df_best
 
-def get_median_data(df, study_id, cs_name, theta_true, param_name_str = None, date_time_str = None, save_csv = False):
+def get_median_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str = None, save_csv = False):
     """
     Given data from a study, find the median value(s)
     
@@ -378,7 +378,7 @@ def get_median_data(df, study_id, cs_name, theta_true, param_name_str = None, da
         
     return df_median
 
-def get_mean_data(df, study_id, cs_name, theta_true, param_name_str = None, date_time_str = None, save_csv = False):
+def get_mean_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str = None, save_csv = False):
     """
     Given data from a study, find the mean value(s)
     
@@ -719,7 +719,7 @@ def analyze_train_test(file_path, run_num, bo_iter):
     
     return train_data, test_data, val_data, x_exp, data_names, data_true
 
-def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data):
+def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = False):
     """
     Gets the heat map data necessary for plotting heat maps
     
@@ -729,6 +729,8 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data):
     run_num: int, The run you want to analyze. Note, run_num 1 corresponds to index 0
     bo_iter: int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
     pair_id: int or str, The pair of data parameters
+    log_data: bool, Wheteher to log transform data
+    get_ei: bool, default False: Determines whether to calculate EI
     
     Returns
     -------
@@ -830,11 +832,11 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data):
             heat_map_data.sse = np.log(heat_map_data.sse)
             heat_map_sse_data.y_vals = np.log(heat_map_sse_data.y_vals)
             
-    
-    if method.emulator == False:
-        heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error)
-    else:
-        heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error, method)   
+    if get_ei:
+        if method.emulator == False:
+            heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error)
+        else:
+            heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error, method)   
         
     #Create test mesh
     #Define original theta_vals (for restoration later)
@@ -850,7 +852,10 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data):
     sse_sim = heat_map_sse_data.y_vals.reshape(theta_pts,theta_pts).T
     sse_mean = heat_map_data.sse.reshape(theta_pts,theta_pts).T
     sse_var = heat_map_data.sse_var.reshape(theta_pts,theta_pts).T
-    ei = heat_map_data.ei.reshape(theta_pts,theta_pts).T
+    if get_ei:
+        ei = heat_map_data.ei.reshape(theta_pts,theta_pts).T
+    else:
+        ei = None
     
     all_data = [sse_sim, sse_mean, sse_var, ei]
     
