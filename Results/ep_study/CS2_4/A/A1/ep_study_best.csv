@@ -1,2 +1,0 @@
-,Run Number,BO Iter,Best Error,Exploration Bias,Max EI,Theta Max EI,Min Obj,Min Obj Act,Theta Min Obj,Min Obj Cum.,Theta Min Obj Cum.,Time/Iter,EP Method Val,BO Method,Max Evals,Total Run Time,L2 Norm Theta
-3,1,1,10032.58491712145,1.0,0.0,[-289.27613487  -24.30641748 -202.19134274    9.32303386],706.5428471971827,23824.452408078312,[-300.         -200.         -195.93452758   15.02812624],23824.452408078312,[-300.         -200.         -195.93452758   15.02812624],0.3957967758178711,1,A1,2,0.7915935516357422,143.7796943651693

@@ -11,33 +11,45 @@ import bo_methods_lib
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import CS_name_enum, Method_name_enum
 from bo_methods_lib.bo_methods_lib.analyze_data import get_study_data_signac, get_best_data, open_file_helper, analyze_heat_maps
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_plotters import plot_heat_maps
+from skimage.transform import resize
 
 #Ignore warnings
 import warnings
 warnings.simplefilter("ignore", category=RuntimeWarning)
 warnings.simplefilter("ignore", category=UserWarning)
 warnings.simplefilter("ignore", category=DeprecationWarning)
-from sklearn.exceptions import InconsistentVersionWarning
-warnings.filterwarnings(action='ignore', category=InconsistentVersionWarning)
+# from sklearn.exceptions import InconsistentVersionWarning
+# warnings.filterwarnings(action='ignore', category=InconsistentVersionWarning)
 
 #Set Stuff
 date_time_str = None
-meth_name_str_list = [1]
+meth_name_str_list = [1,2,3,4,5]
 study_id = "ep"
 log_data = False
 save_csv = False
 get_ei = False 
-save_fig = False
-
+save_fig = True
 
 #Set criteria dict
 criteria_dict = {"cs_name_val" : 2,
                  "param_name_str" : "y0",
                  "retrain_GP": 10,
                  "num_x_data": 5,
-                 "outputscl":1,
+                 "outputscl": 1,
                  "num_val_pts": 0,
+                 "sep_fact": 1.0,
+                 "ep_enum_val": 1,
                  "lenscl": None}
+
+# criteria_dict = {"cs_name_val" : 1,
+#                  "param_name_str" : "t1t2",
+#                  "retrain_GP": 5,
+#                  "num_x_data": 5,
+#                  "outputscl": 1,
+#                  "num_val_pts": 20,
+#                  "sep_fact": 1.0,
+#                  "ep_enum_val": 1,
+#                  "lenscl": None}
 
 #Set plot details
 title_fontsize = 24
@@ -61,7 +73,6 @@ for meth_name_val in meth_name_str_list:
 
 df_best = get_best_data(df, study_id, name_cs_str, theta_true, job_list, date_time_str, True)
 
-
 #Get only the jobs which are the best
 job_list_best = []
 for meth_name_val in meth_name_str_list:
@@ -80,7 +91,8 @@ for meth_name_val in meth_name_str_list:
     jobs_best = project.find_jobs(criteria_dict_ep)
     job_list_best += [job for job in jobs_best]
 
-#Make heat maps
+assert len(meth_name_str_list) == len(job_list_best), "lens not equal. Check Criteria dict"
+
 #Get Best Data from ep experiment
 df_best_path = job_list_best[0].fn("ep_study_best_all.csv")
 df_best = pd.read_csv(df_best_path, header = 0, index_col = 0)
@@ -89,6 +101,7 @@ run_num_list = list(map(int, df_best["Run Number"].to_numpy() + 1))
 bo_iter_list = list(map(int, df_best["BO Iter"].to_numpy() + 1))
 meth_names = list(df_best["BO Method"])
 
+#Make heat maps
 #Loop over best run/iter for each method
 for i in range(len(job_list_best)):    
     run_num = run_num_list[i]
@@ -99,6 +112,7 @@ for i in range(len(job_list_best)):
     dim_theta = np.array(numbers).reshape(-1, 1)
     dim_theta = len(dim_theta)
     dim_list = np.linspace(0, dim_theta-1, dim_theta)
+    method_name = Method_name_enum(meth_name_str_list[i]).name
 
     #Get Number of pairs
     pairs = len((list(combinations(dim_list, 2))))
@@ -122,43 +136,43 @@ for i in range(len(job_list_best)):
         z = [sse_sim, sse_mean, sse_var]
         z_titles = ["ln("+ r"$\mathbf{e(\theta)_{sim}}$" + ")", 
                     "ln("+ r"$\mathbf{e(\theta)_{gp}}$" + ")", 
-                    "ln("+ r"$\sigma^2_{gp}$" + ")"]
+                    "ln("+ r"$\mathbf{\sigma^2_{gp}}$" + ")"]
         z_save_names = ["sse_sim", "sse_gp_mean", "sse_var"]
+        path_end = '-'.join(z_save_names) 
         levels = [100,100,100]
-
-        save_path = job_list[i].fn("")
 
         plot_heat_maps(test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, levels, idcs_to_plot, 
                     z, z_titles, xbins, ybins, zbins, title, title_fontsize, other_fontsize, cmap, save_path, z_save_names)
         
     #Create mp4/gif files from pngs
-    #Create directory to store Heat Map Movies
-    dir_name = "Results/ep_study/" + name_cs_str + "/" + criteria_dict["param_name_str"] + "/" +  meth_names[i] + "/Heat_Maps/"
-    
     #Initialize filename list
     filenames = []
-
+    
     #Add all Heat map data files to list
-    for job in jobs:
+    for job in [job_list_best[i]]:
+        #Create directory to store Heat Map Movies
+        dir_name = job.fn("")
         heat_map_files = glob.glob(job.fn("Heat_Maps/*/*.png"))
         filenames += heat_map_files
-
+  
     if save_fig is True:
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        gif_path = dir_name + "param_combos.mp4"
+        gif_path = dir_name + path_end + ".mp4"
 
         #Create .mp4 file
         with imageio.get_writer(gif_path, mode='I', fps=0.3) as writer: #Note. For gif use duration instead of fps
             #For each file
             for filename in filenames: 
                 #Get image
-                image = imageio.imread(filename)
+                image = imageio.imread(filename, pilmode = "RGBA")
                 #Get the correct shape for the pngs based on the 1st file
                 if filename == filenames[0]: 
                     shape = image.shape
-                #If item shapes not the same force them to be the same. Fixes issues where pixels are off by 1
+                    #Force image to have XY dims divisible by 16
+                    new_shape = (np.ceil(shape[0] / 16) * 16, np.ceil(shape[1] / 16) * 16, shape[2])
+                #If item shapes not the same force them to be the same. Fixes issues where pixels are off
                 if image.shape is not shape: 
-                    image.resize(shape)
-                #Add file to movie
-                writer.append_data(image) 
+                    image = resize(image, (new_shape))
+                #Add file to movie as a uint8 type and multiply array by 255 to get correct coloring
+                writer.append_data((image*255).astype(np.uint8)) 
