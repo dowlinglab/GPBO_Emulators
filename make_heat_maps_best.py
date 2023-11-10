@@ -32,7 +32,7 @@ save_fig = True
 
 #Set criteria dict
 criteria_dict = {"cs_name_val" : 2,
-                 "param_name_str" : "a",
+                 "param_name_str" : "y0",
                  "retrain_GP": 25,
                  "num_x_data": 5,
                  "outputscl": 1,
