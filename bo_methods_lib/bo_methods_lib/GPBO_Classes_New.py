@@ -1973,9 +1973,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         #For Method 2B, make sse and sse_var data in the log form
         if method.obj.value == 2:
-            sse_mean = np.log(sse_mean)
             #Propogation of errors: stdev_ln(val) = stdev/val
             sse_var = sse_var/(sse_mean**2)
+            #Set mean to new value
+            sse_mean = np.log(sse_mean)
+            
         
         #Set class parameters
         data.sse = sse_mean
