@@ -25,7 +25,7 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 date_time_str = None
 meth_name_str_list = [1,2,3,4,5]
 study_id = "ep"
-log_data = False
+log_data = True
 save_csv = False
 get_ei = False 
 save_fig = True
@@ -134,9 +134,14 @@ for i in range(len(job_list_best)):
     #     z_titles = ["ln(sse_sim)", "ln(sse)", "ln(sse_var)", "log(ei)"]
     #     levels = [100,100,100,100]
         z = [sse_sim, sse_mean, sse_var]
-        z_titles = ["ln("+ r"$\mathbf{e(\theta)_{sim}}$" + ")", 
-                    "ln("+ r"$\mathbf{e(\theta)_{gp}}$" + ")", 
-                    "ln("+ r"$\mathbf{\sigma^2_{gp}}$" + ")"]
+        if log_data == True:
+            z_titles = ["ln("+ r"$\mathbf{e(\theta)_{sim}}$" + ")", 
+                        "ln("+ r"$\mathbf{e(\theta)_{gp}}$" + ")", 
+                        "ln("+ r"$\mathbf{\sigma^2_{gp}}$" + ")"]
+        else:
+            z_titles = [r"$\mathbf{e(\theta)_{sim}}$" + ")", 
+                        r"$\mathbf{e(\theta)_{gp}}$" + ")", 
+                        r"$\mathbf{\sigma^2_{gp}}$" + ")"]
         z_save_names = ["sse_sim", "sse_gp_mean", "sse_var"]
         path_end = '-'.join(z_save_names) 
         levels = [100,100,100]
