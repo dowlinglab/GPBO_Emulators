@@ -20,6 +20,7 @@ import itertools
 from itertools import combinations
 import copy
 import scipy
+import matplotlib.pyplot as plt
 
 class Method_name_enum(Enum):
     """
@@ -1229,7 +1230,7 @@ class GP_Emulator:
 
         #Define model
         gp_model = GaussianProcessRegressor(kernel=kernel, alpha=self.noise_std**2, n_restarts_optimizer=self.retrain_GP, 
-                                            random_state = self.seed, optimizer = optimizer)
+                                            random_state = self.seed, optimizer = optimizer, normalize_y = True)
         
         return gp_model
         
