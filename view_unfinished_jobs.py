@@ -8,8 +8,8 @@ def check_post_conditions(job):
     return job.isfile("BO_Results.gz")
 
 def find_jobs_with_unmet_conditions(project, cs_name_val):
-    unmet_conditions_jobs = []
-    for job in project.find_jobs({"cs_name_val":cs_name_val}):
+    unmet_conditions_jobs = [] 
+    for job in sorted(project.find_jobs({"cs_name_val":cs_name_val}), key=lambda job: job._id):
         if not check_post_conditions(job):
             unmet_conditions_jobs.append(job)
     return unmet_conditions_jobs
