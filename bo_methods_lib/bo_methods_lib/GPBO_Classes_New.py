@@ -3192,14 +3192,21 @@ class GPBO_Driver:
         else:
             #For a meshgrid, the number of theta values/ parameter is n_thetas_points for the meshgrid ^(1/theta_dim)
             n_points = int((n_thetas_points)**(1/self.simulator.dim_theta))
-        
+
         #Meshgrid set always defined by n_ponts**2
         theta_set = np.tile(np.array(self.simulator.theta_true), (n_points**2, 1))
+        
+        #Unnormalize x_vals if necessary
+        norm_x_vals = self.exp_data.x_vals
+        if self.cs_params.normalize == True:
+            lower_bound = self.simulator.bounds_x[0]
+            upper_bound = self.simulator.bounds_x[1]
+            norm_x_vals = norm_x_vals*(upper_bound - lower_bound) + lower_bound
         
         #Infer how many times to repeat theta and x values given that heat maps are meshgrid form by definition
         #The meshgrid of parameter values created below is symmetric, therefore, x is repeated by n_points**2 for a 2D meshgrid
         repeat_x = n_points**2 #Square because only 2 values at a time change
-        x_vals = np.vstack([self.exp_data.x_vals]*repeat_x)
+        x_vals = np.vstack([norm_x_vals]*repeat_x)
         repeat_theta = self.exp_data.get_num_x_vals()
 
         #Loop over all possible theta combinations of 2
@@ -3228,8 +3235,8 @@ class GPBO_Driver:
                 theta_vals =  np.repeat(theta_set_copy, repeat_theta , axis =0)
                 data_set = Data(theta_vals, x_vals, None,None,None,None,None,None, self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
             else:
-                data_set = Data(theta_set_copy, self.exp_data.x_vals, None,None,None,None,None,None, self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
-            #normalize values between 0 and 1 if necessary
+                data_set = Data(theta_set_copy, norm_x_vals, None,None,None,None,None,None, self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
+#             #normalize values between 0 and 1 if necessary
             if self.cs_params.normalize == True:
                 data_set = data_set.norm_feature_data()
             #Append data set to dictionary with name

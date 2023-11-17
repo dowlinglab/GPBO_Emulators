@@ -137,6 +137,11 @@ def get_study_data_signac(criteria_dict, study_id, save_csv = False):
 
     #get theta_true from 1st run since it never changes
     theta_true = results[0].simulator_class.theta_true
+    #Scale theta true if necessary
+    if results[0].configuration["Normalize"] == True:
+        lower_bound = results[0].simulator_class.bounds_theta_reg[0]
+        upper_bound = results[0].simulator_class.bounds_theta_reg[1]
+        theta_true = (theta_true - lower_bound) / (upper_bound - lower_bound)
     #Put it in a csv file in a directory based on the method and case study
     if save_csv:
         #Make directory name
@@ -775,7 +780,7 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
         raise Warning("Invalid pair_id!")
         
     heat_map_data = heat_map_data_dict[param_names]
-    featurized_hm_data = gp_emulator.featurize_data(heat_map_data)
+    
     
     #Get index of param set
     idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]   
@@ -788,8 +793,9 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     seed = loaded_results[run_num].configuration["Seed"]    
     meth_name = Method_name_enum(enum_method)
     method = GPBO_Methods(meth_name)    
-    
+            
     #Calculate GP mean and var for heat map data
+    featurized_hm_data = gp_emulator.featurize_data(heat_map_data)
     heat_map_data.gp_mean, heat_map_data.gp_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data, featurized_hm_data)
     
     #If not in emulator form, rearrange the data such that y_sim can be calculated
@@ -798,12 +804,13 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
         n_points = int(np.sqrt(heat_map_data.get_num_theta())) #Since meshgrid data is always in meshgrid form this gets num_points/param
         repeat_x = n_points**2 #Square because only 2 values at a time change
         x_vals = np.vstack([exp_data.x_vals]*repeat_x) #Repeat x_vals n_points**2 number of times
+#         print(x_vals)
         repeat_theta = exp_data.get_num_x_vals() #Repeat theta len(x) number of times
         theta_vals =  np.repeat(heat_map_data.theta_vals, repeat_theta , axis =0) #Create theta data repeated
         #Generate full data class
         heat_map_data = Data(theta_vals, x_vals, None,heat_map_data.gp_mean,heat_map_data.gp_var,None,None,None,
                              simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
-    
+            
     #Calculate y and sse values
     heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0 , 0)
     heat_map_sse_data = simulator.sim_data_to_sse_sim_data(method, heat_map_data, exp_data, sep_fact, gen_val_data = False)
@@ -858,6 +865,12 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
         ei = None
     
     all_data = [sse_sim, sse_mean, sse_var, ei]
+    
+    #Scale theta true if necessary
+    if loaded_results[0].configuration["Normalize"] == True:
+        lower_bound = loaded_results[0].simulator_class.bounds_theta_reg[0]
+        upper_bound = loaded_results[0].simulator_class.bounds_theta_reg[1]
+        theta_true = (theta_true - lower_bound) / (upper_bound - lower_bound)
     
     return all_data, test_mesh, theta_true, theta_opt, theta_next, train_theta, param_names, idcs_to_plot
 
@@ -983,7 +996,6 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
     ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
     ep_bias = Exploration_Bias(None, ep_at_iter, enum_ep, None, None, None, None, None, None, None)
     
-    theta_true = loaded_results[run_num].simulator_class.theta_true
     theta_obj_min =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
     theta_ei_max = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
     train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
@@ -1006,8 +1018,9 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
         sim_data_x.theta_vals[:] = theta_choice
         sim_data_x.y_vals = simulator.gen_y_data(sim_data_x, 0, 0)
     
-    theta_value = sim_data_x.theta_vals[0]
+    theta_value = sim_data_x.theta_vals[0]        
     featurized_sim_x_data = gp_emulator.featurize_data(sim_data_x)
+    
     sim_data_x.gp_mean, sim_data_x.gp_var = gp_emulator.eval_gp_mean_var_misc(sim_data_x, featurized_sim_x_data)
     
     #Create a meshgrid with x and y values fron the uniwue theta values of that array
@@ -1036,7 +1049,6 @@ def analyze_parity_plot_data(file_path, run_num, bo_iter):
     exp_data = loaded_results[run_num].exp_data_class
     gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
     simulator = loaded_results[run_num].simulator_class
-    theta_true = loaded_results[run_num].simulator_class.theta_true
     train_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data
     test_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].test_data
     enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
@@ -1057,6 +1069,7 @@ def analyze_parity_plot_data(file_path, run_num, bo_iter):
                    
     return test_data, test_data_sse_data, sse_data, method
 
+#NOTE: DO NOT USE THIS FXN UNTIL THE NORMALIZATION ISSUE IS FIXED IN IT
 def analyze_param_sens(file_path, run_num, bo_iter, param_id, n_points):
     """
     Analyzes Parameter Sensitivity
@@ -1087,7 +1100,10 @@ def analyze_param_sens(file_path, run_num, bo_iter, param_id, n_points):
     exp_data = loaded_results[run_num].exp_data_class
     gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
     simulator = loaded_results[run_num].simulator_class
-    theta_true = loaded_results[run_num].simulator_class.theta_true
+    if loaded_results[0].configuration["Normalize"] == True:
+        theta_true = loaded_results[run_num].simulator_class.theta_true_norm
+    else:
+        theta_true = loaded_results[run_num].simulator_class.theta_true
     train_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data
     test_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].test_data
     enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
