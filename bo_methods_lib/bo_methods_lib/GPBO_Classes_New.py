@@ -10,6 +10,7 @@ import time
 import Tasmanian
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel, DotProduct
+from sklearn.preprocessing import StandardScaler
 from scipy.stats import qmc
 import pandas as pd
 from enum import Enum
@@ -1101,6 +1102,7 @@ class GP_Emulator:
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
         self.seed = seed
+        self.scaler = StandardScaler()
         self.__feature_train_data = None #Added using child class
         self.__feature_test_data = None #Added using child class
         self.__feature_val_data = None #Added using child class
@@ -1244,7 +1246,10 @@ class GP_Emulator:
         assert isinstance(self.feature_train_data, np.ndarray), "self.feature_train_data must be np.ndarray"
         assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
         #Train GP
-        fit_gp_model = gp_model.fit(self.feature_train_data, self.train_data.y_vals)
+        #Preprocess Training data
+        self.scaler.fit(self.feature_train_data)
+        feature_train_data_scaled = self.scaler.transform(self.feature_train_data)
+        fit_gp_model = gp_model.fit(feature_train_data_scaled, self.train_data.y_vals)
         #Pull out kernel parameters after GP training
         opt_kern_params = fit_gp_model.kernel_
         outputscl_final = opt_kern_params.k1.k1.constant_value
@@ -1279,6 +1284,8 @@ class GP_Emulator:
         #Loop over all eval points
         for i in range(len(data)):
             eval_point = np.array([data[i]])
+            #scale eval _point
+            eval_point = self.scaler.transform(eval_point)
             #Evaluate GP given parameter set theta and state point value
             model_mean, model_std = self.fit_gp_model.predict(eval_point[0:1], return_std=True)            
             model_variance = model_std**2
