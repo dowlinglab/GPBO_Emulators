@@ -2175,11 +2175,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Call instance of expected improvement class
         ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error)
         #Call correct method of ei calculation
-        ei = ei_class.type_2(method)
+        ei, ei_terms_df = ei_class.type_2(method)
         #Add ei data to validation data class
         sim_data.ei = ei
         
-        return ei
+        return ei, ei_terms_df
     
     def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error, method):
         """
@@ -2281,9 +2281,9 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(best_error, (float, int)), "best_error must be float or int"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-        ei = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error, method)
+        ei, ei_terms_df = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error, method)
         
-        return ei
+        return ei, ei_terms_df
     
     def add_next_theta_to_train_data(self, theta_best_data):
         """
@@ -2400,8 +2400,7 @@ class Expected_Improvement():
         -------
         ei: float, The expected improvement of the parameter set
         """        
-        columns = ["best_error", "z", "cdf", "pdf", "ei_term_1", "ei_term_2", "ei"]
-        ei_term_df = pd.DataFrame(columns=columns)
+        ei_term_df = pd.DataFrame()
         
         assert isinstance(method, GPBO_Methods), "method must be type GPBO_Methods"
         #Num thetas = #gp mean pts/number of x_vals for Type 2
@@ -2421,18 +2420,22 @@ class Expected_Improvement():
             
             if method.method_name.value == 3: #2A
                 #Calculate ei for a given theta (ei for all x over each theta)
-                ei[i] = self.__calc_ei_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
+                ei[i], row_data = self.__calc_ei_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
                 
             elif method.method_name.value == 4: #2B
-                ei[i] = self.__calc_ei_log_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
+                ei[i], row_data = self.__calc_ei_log_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
                 
             elif method.method_name.value == 5: #2C
-                ei[i] = self.__calc_ei_sparse(gp_mean_i, gp_var_i, self.exp_data.y_vals)
+                ei[i], row_data = self.__calc_ei_sparse(gp_mean_i, gp_var_i, self.exp_data.y_vals)
 
             else:
                 raise ValueError("method.method_name.value must be 3 (2A), 4 (2B), or 5 (2C)")
         
-        return ei  
+        # Concatenate the temporary DataFrame with the main DataFrame
+        ei_term_df = pd.concat([ei_term_df, row_data], ignore_index=True)
+        ei_term_df.columns = row_data.columns.tolist()
+        
+        return ei, ei_term_df 
         
     def __calc_ei_emulator(self, gp_mean, gp_var, y_target): #Will need obj toggle soon
         """ 
@@ -2448,7 +2451,10 @@ class Expected_Improvement():
         -------
         ei: ndarray, the expected improvement for one term of the GP model
         """
-        
+         #Create column names
+        columns = ["bound_l", "bound_u", "cdf_l", "cdf_u","eta_l", "eta_u", "psi_l", "psi_u", "ei_term1", "ei_term2",
+                   "ei_term3", "ei", "ei_total"]
+
         #Initialize ei as all zeros
         ei = np.zeros(len(gp_var))
 
@@ -2499,8 +2505,13 @@ class Expected_Improvement():
         
         #The Ei is the sum of the ei at each value of x
         ei_temp = np.sum(ei)
+
+        row_data_lists = pd.DataFrame([[bound_lower, bound_upper, norm.cdf(bound_lower), norm.cdf(bound_upper), 
+                                  ei_eta_lower, ei_eta_upper, ei_term3_psi_lower, ei_term3_psi_upper,
+                                  ei_term1, ei_term2, ei_term3, ei, ei_temp]], columns=columns)
+        row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
         
-        return ei_temp
+        return ei_temp, row_data
 
     def __calc_ei_log_emulator(self, gp_mean, gp_var, y_target):
         """ 
@@ -2516,7 +2527,8 @@ class Expected_Improvement():
         -------
         ei: ndarray, the expected improvement for one term of the GP model
         """
-            
+        columns = ["best_error", "bound_l", "bound_u", "ei_term1", "ei_term2", "ei", "ei_total"]
+
         #Initialize ei as all zeros
         ei = np.zeros(len(gp_var))
 
@@ -2552,8 +2564,12 @@ class Expected_Improvement():
         
         #The Ei is the sum of the ei at each value of x
         ei_temp = np.sum(ei)
+
+        row_data_lists = pd.DataFrame([[self.best_error, bound_lower, bound_upper, ei_term_1, ei_term_2, ei, 
+                                  ei_temp]], columns=columns)
+        row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
   
-        return ei_temp
+        return ei_temp, row_data
 
     def __ei_approx_ln_term(self, epsilon, best_error, gp_mean, gp_stdev, y_target, ep): 
         """ 
@@ -2592,7 +2608,8 @@ class Expected_Improvement():
         -------
         ei: ndarray, the expected improvement for one term of the GP model
         """
-        
+        columns = ["best_error", "sse_temp", "min_list", "ei_total"]
+
         #Create a mask for values where pred_stdev >= 0 (Here approximation includes domain stdev >= 0) 
         pos_stdev_mask = (gp_var >= 0)
 
@@ -2624,8 +2641,11 @@ class Expected_Improvement():
             
         else:
             ei_temp = 0
+
+        row_data_lists = pd.DataFrame([[self.best_error, sse_temp, min_list, ei_temp]], columns=columns)
+        row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
             
-        return ei_temp
+        return ei_temp, row_data
 
     def __get_sparse_grids(self, dim, output=0,depth=3, rule="gauss-hermite", verbose = False, alpha = 0):
         '''
@@ -3088,17 +3108,17 @@ class GPBO_Driver:
             unique_theta_index = random.sample(theta_val_idc, 1)
             theta_guess = unique_val_thetas[unique_theta_index].flatten()
 
-            try:
-                #Call scipy method to optimize EI given theta
-                #Using L-BFGS-B instead of BFGS because it allowd for bounds
-                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei,best_error))
-                #Add ei and best_thetas to lists as appropriate
-                best_vals[i] = best_result.fun
-                best_thetas[i] = best_result.x
-            except ValueError: 
-                #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
-                best_vals[i] = np.nan
-                best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
+            # try:
+            #Call scipy method to optimize EI given theta
+            #Using L-BFGS-B instead of BFGS because it allowd for bounds
+            best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei,best_error))
+            #Add ei and best_thetas to lists as appropriate
+            best_vals[i] = best_result.fun
+            best_thetas[i] = best_result.x
+            # except ValueError: 
+            #     #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
+            #     best_vals[i] = np.nan
+            #     best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
         
         #Choose a single value with the lowest -ei or sse
         #In the case that 2 point have the same -ei or sse and this point is the lowest, this lets us pick one at random rather than always just choosing a certain point
@@ -3177,11 +3197,9 @@ class GPBO_Driver:
             else:
                 if self.method.emulator == False:
                     ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error)
-                    obj = -1*ei_output[0]
-                    # ei_terms = ei_output[1]
-                    print(obj)
                 else:
-                    obj = -1*self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error, self.method)
+                    ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error, self.method)
+                obj = -1*ei_output[0]
             
         return obj
 
@@ -3393,9 +3411,7 @@ class GPBO_Driver:
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data, self.method,
                                                                                                     self.exp_data)
             #Evaluate max EI terms at theta
-            ei_max = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error, self.method)
-            #Dummy variable for now
-            iter_max_ei_terms = pd.DataFrame()
+            ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error, self.method)
         #Otherwise the sse data is the original (scaled) data
         else:
             min_sse_sim = min_theta_data.y_vals           
