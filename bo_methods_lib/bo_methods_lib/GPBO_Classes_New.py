@@ -3088,18 +3088,17 @@ class GPBO_Driver:
             unique_theta_index = random.sample(theta_val_idc, 1)
             theta_guess = unique_val_thetas[unique_theta_index].flatten()
 
-            # try:
-            print(theta_guess, bnds, neg_ei, best_error)
-            #Call scipy method to optimize EI given theta
-            #Using L-BFGS-B instead of BFGS because it allowd for bounds
-            best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei,best_error))
-            #Add ei and best_thetas to lists as appropriate
-            best_vals[i] = best_result.fun
-            best_thetas[i] = best_result.x
-            # except ValueError: 
-            #     #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
-            #     best_vals[i] = np.nan
-            #     best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
+            try:
+                #Call scipy method to optimize EI given theta
+                #Using L-BFGS-B instead of BFGS because it allowd for bounds
+                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei,best_error))
+                #Add ei and best_thetas to lists as appropriate
+                best_vals[i] = best_result.fun
+                best_thetas[i] = best_result.x
+            except ValueError: 
+                #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
+                best_vals[i] = np.nan
+                best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
         
         #Choose a single value with the lowest -ei or sse
         #In the case that 2 point have the same -ei or sse and this point is the lowest, this lets us pick one at random rather than always just choosing a certain point
@@ -3368,8 +3367,6 @@ class GPBO_Driver:
         
         #Calculate new ep. Note. It is extemely important to do this AFTER setting the ep_max
         self.ep_bias.set_ep()
-        
-        print("max ei to be optimized")
 
         #Call optimize acquistion fxn
         max_ei, max_ei_theta = self.__opt_with_scipy(True)
@@ -3379,13 +3376,10 @@ class GPBO_Driver:
         #Evaluate GP mean/ stdev at max_ei_theta
         feat_max_ei_theta_data = self.gp_emulator.featurize_data(max_ei_theta_data)
         max_ei_theta_data.gp_mean, max_ei_theta_data.gp_var = self.gp_emulator.eval_gp_mean_var_misc(max_ei_theta_data, feat_max_ei_theta_data)
-        
-        
 
         #Call optimize objective function
         min_sse, min_sse_theta = self.__opt_with_scipy(False)
-        
-        print("min sse optimized")
+
         #Find min sse using the true function value
         #Turn min_sse_theta into a data instance (including generating y_data)
         min_theta_data = self.create_data_instance_from_theta(min_sse_theta)
