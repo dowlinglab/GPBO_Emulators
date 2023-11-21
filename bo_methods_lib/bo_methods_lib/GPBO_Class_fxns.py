@@ -3,6 +3,7 @@ from scipy.stats import qmc
 import pandas as pd
 import bo_methods_lib
 from .GPBO_Classes_New import Simulator
+from pyomo.environ import *
 
 #Add your function here. SHould take theta_ref and x values
 def calc_cs1_polynomial(true_model_coefficients, x):
@@ -111,6 +112,89 @@ def calc_muller(model_coefficients, x):
     
     return y_mul
 
+def solve_pyomo_Muller_min(param_name_str, verbose = False):
+    """
+    Creates and Solves a Pyomo model for the Muller potential
+    
+    Parameters:
+    -----------
+    param_name_str: str, string of parameter names to include. t1 and t2 for CS1 and A,a,b,cx0,and y0 for CS2 Ex: 't1t2' or 'Aabcx0y0'.
+    
+    Returns:
+    --------
+    model.obj(): float, The minimum value of the Muller potential for the given sub problem defined by param_name_str
+    """
+    #Create Model
+    model = ConcreteModel()
+
+    # Create a Set to represent the iterable set of variables A1-A4, b1-b4,...y01-y04
+    index_set = range(1,5)
+    if "A" in param_name_str:
+        model.A = Var(Set(initialize=index_set), initialize={1: -300, 2: -100, 3: -200, 4: 10}, 
+                  bounds={1: (-300,-100) , 2: (-200,0), 3: (-250,-150), 4: (5,20)})
+    else:
+        model.A = Param(Set(initialize=index_set), initialize={1: -200, 2: -100, 3: -170, 4: 15})
+
+    if "a" in param_name_str:
+        model.a = Var(Set(initialize=index_set), initialize={1: 0, 2: 0, 3: -5, 4: 0},
+                 bounds={1: (-2,2), 2: (-2,2), 3: (-10,0), 4: (-2,2)})
+    else:
+        model.a = Param(Set(initialize=index_set), initialize={1: -1, 2: -1, 3: -6.5, 4: 0.7})
+
+    if "b" in param_name_str:
+        model.b = Var(Set(initialize=index_set), initialize={1: 0, 2: 0, 3: 10, 4: 0}, 
+                 bounds={1: (-2,2), 2: (-2,2), 3: (5,15), 4: (-2,2)})
+    else:
+        model.b = Param(Set(initialize=index_set), initialize={1: 0, 2: 0, 3: 11, 4: 0.6})
+
+    if "c" in param_name_str:
+        model.c = Var(Set(initialize=index_set), initialize={1: -10, 2: -10, 3: -5, 4: 0},
+                 bounds={1: (-20,0), 2: (-20,0), 3: (-10,0), 4: (-1,2)})
+    else:
+        model.c = Param(Set(initialize=index_set), initialize={1: -10, 2: -10, 3: -6.5, 4: 0.7})
+
+    if "x0" in param_name_str:
+        model.x0 = Var(Set(initialize=index_set), initialize={1: 0, 2: 0, 3: 0, 4: 0}, 
+                  bounds={1: (-2,2), 2: (-2,2), 3: (-2,2), 4: (-2,2)})
+    else:
+        model.x0 = Param(Set(initialize=index_set), initialize={1: 1, 2: 0, 3: -0.5, 4: -1})
+
+    if "y0" in param_name_str:
+        model.y0 = Var(Set(initialize=index_set), initialize={1: 0, 2: 0, 3: 1, 4: 0}, 
+                  bounds={1: (-2,2), 2: (-2,2), 3: (0,2), 4: (-2,2)})
+    else:
+        model.y0 = Param(Set(initialize=index_set), initialize={1: 0, 2: 0.5, 3: 1.5, 4: 1})
+
+    model.x_index = Set(initialize=range(1,3))
+    model.x = Var(model.x_index, initialize={1: 0, 2: 0}, bounds={1: (-1.5,1.0), 2: (-0.5,2)})
+
+    #Define Muller potential
+    def calc_muller_pyo(model):  
+        #Calculate Muller Potential
+        expression = sum(
+                model.A[i] * exp(
+                model.a[i] * (model.x[1] - model.x0[i]) ** 2 +
+                model.b[i] * (model.x[1] - model.x0[i]) * (model.x[2] - model.y0[i]) +
+                model.c[i] * (model.x[2] - model.y0[i]) ** 2) for i in range(1,5))
+
+        return expression
+    
+    #Define objective
+    model.obj = Objective(rule=calc_muller_pyo, sense = minimize)
+    
+    solver = SolverFactory('ipopt', options={'check_derivatives_for_naninf': 'yes'})
+    result = solver.solve(model, tee = verbose)
+    
+    if verbose:
+        # Access solver status and results
+        print("Solver Status:", result.solver.status)
+        print("Termination Condition:", result.solver.termination_condition)
+        # Print the variable value
+        #Print model
+        model.pprint()
+        
+    return model.obj()
+
 #Define Simulator Class Helper
 def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, normalize, seed):
     """
@@ -136,7 +220,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         calc_y_fxn = calc_cs1_polynomial
         
     #CS2_4 to CS2_24
-    elif 2 <= cs_name.value <= 7:                          
+    elif 2 <= cs_name.value <= 7 or cs_name.value == 10:                          
         theta_names = ['A_1', 'A_2', 'A_3', 'A_4', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4', 'c_1', 
                        'c_2', 'c_3', 'c_4', 'x0_1', 'x0_2', 'x0_3', 'x0_4', 'y0_1', 'y0_2', 'y0_3', 'y0_4']
         bounds_x_l = [-1.5, -0.5]

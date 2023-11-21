@@ -1229,7 +1229,7 @@ class GP_Emulator:
         kernel = self.__set_outputscl(kernel)
 
         #Define model
-        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=self.noise_std**2, n_restarts_optimizer=self.retrain_GP, 
+        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=1e-5, n_restarts_optimizer=self.retrain_GP, 
                                             random_state = self.seed, optimizer = optimizer, normalize_y = True)
         
         return gp_model
@@ -3170,7 +3170,7 @@ class GPBO_Driver:
 
         return obj
 
-    def create_heat_map_param_data(self):
+    def create_heat_map_param_data(self, n_points_set = None):
         """
         Creates parameter sets that can be used to create heat maps of data at any given iteration
                
@@ -3188,20 +3188,21 @@ class GPBO_Driver:
         
         #Create a linspace for the number of dimensions and define number of points
         dim_list = np.linspace(0,self.simulator.dim_theta-1,self.simulator.dim_theta)
-        n_thetas_points = len(self.gp_emulator.gp_sim_data.get_unique_theta())
-
         #Create a list of all combinations (without repeats e.g no (1,1), (2,2)) of dimensions of theta
         mesh_combos = np.array(list(combinations(dim_list, 2)), dtype = int)
         
-        #Initialze meshgrid-like set of theta values at their true values 
-        #If points were generated with an LHS, the number of points per parameter is n_thetas_points for the meshgrid
-        if self.gen_meth_theta.value == 1:
-            n_points = n_thetas_points
-        else:
-            #For a meshgrid, the number of theta values/ parameter is n_thetas_points for the meshgrid ^(1/theta_dim)
-            n_points = int((n_thetas_points)**(1/self.simulator.dim_theta))
+        #If no number of points is set, use the length of the unique simulation thetas
+        if n_points_set == None:
+            n_thetas_points = len(self.gp_emulator.gp_sim_data.get_unique_theta()) #Use 20 pts for heat map data
+            #Initialze meshgrid-like set of theta values at their true values 
+            #If points were generated with an LHS, the number of points per parameter is n_thetas_points for the meshgrid
+            if self.gen_meth_theta.value == 1:
+                n_points = n_thetas_points
+            else:
+                #For a meshgrid, the number of theta values/ parameter is n_thetas_points for the meshgrid ^(1/theta_dim)
+                n_points = int((n_thetas_points)**(1/self.simulator.dim_theta))
 
-        #Meshgrid set always defined by n_ponts**2
+        #Meshgrid set always defined by n_points**2
         theta_set = np.tile(np.array(self.simulator.theta_true), (n_points**2, 1))
         
         #Unnormalize x_vals if necessary
@@ -3450,8 +3451,11 @@ class GPBO_Driver:
                     results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj Act"].iloc[i]
                     #The Thetas are inferred
                     results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i]
-                    #And the improvement is defined as the difference between the last Min Obj Cum. and current Obj Min
-                    improvement = results_df["Min Obj Cum."].iloc[i-1] - results_df["Min Obj Act"].iloc[i]
+                    #And the improvement is defined as the difference between the last Min Obj Cum. and current Obj Min (unscaled)
+                    if self.method.obj.value == 1:
+                        improvement = results_df["Min Obj Cum."].iloc[i-1] - results_df["Min Obj Act"].iloc[i]
+                    else:
+                        improvement = np.exp(results_df["Min Obj Cum."].iloc[i-1]) - np.exp(results_df["Min Obj Act"].iloc[i])
                 #Otherwise
                 else:
                     #The minimum objective for all the runs is the same as it was before
