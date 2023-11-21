@@ -1668,11 +1668,11 @@ class Type_1_GP_Emulator(GP_Emulator):
         #Call instance of expected improvement class
         ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error)
         #Call correct method of ei calculation
-        ei = ei_class.type_1()
+        ei, ei_terms_df = ei_class.type_1()
         #Add ei data to validation data class
         sim_data.ei = ei
         
-        return ei
+        return ei, ei_terms_df
     
     def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error):
         """
@@ -1693,8 +1693,8 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error, (float, int)), "best_error must be float or int"
-        ei = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error)
-        return ei
+        ei, ei_terms_df = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error)
+        return ei, ei_terms_df
     
     def eval_ei_test(self, exp_data, ep_bias, best_error):
         """
@@ -1714,8 +1714,8 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error, (float, int)), "best_error must be float or int"
-        ei = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error)
-        return ei
+        ei, ei_terms_df = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error)
+        return ei, ei_terms_df
     
     def eval_ei_val(self, exp_data, ep_bias, best_error):
         """
@@ -1735,9 +1735,9 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error, (float, int)), "best_error must be float or int"
-        ei = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error)
+        ei, ei_terms_df = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error)
         
-        return ei
+        return ei, ei_terms_df
     
     def eval_ei_cand(self, exp_data, ep_bias, best_error):
         """
@@ -1757,9 +1757,9 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error, (float, int)), "best_error must be float or int"
-        ei = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error)
+        ei, ei_terms_df = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error)
         
-        return ei
+        return ei, ei_terms_df
     
     def add_next_theta_to_train_data(self, theta_best_sse_data):
         """
@@ -2375,7 +2375,7 @@ class Expected_Improvement():
                 ei[i] = ei_term_1 +ei_term_2 #scaler
 
                 # Create a temporary DataFrame for the current row
-                row_data = pd.DataFrame([[self.best_error, z, norm.cdf(z), norm.pdf(z), ei_term_1, ei_term_2, ei]], columns=columns)
+                row_data = pd.DataFrame([[self.best_error, z, norm.cdf(z), norm.pdf(z), ei_term_1, ei_term_2, ei[0]]], columns=columns)
 
             else:
                 #Sets ei to zero if standard deviation is zero
@@ -2385,7 +2385,7 @@ class Expected_Improvement():
                 
             # Concatenate the temporary DataFrame with the main DataFrame
             ei_term_df = pd.concat([ei_term_df, row_data], ignore_index=True)
-        return ei
+        return ei, ei_term_df
         
     def type_2(self, method):
         """
@@ -2874,7 +2874,7 @@ class BO_Results:
     """
     
     # Class variables and attributes
-    def __init__(self, configuration, simulator_class, exp_data_class, list_gp_emulator_class, results_df, heat_map_data_dict):
+    def __init__(self, configuration, simulator_class, exp_data_class, list_gp_emulator_class, results_df, max_ei_details_df, heat_map_data_dict):
         """
         Parameters
         ----------
@@ -2890,6 +2890,7 @@ class BO_Results:
         self.simulator_class = simulator_class
         self.exp_data_class = exp_data_class
         self.results_df = results_df
+        self.max_ei_details_df = max_ei_details_df
         self.list_gp_emulator_class = list_gp_emulator_class
         self.heat_map_data_dict = heat_map_data_dict     
     
@@ -3168,10 +3169,12 @@ class GPBO_Driver:
                 
             else:
                 if self.method.emulator == False:
-                    obj = -1*self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error)
+                    ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error)
+                    obj = -1*ei_output[0]
+                    ei_terms = ei_output[1]
                 else:
                     obj = -1*self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error, self.method)
-
+            
         return obj
 
     def create_heat_map_param_data(self, n_points_set = None):
@@ -3360,6 +3363,12 @@ class GPBO_Driver:
         #Call optimize acquistion fxn
         max_ei, max_ei_theta = self.__opt_with_scipy(True)
         
+        #Create data class instance for max_ei_theta
+        max_ei_theta_data = self.create_data_instance_from_theta(max_ei_theta)
+        #Evaluate GP mean/ stdev at max_ei_theta
+        feat_max_ei_theta_data = self.gp_emulator.featurize_data(max_ei_theta_data)
+        max_ei_theta_data.gp_mean, max_ei_theta_data.gp_var = self.gp_emulator.eval_gp_mean_var_misc(max_ei_theta_data, feat_max_ei_theta_data)
+            
         #Call optimize objective function
         min_sse, min_sse_theta = self.__opt_with_scipy(False)
         
@@ -3371,10 +3380,21 @@ class GPBO_Driver:
         #Set the best data to be in sse form if using a type 2 GP and find the min sse
         if self.method.emulator == True:
             min_sse_theta_data = self.simulator.sim_data_to_sse_sim_data(self.method, min_theta_data, self.exp_data, self.cs_params.sep_fact, False)
-            min_sse_sim = min_sse_theta_data.y_vals        
+            min_sse_sim = min_sse_theta_data.y_vals
+            #Evaluate SSE & SSE stdev at max ei theta
+            max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data, self.method,
+                                                                                                    self.exp_data)
+            #Evaluate max EI terms at theta
+            ei_max = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error, self.method)
+            #Dummy variable for now
+            iter_max_ei_terms = pd.DataFrame()
         #Otherwise the sse data is the original (scaled) data
         else:
-            min_sse_sim = min_theta_data.y_vals
+            min_sse_sim = min_theta_data.y_vals           
+            #Evaluate SSE & SSE stdev at max ei theta
+            max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data)
+            #Evaluate max EI terms at theta
+            ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error)
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
         min_sse_sim = min_sse_sim[0]
@@ -3407,7 +3427,7 @@ class GPBO_Driver:
         #Call __augment_train_data to append training data
         self.__augment_train_data(max_ei_theta)
         
-        return iter_df, gp_emulator_curr
+        return iter_df, iter_max_ei_terms, gp_emulator_curr
     
     def __run_bo_to_term(self, gp_model):
         """
@@ -3426,6 +3446,7 @@ class GPBO_Driver:
         #Initialize bo params
         column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'Time/Iter']
         results_df = pd.DataFrame(columns=column_names)
+        max_ei_details_df = pd.DataFrame()
         list_gp_emulator_class = []
         
         #Initilize terminate
@@ -3438,9 +3459,10 @@ class GPBO_Driver:
             #Loop over number of max bo iters
             for i in range(self.cs_params.bo_iter_tot):
                 #Output results of 1 bo iter and the emulator used to get the results
-                iter_df, gp_emulator_class = self.__run_bo_iter(gp_model, i) #Change me later
+                iter_df, iter_max_ei_terms, gp_emulator_class = self.__run_bo_iter(gp_model, i) #Change me later
                 #Add results to dataframe
                 results_df = pd.concat([results_df, iter_df])
+                max_ei_details_df = pd.concat([max_ei_details_df, iter_max_ei_terms])
                 #At the first iteration
                 if i == 0:
                     #Then the minimimum is defined by the first value of the objective function you calculate
@@ -3490,8 +3512,11 @@ class GPBO_Driver:
             
         #Reset the index of the pandas df
         results_df = results_df.reset_index()
+        
+        #Create df for ei and add those results here
+        max_ei_details_df.columns=iter_max_ei_terms.columns.tolist()
 
-        return results_df, list_gp_emulator_class
+        return results_df, max_ei_details_df, list_gp_emulator_class
         
         
     def __run_bo_workflow(self):
@@ -3517,10 +3542,10 @@ class GPBO_Driver:
         self.ep_bias.ep_curr = None
         
         ##Call bo_iter
-        results_df, list_gp_emulator_class = self.__run_bo_to_term(gp_model)
+        results_df, max_ei_details_df, list_gp_emulator_class = self.__run_bo_to_term(gp_model)
         
         #Set results
-        bo_results = BO_Results(None, None, self.exp_data, list_gp_emulator_class, results_df, None)
+        bo_results = BO_Results(None, None, self.exp_data, list_gp_emulator_class, results_df, max_ei_details_df, None)
         
         return bo_results
 
