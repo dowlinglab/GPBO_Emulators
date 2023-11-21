@@ -2620,12 +2620,9 @@ class Expected_Improvement():
             gp_stdev_val = np.sqrt(gp_var[valid_indices])
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
-        
-            #Defines standard devaition
-            gp_stdev = np.sqrt(gp_var) #1xn
 
             #Obtain Sparse Grid points and weights
-            points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=3, rule='gauss-hermite', verbose=False)
+            points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=5, rule='gauss-hermite', verbose=False)
 
             # Calculate gp_var multiplied by points_p
             gp_stdev_points_p = gp_stdev_val * points_p
@@ -2647,14 +2644,14 @@ class Expected_Improvement():
             
         return ei_temp, row_data
 
-    def __get_sparse_grids(self, dim, output=0,depth=3, rule="gauss-hermite", verbose = False, alpha = 0):
+    def __get_sparse_grids(self, dim, output=0,depth=5, rule="gauss-hermite", verbose = False, alpha = 0):
         '''
         This function shows the sparse grids generated with different rules
         
         Parameters:
         -----------
-        dim: int, sparse grids dimension. Default is zero
-        output: int, output level for function that would be interpolated
+        dim: int, sparse grids dimension
+        output: int, output level for function that would be interpolated. Default is zero
         depth: int, depth level. Controls density of abscissa points
         rule: str, quadrature rule. Default is 'gauss-legendre'
         verbose: bool, determines Whether or not plot of sparse grid is shown. False by default
