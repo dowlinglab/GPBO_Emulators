@@ -2385,7 +2385,7 @@ class Expected_Improvement():
                 row_data = pd.DataFrame([[self.best_error, None, None, None, None, None, ei]], columns=columns)
                 
             # Concatenate the temporary DataFrame with the main DataFrame
-            ei_term_df = pd.concat([ei_term_df, row_data], ignore_index=True)
+            ei_term_df = pd.concat([ei_term_df.astype(row_data.dtypes), row_data], ignore_index=True)
         return ei, ei_term_df
         
     def type_2(self, method):
@@ -2878,7 +2878,8 @@ class BO_Results:
     """
     
     # Class variables and attributes
-    def __init__(self, configuration, simulator_class, exp_data_class, list_gp_emulator_class, results_df, max_ei_details_df, heat_map_data_dict):
+    def __init__(self, configuration, simulator_class, exp_data_class, list_gp_emulator_class, results_df, 
+                 max_ei_details_df, why_term, heat_map_data_dict):
         """
         Parameters
         ----------
@@ -2887,6 +2888,7 @@ class BO_Results:
         exp_data_class: The experimental data for the workflow
         list_gp_emulator_class: list of GP_Emulator instances, contains all gp_emulator information at each BO iter
         results_df: pandas dataframe, dataframe including the values pertinent to BO for all BO runs
+        max_ei_details_df: pandas dataframe, dataframe including ei components of the best EI at each iter
         heat_map_data_dict: dict, heat map data for each set of 2 parameters indexed by parameter names "param_1-param_2"
         """
         # Constructor method
@@ -2895,6 +2897,7 @@ class BO_Results:
         self.exp_data_class = exp_data_class
         self.results_df = results_df
         self.max_ei_details_df = max_ei_details_df
+        self.why_term = why_term
         self.list_gp_emulator_class = list_gp_emulator_class
         self.heat_map_data_dict = heat_map_data_dict     
     
@@ -3083,7 +3086,7 @@ class GPBO_Driver:
         for i in range(self.cs_params.reoptimize_obj+1):
             #Choose a random index of theta to start with
             unique_theta_index = random.sample(theta_val_idc, 1)
-            theta_guess = unique_val_thetas[unique_theta_index]
+            theta_guess = unique_val_thetas[unique_theta_index].flatten()
 
             try:
                 #Call scipy method to optimize EI given theta
@@ -3452,7 +3455,7 @@ class GPBO_Driver:
         results_df = pd.DataFrame(columns=column_names)
         max_ei_details_df = pd.DataFrame()
         list_gp_emulator_class = []
-        
+        why_term = "max_budget"
         #Initilize terminate
         terminate = False
         
@@ -3465,22 +3468,23 @@ class GPBO_Driver:
                 #Output results of 1 bo iter and the emulator used to get the results
                 iter_df, iter_max_ei_terms, gp_emulator_class = self.__run_bo_iter(gp_model, i) #Change me later
                 #Add results to dataframe
-                results_df = pd.concat([results_df, iter_df])
+                results_df = pd.concat([results_df.astype(iter_df.dtypes), iter_df], ignore_index=True)
                 max_ei_details_df = pd.concat([max_ei_details_df, iter_max_ei_terms])
                 #At the first iteration
                 if i == 0:
                     #Then the minimimum is defined by the first value of the objective function you calculate
-                    results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj Act"].iloc[i]
+                    # results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj Act"].iloc[i]
+                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i, "Min Obj Act"]
                     #The Theta values are then inferred
-                    results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i]
+                    results_df.at[i, "Theta Min Obj Cum."] = results_df["Theta Min Obj"].iloc[i]
                     #improvement is defined as infinity on 1st iteration (something is always better than nothing)
                     improvement = np.inf 
                 #If it is not the 1st iteration and your current Min Obj value is smaller than your previous Overall Min Obj
                 elif results_df["Min Obj Act"].iloc[i] < results_df["Min Obj Cum."].iloc[i-1]:
                     #Then the New Cumulative Minimum objective value is the current minimum objective value
-                    results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj Act"].iloc[i]
+                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i, "Min Obj Act"]
                     #The Thetas are inferred
-                    results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj"].iloc[i]
+                    results_df.at[i, "Theta Min Obj Cum."] = results_df["Theta Min Obj"].iloc[i].copy()
                     #And the improvement is defined as the difference between the last Min Obj Cum. and current Obj Min (unscaled)
                     if self.method.obj.value == 1:
                         improvement = results_df["Min Obj Cum."].iloc[i-1] - results_df["Min Obj Act"].iloc[i]
@@ -3489,12 +3493,12 @@ class GPBO_Driver:
                 #Otherwise
                 else:
                     #The minimum objective for all the runs is the same as it was before
-                    results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj Cum."].iloc[i-1]
+                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i-1, "Min Obj Cum."]
                     #And so are the thetas
-                    results_df["Theta Min Obj Cum."].iloc[i] = results_df["Theta Min Obj Cum."].iloc[i-1]
+                    results_df.at[i, "Theta Min Obj Cum."] = results_df['Theta Min Obj Cum.'].iloc[i-1].copy()
                     #And the improvement is defined as 0, since it must be non-negative
                     improvement = 0
-                
+
                 #Add gp emulator data from that iteration to list
                 list_gp_emulator_class.append( gp_emulator_class )
                 
@@ -3504,9 +3508,11 @@ class GPBO_Driver:
                 if i > 0:
                     #Terminate if max ei is less than the tolerance twice in a row
                     if results_df["Max EI"].iloc[i] < self.cs_params.ei_tol and results_df["Max EI"].iloc[i-1] < self.cs_params.ei_tol:
+                        why_term = "ei"
                         break
                     #Terminate if small sse progress over 1/3 of total iteration budget
                     elif count >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac):
+                        why_term = "obj"
                         break
                     else:
                         terminate = False
@@ -3521,7 +3527,7 @@ class GPBO_Driver:
         max_ei_details_df.columns=iter_max_ei_terms.columns.tolist()
         max_ei_details_df = max_ei_details_df.reset_index(drop=True)
 
-        return results_df, max_ei_details_df, list_gp_emulator_class
+        return results_df, max_ei_details_df, list_gp_emulator_class, why_term
         
         
     def __run_bo_workflow(self):
@@ -3547,10 +3553,11 @@ class GPBO_Driver:
         self.ep_bias.ep_curr = None
         
         ##Call bo_iter
-        results_df, max_ei_details_df, list_gp_emulator_class = self.__run_bo_to_term(gp_model)
+        results_df, max_ei_details_df, list_gp_emulator_class, why_term = self.__run_bo_to_term(gp_model)
         
         #Set results
-        bo_results = BO_Results(None, None, self.exp_data, list_gp_emulator_class, results_df, max_ei_details_df, None)
+        bo_results = BO_Results(None, None, self.exp_data, list_gp_emulator_class, results_df, 
+                                max_ei_details_df, why_term, None)
         
         return bo_results
 
