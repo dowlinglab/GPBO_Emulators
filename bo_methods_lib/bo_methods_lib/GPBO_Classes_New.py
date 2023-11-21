@@ -3106,17 +3106,17 @@ class GPBO_Driver:
             unique_theta_index = random.sample(theta_val_idc, 1)
             theta_guess = unique_val_thetas[unique_theta_index].flatten()
 
-            # try:
-            #Call scipy method to optimize EI given theta
-            #Using L-BFGS-B instead of BFGS because it allowd for bounds
-            best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei,best_error))
-            #Add ei and best_thetas to lists as appropriate
-            best_vals[i] = best_result.fun
-            best_thetas[i] = best_result.x
-            # except ValueError: 
-            #     #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
-            #     best_vals[i] = np.nan
-            #     best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
+            try:
+                #Call scipy method to optimize EI given theta
+                #Using L-BFGS-B instead of BFGS because it allowd for bounds
+                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei,best_error))
+                #Add ei and best_thetas to lists as appropriate
+                best_vals[i] = best_result.fun
+                best_thetas[i] = best_result.x
+            except ValueError: 
+                #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
+                best_vals[i] = np.nan
+                best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
         
         #Choose a single value with the lowest -ei or sse
         #In the case that 2 point have the same -ei or sse and this point is the lowest, this lets us pick one at random rather than always just choosing a certain point
