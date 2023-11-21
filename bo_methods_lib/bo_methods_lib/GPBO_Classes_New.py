@@ -2356,6 +2356,9 @@ class Expected_Improvement():
         -------
         ei: ndarray, The expected improvement of the parameter set
         """
+        columns = ["best_error", "z", "cdf", "pdf", "ei_term_1", "ei_term_2", "ei"]
+        ei_term_df = pd.DataFrame(columns=columns)
+    
         ei = np.zeros(len(self.gp_mean))
 
         for i in range(len(self.gp_mean)):
@@ -2371,16 +2374,17 @@ class Expected_Improvement():
                 ei_term_2 = pred_stdev*norm.pdf(z) #scaler
                 ei[i] = ei_term_1 +ei_term_2 #scaler
 
-#                 print("z",z)
-#                 print("Exploitation Term",ei_term_1)
-#                 print("CDF", norm.cdf(z))
-#                 print("Exploration Term",ei_term_2)
-#                 print("PDF", norm.pdf(z))
-#                 print("EI",ei,"\n")
+                # Create a temporary DataFrame for the current row
+                row_data = pd.DataFrame([[self.best_error, z, norm.cdf(z), norm.pdf(z), ei_term_1, ei_term_2, ei]], columns=columns)
+
             else:
                 #Sets ei to zero if standard deviation is zero
                 ei[i] = 0
-            
+                # Create a temporary DataFrame for the current row
+                row_data = pd.DataFrame([[self.best_error, None, None, None, None, None, ei]], columns=columns)
+                
+            # Concatenate the temporary DataFrame with the main DataFrame
+            ei_term_df = pd.concat([ei_term_df, row_data], ignore_index=True)
         return ei
         
     def type_2(self, method):
