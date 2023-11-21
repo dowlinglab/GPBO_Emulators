@@ -1248,7 +1248,8 @@ class GP_Emulator:
         assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
         #Train GP
         #Preprocess Training data
-        self.scaler.fit(self.feature_train_data)
+        #Update scaler to be the fitted scaler. This scaler will change as the training data is updated
+        self.scaler = self.scaler.fit(self.feature_train_data)
         feature_train_data_scaled = self.scaler.transform(self.feature_train_data)
         fit_gp_model = gp_model.fit(feature_train_data_scaled, self.train_data.y_vals)
         #Pull out kernel parameters after GP training
