@@ -2670,6 +2670,7 @@ class Expected_Improvement():
         A figure shows 2D sparse grids (if verbose = True)
         '''
         #Get grid points and weights
+        # grid_p = Tasmanian.TasmanianSparseGrid()
         grid_p = Tasmanian.SparseGrid()
         grid_p.makeGlobalGrid(dim,output,depth,"level",rule)
         points_p = grid_p.getPoints()
