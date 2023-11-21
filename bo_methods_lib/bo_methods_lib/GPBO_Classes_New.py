@@ -2398,7 +2398,10 @@ class Expected_Improvement():
         Returns
         -------
         ei: float, The expected improvement of the parameter set
-        """
+        """        
+        columns = ["best_error", "z", "cdf", "pdf", "ei_term_1", "ei_term_2", "ei"]
+        ei_term_df = pd.DataFrame(columns=columns)
+        
         assert isinstance(method, GPBO_Methods), "method must be type GPBO_Methods"
         #Num thetas = #gp mean pts/number of x_vals for Type 2
         num_thetas = int(len(self.gp_mean)/self.exp_data.get_num_x_vals()) 
@@ -3515,6 +3518,7 @@ class GPBO_Driver:
         
         #Create df for ei and add those results here
         max_ei_details_df.columns=iter_max_ei_terms.columns.tolist()
+        max_ei_details_df = max_ei_details_df.reset_index(drop=True)
 
         return results_df, max_ei_details_df, list_gp_emulator_class
         
