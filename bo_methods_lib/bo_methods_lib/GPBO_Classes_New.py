@@ -2626,19 +2626,20 @@ class Expected_Improvement():
             y_target_val = y_target[valid_indices]
 
             #Obtain Sparse Grid points and weights
-            points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=5, rule='gauss-hermite', verbose=False)
-
+            depth = 10
+            points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=depth, rule='gauss-hermite', verbose=False)
+            
             # Calculate gp_var multiplied by points_p
-            gp_stdev_points_p = gp_stdev_val * points_p
+            gp_stdev_points_p = gp_stdev_val @ (np.sqrt(2)*points_p.T)
 
             # Calculate the SSE for all data points simultaneously
             sse_temp = np.sum((y_target_val[:, np.newaxis] - gp_mean_val[:, np.newaxis] - gp_stdev_points_p.T)**2, axis=0)
 
-            # Apply -min operator (equivalent to max[SSE_Temp - (best_error*ep),0])
-            min_list = -np.minimum(sse_temp - (self.best_error*self.ep_bias.ep_curr), 0)
+            # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
+            min_list = np.maximum(self.best_error*self.ep_bias.ep_curr - sse_temp, 0)
 
             # Calculate EI_temp using vectorized operations
-            ei_temp = np.dot(weights_p, min_list)
+            ei_temp = (1/np.pi)*np.dot(weights_p, min_list)
             
         else:
             ei_temp = 0
@@ -2648,7 +2649,7 @@ class Expected_Improvement():
             
         return ei_temp, row_data
 
-    def __get_sparse_grids(self, dim, output=0,depth=5, rule="gauss-hermite", verbose = False, alpha = 0):
+    def __get_sparse_grids(self, dim, output=0,depth=7, rule="gauss-hermite", verbose = False, alpha = 0):
         '''
         This function shows the sparse grids generated with different rules
         
