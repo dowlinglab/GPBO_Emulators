@@ -1651,7 +1651,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         return best_error
     
     
-    def __eval_gp_ei(self, sim_data, exp_data, ep_bias, best_error):
+    def __eval_gp_ei(self, sim_data, exp_data, ep_bias, best_error_metrics):
         """
         Evaluates gp acquisition function. In this case, ei
         
@@ -1660,14 +1660,14 @@ class Type_1_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         
         Returns
         -------
         ei: The expected improvement of all the data in test_data
         """
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_1()
         #Add ei data to validation data class
@@ -1675,7 +1675,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         
         return ei, ei_terms_df
     
-    def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error):
+    def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error_metrics):
         """
         Evaluates gp acquisition function. In this case, ei
         
@@ -1684,7 +1684,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         misc_data, Instance of Data class, data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         
         Returns
         -------
@@ -1693,11 +1693,11 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(misc_data, Data), "misc_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
-        assert isinstance(best_error, (float, int)), "best_error must be float or int"
-        ei, ei_terms_df = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error)
+        assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==2, "Error metric must be a tuple of length 2"
+        ei, ei_terms_df = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error_metrics)
         return ei, ei_terms_df
     
-    def eval_ei_test(self, exp_data, ep_bias, best_error):
+    def eval_ei_test(self, exp_data, ep_bias, best_error_metrics):
         """
         Evaluates gp acquisition function. In this case, ei
         
@@ -1705,7 +1705,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ----------
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         
         Returns
         -------
@@ -1714,11 +1714,11 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(self.test_data, Data), "self.test_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
-        assert isinstance(best_error, (float, int)), "best_error must be float or int"
-        ei, ei_terms_df = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error)
+        assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==2, "Error metric must be a tuple of length 2"
+        ei, ei_terms_df = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics)
         return ei, ei_terms_df
     
-    def eval_ei_val(self, exp_data, ep_bias, best_error):
+    def eval_ei_val(self, exp_data, ep_bias, best_error_metrics):
         """
         Evaluates gp acquisition function. In this case, ei
         
@@ -1726,7 +1726,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ----------
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         
         Returns
         -------
@@ -1735,12 +1735,12 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(self.gp_val_data, Data), "self.gp_val_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
-        assert isinstance(best_error, (float, int)), "best_error must be float or int"
-        ei, ei_terms_df = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error)
+        assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==2, "Error metric must be a tuple of length 2"
+        ei, ei_terms_df = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error_metrics)
         
         return ei, ei_terms_df
     
-    def eval_ei_cand(self, exp_data, ep_bias, best_error):
+    def eval_ei_cand(self, exp_data, ep_bias, best_error_metrics):
         """
         Evaluates gp acquisition function. In this case, ei
         
@@ -1748,7 +1748,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ----------
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         
         Returns
         -------
@@ -1757,8 +1757,8 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(self.cand_data, Data), "self.cand_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
-        assert isinstance(best_error, (float, int)), "best_error must be float or int"
-        ei, ei_terms_df = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error)
+        assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==2, "Error metric must be a tuple of length 2"
+        ei, ei_terms_df = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error_metrics)
         
         return ei, ei_terms_df
     
@@ -2109,7 +2109,7 @@ class Type_2_GP_Emulator(GP_Emulator):
     
     def calc_best_error(self, method, exp_data):
         """
-        Calculates the best error of the model
+        Calculates the best error of the model (sse) and error for each state point x (se)
         
         Parameters
         ----------
@@ -2118,7 +2118,8 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         Returns
         -------
-        best_error: float, the best error of the method
+        best_error: float, the best error (sse) of the method
+        ind_errors: np.array, array of squared errors for each value of x
         
         """ 
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods class"
@@ -2135,27 +2136,27 @@ class Type_2_GP_Emulator(GP_Emulator):
      
         #Make sse array as an empty list. Will add one value for each training point
         sse_train_vals = []
-#         true_idx_list = [] #Used for error checking
         
         #Evaluate SSE by looping over the x values for each combination of theta and calculating SSE
         for i in range(0, len_theta, len_x):
-            sse_train_vals.append( sum((self.train_data.y_vals[i:i+len_x] - exp_data.y_vals)**2) )#Scaler
-#             true_idx_list.append(i) #Used for error checking
+            ind_errors = np.array((self.train_data.y_vals[i:i+len_x] - exp_data.y_vals)**2)
+            sse_train_vals.append( np.sum(ind_errors) )#Array
 
         #List to array
         sse_train_vals = np.array(sse_train_vals)   
         
         #Best error is the minimum of these values
         best_error = np.amin(sse_train_vals)
-#         print(self.train_data.theta_vals[true_idx_list[np.argmin(sse_train_vals)]]) #For Error Checking, Returns theta associated with best value
-        
+
         #For method 2B, use a log scaled best error
         if method.obj.value == 2:
             best_error = np.log(best_error)
-        
-        return best_error
+            ind_errors[ind_errors == 0] += 1e-15 #Add a small value to any zero value to avoid problems in ei calculations
+            ind_errors = np.log(ind_errors) 
+            
+        return best_error, ind_errors
     
-    def __eval_gp_ei(self, sim_data, exp_data, ep_bias, best_error, method):
+    def __eval_gp_ei(self, sim_data, exp_data, ep_bias, best_error_metrics, method):
         """
         Evaluates gp acquisition function. In this case, ei
         
@@ -2164,7 +2165,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         method: instance of Method class, method for GP Emulation
         
         Returns
@@ -2173,7 +2174,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         """
         assert method.method_name.value >= 3, "Must be using method 2A, 2B, or 2C"
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_2(method)
         #Add ei data to validation data class
@@ -2181,7 +2182,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return ei, ei_terms_df
     
-    def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error, method):
+    def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error_metrics, method):
         """
         Evaluates gp acquisition function. In this case, ei
         
@@ -2190,7 +2191,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         misc_data, Instance of Data class, data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         method: instance of Method class, method for GP Emulation
         
         Returns
@@ -2200,14 +2201,14 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(misc_data, Data), "misc_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
-        assert isinstance(best_error, (float, int)), "best_error must be float or int"
+        assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==2, "Error metric must be a tuple of length 2"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-        ei = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error, method)
+        ei = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error_metrics, method)
         
         return ei
     
-    def eval_ei_test(self, exp_data, ep_bias, best_error, method):
+    def eval_ei_test(self, exp_data, ep_bias, best_error_metrics, method):
         """
         Evaluates gp acquisition function for testing data. In this case, ei
         
@@ -2216,7 +2217,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         method: instance of Method class, method for GP Emulation
         
         Returns
@@ -2226,14 +2227,14 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(self.test_data, Data), "self.test_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
-        assert isinstance(best_error, (float, int)), "best_error must be float or int"
+        assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==2, "Error metric must be a tuple of length 2"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
                    
-        ei = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error, method)
+        ei = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics, method)
         return ei
     
-    def eval_ei_val(self, exp_data, ep_bias, best_error, method):
+    def eval_ei_val(self, exp_data, ep_bias, best_error_metrics, method):
         """
         Evaluates gp acquisition function for validation data. In this case, ei
         
@@ -2242,7 +2243,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         method: instance of Method class, method for GP Emulation
         
         Returns
@@ -2252,14 +2253,14 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(self.gp_val_data, Data), "self.gp_val_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
-        assert isinstance(best_error, (float, int)), "best_error must be float or int"
+        assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==2, "best_error_metrics must be tuple of length 2"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-        ei = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error, method)
+        ei = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error_metrics, method)
         
         return ei
         
-    def eval_ei_cand(self, exp_data, ep_bias, best_error, method):
+    def eval_ei_cand(self, exp_data, ep_bias, best_error_metrics, method):
         """
         Evaluates gp acquisition function for the candidate theta data. In this case, ei
         
@@ -2268,7 +2269,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error: float, the best error of the method
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         method: instance of Method class, method for GP Emulation
         
         Returns
@@ -2278,10 +2279,10 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(self.cand_data, Data), "self.cand_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
-        assert isinstance(best_error, (float, int)), "best_error must be float or int"
+        assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==2, "best_error_metrics must be tuple of length 2"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-        ei, ei_terms_df = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error, method)
+        ei, ei_terms_df = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error_metrics, method)
         
         return ei, ei_terms_df
     
@@ -2326,28 +2327,31 @@ class Expected_Improvement():
     __get_sparse_grids(dim, output=0,depth=3, rule="gauss-hermite", verbose = False, alpha = 0)
     """
     #AD Comment: What part of the acquisition function code can be generalized and what is specific to type1 and type2? 
-    def __init__(self, ep_bias, gp_mean, gp_var, exp_data, best_error):
+    def __init__(self, ep_bias, gp_mean, gp_var, exp_data, best_error_metrics):
         """
         Parameters
-        ----------
+        ----------       
         ep_bias: instance of Exploration_Bias, class with information of exploration bias parameter
         gp_mean: tensor, The GP model's mean evaluated over param_set 
         gp_var: tensor, The GP model's variance evaluated over param_set
         exp_data: Instance of Data class, the experimental data to evaluate ei with
-        best_error: float, the smallest value of the error in the training data
+        best_error_metrics: tuple, the best error (sse) and best_error_x (se) values of the method
         """
         assert len(gp_mean) == len(gp_var), "gp_mean and gp_var must be arrays of the same length"
+        assert isinstance(best_error_metrics, tuple) and len(best_error_metrics) == 2, "best_error_metrics must be a tuple of length 2"
         assert all(isinstance(arr, np.ndarray) for arr in (gp_mean, gp_var, exp_data.y_vals)), "gp_mean, gp_var, and exp_data.y_vals must be ndarrays"
         assert isinstance(ep_bias, Exploration_Bias), "ep_bias must be instance of Exploration_Bias"
         assert isinstance(exp_data, Data), "exp_data must be instance of Data"
-        assert isinstance(best_error, (float, int)), "best_error must be float or int. Calculate with GP_Emulator.calc_best_error()"
+        assert isinstance(best_error_metrics[0], (float, int)), "best_error_metrics[0] must be float or int. Calculate with GP_Emulator.calc_best_error()"
+        assert isinstance(best_error_metrics[1], np.ndarray) or best_error_metrics[1] is None, "isinstance(best_error_metrics[1] must be np.ndarray (type 2 ei) or None (type 1 ei)"
         
         # Constructor method
         self.ep_bias = ep_bias
         self.gp_mean = gp_mean
         self.gp_var = gp_var
         self.exp_data = exp_data
-        self.best_error = best_error
+        self.best_error = best_error_metrics[0]
+        self.best_error_x = best_error_metrics[1]
     
     def type_1(self):
         """
@@ -2401,7 +2405,7 @@ class Expected_Improvement():
         ei: float, The expected improvement of the parameter set
         """        
         ei_term_df = pd.DataFrame()
-        
+        assert isinstance(self.best_error_x, np.ndarray), "best_error_metrics[1] must be np.ndarray for type 2 ei calculations"
         assert isinstance(method, GPBO_Methods), "method must be type GPBO_Methods"
         #Num thetas = #gp mean pts/number of x_vals for Type 2
         num_thetas = int(len(self.gp_mean)/self.exp_data.get_num_x_vals()) 
@@ -2457,7 +2461,6 @@ class Expected_Improvement():
 
         #Initialize ei as all zeros
         ei = np.zeros(len(gp_var))
-
         #Create a mask for values where var > 0. Set a value of 1e-14?
         pos_stdev_mask = (gp_var > 0)
 
@@ -2469,18 +2472,19 @@ class Expected_Improvement():
             gp_var_val = gp_var[valid_indices]
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
+            best_errors_x = self.best_error_x[valid_indices]
 
             #If variance is close to zero this is important
             with np.errstate(divide = 'warn'):
                 #Creates upper and lower bounds and described by Equation X in Manuscript
-                bound_a = ((y_target_val - gp_mean_val) + np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev_val
-                bound_b = ((y_target_val - gp_mean_val) - np.sqrt(self.best_error*self.ep_bias.ep_curr))/pred_stdev_val
+                bound_a = ((y_target_val - gp_mean_val) + np.sqrt(best_errors_x*self.ep_bias.ep_curr))/pred_stdev_val
+                bound_b = ((y_target_val - gp_mean_val) - np.sqrt(best_errors_x*self.ep_bias.ep_curr))/pred_stdev_val
                 bound_lower = np.minimum(bound_a,bound_b)
                 bound_upper = np.maximum(bound_a,bound_b)        
 
                 #Creates EI terms in terms of Equation X in Manuscript
                 ei_term1_comp1 = norm.cdf(bound_upper) - norm.cdf(bound_lower)
-                ei_term1_comp2 = (self.best_error*self.ep_bias.ep_curr) - (y_target_val - gp_mean_val)**2
+                ei_term1_comp2 = (best_errors_x*self.ep_bias.ep_curr) - (y_target_val - gp_mean_val)**2
 
                 ei_term2_comp1 = 2*(y_target_val - gp_mean_val)*pred_stdev_val
                 ei_eta_upper = -np.exp(-bound_upper**2/2)/np.sqrt(2*np.pi)
@@ -2542,19 +2546,20 @@ class Expected_Improvement():
             pred_stdev_val = np.sqrt(gp_var[valid_indices])
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
+            best_errors_x = self.best_error_x[valid_indices]
         
             #Important when stdev is close to 0
             with np.errstate(divide = 'warn'):
                 #Creates upper and lower bounds and described by Alex Dowling's Derivation
-                bound_a = ((y_target_val - gp_mean_val) +np.sqrt(np.exp(self.best_error*self.ep_bias.ep_curr)))/pred_stdev_val #1xn
-                bound_b = ((y_target_val - gp_mean_val) -np.sqrt(np.exp(self.best_error*self.ep_bias.ep_curr)))/pred_stdev_val #1xn
+                bound_a = ((y_target_val - gp_mean_val) +np.sqrt(np.exp(best_errors_x*self.ep_bias.ep_curr)))/pred_stdev_val #1xn
+                bound_b = ((y_target_val - gp_mean_val) -np.sqrt(np.exp(best_errors_x*self.ep_bias.ep_curr)))/pred_stdev_val #1xn
                 bound_lower = np.minimum(bound_a,bound_b)
                 bound_upper = np.maximum(bound_a,bound_b) 
 
                 #Calculate EI
-                args = (self.best_error, gp_mean_val, pred_stdev_val, y_target_val, self.ep_bias.ep_curr)
-                ei_term_1 = (self.best_error*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
-                ei_term_2_out = np.array([integrate.quad(self.__ei_approx_ln_term, bl, bu, args=(self.best_error, gm, ps, yt, self.ep_bias.ep_curr)) for bl, bu, gm, ps, yt in zip(bound_lower, bound_upper, gp_mean_val, pred_stdev_val, y_target_val)])
+                args = (gp_mean_val, pred_stdev_val, y_target_val, self.ep_bias.ep_curr)
+                ei_term_1 = (best_errors_x*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
+                ei_term_2_out = np.array([integrate.quad(self.__ei_approx_ln_term, bl, bu, args=(gm, ps, yt, self.ep_bias.ep_curr)) for bl, bu, gm, ps, yt in zip(bound_lower, bound_upper, gp_mean_val, pred_stdev_val, y_target_val)])
 
                 ei_term_2 = (-2)*ei_term_2_out[:,0] 
                 term_2_abs_err = ei_term_2_out[:,1]
@@ -2565,20 +2570,19 @@ class Expected_Improvement():
         #The Ei is the sum of the ei at each value of x
         ei_temp = np.sum(ei)
 
-        row_data_lists = pd.DataFrame([[self.best_error, bound_lower, bound_upper, ei_term_1, ei_term_2, ei, 
+        row_data_lists = pd.DataFrame([[best_errors_x, bound_lower, bound_upper, ei_term_1, ei_term_2, ei, 
                                   ei_temp]], columns=columns)
         row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
   
         return ei_temp, row_data
 
-    def __ei_approx_ln_term(self, epsilon, best_error, gp_mean, gp_stdev, y_target, ep): 
+    def __ei_approx_ln_term(self, epsilon, gp_mean, gp_stdev, y_target, ep): 
         """ 
         Calculates the integrand of expected improvement of the emulator approach using the log version
         
         Parameters
         ----------
         epsilon: The random variable. This is the variable that is integrated w.r.t
-        best_error: float, the best predicted error encountered
         gp_mean: ndarray, model mean
         gp_stdev: ndarray, model stdev
         y_target: ndarray, the expected value of the function from data or other source
@@ -2706,7 +2710,7 @@ class Exploration_Bias():
         e_inc: float, the increment for the Boyle's method for calculating exploration parameter: Recommendation is 1.5
         ep_f: float, The final exploration parameter value: Recommendation is 0
         improvement: Bool, Determines whether last objective was an improvement. Default False
-        best_error: float, The lowest error value in the training data
+        best_error: float, The lowest (sse) error value in the training data
         mean_of_var: float, The value of the average of all posterior variances
         
         
@@ -3014,21 +3018,23 @@ class GPBO_Driver:
     
     def __get_best_error(self):
         """
-        Helper function to calculate the best error given the method.
+        Helper function to calculate the best error (sse) and error calculations over x (se) given the method.
         
         Returns
         -------
-        best_error: float, the best error of the GPBO workflow
+        best_error: float, the best error (sse) of the GPBO workflow
+        best_errors_x: ndarray, array of squared errors for each value of x
         """
         
         if self.method.emulator == False:
             #Type 1 best error is inferred from training data 
             best_error = self.gp_emulator.calc_best_error()
+            best_errors_x = None
         else:
             #Type 2 best error must be calculated given the experimental data
-            best_error = self.gp_emulator.calc_best_error(self.method, self.exp_data)
+            best_error, best_errors_x = self.gp_emulator.calc_best_error(self.method, self.exp_data)
         
-        return best_error
+        return best_error, best_errors_x
         
     def __make_starting_opt_pts(self):
         """
@@ -3084,9 +3090,10 @@ class GPBO_Driver:
         best_vals = np.full(self.cs_params.reoptimize_obj+1, np.inf)
         best_thetas = np.zeros((self.cs_params.reoptimize_obj+1, self.gp_emulator.train_data.get_dim_theta()))
         
-        #Calc best error
-        best_error = self.__get_best_error()
-            
+        #Calc best error        
+        best_error_metrics = self.__get_best_error()
+        best_error, best_errors_x = best_error_metrics 
+        
         #Find bounds and arguments for function
         #Unnormalize feature data for calculation if necessary
         if self.cs_params.normalize == True:
@@ -3109,7 +3116,8 @@ class GPBO_Driver:
             try:
                 #Call scipy method to optimize EI given theta
                 #Using L-BFGS-B instead of BFGS because it allowd for bounds
-                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei,best_error))
+                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(neg_ei, 
+                                                                                                                       best_error_metrics))
                 #Add ei and best_thetas to lists as appropriate
                 best_vals[i] = best_result.fun
                 best_thetas[i] = best_result.x
@@ -3133,7 +3141,7 @@ class GPBO_Driver:
                     
         return best_val, best_theta
         
-    def __scipy_fxn(self, theta, neg_ei, best_error):
+    def __scipy_fxn(self, theta, neg_ei, best_error_metrics):
         """
         Calculates either -ei or sse objective at a candidate theta value
         
@@ -3194,9 +3202,9 @@ class GPBO_Driver:
                 
             else:
                 if self.method.emulator == False:
-                    ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error)
+                    ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error_metrics)
                 else:
-                    ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error, self.method)
+                    ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error_metrics, self.method)
                 obj = -1*ei_output[0]
             
         return obj
@@ -3352,7 +3360,8 @@ class GPBO_Driver:
         self.gp_emulator.train_gp(gp_model)
         
         #Calcuate best error
-        best_error = self.__get_best_error()
+        best_error_metrics = self.__get_best_error()
+        best_error, best_errors_x = best_error_metrics
         
         #Add not log best error to ep_bias
         if iteration == 0 or self.ep_bias.ep_enum.value == 4:
@@ -3409,14 +3418,14 @@ class GPBO_Driver:
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data, self.method,
                                                                                                     self.exp_data)
             #Evaluate max EI terms at theta
-            ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error, self.method)
+            ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, self.method)
         #Otherwise the sse data is the original (scaled) data
         else:
             min_sse_sim = min_theta_data.y_vals           
             #Evaluate SSE & SSE stdev at max ei theta
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data)
             #Evaluate max EI terms at theta
-            ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error)
+            ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
         min_sse_sim = min_sse_sim[0]
