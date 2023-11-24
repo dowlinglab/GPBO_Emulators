@@ -126,6 +126,10 @@ def get_study_data_signac(criteria_dict, study_id, save_csv = False):
             df_job["index"] = run
             df_job["BO Method"] = meth_name.name
             df_job["Max Evals"] = len(df_job)
+            try:
+                df_job["Termination"] = results[0].why_term
+            except:
+                pass
             df_job["Total Run Time"] = df_job["Time/Iter"]*df_job["Max Evals"]  
             #Add data to the dataframe with all the data
             df = pd.concat([df, df_job], ignore_index=False)
