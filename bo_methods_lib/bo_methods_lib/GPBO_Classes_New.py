@@ -2626,7 +2626,7 @@ class Expected_Improvement():
             y_target_val = y_target[valid_indices]
 
             #Obtain Sparse Grid points and weights
-            depth = 10
+            depth = 13
             points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=depth, rule='gauss-hermite', verbose=False)
             
             # Calculate gp_var multiplied by points_p
@@ -2649,7 +2649,7 @@ class Expected_Improvement():
             
         return ei_temp, row_data
 
-    def __get_sparse_grids(self, dim, output=0,depth=7, rule="gauss-hermite", verbose = False, alpha = 0):
+    def __get_sparse_grids(self, dim, output=0,depth=10, rule="gauss-hermite", verbose = False, alpha = 0):
         '''
         This function shows the sparse grids generated with different rules
         
