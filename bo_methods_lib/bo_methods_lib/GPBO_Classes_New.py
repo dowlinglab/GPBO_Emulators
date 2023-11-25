@@ -2626,7 +2626,7 @@ class Expected_Improvement():
             y_target_val = y_target[valid_indices]
 
             #Obtain Sparse Grid points and weights
-            depth = 13
+            depth = 15
             points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=depth, rule='gauss-hermite', verbose=False)
             
             # Calculate gp_var multiplied by points_p
@@ -2672,7 +2672,6 @@ class Expected_Improvement():
         A figure shows 2D sparse grids (if verbose = True)
         '''
         #Get grid points and weights
-        # grid_p = Tasmanian.TasmanianSparseGrid()
         grid_p = Tasmanian.SparseGrid()
         grid_p.makeGlobalGrid(dim,output,depth,"level",rule)
         points_p = grid_p.getPoints()
