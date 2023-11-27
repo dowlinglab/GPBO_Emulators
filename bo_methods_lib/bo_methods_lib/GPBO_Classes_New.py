@@ -2626,8 +2626,9 @@ class Expected_Improvement():
             y_target_val = y_target[valid_indices]
 
             #Obtain Sparse Grid points and weights
-            depth = 10
-            points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=depth, rule='gauss-hermite', verbose=False)
+            depth = 20
+            points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=depth, rule='gauss-hermite', 
+                                                          verbose=False)
             
             # Calculate gp_var multiplied by points_p
             gp_stdev_points_p = gp_stdev_val @ (np.sqrt(2)*points_p.T)
@@ -2649,7 +2650,7 @@ class Expected_Improvement():
             
         return ei_temp, row_data
 
-    def __get_sparse_grids(self, dim, output=0,depth=7, rule="gauss-hermite", verbose = False, alpha = 0):
+    def __get_sparse_grids(self, dim, output=0,depth=10, rule="gauss-hermite", verbose = False, alpha = 0):
         '''
         This function shows the sparse grids generated with different rules
         
@@ -2657,7 +2658,7 @@ class Expected_Improvement():
         -----------
         dim: int, sparse grids dimension
         output: int, output level for function that would be interpolated. Default is zero
-        depth: int, depth level. Controls density of abscissa points
+        depth: int, depth level. Controls density of abscissa points. Uses qpcurved
         rule: str, quadrature rule. Default is 'gauss-legendre'
         verbose: bool, determines Whether or not plot of sparse grid is shown. False by default
         alpha: int, specifies $\alpha$ parameter for the integration weight $\rho(x)$, ignored when rule doesn't have this parameter
@@ -2674,7 +2675,7 @@ class Expected_Improvement():
         #Get grid points and weights
         # grid_p = Tasmanian.TasmanianSparseGrid()
         grid_p = Tasmanian.SparseGrid()
-        grid_p.makeGlobalGrid(dim,output,depth,"level",rule)
+        grid_p.makeGlobalGrid(dim,output,depth,"qpcurved",rule)
         points_p = grid_p.getPoints()
         weights_p = grid_p.getQuadratureWeights()
         if verbose == True:
