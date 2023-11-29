@@ -3397,7 +3397,6 @@ class GPBO_Driver:
         #Get termination criteria
         #Calcualte beta
         beta = 2*np.log(self.gp_emulator.get_dim_gp_data()*(iteration+1)**2*np.pi**2/(6*0.1))/5
-        print(beta, type(beta))
         r_stop = self.__get_termination_criteria(beta)
         #PUT STUFF HERE
         
