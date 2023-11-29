@@ -274,7 +274,7 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
     if isinstance(data_names, list):
         assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
     
-    colors = ["red", "blue", "green", "purple", "orange"]
+    colors = ["red", "blue", "green", "purple", "darkorange"]
     method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid"]
     #Number of subplots is 1
     fig, ax, num_subplots = create_subplots(1, sharex = False)
@@ -1116,7 +1116,10 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
             if train_theta is not None:
                 ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]],color="green",s=100,label="Train",marker= "x")
             if theta_obj_min is not None:
-                ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
+                try: #Note this is just for getting the scaled muller test working
+                    ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
+                except:
+                    ax[i].scatter(theta_obj_min[0],theta_obj_min[1], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
             if theta_ei_max is not None:
                 ax[i].scatter(theta_ei_max[idcs_to_plot[0]],theta_ei_max[idcs_to_plot[1]],color="black",s=150,label ="Max EI",marker = ".")
 
