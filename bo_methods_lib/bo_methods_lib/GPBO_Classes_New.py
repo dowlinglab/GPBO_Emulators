@@ -3527,8 +3527,12 @@ class GPBO_Driver:
                 list_gp_emulator_class.append( gp_emulator_class )
                 
                 #Call stopping criteria after 1st iteration and update improvement counter
+                #If the improvement is negligible, add to counter
                 if improvement < self.cs_params.obj_tol:
                     count +=1
+                #Otherwise reset the counter
+                else:
+                    count = 0 
                 if i > 0:
                     #Terminate if max ei is less than the tolerance twice in a row
                     if results_df["Max EI"].iloc[i] < self.cs_params.ei_tol and results_df["Max EI"].iloc[i-1] < self.cs_params.ei_tol:
