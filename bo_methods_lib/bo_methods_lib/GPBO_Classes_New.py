@@ -3458,7 +3458,7 @@ class GPBO_Driver:
             covar_best = covar_thetas_sse[0,1]
 
         gamma = self.gp_emulator.fit_gp_model.kernel_.k2.noise_level
-        v = np.sqrt(min_sse_theta_data.sse_var -2*covar_best + self.opt_theta_last.sse_var)
+        v = np.sqrt(min_sse_theta_data.sse_var - 2*covar_best + self.opt_theta_last.sse_var)
         g = (min_sse_theta_data.sse - self.opt_theta_last.sse)/v
         kappa = self.best_theta_last.kappa
         Dkl_1 = (1/2)*np.log(1+gamma*self.best_theta_last.sse_var)
@@ -3467,14 +3467,14 @@ class GPBO_Driver:
             sse_sim = sum((self.exp_data.y_vals - max_ei_theta_data.y_vals)**2)
         else:
             sse_sim = max_ei_theta_data.y_vals           
-        Dkl_3 = (1/2)*(self.best_theta_last.sse_var)*(sse_sim -self.best_theta_last.sse)**2/(self.best_theta_last.sse_var +1/gamma)**2
+        Dkl_3 = (1/2)*(self.best_theta_last.sse_var)*(sse_sim - self.best_theta_last.sse)**2/(self.best_theta_last.sse_var + 1/gamma)**2
         Dkl = Dkl_1 + Dkl_2 + Dkl_3
 
         regret = float(del_mu + v*norm.pdf(g) +v*g*norm.cdf(g) + kappa*np.sqrt((1/2)*Dkl))
         speed_numerator = (np.sqrt(self.opt_theta_last.sse_var)+kappa/2) + np.sqrt(max_ei_theta_data.sse_var)*np.sqrt(-2*np.log(0.05))
         speed_denominator = np.sqrt(gamma)*(self.best_theta_last.sse_var + 1/gamma)
         speed = float(speed_numerator/speed_denominator)
-
+        
         r_stop = regret < speed
         
         return regret, speed, r_stop
@@ -3700,17 +3700,17 @@ class GPBO_Driver:
                 else:
                     count = 0 
                 if i > 0:
-                    #Terminate if max ei is less than the tolerance twice in a row
-                    if results_df["Max EI"].iloc[i] < self.cs_params.ei_tol and results_df["Max EI"].iloc[i-1] < self.cs_params.ei_tol:
+                    #Terminate if max ei is less than the tolerance 3 times in a row
+                    if all(results_df["Max EI"].tail(3) < self.cs_params.ei_tol):
                         why_term = "ei"
                         break
                     #Terminate if small sse progress over 1/3 of total iteration budget
                     elif count >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac):
                         why_term = "obj"
                         break
-                    #Terminate if reg_tol < var(be)    
-                    elif r_stop is True and self.method.emulator is False:
-                        why_term = "r_tol"
+                    #Terminate if reg_tol < speed 4 times in a row since this criteria assumes GP is good
+                    elif all(results_df["Regret"].tail(4) < results_df["Speed"].tail(4)):
+                        why_term = "regret"
                         break
                     #Continue if no stopping criteria are met    
                     else:
