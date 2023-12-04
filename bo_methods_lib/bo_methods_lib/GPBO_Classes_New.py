@@ -2689,7 +2689,9 @@ class Expected_Improvement():
             #Obtain Sparse Grid points and weights
             depth = 20
             points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=depth, rule='gauss-hermite', 
-                                                          verbose=False)           
+                                                          verbose=False)  
+            # print(np.amin(points_p), np.amax(points_p))
+            # print(len(points_p))         
             # Calculate gp_var multiplied by points_p
             gp_stdev_points_p = gp_stdev_val @ (np.sqrt(2)*points_p.T)
 
