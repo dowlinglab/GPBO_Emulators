@@ -182,7 +182,7 @@ def solve_pyomo_Muller_min(param_name_str, verbose = False):
     #Define objective
     model.obj = Objective(rule=calc_muller_pyo, sense = minimize)
     
-    solver = SolverFactory('ipopt', options={'check_derivatives_for_naninf': 'yes'})
+    solver = SolverFactory('ipopt')
     result = solver.solve(model, tee = verbose)
     
     if verbose:
