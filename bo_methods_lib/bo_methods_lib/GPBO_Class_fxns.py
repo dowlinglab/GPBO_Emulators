@@ -183,6 +183,7 @@ def solve_pyomo_Muller_min(param_name_str, verbose = False):
     model.obj = Objective(rule=calc_muller_pyo, sense = minimize)
     
     solver = SolverFactory('ipopt')
+    solver.options['max_iter']= 10000
     result = solver.solve(model, tee = verbose)
     
     if verbose:
