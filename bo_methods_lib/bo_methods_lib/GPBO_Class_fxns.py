@@ -130,7 +130,7 @@ def solve_pyomo_Muller_min(param_name_str, verbose = False):
     # Create a Set to represent the iterable set of variables A1-A4, b1-b4,...y01-y04
     index_set = range(1,5)
     if "A" in param_name_str:
-        model.A = Var(Set(initialize=index_set), initialize={1: -300, 2: -100, 3: -200, 4: 10}, 
+        model.A = Var(Set(initialize=index_set), initialize={1: -210, 2: -100, 3: -200, 4: 10}, 
                   bounds={1: (-300,-100) , 2: (-200,0), 3: (-250,-150), 4: (5,20)})
     else:
         model.A = Param(Set(initialize=index_set), initialize={1: -200, 2: -100, 3: -170, 4: 15})
@@ -166,16 +166,16 @@ def solve_pyomo_Muller_min(param_name_str, verbose = False):
         model.y0 = Param(Set(initialize=index_set), initialize={1: 0, 2: 0.5, 3: 1.5, 4: 1})
 
     model.x_index = Set(initialize=range(1,3))
-    model.x = Var(model.x_index, initialize={1: 0, 2: 0}, bounds={1: (-1.5,1.0), 2: (-0.5,2)})
+    model.x = Var(model.x_index, initialize={1: -1, 2: 0}, bounds={1: (-1.5,1.0), 2: (-0.5,2)})
 
     #Define Muller potential
     def calc_muller_pyo(model):  
         #Calculate Muller Potential
-        expression = sum(
+        expression = sum( (
                 model.A[i] * exp(
                 model.a[i] * (model.x[1] - model.x0[i]) ** 2 +
                 model.b[i] * (model.x[1] - model.x0[i]) * (model.x[2] - model.y0[i]) +
-                model.c[i] * (model.x[2] - model.y0[i]) ** 2) for i in range(1,5))
+                model.c[i] * (model.x[2] - model.y0[i]) ** 2) for i in range(1,5) ) )
 
         return expression
     
