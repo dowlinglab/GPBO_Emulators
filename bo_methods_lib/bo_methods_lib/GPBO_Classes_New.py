@@ -3230,9 +3230,9 @@ class GPBO_Driver:
             np.random.seed(self.cs_params.seed)
             
         if np.isnan(theta).any():
-            #If there are nan values, set neg ei to -1 
+            #If there are nan values, set neg ei to 1 (ei = -1) 
             if opt_obj == "neg_ei":
-                obj = -1
+                obj = 1
             #Set sse and lcb to self.sse_penalty
             else:
                 obj = self.sse_penalty
