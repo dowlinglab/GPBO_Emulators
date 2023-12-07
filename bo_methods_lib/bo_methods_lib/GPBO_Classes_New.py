@@ -3143,9 +3143,13 @@ class GPBO_Driver:
             theta_guess = unique_val_thetas[unique_theta_index].flatten()
             
             try:
+                if self.method.sparse_grid == True:
+                    obj_opt_method = "Powell"
+                else:
+                    obj_opt_method = "L-BFGS-B"
                 #Call scipy method to optimize EI given theta
                 #Using L-BFGS-B instead of BFGS because it allowd for bounds
-                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = "L-BFGS-B", args=(opt_obj, 
+                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = obj_opt_method, args=(opt_obj, 
                                                                                                                         best_error_metrics,
                                                                                                                         beta))
                 #Add ei and best_thetas to lists as appropriate
@@ -3635,7 +3639,8 @@ class GPBO_Driver:
                 iter_df, iter_max_ei_terms, gp_emulator_class, r_stop = self.__run_bo_iter(gp_model, i) #Change me later
                 #Add results to dataframe
                 results_df = pd.concat([results_df.astype(iter_df.dtypes), iter_df], ignore_index=True)
-                max_ei_details_df = pd.concat([max_ei_details_df, iter_max_ei_terms])
+                if iter_max_ei_terms is not None:
+                    max_ei_details_df = pd.concat([max_ei_details_df, iter_max_ei_terms])
                 #At the first iteration
                 if i == 0:
                     #Then the minimimum is defined by the first value of the objective function you calculate
@@ -3682,21 +3687,20 @@ class GPBO_Driver:
                 #set flag if small sse progress over 1/3 of total iteration budget
                 if count >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac) and i > 0:
                     obj_flag = True
-                #set flag if reg_tol < speed 4 times in a row since this criteria assumes GP is good
-                if all(results_df["Regret"].tail(4) < results_df["Speed"].tail(4)) and i > 3:
+                #set flag if reg_tol < speed 3 times in a row since this criteria assumes GP is good
+                if all(results_df["Regret"].tail(3) < results_df["Speed"].tail(3)) and i > 2:
                     regret_flag = True
 
                 flags = [ei_flag, obj_flag, regret_flag]
                  
-                #Terminate if you meet 2 stopping criteria or will exceed the budget
+                #Terminate if you meet 2 stopping criteria or hit the budget
                 if flags.count(True) >= 2:
-                    terminate == True
-                    term_indices = np.where(flags)[0]
-                    term_flag_names = why_terms[term_indices]
-                    why_term = "-".join(term_flag_names)
+                    terminate = True
+                    term_flags = [term for term, flag in zip(why_terms, flags) if flag]
+                    why_term = "-".join(term_flags)
                     break
                 elif i == self.cs_params.bo_iter_tot - 1:
-                    terminate == True
+                    terminate = True
                     why_term = why_terms[-1]
                     break
                 #Continue if no stopping criteria are met   
@@ -3707,8 +3711,9 @@ class GPBO_Driver:
         results_df = results_df.reset_index()
         
         #Create df for ei and add those results here
-        max_ei_details_df.columns=iter_max_ei_terms.columns.tolist()
-        max_ei_details_df = max_ei_details_df.reset_index(drop=True)
+        if iter_max_ei_terms is not None:
+            max_ei_details_df.columns=iter_max_ei_terms.columns.tolist()
+            max_ei_details_df = max_ei_details_df.reset_index(drop=True)
 
         return results_df, max_ei_details_df, list_gp_emulator_class, why_term
         
