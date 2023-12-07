@@ -1941,7 +1941,7 @@ class Type_2_GP_Emulator(GP_Emulator):
             
         return train_data, test_data
     
-    def __eval_gp_sse_var(self, data, method, exp_data, covar = False):
+    def __eval_gp_sse_var(self, data, method, exp_data, covar = False, verbose = False):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO
         
@@ -1963,6 +1963,9 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Find length of theta and number of unique x in data arrays
         len_theta = data.get_num_theta()
         len_x = len(data.get_unique_x())
+        
+#         if verbose:
+#             print(len_theta/len_x)
      
         #Make sse arrays as an empty lists. Will add one value for each training point
         sse_mean = []
@@ -1976,11 +1979,18 @@ class Type_2_GP_Emulator(GP_Emulator):
                 grad_sse.append(2*(data.gp_mean[i:i+len_x] - exp_data.y_vals)) #Vector
 
         #Lists to arrays
-        #Find a way to infer both lengths
-        num_uniq_theta = int(len_theta/len_x)
         sse_mean = np.array(sse_mean).reshape(-1, 1)
-        grad_sse = np.array(grad_sse).reshape(-1, 1)
-
+        grad_sse = np.concatenate([arr.ravel() for arr in grad_sse])
+        
+        #Infer number of thetas
+        num_uniq_theta = int(len_theta/len_x)
+        if num_uniq_theta == 1:
+            #If only one theta, covar is what it is
+            grad_sse = np.array(grad_sse).reshape(-1, 1)
+        else:
+            ##Otherwise reshape it to be the shape of the covariance matrix x num_uniq theta
+            grad_sse = np.array(grad_sse).reshape(data.gp_covar.shape[0], -1)
+            
         sse_covar =  grad_sse.T@data.gp_covar@grad_sse #This SSE_variance CAN'T be negative
 
         #For Method 2B, make sse and sse_covar data in the log form
@@ -2004,7 +2014,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return sse_mean, var_return
     
-    def eval_gp_sse_var_misc(self, misc_data, method, exp_data, covar = False):
+    def eval_gp_sse_var_misc(self, misc_data, method, exp_data, covar = False, verbose = False):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the heat map data
         
@@ -2030,7 +2040,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        misc_sse_mean, misc_sse_var = self.__eval_gp_sse_var(misc_data, method, exp_data, covar)
+        misc_sse_mean, misc_sse_var = self.__eval_gp_sse_var(misc_data, method, exp_data, covar, verbose)
         
         return misc_sse_mean, misc_sse_var
     
@@ -3397,23 +3407,23 @@ class GPBO_Driver:
         best_thetas_theta = np.vstack((self.opt_theta_last.theta_vals, min_sse_theta_data.theta_vals))
         best_thetas_x = np.vstack((self.opt_theta_last.x_vals, min_sse_theta_data.x_vals))
         best_thetas_y_vals = np.concatenate((self.opt_theta_last.y_vals, min_sse_theta_data.y_vals))
-        best_thetas_gp_mean = np.concatenate((self.opt_theta_last.gp_mean, min_sse_theta_data.gp_mean))
-        best_thetas_gp_var = np.concatenate((self.opt_theta_last.gp_var, min_sse_theta_data.gp_var))
-        best_data = Data(best_thetas_theta, best_thetas_x, best_thetas_y_vals, best_thetas_gp_mean, best_thetas_gp_var, None, None, None, 
+        best_data = Data(best_thetas_theta, best_thetas_x, best_thetas_y_vals, None, None, None, None, None, 
                          self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
         best_data_feat = self.gp_emulator.featurize_data(best_data)
         
-        covar_thetas_gp = self.gp_emulator.eval_gp_var_misc(best_data, best_data_feat)
+        #Evaluate mean, var, and covar
+        best_data_mean, best_data_var = self.gp_emulator.eval_gp_mean_var_misc(best_data, best_data_feat)
+        
         if self.method.emulator == False:
             best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, covar = True)
             covar_best = covar_thetas_sse[0,1]
         else:  
-            best_sses, covar_thetas_sse1 = self.gp_emulator.eval_gp_sse_var_misc(best_data, self.method, self.exp_data, covar = True)
-            covar_thetas_sse = np.sum(covar_thetas_sse1, axis=2)
-            covar_best = covar_thetas_sse[0,1]
-
+            best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, self.method, self.exp_data, covar=True, verbose=True)
+            covar_best = covar_thetas_sse.flatten()
+        
         gamma = self.gp_emulator.fit_gp_model.kernel_.k2.noise_level
-        v = np.sqrt(min_sse_theta_data.sse_var - 2*covar_best + self.opt_theta_last.sse_var)
+        #Use max to ensure that we don't take the sqrt of a negative number
+        v = np.sqrt(abs(min_sse_theta_data.sse_var - 2*covar_best + self.opt_theta_last.sse_var))
         g = (min_sse_theta_data.sse - self.opt_theta_last.sse)/v
         kappa = self.best_theta_last.kappa
         Dkl_1 = (1/2)*np.log(1+gamma*self.best_theta_last.sse_var)
