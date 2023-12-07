@@ -1941,7 +1941,7 @@ class Type_2_GP_Emulator(GP_Emulator):
             
         return train_data, test_data
     
-    def __eval_gp_sse_var(self, data, method, exp_data, covar = False, verbose = False):
+    def __eval_gp_sse_var(self, data, method, exp_data, covar = False):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO
         
@@ -1963,9 +1963,6 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Find length of theta and number of unique x in data arrays
         len_theta = data.get_num_theta()
         len_x = len(data.get_unique_x())
-        
-#         if verbose:
-#             print(len_theta/len_x)
      
         #Make sse arrays as an empty lists. Will add one value for each training point
         sse_mean = []
@@ -1984,19 +1981,25 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         #Infer number of thetas
         num_uniq_theta = int(len_theta/len_x)
+        
         if num_uniq_theta == 1:
             #If only one theta, covar is what it is
-            grad_sse = np.array(grad_sse).reshape(-1, 1)
+            grad_sse = np.array(grad_sse)
+            jacobian = grad_sse.reshape(-1, 1)
         else:
             ##Otherwise reshape it to be the shape of the covariance matrix x num_uniq theta
-            grad_sse = np.array(grad_sse).reshape(data.gp_covar.shape[0], -1)
+            grad_sse = np.array(grad_sse).reshape(num_uniq_theta, -1)
+            jacobian = np.zeros((num_uniq_theta*len_x, num_uniq_theta))
+
+            for i in range(num_uniq_theta):
+                jacobian[i * len_x : (i + 1) * len_x, i] = grad_sse[i, :]
             
-        sse_covar =  grad_sse.T@data.gp_covar@grad_sse #This SSE_variance CAN'T be negative
+        sse_covar =  jacobian.T@data.gp_covar@jacobian #This SSE_variance CAN'T be negative
 
         #For Method 2B, make sse and sse_covar data in the log form
         if method.obj.value == 2:
-            #Propogation of errors: stdev_ln(val) = stdev/val
-            sse_covar = sse_covar@np.linalg.inv(sse_mean**2)
+            #Propogation of errors: stdev_ln(val) = stdev/val           
+            sse_covar = sse_covar/(sse_mean.T@sse_mean)
             #Set mean to new value
             sse_mean = np.log(sse_mean)
 
@@ -2014,7 +2017,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return sse_mean, var_return
     
-    def eval_gp_sse_var_misc(self, misc_data, method, exp_data, covar = False, verbose = False):
+    def eval_gp_sse_var_misc(self, misc_data, method, exp_data, covar = False):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the heat map data
         
@@ -2040,7 +2043,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        misc_sse_mean, misc_sse_var = self.__eval_gp_sse_var(misc_data, method, exp_data, covar, verbose)
+        misc_sse_mean, misc_sse_var = self.__eval_gp_sse_var(misc_data, method, exp_data, covar)
         
         return misc_sse_mean, misc_sse_var
     
@@ -3210,7 +3213,6 @@ class GPBO_Driver:
             else:
                 candidate_theta_vals = np.repeat(theta.reshape(1,-1), self.exp_data.get_num_x_vals() , axis =0)
                 
-#             print(opt_obj, candidate_theta_vals) #These are different after round 1, therefore, we cry
             candidate.theta_vals = candidate_theta_vals  
             self.gp_emulator.cand_data = candidate
 
@@ -3415,11 +3417,11 @@ class GPBO_Driver:
         best_data_mean, best_data_var = self.gp_emulator.eval_gp_mean_var_misc(best_data, best_data_feat)
         
         if self.method.emulator == False:
-            best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, covar = True)
-            covar_best = covar_thetas_sse[0,1]
+            best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, covar = True)           
         else:  
-            best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, self.method, self.exp_data, covar=True, verbose=True)
-            covar_best = covar_thetas_sse.flatten()
+            best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, self.method, self.exp_data, covar=True)
+        
+        covar_best = covar_thetas_sse[0,1]
         
         gamma = self.gp_emulator.fit_gp_model.kernel_.k2.noise_level
         #Use max to ensure that we don't take the sqrt of a negative number
@@ -3524,15 +3526,17 @@ class GPBO_Driver:
             #Evaluate SSE & SSE stdev at max ei theta
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data, self.method,
                                                                                                     self.exp_data)
-            #Evaluate max EI terms at theta
-            ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, self.method)
+            #Evaluate max EI terms at theta (Can probably get rid of this after debugging)
+            iter_max_ei_terms = None
+#             ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, self.method)
         #Otherwise the sse data is the original (scaled) data
         else:
             min_sse_sim = min_theta_data.y_vals          
             #Evaluate SSE & SSE stdev at max ei theta
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data)
             #Evaluate max EI terms at theta
-            ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
+            iter_max_ei_terms = None
+#             ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
         min_sse_sim = min_sse_sim[0]
@@ -3610,8 +3614,15 @@ class GPBO_Driver:
         results_df = pd.DataFrame(columns=column_names)
         max_ei_details_df = pd.DataFrame()
         list_gp_emulator_class = []
-        why_term = "max_budget"
-        #Initilize terminate
+        
+        #Initilize terminate flags   
+        ei_flag = False
+        obj_flag = False
+        regret_flag = False
+        max_bud_flag = False
+        
+        why_terms = ["ei", "obj", "regret", "max_budget"]
+        
         terminate = False
         
         #Do Bo iters while stopping criteria is not met
@@ -3664,25 +3675,33 @@ class GPBO_Driver:
                 #Otherwise reset the counter
                 else:
                     count = 0 
-                if i > 0:
-                    #Terminate if max ei is less than the tolerance 3 times in a row
-                    if all(results_df["Max EI"].tail(3) < self.cs_params.ei_tol):
-                        why_term = "ei"
-                        break
-                    #Terminate if small sse progress over 1/3 of total iteration budget
-                    elif count >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac):
-                        why_term = "obj"
-                        break
-                    #Terminate if reg_tol < speed 4 times in a row since this criteria assumes GP is good
-                    elif all(results_df["Regret"].tail(4) < results_df["Speed"].tail(4)):
-                        why_term = "regret"
-                        break
-                    #Continue if no stopping criteria are met    
-                    else:
-                        terminate = False
-                        
-            #Terminate if you hit the max budget of iterations or the loop is broken
-            terminate = True
+                    
+                #set flag if max ei is less than the tolerance 3 times in a row
+                if all(results_df["Max EI"].tail(3) < self.cs_params.ei_tol) and i > 2:
+                    ei_flag = True
+                #set flag if small sse progress over 1/3 of total iteration budget
+                if count >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac) and i > 0:
+                    obj_flag = True
+                #set flag if reg_tol < speed 4 times in a row since this criteria assumes GP is good
+                if all(results_df["Regret"].tail(4) < results_df["Speed"].tail(4)) and i > 3:
+                    regret_flag = True
+
+                flags = [ei_flag, obj_flag, regret_flag]
+                 
+                #Terminate if you meet 2 stopping criteria or will exceed the budget
+                if flags.count(True) >= 2:
+                    terminate == True
+                    term_indices = np.where(flags)[0]
+                    term_flag_names = why_terms[term_indices]
+                    why_term = "-".join(term_flag_names)
+                    break
+                elif i == self.cs_params.bo_iter_tot - 1:
+                    terminate == True
+                    why_term = why_terms[-1]
+                    break
+                #Continue if no stopping criteria are met   
+                else:
+                    terminate = False
             
         #Reset the index of the pandas df
         results_df = results_df.reset_index()
