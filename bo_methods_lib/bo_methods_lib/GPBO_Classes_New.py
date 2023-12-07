@@ -10,7 +10,7 @@ import time
 import Tasmanian
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel, DotProduct
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, PowerTransformer
 from scipy.stats import qmc
 import pandas as pd
 from enum import Enum
@@ -1105,7 +1105,7 @@ class GP_Emulator:
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
         self.seed = seed
-        self.scaler = StandardScaler()
+        self.scaler = PowerTransformer(method = 'yeo-johnson', standardize = True)
         self.__feature_train_data = None #Added using child class
         self.__feature_test_data = None #Added using child class
         self.__feature_val_data = None #Added using child class
