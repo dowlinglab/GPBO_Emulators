@@ -1296,9 +1296,10 @@ class GP_Emulator:
         eval_points = self.scalerX.transform(data)
         #Evaluate GP given parameter set theta and state point value
         gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict(eval_points, return_cov=True)  
+
         #Unscale gp_mean and gp_covariance
-        gp_mean = self.scalerY.inverse_transform(gp_mean_scl.reshape(-1,1))
-        gp_covar = self.scalerY.lambdas_**2 * gp_covar_scl       
+        gp_mean = self.scalerY.inverse_transform(gp_mean_scl.reshape(-1,1)).flatten()
+        gp_covar = float(self.scalerY.lambdas_**2) * gp_covar_scl     
         gp_var = np.diag(gp_covar)
 
         return gp_mean, gp_var, gp_covar
@@ -3153,23 +3154,23 @@ class GPBO_Driver:
             unique_theta_index = random.sample(theta_val_idc, 1) #At different seeds, this chooses a different value for each fxn call
             theta_guess = unique_val_thetas[unique_theta_index].flatten()
             
-            try:
-                if self.method.sparse_grid == True:
-                    obj_opt_method = "Powell"
-                else:
-                    obj_opt_method = "L-BFGS-B"
-                #Call scipy method to optimize EI given theta
-                #Using L-BFGS-B instead of BFGS because it allowd for bounds
-                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = obj_opt_method, args=(opt_obj, 
-                                                                                                                        best_error_metrics,
-                                                                                                                        beta))
-                #Add ei and best_thetas to lists as appropriate
-                best_vals[i] = best_result.fun
-                best_thetas[i] = best_result.x
-            except ValueError: 
-                #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
-                best_vals[i] = np.nan
-                best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
+            # try:
+            if self.method.sparse_grid == True:
+                obj_opt_method = "Powell"
+            else:
+                obj_opt_method = "L-BFGS-B"
+            #Call scipy method to optimize EI given theta
+            #Using L-BFGS-B instead of BFGS because it allowd for bounds
+            best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = obj_opt_method, args=(opt_obj, 
+                                                                                                                    best_error_metrics,
+                                                                                                                    beta))
+            #Add ei and best_thetas to lists as appropriate
+            best_vals[i] = best_result.fun
+            best_thetas[i] = best_result.x
+            # except ValueError: 
+            #     #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
+            #     best_vals[i] = np.nan
+            #     best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
         
         #Choose a single value with the lowest -ei or sse
         #In the case that 2 point have the same -ei or sse and this point is the lowest, this lets us pick one at random rather than always just choosing a certain point
