@@ -1105,7 +1105,8 @@ class GP_Emulator:
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
         self.seed = seed
-        self.scaler = PowerTransformer(method = 'yeo-johnson', standardize = True)
+        self.scalerX = PowerTransformer(method = 'yeo-johnson', standardize = True)
+        self.scalerY = PowerTransformer(method = 'yeo-johnson', standardize = True)
         self.__feature_train_data = None #Added using child class
         self.__feature_test_data = None #Added using child class
         self.__feature_val_data = None #Added using child class
@@ -1251,9 +1252,16 @@ class GP_Emulator:
         #Train GP
         #Preprocess Training data
         #Update scaler to be the fitted scaler. This scaler will change as the training data is updated
-        self.scaler = self.scaler.fit(self.feature_train_data)
-        feature_train_data_scaled = self.scaler.transform(self.feature_train_data)
-        fit_gp_model = gp_model.fit(feature_train_data_scaled, self.train_data.y_vals)
+        self.scalerX = self.scalerX.fit(self.feature_train_data)
+        self.scalerY = self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
+
+        #Scale training data
+        feature_train_data_scaled = self.scalerX.transform(self.feature_train_data)
+        y_train_data_scaled = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
+
+        #Fit GP Model
+        fit_gp_model = gp_model.fit(feature_train_data_scaled, y_train_data_scaled)
+
         #Pull out kernel parameters after GP training
         opt_kern_params = fit_gp_model.kernel_
         outputscl_final = opt_kern_params.k1.k1.constant_value
@@ -1285,9 +1293,12 @@ class GP_Emulator:
         if len(data.shape) < 2:
             data.reshape(1,-1)
         #scale eval _point
-        eval_points = self.scaler.transform(data)
+        eval_points = self.scalerX.transform(data)
         #Evaluate GP given parameter set theta and state point value
-        gp_mean, gp_covar = self.fit_gp_model.predict(eval_points, return_cov=True)          
+        gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict(eval_points, return_cov=True)  
+        #Unscale gp_mean and gp_covariance
+        gp_mean = self.scalerY.inverse_transform(gp_mean_scl.reshape(-1,1))
+        gp_covar = self.scalerY.lambdas_**2 * gp_covar_scl       
         gp_var = np.diag(gp_covar)
 
         return gp_mean, gp_var, gp_covar
