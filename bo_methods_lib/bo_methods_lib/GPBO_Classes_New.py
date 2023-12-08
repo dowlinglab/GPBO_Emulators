@@ -2682,8 +2682,10 @@ class Expected_Improvement():
 
             # Calculate EI_temp using vectorized operations
             ei_temp = improvement.flatten()
-            mvn = np.array([multivariate_normal.pdf(epsilon[i], mean = np.zeros(len(epsilon[i])), cov = np.eye(len(epsilon[i]))) 
-                            for i in range(len(epsilon))])
+            # Calculate the multivariate normal pdf for each row in 'epsilon'
+            # mvn = np.array([multivariate_normal.pdf(epsilon[i], mean = np.zeros(len(epsilon[i])), cov = np.eye(len(epsilon[i]))) 
+            #                 for i in range(len(epsilon))])
+            mvn = multivariate_normal.pdf(epsilon, mean=np.zeros(epsilon.shape[1]), cov=np.eye(epsilon.shape[1]))
 
             ei_temp = ei_temp*mvn
 
@@ -2783,7 +2785,7 @@ class Expected_Improvement():
             gp_mean_min_y = y_target_val - gp_mean_val
 
             #Obtain Sparse Grid points and weights
-            depth = 10
+            depth = 20
             points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=depth, rule='gauss-hermite', 
                                                           verbose=False)  
             # print(np.amin(points_p), np.amax(points_p))
