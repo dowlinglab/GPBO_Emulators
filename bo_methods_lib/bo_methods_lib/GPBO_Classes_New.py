@@ -2,7 +2,7 @@ import numpy as np
 import random
 import warnings
 import math
-from scipy.stats import norm
+from scipy.stats import norm, multivariate_normal
 from scipy import integrate
 import scipy.optimize as optimize
 import os
@@ -28,22 +28,24 @@ class Method_name_enum(Enum):
     
     Notes: 
     -------
-    1 = A1
-    2 = B1
-    3 = A2
-    4 = B2
-    5 = C2
+    1 = A1 (Conventional GPBO, no obj scaling)
+    2 = B1 (Conventional GPBO, ln obj scaling)
+    3 = A2 (Emulator GPBO, independende approx. EI)
+    4 = B2 (Emulator GPBO, log independence approx. EI)
+    5 = C2 (Emulator GPBO, sparse grid integrated EI)
+    6 = D2 (Emulator GPBO, monte carlo integrated EI)
     
     """
     #Ensure that only values 1 to 5 are chosen
-    if Enum in range(1, 6) == False:
-        raise ValueError("There are only five options for Enum: 1 to 5")
+    if Enum in range(1, 7) == False:
+        raise ValueError("There are only five options for Enum: 1 to 6")
         
     A1 = 1
     B1 = 2
     A2 = 3
     B2 = 4
     C2 = 5
+    D2 = 6
     #Note use Method_name_enum.enum.name to call "A1"
 
 class Kernel_enum(Enum):
@@ -156,7 +158,8 @@ class GPBO_Methods:
     __init__
     get_emulator()
     get_obj()
-    get_sparse_grid()
+    get_sparse_mc()
+    get_mc()
     """
     # Class variables and attributes
     
@@ -171,7 +174,7 @@ class GPBO_Methods:
         self.method_name = method_name
         self.emulator = self.get_emulator()
         self.obj = self.get_obj()
-        self.sparse_grid = self.get_sparse_grid()
+        self.sparse_grid, self.mc = self.get_sparse_mc()
         
     def get_emulator(self):
         """
@@ -205,21 +208,31 @@ class GPBO_Methods:
             obj = Obj_enum(1)
         return obj
     
-    def get_sparse_grid(self):
+    def get_sparse_mc(self):
         """
         Function to get sparse grid status based on method name
         
         Returns:
         --------
         sparse_grid: bool, Determines whether a sparse grid is used to evaluate the EI integral
+        mc: bool, Determines whether an mc is used to evaluate the EI integral
         """
-        #GP EMulator uses sparse grid if it contains C
-        if "C" in self.method_name.name:
-            sparse_grid = True
+        #Check Emulator status
+        if self.emulator == True:
+            #Method 2C is Sparse Grid
+            if "C" in self.method_name.name:
+                sparse_grid = True
+                mc = False
+            #Method 2D is Monte Carlo
+            else:
+                sparse_grid = False
+                mc = True
         else:
+            #Sparse grid and mc are both false for conventional GPBO
             sparse_grid = False
+            mc = False
         
-        return sparse_grid
+        return sparse_grid, mc
 
 class CaseStudyParameters:
     """
@@ -2471,6 +2484,9 @@ class Expected_Improvement():
             elif method.method_name.value == 5: #2C
                 ei[i], row_data = self.__calc_ei_sparse(gp_mean_i, gp_var_i, self.exp_data.y_vals)
 
+            elif method.method_name.value == 6: #2D
+                ei[i], row_data = self.__calc_ei_mc(gp_mean_i, gp_var_i, self.exp_data.y_vals, mc_samples=1000)
+
             else:
                 raise ValueError("method.method_name.value must be 3 (2A), 4 (2B), or 5 (2C)")
         
@@ -2614,6 +2630,112 @@ class Expected_Improvement():
         row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
   
         return ei_temp, row_data
+    
+    def __calc_ei_mc(self, gp_mean, gp_var, y_target, mc_samples):
+        """ 
+        Calculates the expected improvement of the emulator approach with log scaling (2B)
+        
+        Parameters
+        ----------
+        gp_mean: ndarray, model mean at same state point x and experimental data value y
+        gp_variance: ndarray, model variance at same state point x and experimental data value y
+        y_target: ndarray, the expected value of the function from data or other source
+        mc_samples: int, number of mc samples to use
+
+        Returns
+        -------
+        ei: ndarray, the expected improvement for one term of the GP model
+        """
+
+        columns = ["best_error", "sse_temp", "improvement", "ei_total"]
+        #Need to set seed
+
+        #Number of dimensions is len(y_target)
+        dim = len(y_target)
+        #Get random variable
+        epsilon = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
+
+        #Calc EI
+        #Create a mask for values where pred_stdev >= 0 (Here approximation includes domain stdev >= 0) 
+        pos_stdev_mask = (gp_var >= 0)
+
+        #Assuming all standard deviations are not zero
+        if np.any(pos_stdev_mask):
+            valid_indices = np.where(pos_stdev_mask)[0]
+            gp_stdev_val = np.sqrt(gp_var[valid_indices])
+            gp_mean_val = gp_mean[valid_indices]
+            y_target_val = y_target[valid_indices]
+            mean_min_y = y_target_val - gp_mean_val
+        
+            # Calculate gp_var multiplied by points_p
+            gp_stdev_rand_var = gp_stdev_val * epsilon
+            gp_stdev_rand_var = gp_stdev_val * epsilon
+
+            # Calculate the SSE for all data points simultaneously
+            sse_temp = np.sum((mean_min_y[:, np.newaxis].T - gp_stdev_rand_var)**2, axis=1)
+
+            # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
+            improvement = np.maximum(self.best_error*self.ep_bias.ep_curr - sse_temp, 0).reshape(-1,1)
+
+            # Calculate EI_temp using vectorized operations
+            ei_temp = improvement.flatten()
+            mvn = np.array([multivariate_normal.pdf(epsilon[i], mean = np.zeros(len(epsilon[i])), cov = np.eye(len(epsilon[i]))) 
+                            for i in range(len(epsilon))])
+
+            ei_temp = ei_temp*mvn
+
+        else:
+            ei_temp = 0
+
+        #Calc monte carlo integrand for each theta and add it to the total
+        ei_mean = np.average(ei_temp) #y.sum()/len(y)
+        #Note: Domain for random variable is 0-1, so V for MC is 1
+
+        #Need seed here too
+        bootstrap_vars = self.__bootstrap(ei_temp, statistic_function=None, ns=100, alpha=0.05)
+        
+        row_data_lists = pd.DataFrame([[self.best_error, sse_temp, improvement, ei_temp]], columns=columns)
+        row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
+  
+        return ei_mean, row_data
+
+    #From Ryan Smith
+    def __bootstrap(self, pilot_sample, statistic_function=None, ns=1000000, alpha=0.05, consolidator=lambda dummy: np.mean(dummy,axis=0), seed = 1):
+        # pilot_sample has one column per rv, one row per observation
+        # alpha is the level of significance; 0.05 for 95% confidence interval
+        pilot_sample = np.array(pilot_sample)
+        n_obs = pilot_sample.shape[0]
+        theta_shape = list(pilot_sample.shape)
+        quantiles = np.array([alpha*0.5, 1.0-alpha*0.5])
+        from numpy.random import default_rng
+        rng = default_rng(int(seed))
+        if consolidator is None:
+            f1 = statistic_function
+            f2 = None
+            theta_orig = f1(pilot_sample)
+            f1_shape = theta_orig.shape
+        elif statistic_function is None:
+            f1 = consolidator
+            f2 = None
+            theta_orig = f1(pilot_sample)
+            f1_shape = theta_orig.shape
+        else:
+            f1 = consolidator
+            f2 = statistic_function
+            consolidated_orig = f1(pilot_sample)
+            f1_shape = consolidated_orig.shape
+            theta_orig = f2(consolidated_orig)
+
+        theta_bs = np.zeros(tuple([ns]+list(f1_shape)))
+
+        for ibs in range(ns):
+            theta_bs[ibs,...] = f1(pilot_sample[rng.integers(0,n_obs,n_obs)])
+        if f2 is not None:
+            theta_bs = f2(theta_bs)
+        # percentile CI
+        CI_percentile = np.quantile(theta_bs, quantiles, 0)
+
+        return theta_orig, theta_bs, CI_percentile
 
     def __ei_approx_ln_term(self, epsilon, gp_mean, gp_stdev, y_target, ep): 
         """ 
@@ -2651,7 +2773,7 @@ class Expected_Improvement():
         -------
         ei: ndarray, the expected improvement for one term of the GP model
         """
-        columns = ["best_error", "sse_temp", "min_list", "ei_total"]
+        columns = ["best_error", "sse_temp", "improvement", "ei_total"]
 
         #Create a mask for values where pred_stdev >= 0 (Here approximation includes domain stdev >= 0) 
         pos_stdev_mask = (gp_var >= 0)
@@ -2663,6 +2785,7 @@ class Expected_Improvement():
             gp_stdev_val = np.sqrt(gp_var[valid_indices])
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
+            gp_mean_min_y = y_target_val - gp_mean_val
 
             #Obtain Sparse Grid points and weights
             depth = 20
@@ -2671,21 +2794,21 @@ class Expected_Improvement():
             # print(np.amin(points_p), np.amax(points_p))
             # print(len(points_p))         
             # Calculate gp_var multiplied by points_p
-            gp_stdev_points_p = gp_stdev_val @ (np.sqrt(2)*points_p.T)
-
+            gp_stdev_points_p = gp_stdev_val * (np.sqrt(2)*points_p)
+            
             # Calculate the SSE for all data points simultaneously
-            sse_temp = np.sum((y_target_val[:, np.newaxis] - gp_mean_val[:, np.newaxis] - gp_stdev_points_p.T)**2, axis=0)
+            sse_temp = np.sum((gp_mean_min_y[:, np.newaxis].T - gp_stdev_points_p)**2, axis=1)
 
             # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
-            min_list = np.maximum(self.best_error*self.ep_bias.ep_curr - sse_temp, 0)
+            improvement = np.maximum(self.best_error*self.ep_bias.ep_curr - sse_temp, 0)
 
             # Calculate EI_temp using vectorized operations
-            ei_temp = (1/np.pi)*np.dot(weights_p, min_list)
+            ei_temp = (1/np.pi)*np.dot(weights_p, improvement)
             
         else:
             ei_temp = 0
 
-        row_data_lists = pd.DataFrame([[self.best_error, sse_temp, min_list, ei_temp]], columns=columns)
+        row_data_lists = pd.DataFrame([[self.best_error, sse_temp, improvement, ei_temp]], columns=columns)
         row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
             
         return ei_temp, row_data
