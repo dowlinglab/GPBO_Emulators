@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from numpy.random import default_rng
 import warnings
 import math
 from scipy.stats import norm, multivariate_normal
@@ -1694,7 +1695,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ei: The expected improvement of all the data in test_data
         """
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_1()
         #Add ei data to validation data class
@@ -2224,7 +2225,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         """
         assert method.method_name.value >= 3, "Must be using method 2A, 2B, or 2C"
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_2(method)
         #Add ei data to validation data class
@@ -2377,7 +2378,7 @@ class Expected_Improvement():
     __get_sparse_grids(dim, output=0,depth=3, rule="gauss-hermite", verbose = False, alpha = 0)
     """
     #AD Comment: What part of the acquisition function code can be generalized and what is specific to type1 and type2? 
-    def __init__(self, ep_bias, gp_mean, gp_var, exp_data, best_error_metrics):
+    def __init__(self, ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed):
         """
         Parameters
         ----------       
@@ -2404,6 +2405,7 @@ class Expected_Improvement():
         self.best_error = best_error_metrics[0]
         self.be_theta = best_error_metrics[1]
         self.best_error_x = best_error_metrics[2]
+        self.seed = seed
     
     def type_1(self):
         """
@@ -2647,14 +2649,15 @@ class Expected_Improvement():
         ei: ndarray, the expected improvement for one term of the GP model
         """
 
-        columns = ["best_error", "sse_temp", "improvement", "ei_total"]
-        #Need to set seed
+        columns = ["best_error", "sse_temp", "improvement", "ci_lower", "ci_upper", "ei_total"]
+        #Set seed
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
         #Number of dimensions is len(y_target)
         dim = len(y_target)
         #Get random variable
         epsilon = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
-
         #Calc EI
         #Create a mask for values where pred_stdev >= 0 (Here approximation includes domain stdev >= 0) 
         pos_stdev_mask = (gp_var >= 0)
@@ -2692,50 +2695,42 @@ class Expected_Improvement():
         #Note: Domain for random variable is 0-1, so V for MC is 1
 
         #Need seed here too
-        bootstrap_vars = self.__bootstrap(ei_temp, statistic_function=None, ns=100, alpha=0.05)
+        ci_interval = self.__bootstrap(ei_temp, ns=100, alpha=0.05, seed = self.seed)
         
-        row_data_lists = pd.DataFrame([[self.best_error, sse_temp, improvement, ei_temp]], columns=columns)
+        ci_l = ci_interval[0]
+        ci_u = ci_interval[1]
+        
+        row_data_lists = pd.DataFrame([[self.best_error, sse_temp, improvement, ci_l, ci_u, ei_temp]], columns=columns)
         row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
   
         return ei_mean, row_data
 
-    #From Ryan Smith
-    def __bootstrap(self, pilot_sample, statistic_function=None, ns=1000000, alpha=0.05, consolidator=lambda dummy: np.mean(dummy,axis=0), seed = 1):
+    #Code Courtesy of Ryan Smith
+    def __bootstrap(self, pilot_sample, ns=100, alpha=0.05, seed = 1):
         # pilot_sample has one column per rv, one row per observation
         # alpha is the level of significance; 0.05 for 95% confidence interval
-        pilot_sample = np.array(pilot_sample)
-        n_obs = pilot_sample.shape[0]
-        theta_shape = list(pilot_sample.shape)
         quantiles = np.array([alpha*0.5, 1.0-alpha*0.5])
-        from numpy.random import default_rng
-        rng = default_rng(int(seed))
-        if consolidator is None:
-            f1 = statistic_function
-            f2 = None
-            theta_orig = f1(pilot_sample)
-            f1_shape = theta_orig.shape
-        elif statistic_function is None:
-            f1 = consolidator
-            f2 = None
-            theta_orig = f1(pilot_sample)
-            f1_shape = theta_orig.shape
-        else:
-            f1 = consolidator
-            f2 = statistic_function
-            consolidated_orig = f1(pilot_sample)
-            f1_shape = consolidated_orig.shape
-            theta_orig = f2(consolidated_orig)
 
-        theta_bs = np.zeros(tuple([ns]+list(f1_shape)))
+        #Set seed
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
+        #Determine mean of all original samples and its shape
+        theta_orig = np.mean(pilot_sample,axis=0)
+
+        #Initialize bootstrap samples as zeros
+        theta_bs = np.zeros(tuple([ns]+list(theta_orig.shape)))
+
+        #Create bootstrap samples
         for ibs in range(ns):
-            theta_bs[ibs,...] = f1(pilot_sample[rng.integers(0,n_obs,n_obs)])
-        if f2 is not None:
-            theta_bs = f2(theta_bs)
+            samples = np.random.choice(pilot_sample, size= pilot_sample.shape[0], replace=True)
+            theta_bs[ibs,...] = np.mean(samples, axis = 0)
+
         # percentile CI
         CI_percentile = np.quantile(theta_bs, quantiles, 0)
 
-        return theta_orig, theta_bs, CI_percentile
+        # return theta_orig, theta_bs, CI_percentile
+        return CI_percentile
 
     def __ei_approx_ln_term(self, epsilon, gp_mean, gp_stdev, y_target, ep): 
         """ 
@@ -2788,7 +2783,7 @@ class Expected_Improvement():
             gp_mean_min_y = y_target_val - gp_mean_val
 
             #Obtain Sparse Grid points and weights
-            depth = 20
+            depth = 10
             points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=depth, rule='gauss-hermite', 
                                                           verbose=False)  
             # print(np.amin(points_p), np.amax(points_p))
