@@ -2,6 +2,7 @@ import numpy as np
 import random
 from numpy.random import default_rng
 import warnings
+np.warnings = warnings
 import math
 from scipy.stats import norm, multivariate_normal
 from scipy import integrate
@@ -2487,7 +2488,7 @@ class Expected_Improvement():
                 ei[i], row_data = self.__calc_ei_sparse(gp_mean_i, gp_var_i, self.exp_data.y_vals)
 
             elif method.method_name.value == 6: #2D
-                ei[i], row_data = self.__calc_ei_mc(gp_mean_i, gp_var_i, self.exp_data.y_vals, mc_samples=1000)
+                ei[i], row_data = self.__calc_ei_mc(gp_mean_i, gp_var_i, self.exp_data.y_vals)
 
             else:
                 raise ValueError("method.method_name.value must be 3 (2A), 4 (2B), or 5 (2C)")
@@ -2633,7 +2634,7 @@ class Expected_Improvement():
   
         return ei_temp, row_data
     
-    def __calc_ei_mc(self, gp_mean, gp_var, y_target, mc_samples):
+    def __calc_ei_mc(self, gp_mean, gp_var, y_target):
         """ 
         Calculates the expected improvement of the emulator approach with log scaling (2B)
         
@@ -2642,14 +2643,18 @@ class Expected_Improvement():
         gp_mean: ndarray, model mean at same state point x and experimental data value y
         gp_variance: ndarray, model variance at same state point x and experimental data value y
         y_target: ndarray, the expected value of the function from data or other source
-        mc_samples: int, number of mc samples to use
 
         Returns
         -------
         ei: ndarray, the expected improvement for one term of the GP model
         """
-
+        #Calculate number of mc samples = int((z_(0.05/2)*stdev/0.05*stdev)^2)
+        #Fenton, G.A.; Griffiths, D.V. Risk Assessment in Geotechnical Engineering; John Wiley & Sons: New York, NY, USA, 2008.
+        mc_samples = math.ceil((norm.ppf(1-0.05/2)/0.05)**2)
+        
+        #Set column names
         columns = ["best_error", "sse_temp", "improvement", "ci_lower", "ci_upper", "ei_total"]
+        
         #Set seed
         if self.seed is not None:
             np.random.seed(self.seed)
