@@ -25,7 +25,7 @@ def test_bo_methods_lib_imported():
             ##function, enum_value
 Enum_array = [[Method_name_enum, -1],
               [Method_name_enum, 0],
-              [Method_name_enum, 6],
+              [Method_name_enum, 7],
               [Method_name_enum, "string"],
               [Kernel_enum, -1],
               [Kernel_enum, 0],

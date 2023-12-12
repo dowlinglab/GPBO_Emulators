@@ -107,15 +107,16 @@ ei_tol = 1e-6
 obj_tol = 1e-4
 DateTime = None
 
-method1 = GPBO_Methods(Method_name_enum(1)) #2C
-method2 = GPBO_Methods(Method_name_enum(2)) #2C
-method3 = GPBO_Methods(Method_name_enum(3)) #2C
-method4 = GPBO_Methods(Method_name_enum(4)) #2C
+method1 = GPBO_Methods(Method_name_enum(1)) #1A
+method2 = GPBO_Methods(Method_name_enum(2)) #1B
+method3 = GPBO_Methods(Method_name_enum(3)) #2A
+method4 = GPBO_Methods(Method_name_enum(4)) #2B
 method5 = GPBO_Methods(Method_name_enum(5)) #2C
+method6 = GPBO_Methods(Method_name_enum(6)) #2D
 
 #This test function tests whether run_bo_restarts,  works correctly
                     #method expected value
-run_bo_restarts_list = [method1, method2, method3, method4, method5]
+run_bo_restarts_list = [method1, method2, method3, method4, method5, method6]
 @pytest.mark.parametrize("method", run_bo_restarts_list)
 def test_run_bo_restarts(method):
     #Define cs_params, simulator, and exp_data for CS1
@@ -146,8 +147,10 @@ def test_run_bo_restarts(method):
     assert isinstance(one_run_bo_results.configuration, dict)
     assert len(one_run_bo_results.configuration.keys()) == 19
     assert isinstance(one_run_bo_results.simulator_class, Simulator)
+    assert isinstance(one_run_bo_results.why_term, str)
     assert isinstance(one_run_bo_results.exp_data_class, Data)
     assert isinstance(one_run_bo_results.results_df, pd.DataFrame) 
+    assert isinstance(one_run_bo_results.max_ei_details_df, pd.DataFrame) or max_ei_details_df is None
     assert len(one_run_bo_results.results_df) == bo_iter_tot
     assert isinstance(one_run_bo_results.list_gp_emulator_class, list)
     if method.emulator == False:
@@ -159,7 +162,7 @@ def test_run_bo_restarts(method):
     
 #This test function tests whether create_heat_map_param_data,  works correctly
                     #method expected value
-create_heat_map_param_data_list = [method1, method2, method3, method4, method5]
+create_heat_map_param_data_list = [method1, method2, method3, method4, method5, method6]
 @pytest.mark.parametrize("method", create_heat_map_param_data_list)
 def test_create_heat_map_param_data(method):
     #Define cs_params, simulator, and exp_data for CS1
@@ -194,7 +197,7 @@ def test_create_heat_map_param_data(method):
 theta_array = np.array([1,2])
 #This test function tests whether create_data_instance_from_theta,  works correctly
                     #method expected value
-create_data_instance_from_theta_list = [method1, method2, method3, method4, method5]
+create_data_instance_from_theta_list = [method1, method2, method3, method4, method5, method6]
 @pytest.mark.parametrize("method", create_data_instance_from_theta_list)
 def test_create_data_instance_from_theta(method):
     #Define cs_params, simulator, and exp_data for CS1

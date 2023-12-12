@@ -1336,6 +1336,7 @@ class GP_Emulator:
         
         assert isinstance(misc_data , Data), "misc_data must be type Data"
         assert isinstance(featurized_misc_data, np.ndarray), "featurized_misc_data must be np.ndarray"
+        assert len(featurized_misc_data) > 0, "Must have data"
         
         #Evaluate heat map data for GP
         misc_gp_mean, misc_gp_var, misc_gp_covar = self.__eval_gp_mean_var(featurized_misc_data)
@@ -1358,6 +1359,7 @@ class GP_Emulator:
         """
         
         assert self.feature_test_data is not None, "Must have testing data. Run set_train_test_data() to generate"
+        assert len(self.feature_test_data) > 0, "Must have testing data. Run set_train_test_data() to generate"
         #Evaluate test data for GP
         test_gp_mean, test_gp_var, test_gp_covar = self.__eval_gp_mean_var(self.feature_test_data)
         
@@ -1380,6 +1382,8 @@ class GP_Emulator:
         
         assert self.feature_val_data is not None, "Must have validation data. Run set_train_test_data() to generate"
         assert isinstance(self.feature_val_data, np.ndarray), "self.feature_val_data must by np.ndarray"
+        assert len(self.feature_val_data) > 0, "Must have validation data. Run set_train_test_data() to generate"
+        
         #Evaluate test data for GP
         val_gp_mean, val_gp_var, val_gp_covar = self.__eval_gp_mean_var(self.feature_val_data)
         
@@ -1401,6 +1405,7 @@ class GP_Emulator:
         """
         
         assert self.feature_cand_data is not None, "Must have validation data. Run set_train_test_data() to generate"
+        assert len(self.feature_cand_data) > 0, "Must have validation data. Run set_train_test_data() to generate"
         #Evaluate test data for GP
         cand_gp_mean, cand_gp_var, cand_gp_covar = self.__eval_gp_mean_var(self.feature_cand_data)
         
@@ -1550,8 +1555,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         if self.gp_val_data is not None:
             feature_val_data = self.featurize_data(self.gp_val_data)
             self.feature_val_data = feature_val_data
-        
-        
+            
         return train_data, test_data
        
     def __eval_gp_sse_var(self, data, covar = False):
@@ -2030,6 +2034,7 @@ class Type_2_GP_Emulator(GP_Emulator):
             #Set mean to new value
             sse_mean = np.log(sse_mean)
 
+        sse_mean = sse_mean.flatten()
         sse_var = np.diag(sse_covar)
    
         #Set class parameters
@@ -2565,12 +2570,17 @@ class Expected_Improvement():
                 #Set EI values of indecies where pred_stdev > 0 
                 ei[valid_indices] = ei_term1 + ei_term2 + ei_term3
         
-        #The Ei is the sum of the ei at each value of x
-        ei_temp = np.sum(ei)
-
-        row_data_lists = pd.DataFrame([[bound_lower, bound_upper, norm.cdf(bound_lower), norm.cdf(bound_upper), 
+            #The Ei is the sum of the ei at each value of x
+            ei_temp = np.sum(ei)
+            row_data_lists = pd.DataFrame([[bound_lower, bound_upper, norm.cdf(bound_lower), norm.cdf(bound_upper), 
                                   ei_eta_lower, ei_eta_upper, ei_term3_psi_lower, ei_term3_psi_upper,
                                   ei_term1, ei_term2, ei_term3, ei, ei_temp]], columns=columns)
+        else:
+            ei_temp = 0
+            row_data_lists = pd.DataFrame([["N/A", "N/A", "N/A", "N/A", 
+                                  "N/A", "N/A", "N/A", "N/A",
+                                  "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
+     
         row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
         
         return ei_temp, row_data
@@ -2625,11 +2635,14 @@ class Expected_Improvement():
                 #Add ei values to correct indecies.
                 ei[valid_indices] = ei_term_1 + ei_term_2
         
-        #The Ei is the sum of the ei at each value of x
-        ei_temp = np.sum(ei)
-
-        row_data_lists = pd.DataFrame([[best_errors_x, bound_lower, bound_upper, ei_term_1, ei_term_2, ei, 
+            #The Ei is the sum of the ei at each value of x
+            ei_temp = np.sum(ei)
+            row_data_lists = pd.DataFrame([[best_errors_x, bound_lower, bound_upper, ei_term_1, ei_term_2, ei, 
                                   ei_temp]], columns=columns)
+        else:
+            ei_temp = 0
+            row_data_lists = pd.DataFrame([[self.best_error_x, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
+        
         row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
   
         return ei_temp, row_data
@@ -2696,12 +2709,13 @@ class Expected_Improvement():
 
         else:
             ei_temp = 0
-
+            sse_temp = "N/A"
+            improvement = "N/A"
+            
         #Calc monte carlo integrand for each theta and add it to the total
         ei_mean = np.average(ei_temp) #y.sum()/len(y)
         #Note: Domain for random variable is 0-1, so V for MC is 1
 
-        #Need seed here too
         ci_interval = self.__bootstrap(ei_temp, ns=100, alpha=0.05, seed = self.seed)
         
         ci_l = ci_interval[0]
@@ -2809,6 +2823,8 @@ class Expected_Improvement():
             
         else:
             ei_temp = 0
+            sse_temp = "N/A"
+            improvement = "N/A"
 
         row_data_lists = pd.DataFrame([[self.best_error, sse_temp, improvement, ei_temp]], columns=columns)
         row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)

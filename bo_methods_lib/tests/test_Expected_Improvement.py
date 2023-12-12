@@ -102,8 +102,9 @@ type_1_list = [[np.array([1]), np.array([0.05**2]), 0.5, 3.737e-26],
                [np.array([0.5]), np.array([0.5**2]), 0.2, 0.084336]] #Check me
 @pytest.mark.parametrize("gp_mean, gp_var, best_error, ei_expected", type_1_list)
 def test_type_1_list(gp_mean, gp_var, best_error, ei_expected):
-    acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error)
-    ei = acq_func.type_1()
+    best_error_metrics = tuple([best_error, np.zeros(5), None])
+    acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed)
+    ei = acq_func.type_1()[0]
     assert np.isclose(ei, ei_expected, rtol = 1e-2)
     
 #This test function tests whether Expected_Improvement throws the correct errors on initialization
@@ -116,19 +117,24 @@ ei_init_list = [["ep_bias", np.array([0.5]), np.array([0.02]), exp_data, 0.2, Me
 @pytest.mark.parametrize("ep_bias, gp_mean, gp_var, exp_data, best_error, method", ei_init_list)
 def test_ei_init_err_list(ep_bias, gp_mean, gp_var, exp_data, best_error, method):
     with pytest.raises((AssertionError, AttributeError, ValueError)):   
-        acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error)
-        ei = acq_func.type_2(method)       
+        best_error_metrics = tuple([best_error, np.zeros(5), None])
+        acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed)
+        ei = acq_func.type_2(method) [0]      
 
 #This test function tests whether type_2 works as intended
                ## gp_mean, gp_var, best_error, method, ei_expected
 type_2_list = [[np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(3)), 0.98698],
                [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.04**2, 0.5, GPBO_Methods(Method_name_enum(4)), 40.721],
-               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(5)), 3.380],
+               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(5)), 1.04117048],
+               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(6)), 0.0003415],
                [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.2, GPBO_Methods(Method_name_enum(3)), 0],
-               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(4)), 0]]
+               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(4)), 0],
+               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(5)), 2.78127298],
+               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(6)), 0.00088337]]
 
 @pytest.mark.parametrize("gp_mean, gp_var, best_error, method, ei_expected", type_2_list)
 def test_type_2_list(gp_mean, gp_var, best_error, method, ei_expected):
-    acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error)
-    ei = acq_func.type_2(method)
+    best_error_metrics = tuple([best_error, np.zeros(5), np.full(5, best_error)])
+    acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed)
+    ei = acq_func.type_2(method)[0]
     assert np.isclose(ei, ei_expected, atol = 1e-2)
