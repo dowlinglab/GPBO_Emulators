@@ -161,7 +161,6 @@ class GPBO_Methods:
     get_emulator()
     get_obj()
     get_sparse_mc()
-    get_mc()
     """
     # Class variables and attributes
     
@@ -267,7 +266,7 @@ class CaseStudyParameters:
         bo_iter_tot: int, maximum number of BO iterations per restart
         bo_run_tot: int, total number of BO algorithm restarts
         save_fig: bool, Determines whether figures will be saved. Default False
-        save_data: bool, Determines whether data will be saved. Default True
+        save_data: bool, Determines whether ei data for argmax(ei) theta will be saved
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         seed: int or None, Determines seed for randomizations. None if seed is random
         ei_tol: float, ei at which to terminate algorithm
@@ -2804,7 +2803,10 @@ class Expected_Improvement():
             gp_mean_min_y = y_target_val - gp_mean_val
 
             #Obtain Sparse Grid points and weights
-            depth = 20
+            if len(y_target_val) < 10:
+                depth = 20
+            else:
+                depth = 5
             points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=depth, rule='gauss-hermite', 
                                                           verbose=False)  
             # print(np.amin(points_p), np.amax(points_p))
@@ -3621,6 +3623,8 @@ class GPBO_Driver:
         gp_emulator_curr: Instance of GP_Emulator, The class used for this iteration of the GPBO workflow
         """
         #Start timer
+        #Initialize iter_max_ei df to None
+        iter_max_ei_terms = None
         time_start = time.time()
         
         #Train GP model (this step updates the model to a trained model)
@@ -3687,16 +3691,18 @@ class GPBO_Driver:
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data, self.method,
                                                                                                     self.exp_data)
             #Evaluate max EI terms at theta (Can probably get rid of this after debugging)
-            iter_max_ei_terms = None
-#             ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, self.method)
+            if self.cs_params.save_data: 
+                ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, self.method)
+                
         #Otherwise the sse data is the original (scaled) data
         else:
             min_sse_sim = min_theta_data.y_vals          
             #Evaluate SSE & SSE stdev at max ei theta
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data)
+            
             #Evaluate max EI terms at theta
-            iter_max_ei_terms = None
-#             ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
+            if self.cs_params.save_data: 
+                ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
         min_sse_sim = min_sse_sim[0]
@@ -3956,8 +3962,8 @@ class GPBO_Driver:
             #Add 2 to the seed for each restart (1 for the sim/exp data seed and 1 for validation data seed) to get completely new seeds
             self.cs_params.seed += 2
                    
-        #Save data automatically if save_data is true
-        if self.cs_params.save_data == True:
+        #Save data automatically if DateTime is not None
+        if self.cs_params.DateTime is not None:
             self.save_data(restart_bo_results)
 
         return restart_bo_results

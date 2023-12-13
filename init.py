@@ -10,12 +10,12 @@ project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
 cs_val_list  = [1] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7, 8, 9]
-meth_val_list = [1, 2, 3, 4, 5]
+meth_val_list = [1, 2, 3, 4, 5, 6] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
 ep0 = 1 #Set initial ep as an even mix between exploration and exploitation
 sep_fact_list = np.linspace(0.5,0.9,5) #For CS1 use 0.5 to 1, for CS2 use 0.5, 0.75, and 1
-ep_val_list = [1]
+ep_val_list = [1, 2, 3, 4]
 gen_heat_map_data = True
 normalize = False
 noise_mean = 0
@@ -24,12 +24,12 @@ kernel_enum_val = 1
 lenscl = None #list([0.136113749, 221.573761, 830.968019, 1.67917241, 0.3, 0.2])
 if isinstance(lenscl, list):
     lenscl = json.dumps(lenscl)
-outputscl = 1
+outputscl = None
 retrain_GP = 25
 reoptimize_obj = 10
 bo_iter_tot = 50
 bo_run_tot = 5
-save_data = False
+save_data = True
 seed = 1
 ei_tol = 1e-6
 obj_tol = 1e-4
