@@ -197,7 +197,7 @@ def solve_pyomo_Muller_min(param_name_str, verbose = False):
     return model.obj()
 
 #Define Simulator Class Helper
-def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, normalize, seed):
+def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, seed):
     """
     Sets the model for calculating y based off of the case study identifier.
 
@@ -264,7 +264,6 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      bounds_x_u, 
                      noise_mean,
                      noise_std,
-                     normalize,
                      seed,
                      calc_y_fxn)
 

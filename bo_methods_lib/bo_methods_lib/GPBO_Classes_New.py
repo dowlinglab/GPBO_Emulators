@@ -354,7 +354,7 @@ class Simulator:
     gen_sim_data(num_theta_data, gen_meth_theta, num_x_data, gen_meth_x, gen_val_data)
     sim_data_to_sse_sim_data(method, sim_data, exp_data, gen_val_data)
     """
-    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, normalize, seed, calc_y_fxn):
+    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, seed, calc_y_fxn):
         """
         Parameters
         ----------
@@ -367,7 +367,6 @@ class Simulator:
         bounds_x_u: list, upper bounds of x
         noise_mean:float, int: The mean of the noise
         noise_std: float, int: The standard deviation of the noise
-        normalize: bool, Determines whether feature data will be normalized for problem analysis
         seed: int or None, Determines seed for randomizations. None if seed is random
         calc_y_fxn: function, The function to calculate ysim data with
         """
@@ -384,8 +383,6 @@ class Simulator:
         #Check indeces to consider in theta_ref
         assert all(0 <= idx <= len(theta_ref)-1 for idx in indeces_to_consider)==True, "indeces to consider must be in range of theta_ref"
         #How to write assert statements for cs_params and calc_y_fxn
-        #Assert normalize is bool
-        assert isinstance(normalize, bool), "normalize"
         
         # Constructor method
         self.dim_x = len(bounds_x_l)
@@ -400,11 +397,7 @@ class Simulator:
         self.noise_mean = noise_mean
         self.noise_std = noise_std
         self.calc_y_fxn = calc_y_fxn
-        self.normalize = normalize
         self.seed = seed
-        #Find theta_ref normalized if applicable
-        if self.normalize == True:
-            self.theta_true_norm = (self.theta_true - self.bounds_theta_reg[0]) / (self.bounds_theta_reg[1] - self.bounds_theta_reg[0])
     
     def __set_true_params(self):
         """
@@ -543,10 +536,6 @@ class Simulator:
         #Set seed
         if self.seed is not None:
             np.random.seed(self.seed)
-            
-        #Unnormalize feature data for calculation if necessary
-        if self.normalize == True:
-            data = data.unnorm_feature_data()
                 
         #Define an array to store y values in
         y_data = []
@@ -596,9 +585,6 @@ class Simulator:
         theta_true_repeated = np.vstack([theta_true]*len(x_vals))
         #Create exp_data class and add values
         exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None, None, self.bounds_theta_reg, self.bounds_x, None, self.seed)
-        #Normalize feature data if noramlize is true
-        if self.normalize == True:
-            exp_data = exp_data.norm_feature_data()
         #Generate y data for exp_data calss instance
         exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std)
         
@@ -668,10 +654,6 @@ class Simulator:
         #Add repeated theta_vals and x_data to sim_data
         sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis = 0)
         sim_data.x_vals = np.vstack([x_data]*repeat_x)
-        
-        #Normalize feature data if noramlize is true
-        if self.normalize == True:
-            sim_data = sim_data.norm_feature_data()
         
         #Add y_vals for sim_data only
         if gen_val_data == False:
@@ -751,10 +733,6 @@ class Data:
     get_dim_theta()
     get_num_x_vals()
     get_dim_x_vals()
-    __normalize(data, bounds)
-    __unnormalize(data, bounds)
-    norm_feature_data() 
-    unnorm_feature_data()
     train_test_idx_split() 
     """
     # Class variables and attributes
@@ -917,94 +895,6 @@ class Data:
             array = array.reshape(-1,1)
         return array
     
-    def __normalize(self, data, bounds):
-        """
-        Normalizes data between 0 and 1
-
-        Parameters
-        ----------
-        data: ndarray: The data you want to scale
-        bounds: ndarray, The bounds of the type of data you want to normalize
-        
-        Returns:
-        ---------
-        scaled_data: ndarray, the data normalized between 0 and 1 based on the bounds
-        """
-        #Define lower/upper bounds
-        bounds = self.__vector_to_1D_array(bounds)
-        lower_bound = bounds[0]
-        upper_bound = bounds[1]
-        #Scale data
-        scaled_data = (data - lower_bound) / (upper_bound - lower_bound)
-        
-        return scaled_data
-    
-    def __unnormalize(self, scaled_data, bounds):
-        """
-        Normalizes data back to original values 
-        
-        Parameters
-        ----------
-        scaled_data: Instance of Data, data with features scaled between 0 and 1
-        bounds: ndarray, The bounds of the type of data you want to normalize
-        
-        Returns
-        ---------
-        data: ndarray, the original data renormalized based on the original bounds
-        """
-        #Define upper/lower bounds
-        bounds = self.__vector_to_1D_array(bounds)
-        lower_bound = bounds[0]
-        upper_bound = bounds[1]
-        #scale data
-        data = scaled_data*(upper_bound - lower_bound) + lower_bound
-        
-        return data
-    
-    def norm_feature_data(self):
-        """
-        Normalizes all feature data. Only call this method on unscaled data
-        
-        Returns
-        -------
-        scaled_data: Instance of Data class, data with features scaled between 0 and 1
-        """
-        assert self.theta_vals is not None, "theta_vals must be defined"
-        assert self.x_vals is not None, "x_vals must be defined"
-        assert self.bounds_theta is not None, "bounds_theta must be defined"
-        assert self.bounds_x is not None, "bounds_x must be defined"
-        
-        #Scale theta and x values
-        scaled_theta_vals = self.__normalize(self.theta_vals, self.bounds_theta)
-        scaled_x_vals = self.__normalize(self.x_vals, self.bounds_x)
-        
-        #Create an instance of the data class with scaled values
-        scaled_data = Data(scaled_theta_vals, scaled_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.sse_var, self.ei, self.bounds_theta, self.bounds_x, self.sep_fact, self.seed) 
-        
-        return scaled_data
-    
-    def unnorm_feature_data(self):
-        """
-        Unnormalizes all feature data and stores it in a new instance of the data class. Only call this method on scaled data
-        
-        Returns
-        -------
-        unscaled_data: Instance of Data class, data with features scaled between the original bounds
-        """
-        assert self.theta_vals is not None, "theta_vals must be defined"
-        assert self.x_vals is not None, "x_vals must be defined"
-        assert self.bounds_theta is not None, "bounds_theta must be defined"
-        assert self.bounds_x is not None, "bounds_x must be defined"
-        
-        #Unscale theta and x values
-        reg_theta_vals = self.__unnormalize(self.theta_vals, self.bounds_theta)
-        reg_x_vals = self.__unnormalize(self.x_vals, self.bounds_x)
-        
-        #Create instance of data class for new unscaled values
-        unscaled_data = Data(reg_theta_vals, reg_x_vals, self.y_vals, self.gp_mean, self.gp_var, self.sse, self.sse_var, self.ei, self.bounds_theta, self.bounds_x, self.sep_fact, self.seed) 
-        
-        return unscaled_data
-    
     def train_test_idx_split(self):
         """
         Splits data indeces into training and testing indeces
@@ -1063,7 +953,7 @@ class GP_Emulator:
     """
     # Class variables and attributes
     
-    def __init__(self, gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, __feature_train_data, __feature_test_data, __feature_val_data, __feature_cand_data):
+    def __init__(self, gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, __feature_train_data, __feature_test_data, __feature_val_data, __feature_cand_data):
         """
         Parameters
         ----------
@@ -1119,8 +1009,10 @@ class GP_Emulator:
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
         self.seed = seed
-        self.scalerX = PowerTransformer(method = 'yeo-johnson', standardize = True)
-        self.scalerY = PowerTransformer(method = 'yeo-johnson', standardize = True)
+        self.normalize = normalize
+        if normalize == True:
+            self.scalerX = PowerTransformer(method = 'yeo-johnson', standardize = True)
+            self.scalerY = PowerTransformer(method = 'yeo-johnson', standardize = True)
         self.__feature_train_data = None #Added using child class
         self.__feature_test_data = None #Added using child class
         self.__feature_val_data = None #Added using child class
@@ -1247,7 +1139,7 @@ class GP_Emulator:
 
         #Define model
         gp_model = GaussianProcessRegressor(kernel=kernel, alpha=1e-5, n_restarts_optimizer=self.retrain_GP, 
-                                            random_state = self.seed, optimizer = optimizer, normalize_y = True)
+                                            random_state = self.seed, optimizer = optimizer, normalize_y = self.normalize)
         
         return gp_model
         
@@ -1265,13 +1157,16 @@ class GP_Emulator:
         assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
         #Train GP
         #Preprocess Training data
-        #Update scaler to be the fitted scaler. This scaler will change as the training data is updated
-        self.scalerX = self.scalerX.fit(self.feature_train_data)
-        self.scalerY = self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
-
-        #Scale training data
-        feature_train_data_scaled = self.scalerX.transform(self.feature_train_data)
-        y_train_data_scaled = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
+        if self.normalize == True:
+            #Update scaler to be the fitted scaler. This scaler will change as the training data is updated
+            self.scalerX = self.scalerX.fit(self.feature_train_data)
+            self.scalerY = self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
+            #Scale training data if necessary
+            feature_train_data_scaled = self.scalerX.transform(self.feature_train_data)
+            y_train_data_scaled = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
+        else:
+            feature_train_data_scaled = self.feature_train_data
+            y_train_data_scaled = self.train_data.y_vals.reshape(-1,1)
 
         #Fit GP Model
         fit_gp_model = gp_model.fit(feature_train_data_scaled, y_train_data_scaled)
@@ -1306,14 +1201,21 @@ class GP_Emulator:
         #Get data in vector form into array form
         if len(data.shape) < 2:
             data.reshape(1,-1)
-        #scale eval _point
-        eval_points = self.scalerX.transform(data)
+        #scale eval_point if necessary
+        if self.normalize == True:
+            eval_points = self.scalerX.transform(data)
+        else:
+            eval_points = data
         #Evaluate GP given parameter set theta and state point value
         gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict(eval_points, return_cov=True)  
 
         #Unscale gp_mean and gp_covariance
-        gp_mean = self.scalerY.inverse_transform(gp_mean_scl.reshape(-1,1)).flatten()
-        gp_covar = float(self.scalerY.lambdas_**2) * gp_covar_scl     
+        if self.normalize == True:
+            gp_mean = self.scalerY.inverse_transform(gp_mean_scl.reshape(-1,1)).flatten()
+            gp_covar = float(self.scalerY.lambdas_**2) * gp_covar_scl  
+        else:
+            gp_mean = gp_mean_scl
+            gp_covar = gp_covar_scl
         gp_var = np.diag(gp_covar)
 
         return gp_mean, gp_var, gp_covar
@@ -1438,7 +1340,7 @@ class Type_1_GP_Emulator(GP_Emulator):
     """
     # Class variables and attributes
     
-    def __init__(self, gp_sim_data, gp_val_data, cand_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, feature_train_data, feature_test_data, feature_val_data, feature_cand_data):
+    def __init__(self, gp_sim_data, gp_val_data, cand_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data):
         """
         Parameters
         ----------
@@ -1459,7 +1361,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
         """
         # Constructor method
-        super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
+        super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
         self.train_data = train_data
         self.test_data = test_data 
         
@@ -1837,7 +1739,7 @@ class Type_2_GP_Emulator(GP_Emulator):
     eval_ei_cand(exp_data, ep_bias, best_error, method)
     """
     # Class variables and attributes
-    def __init__(self, gp_sim_data, gp_val_data, cand_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, feature_train_data, feature_test_data, feature_val_data, feature_cand_data):
+    def __init__(self, gp_sim_data, gp_val_data, cand_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data):
         """
         Parameters
         ----------
@@ -1858,7 +1760,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
         """
         # Constructor method
-        super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
+        super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
         self.train_data = train_data
         self.test_data = test_data
                   
@@ -2698,13 +2600,11 @@ class Expected_Improvement():
             improvement = np.maximum(self.best_error*self.ep_bias.ep_curr - sse_temp, 0).reshape(-1,1)
 
             # Calculate EI_temp using vectorized operations
-            ei_temp = improvement.flatten()
+            improvement = improvement.flatten()
             # Calculate the multivariate normal pdf for each row in 'epsilon'
-            # mvn = np.array([multivariate_normal.pdf(epsilon[i], mean = np.zeros(len(epsilon[i])), cov = np.eye(len(epsilon[i]))) 
-            #                 for i in range(len(epsilon))])
-            mvn = multivariate_normal.pdf(epsilon, mean=np.zeros(epsilon.shape[1]), cov=np.eye(epsilon.shape[1]))
+            # mvn = multivariate_normal.pdf(epsilon, mean=np.zeros(epsilon.shape[1]), cov=np.eye(epsilon.shape[1]))
 
-            ei_temp = ei_temp*mvn
+            ei_temp = improvement
 
         else:
             ei_temp = 0
@@ -2841,7 +2741,7 @@ class Expected_Improvement():
         -----------
         dim: int, sparse grids dimension
         output: int, output level for function that would be interpolated. Default is zero
-        depth: int, depth level. Controls density of abscissa points. Uses qpcurved
+        depth: int, depth level. Controls density of abscissa points. Uses hyperbolic
         rule: str, quadrature rule. Default is 'gauss-legendre'
         verbose: bool, determines Whether or not plot of sparse grid is shown. False by default
         alpha: int, specifies $\alpha$ parameter for the integration weight $\rho(x)$, ignored when rule doesn't have this parameter
@@ -2857,7 +2757,7 @@ class Expected_Improvement():
         '''
         #Get grid points and weights
         grid_p = Tasmanian.SparseGrid()
-        grid_p.makeGlobalGrid(dim,output,depth,"qpcurved",rule)
+        grid_p.makeGlobalGrid(dim,output,depth,"hyperbolic",rule)
         points_p = grid_p.getPoints()
         weights_p = grid_p.getQuadratureWeights()
         if verbose == True:
@@ -3191,11 +3091,13 @@ class GPBO_Driver:
         if self.method.emulator == False:
             all_gp_data = self.sim_sse_data
             all_val_data = self.val_sse_data
-            gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, self.simulator.noise_std, self.cs_params.outputscl, self.cs_params.retrain_GP, self.cs_params.seed, None, None, None, None)
+            gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, self.simulator.noise_std, self.cs_params.outputscl, 
+                                             self.cs_params.retrain_GP, self.cs_params.seed, self.cs_params.normalize, None, None, None, None)
         else:
             all_gp_data = self.sim_data
             all_val_data = self.val_data
-            gp_emulator = Type_2_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, self.simulator.noise_std, self.cs_params.outputscl, self.cs_params.retrain_GP, self.cs_params.seed, None, None, None, None)
+            gp_emulator = Type_2_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, self.simulator.noise_std, self.cs_params.outputscl, 
+                                             self.cs_params.retrain_GP, self.cs_params.seed, self.cs_params.normalize, None, None, None, None)
             
         return gp_emulator
     
@@ -3279,13 +3181,7 @@ class GPBO_Driver:
         best_error, be_theta, best_errors_x = best_error_metrics 
         
         #Find bounds and arguments for function
-        #Unnormalize feature data for calculation if necessary
-        if self.cs_params.normalize == True:
-            #If noramlized, bounds for theta normalization are between 0 and 1
-            bnds = np.tile([0, 1], (self.gp_emulator.train_data.get_dim_theta(), 1))
-        else:
-            #Otherwise bounds are defined as they are
-            bnds = self.simulator.bounds_theta_reg.T #Transpose bounds to work with scipy.optimize
+        bnds = self.simulator.bounds_theta_reg.T #Transpose bounds to work with scipy.optimize
         #Need to account for normalization here (make bounds array of [0,1]^dim_theta)
         
         #Choose values of theta from validation set at random
@@ -3445,12 +3341,8 @@ class GPBO_Driver:
         #Meshgrid set always defined by n_points**2
         theta_set = np.tile(np.array(self.simulator.theta_true), (n_points**2, 1))
         
-        #Unnormalize x_vals if necessary
+        #Set x_vals
         norm_x_vals = self.exp_data.x_vals
-        if self.cs_params.normalize == True:
-            lower_bound = self.simulator.bounds_x[0]
-            upper_bound = self.simulator.bounds_x[1]
-            norm_x_vals = norm_x_vals*(upper_bound - lower_bound) + lower_bound
         
         #Infer how many times to repeat theta and x values given that heat maps are meshgrid form by definition
         #The meshgrid of parameter values created below is symmetric, therefore, x is repeated by n_points**2 for a 2D meshgrid
@@ -3485,9 +3377,7 @@ class GPBO_Driver:
                 data_set = Data(theta_vals, x_vals, None,None,None,None,None,None, self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
             else:
                 data_set = Data(theta_set_copy, norm_x_vals, None,None,None,None,None,None, self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
-#             #normalize values between 0 and 1 if necessary
-            if self.cs_params.normalize == True:
-                data_set = data_set.norm_feature_data()
+
             #Append data set to dictionary with name
             heat_map_data_dict[data_set_name] = data_set
             
