@@ -3337,6 +3337,8 @@ class GPBO_Driver:
             else:
                 #For a meshgrid, the number of theta values/ parameter is n_thetas_points for the meshgrid ^(1/theta_dim)
                 n_points = int((n_thetas_points)**(1/self.simulator.dim_theta))
+        else:
+            n_points = n_points_set
 
         #Meshgrid set always defined by n_points**2
         theta_set = np.tile(np.array(self.simulator.theta_true), (n_points**2, 1))
