@@ -2598,7 +2598,10 @@ class Expected_Improvement():
             sse_temp = np.sum((mean_min_y[:, np.newaxis].T - gp_stdev_rand_var)**2, axis=1)
 
             # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
-            improvement = np.maximum(self.best_error*self.ep_bias.ep_curr - sse_temp, 0).reshape(-1,1)
+            error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp 
+            # improvement = np.maximum(error_diff, 0).reshape(-1,1)
+            #Smooth improvement function
+            improvement = (0.5)*(error_diff + np.sqrt(error_diff**2 + 1e-7)).reshape(-1,1)
 
             # Calculate EI_temp using vectorized operations
             improvement = improvement.flatten()
@@ -2716,7 +2719,10 @@ class Expected_Improvement():
             sse_temp = np.sum((gp_mean_min_y[:, np.newaxis].T - gp_stdev_points_p)**2, axis=1)
 
             # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
-            improvement = np.maximum(self.best_error*self.ep_bias.ep_curr - sse_temp, 0)
+            error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp
+            # improvement = np.maximum(error_diff, 0)
+            #Smooth improvement function
+            improvement = (0.5)*(error_diff + np.sqrt(error_diff**2 + 1e-7))
 
             # Calculate EI_temp using vectorized operations
             ei_temp = (1/np.pi)*np.dot(weights_p, improvement)
@@ -3195,9 +3201,9 @@ class GPBO_Driver:
             #Initialize L-BFGS-B as default optimization method
             obj_opt_method = "L-BFGS-B"
             
-            if self.method.sparse_grid == True or self.method.mc == True:
-                if opt_obj == "neg_ei":
-                    obj_opt_method = "Nelder-Mead"
+            # if self.method.sparse_grid == True or self.method.mc == True:
+            #     if opt_obj == "neg_ei":
+            #         obj_opt_method = "Nelder-Mead"
                 
             try:
                 #Call scipy method to optimize EI given theta
