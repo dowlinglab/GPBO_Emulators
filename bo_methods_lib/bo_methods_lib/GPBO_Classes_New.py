@@ -3074,7 +3074,7 @@ class GPBO_Driver:
         self.gen_meth_theta = gen_meth_theta
         self.bo_iter_term_frac = 0.3 #The fraction of iterations after which to terminate bo if no sse improvement is made
         self.sse_penalty = 1e7 #The penalty the __scipy_opt function gets for choosing nan theta values
-        self.sg_depth = 5 #This can be changed at will
+        self.sg_depth = 10 #This can be changed at will
                
     
     def __gen_emulator(self):
