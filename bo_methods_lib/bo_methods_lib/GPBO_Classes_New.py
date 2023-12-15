@@ -2593,7 +2593,6 @@ class Expected_Improvement():
         
             # Calculate gp_var multiplied by points_p
             gp_stdev_rand_var = gp_stdev_val * epsilon
-            gp_stdev_rand_var = gp_stdev_val * epsilon
 
             # Calculate the SSE for all data points simultaneously
             sse_temp = np.sum((mean_min_y[:, np.newaxis].T - gp_stdev_rand_var)**2, axis=1)
