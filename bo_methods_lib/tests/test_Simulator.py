@@ -24,7 +24,7 @@ def test_bo_methods_lib_imported():
     assert "bo_methods_lib" in sys.modules
 
 #Defining this function intentionally here to test function behavior for test cases
-def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, normalize, seed):
+def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, seed):
     """
     Sets the model for calculating y based off of the case study identifier.
 
@@ -70,7 +70,6 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      bounds_x_u, 
                      noise_mean,
                      noise_std,
-                     normalize,
                      seed,
                      calc_y_fxn)
 
@@ -99,7 +98,7 @@ seed = 1
 ei_tol = 1e-6
 obj_tol = 1e-4
 
-simulator = simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, normalize, seed)
+simulator = simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, seed)
 
 #How to combine into 1 test function? 
 #This test function tests whether exp_data is generated in the correct amount
@@ -217,7 +216,7 @@ def test_sim_data_to_sse_sim_val_data(method, sim_data, exp_data, gen_val_data, 
 ## Case Study 2 Tests
 cs_name2  = CS_name_enum(2)
 indecies_to_consider2 = list(range(4, 12)) #This is what changes for different subproblems of CS2
-simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, normalize, seed)
+simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, seed)
 
 #This test function tests whether exp_data is generated in the correct amount
                     #num_x_data, gen_meth_x, expected number of points generated

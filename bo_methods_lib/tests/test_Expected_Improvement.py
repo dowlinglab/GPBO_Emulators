@@ -24,7 +24,7 @@ def test_bo_methods_lib_imported():
     assert "bo_methods_lib" in sys.modules
     
 #Defining this function intentionally here to test function behavior for test cases
-def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, normalize, seed):
+def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, seed):
     """
     Sets the model for calculating y based off of the case study identifier.
 
@@ -70,7 +70,6 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      bounds_x_u, 
                      noise_mean,
                      noise_std,
-                     normalize,
                      seed,
                      calc_y_fxn)
 
@@ -87,7 +86,7 @@ ep_enum = Ep_enum(1)
 #Generate some experimental data
 cs_name1  = CS_name_enum(1)
 indecies_to_consider1 = list(range(0, 2)) #This is what changes for different subproblems of CS1
-simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, normalize, seed)
+simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, seed)
 exp_data = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 
 #Generate exploration bias class    
@@ -108,33 +107,38 @@ def test_type_1_list(gp_mean, gp_var, best_error, ei_expected):
     assert np.isclose(ei, ei_expected, rtol = 1e-2)
     
 #This test function tests whether Expected_Improvement throws the correct errors on initialization
-               ## ep_bias, gp_mean, gp_var, exp_data, best_error, method
-ei_init_list = [["ep_bias", np.array([0.5]), np.array([0.02]), exp_data, 0.2, Method_name_enum(3)],
-               [ep_bias, [0.5], np.array([0.02]), exp_data, 0.2, Method_name_enum(3)],
-               [ep_bias, np.array([0.5]), np.array([0.02]), "exp_data", 0.2, Method_name_enum(3)],
-               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, "best_error", Method_name_enum(3)],
-               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, 0.2, 3]]
-@pytest.mark.parametrize("ep_bias, gp_mean, gp_var, exp_data, best_error, method", ei_init_list)
-def test_ei_init_err_list(ep_bias, gp_mean, gp_var, exp_data, best_error, method):
+               ## ep_bias, gp_mean, gp_var, exp_data, best_error, method, depth
+ei_init_list = [["ep_bias", np.array([0.5]), np.array([0.02]), exp_data, 0.2, Method_name_enum(3), None],
+               [ep_bias, [0.5], np.array([0.02]), exp_data, 0.2, Method_name_enum(3), 1],
+               [ep_bias, np.array([0.5]), np.array([0.02]), "exp_data", 0.2, Method_name_enum(3), 1],
+               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, "best_error", Method_name_enum(3), 1],
+               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, 0.2, 3, 1],
+               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, 0.2, Method_name_enum(3), 3.2]]
+@pytest.mark.parametrize("ep_bias, gp_mean, gp_var, exp_data, best_error, method, depth", ei_init_list)
+def test_ei_init_err_list(ep_bias, gp_mean, gp_var, exp_data, best_error, method, depth):
     with pytest.raises((AssertionError, AttributeError, ValueError)):   
         best_error_metrics = tuple([best_error, np.zeros(5), None])
-        acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed)
-        ei = acq_func.type_2(method) [0]      
+        acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed, depth)
+        ei = acq_func.type_2(method)[0]      
 
 #This test function tests whether type_2 works as intended
                ## gp_mean, gp_var, best_error, method, ei_expected
 type_2_list = [[np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(3)), 0.98698],
                [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.04**2, 0.5, GPBO_Methods(Method_name_enum(4)), 40.721],
                [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(5)), 1.04117048],
-               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(6)), 0.0003415],
+               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(6)), 0.18682241],
                [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.2, GPBO_Methods(Method_name_enum(3)), 0],
                [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(4)), 0],
                [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(5)), 2.78127298],
-               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(6)), 0.00088337]]
+               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(6)), 0.49948086]]
 
 @pytest.mark.parametrize("gp_mean, gp_var, best_error, method, ei_expected", type_2_list)
 def test_type_2_list(gp_mean, gp_var, best_error, method, ei_expected):
     best_error_metrics = tuple([best_error, np.zeros(5), np.full(5, best_error)])
-    acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed)
+    if method.sparse_grid == True:
+        depth = 5
+    else:
+        depth = None
+    acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed, depth)
     ei = acq_func.type_2(method)[0]
     assert np.isclose(ei, ei_expected, atol = 1e-2)

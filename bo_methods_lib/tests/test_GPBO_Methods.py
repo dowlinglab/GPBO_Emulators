@@ -17,16 +17,17 @@ def test_bo_methods_lib_imported():
     assert "bo_methods_lib" in sys.modules
     
 #This test function tests whether Enum Classes will call the correct errors
-            ##Method number, method name expected, emulator status expected,  obj status expected, sparse grid status expected
-GPBO_Methods_array = [[Method_name_enum(1), "A1", False, "OBJ", False],
-                      [Method_name_enum(2), "B1", False, "LN_OBJ", False],
-                      [Method_name_enum(3), "A2", True, "OBJ", False],
-                      [Method_name_enum(4), "B2", True, "LN_OBJ", False],
-                      [Method_name_enum(5), "C2", True, "OBJ", True]]
-@pytest.mark.parametrize("meth_id, meth_name_e, emulator_e, obj_e, sparse_grid_e", GPBO_Methods_array)
-def test_GPBO_Methods(meth_id, meth_name_e, emulator_e, obj_e, sparse_grid_e):
+            ##Method number, method name expected, emulator status expected,  obj status expected, sparse grid status expected, MC stat exp.
+GPBO_Methods_array = [[Method_name_enum(1), "A1", False, "OBJ", False, False],
+                      [Method_name_enum(2), "B1", False, "LN_OBJ", False, False],
+                      [Method_name_enum(3), "A2", True, "OBJ", False, False],
+                      [Method_name_enum(4), "B2", True, "LN_OBJ", False, False],
+                      [Method_name_enum(5), "C2", True, "OBJ", True, False],
+                      [Method_name_enum(6), "D2", True, "OBJ", False, True]]
+@pytest.mark.parametrize("meth_id, meth_name_e, emulator_e, obj_e, sparse_grid_e, monte_carlo_e", GPBO_Methods_array)
+def test_GPBO_Methods(meth_id, meth_name_e, emulator_e, obj_e, sparse_grid_e, monte_carlo_e):
     method = GPBO_Methods(meth_id)
-    assert method.method_name.name == meth_name_e and method.emulator == emulator_e and method.obj.name == obj_e and method.sparse_grid == sparse_grid_e
+    assert method.method_name.name == meth_name_e and method.emulator == emulator_e and method.obj.name == obj_e and method.sparse_grid == sparse_grid_e and method.mc == monte_carlo_e
     
 #This test function tests whether GPBO_Method throws correct errors
                             #meth_id

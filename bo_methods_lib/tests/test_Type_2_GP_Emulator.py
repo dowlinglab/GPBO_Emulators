@@ -26,7 +26,7 @@ def test_bo_methods_lib_imported():
     
 #Create sample test data for gp_emulator
 #Defining this function intentionally here to test function behavior for test cases
-def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, normalize, seed):
+def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, seed):
     """
     Sets the model for calculating y based off of the case study identifier.
 
@@ -72,7 +72,6 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      bounds_x_u, 
                      noise_mean,
                      noise_std,
-                     normalize,
                      seed,
                      calc_y_fxn)
 
@@ -89,7 +88,7 @@ gen_meth_theta = Gen_meth_enum(2)
 
 ep0 = 1
 sep_fact = 0.8
-normalize = False
+normalize = True
 noise_mean = 0
 noise_std = 0.01
 noise_std = 0
@@ -101,22 +100,22 @@ seed = 1
 method = GPBO_Methods(Method_name_enum(5)) #2C
 
 #Define cs_params, simulator, and exp_data for CS1
-simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, normalize, seed)
+simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, seed)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 sim_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, sep_fact)
 sim_sse_data1 = simulator1.sim_data_to_sse_sim_data(method, sim_data1, exp_data1, sep_fact)
 val_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, True)
 val_sse_data1 = simulator1.sim_data_to_sse_sim_data(method, val_data1, exp_data1, sep_fact, True)
-gp_emulator1_e = Type_2_GP_Emulator(sim_data1, val_data1, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+gp_emulator1_e = Type_2_GP_Emulator(sim_data1, val_data1, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
 
 #Define cs_params, simulator, and exp_data for CS2
-simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, normalize, seed)
+simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, seed)
 exp_data2 = simulator2.gen_exp_data(num_x_data, gen_meth_x)
 sim_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, sep_fact)
 sim_sse_data2 = simulator2.sim_data_to_sse_sim_data(method, sim_data2, exp_data2, sep_fact)
 val_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, True)
 val_sse_data2 = simulator2.sim_data_to_sse_sim_data(method, val_data2, exp_data2, sep_fact, True)
-gp_emulator2_e = Type_2_GP_Emulator(sim_data2, val_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+gp_emulator2_e = Type_2_GP_Emulator(sim_data2, val_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
 
 #This test function tests whether get_num_gp_data checker works correctly
                     #emulator class, expected value
@@ -132,7 +131,7 @@ get_num_gp_data_err_list =   ["sim_data", None, 1]
 @pytest.mark.parametrize("sim_data", get_num_gp_data_err_list)
 def test_get_num_gp_data_err(sim_data):
     with pytest.raises((AssertionError, AttributeError, ValueError)): 
-        gp_emulator_fail = Type_2_GP_Emulator(sim_data, val_sse_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+        gp_emulator_fail = Type_2_GP_Emulator(sim_data, val_sse_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
         gp_emulator_fail.get_num_gp_data()
                         
 #This test function tests whether set_gp_model works correctly
@@ -143,7 +142,7 @@ set_gp_model_list = [[Type_2_GP_Emulator, sim_data1, val_data1, 1, 1, 1, 1],
                      [Type_2_GP_Emulator, sim_data2, val_data2, 2, 2, 2, 2]]
 @pytest.mark.parametrize("gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops", set_gp_model_list)
 def test_set_gp_model(gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops):
-    gp_emulator = gp_type(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+    gp_emulator = gp_type(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
     assert gp_emulator.kernel == Kernel_enum.MAT_52
     assert gp_emulator.lenscl == exp_lenscl
     assert gp_emulator.outputscl == exp_ops
@@ -162,7 +161,7 @@ set_gp_model_err_list = [[sim_data1, val_data1, "string", 1, 1, 1],
 @pytest.mark.parametrize("sim_data, val_data, kernel, lenscl, outputscl, retrain_GP", set_gp_model_err_list)
 def test_set_gp_model_err(sim_data, val_data, kernel, lenscl, outputscl, retrain_GP):
     with pytest.raises((AssertionError, ValueError)):   
-        gp_emulator = Type_2_GP_Emulator(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+        gp_emulator = Type_2_GP_Emulator(sim_data, val_data, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
 
 #This test function tests whether get_dim_gp_data checker works correctly
                         #Emulator class, number of GP training dims
@@ -178,7 +177,7 @@ get_dim_gp_data_err_list =   ["sim_data", None, 1]
 @pytest.mark.parametrize("sim_data", get_dim_gp_data_err_list)
 def test_get_dim_gp_data_err(sim_data):
     with pytest.raises((AssertionError, AttributeError, ValueError)): 
-        gp_emulator_fail = Type_2_GP_Emulator(sim_data, val_sse_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+        gp_emulator_fail = Type_2_GP_Emulator(sim_data, val_sse_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
         gp_emulator_fail.get_dim_gp_data()
 
 #This test function tests whether set_train_test_data checker works correctly
@@ -208,7 +207,7 @@ def test_get_dim_gp_data_err(theta_vals, x_vals, y_vals, bounds_x, bounds_theta,
         if all(var is None for var in [theta_vals, x_vals, y_vals, bounds_x, bounds_theta, sep_fact, seed]):
             sim_data_fail = "string"
         
-        gp_emulator_fail = Type_2_GP_Emulator(sim_data_fail, val_sse_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+        gp_emulator_fail = Type_2_GP_Emulator(sim_data_fail, val_sse_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
         train_data, test_data = gp_emulator_fail.set_train_test_data(sim_data_fail.sep_fact, sim_data_fail.seed)
         
 #This test function tests whether train_gp checker works correctly
@@ -219,7 +218,7 @@ train_gp_list = [[Type_2_GP_Emulator, sim_data1, val_data1, 1, 1, np.ones(3), 1]
                  [Type_2_GP_Emulator, sim_data1, val_data1, 2, 2, np.ones(3)*2, 2]]
 @pytest.mark.parametrize("gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops", train_gp_list)
 def test_train_gp(gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops):
-    gp_emulator = gp_type(sim_data, val_data, None,None,None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None,None,None,None)
+    gp_emulator = gp_type(sim_data, val_data, None,None,None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None,None,None,None)
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model)
@@ -238,7 +237,7 @@ train_gp_opt_list = [[Type_2_GP_Emulator, sim_data1, val_data1, None, 1],
 @pytest.mark.parametrize("gp_type, sim_data, val_data, lenscl, outputscl", train_gp_opt_list)
 def test_train_gp_opt(gp_type, sim_data, val_data, lenscl, outputscl):
     tol = 1e-7
-    gp_emulator = gp_type(sim_data, val_data, None,None,None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None,None,None,None)
+    gp_emulator = gp_type(sim_data, val_data, None,None,None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None,None,None,None)
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model)
@@ -322,7 +321,11 @@ def test_eval_ei_test(gp_emulator, exp_data, method):
     print(gp_emulator.feature_test_data)
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_test() #Calc mean, var of gp 
     best_error = gp_emulator.calc_best_error(method, exp_data) #Calc best error
-    ei = gp_emulator.eval_ei_test(exp_data, ep_bias, best_error, method)
+    if method.sparse_grid == True:
+        depth = 5
+    else:
+        depth = None
+    ei = gp_emulator.eval_ei_test(exp_data, ep_bias, best_error, method, depth)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei[0])*num_x_data == len(gp_emulator.train_data.theta_vals)
 
@@ -336,7 +339,11 @@ def test_eval_ei_val(gp_emulator, exp_data, method_val):
     gp_emulator.train_gp(gp_model) #Train model    
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_val() #Calc mean, var of gp 
     best_error = gp_emulator.calc_best_error(method_val, exp_data) #Calc best error
-    ei = gp_emulator.eval_ei_val(exp_data, ep_bias, best_error, method_val)
+    if method.sparse_grid == True:
+        depth = 5
+    else:
+        depth = None
+    ei = gp_emulator.eval_ei_val(exp_data, ep_bias, best_error, method_val, depth)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei[0])*num_x_data == len(gp_emulator.gp_val_data.theta_vals)
     
@@ -357,7 +364,11 @@ def test_eval_ei_cand(gp_emulator, simulator, exp_data, method):
     gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data)
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_cand() #Calc mean, var of gp 
     best_error = gp_emulator.calc_best_error(method, exp_data) #Calc best error
-    ei = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error, method)
+    if method.sparse_grid == True:
+        depth = 5
+    else:
+        depth = None
+    ei = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error, method, depth)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei[0])*num_x_data == len(gp_emulator.cand_data.theta_vals)
     
@@ -377,7 +388,11 @@ def test_eval_ei_misc(gp_emulator, simulator, exp_data, method):
     feature_misc_data = gp_emulator.featurize_data(misc_data)
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_misc(misc_data, feature_misc_data) #Calc mean, var of gp 
     best_error = gp_emulator.calc_best_error(method, exp_data) #Calc best error
-    ei = gp_emulator.eval_ei_misc(misc_data, exp_data, ep_bias, best_error, method)
+    if method.sparse_grid == True:
+        depth = 5
+    else:
+        depth = None
+    ei = gp_emulator.eval_ei_misc(misc_data, exp_data, ep_bias, best_error, method, depth)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei[0])*num_x_data == len(misc_data.theta_vals)
 
@@ -460,7 +475,7 @@ gen_meth_theta = Gen_meth_enum(1)
 
 ep0 = 1
 sep_fact = 0.8
-normalize = False
+normalize = True
 noise_mean = 0
 noise_std = 0.01
 kernel = Kernel_enum(1)
@@ -471,18 +486,18 @@ seed = 1
 method = GPBO_Methods(Method_name_enum(5)) #2C
 
 #Define cs_params, simulator, and exp_data for CS1
-simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, normalize, seed)
+simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, seed)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 sim_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, sep_fact)
 val_data1 = simulator1.gen_sim_data(num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, True)
-gp_emulator1_e = Type_2_GP_Emulator(sim_data1, val_data1, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+gp_emulator1_e = Type_2_GP_Emulator(sim_data1, val_data1, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
 
 #Define cs_params, simulator, and exp_data for CS2
-simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, normalize, seed)
+simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, seed)
 exp_data2 = simulator2.gen_exp_data(num_x_data, gen_meth_x)
 sim_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, sep_fact)
 val_data2 = simulator2.gen_sim_data(num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, True)
-gp_emulator2_e = Type_2_GP_Emulator(sim_data2, val_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, None, None, None, None)
+gp_emulator2_e = Type_2_GP_Emulator(sim_data2, val_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
     
 #This test function tests whether eval_gp_mean_var checker works correctly
 expected_mean1_test = np.array([

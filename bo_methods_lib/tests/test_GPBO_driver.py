@@ -26,7 +26,7 @@ def test_bo_methods_lib_imported():
     
 #Create sample test data for gp_emulator
 #Defining this function intentionally here to test function behavior for test cases
-def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, normalize, seed):
+def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, seed):
     """
     Sets the model for calculating y based off of the case study identifier.
 
@@ -72,7 +72,6 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      bounds_x_u, 
                      noise_mean,
                      noise_std,
-                     normalize,
                      seed,
                      calc_y_fxn)
 
@@ -90,7 +89,7 @@ gen_meth_theta_val = Gen_meth_enum(2)
 ep0 = 1
 ep_enum = Ep_enum(1)
 sep_fact = 1.0
-normalize = False
+normalize = True
 noise_mean = 0
 noise_std = 0.01
 # noise_std = 0.0
@@ -120,7 +119,7 @@ run_bo_restarts_list = [method1, method2, method3, method4, method5, method6]
 @pytest.mark.parametrize("method", run_bo_restarts_list)
 def test_run_bo_restarts(method):
     #Define cs_params, simulator, and exp_data for CS1
-    simulator = simulator_helper_test_fxns(CS_name, indecies_to_consider, noise_mean, noise_std, normalize, seed)
+    simulator = simulator_helper_test_fxns(CS_name, indecies_to_consider, noise_mean, noise_std, seed)
     exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x)
     sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, False)
     sim_sse_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, False)
@@ -166,7 +165,7 @@ create_heat_map_param_data_list = [method1, method2, method3, method4, method5, 
 @pytest.mark.parametrize("method", create_heat_map_param_data_list)
 def test_create_heat_map_param_data(method):
     #Define cs_params, simulator, and exp_data for CS1
-    simulator = simulator_helper_test_fxns(CS_name, indecies_to_consider, noise_mean, noise_std, normalize, seed)
+    simulator = simulator_helper_test_fxns(CS_name, indecies_to_consider, noise_mean, noise_std, seed)
     exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x)
     sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, False)
     sim_sse_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, False)
@@ -201,7 +200,7 @@ create_data_instance_from_theta_list = [method1, method2, method3, method4, meth
 @pytest.mark.parametrize("method", create_data_instance_from_theta_list)
 def test_create_data_instance_from_theta(method):
     #Define cs_params, simulator, and exp_data for CS1
-    simulator = simulator_helper_test_fxns(CS_name, indecies_to_consider, noise_mean, noise_std, normalize, seed)
+    simulator = simulator_helper_test_fxns(CS_name, indecies_to_consider, noise_mean, noise_std, seed)
     exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x)
     sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, False)
     sim_sse_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, False)

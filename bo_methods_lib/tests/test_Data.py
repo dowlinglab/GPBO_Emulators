@@ -25,7 +25,7 @@ def test_bo_methods_lib_imported():
     
     
 #Defining this function intentionally here to test function behavior for test cases
-def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, normalize, seed):
+def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_std, seed):
     """
     Sets the model for calculating y based off of the case study identifier.
 
@@ -71,7 +71,6 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      bounds_x_u, 
                      noise_mean,
                      noise_std,
-                     normalize,
                      seed,
                      calc_y_fxn)
 
@@ -91,11 +90,11 @@ seed = 3
 
 
 #Define cs_params, simulator, and exp_data for CS1
-simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, normalize, seed)
+simulator1 = simulator_helper_test_fxns(cs_name1, indecies_to_consider1, noise_mean, noise_std, seed)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 
 #Define cs_params, simulator, and exp_data for CS2
-simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, normalize, seed)
+simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, seed)
 exp_data2 = simulator2.gen_exp_data(num_x_data, gen_meth_x)
 
 #This test function tests whether get_num_theta checker works correctly
@@ -129,39 +128,6 @@ get_dim_x_vals_list = [[exp_data1, 1],
 @pytest.mark.parametrize("exp_data, expected", get_dim_x_vals_list)
 def test_get_dim_x_vals(exp_data, expected):
     assert exp_data.get_dim_x_vals() == expected
-    
-#This test function tests whether norm_feature_data checker works correctly
-                    #exp_data, 
-                    #expected_theta
-                    #expected_x
-norm_feature_data_list = [[exp_data1, 
-                         np.array([[0.75, 0.25], 
-                                   [0.75, 0.25], 
-                                   [0.75, 0.25], 
-                                   [0.75, 0.25], 
-                                   [0.75, 0.25]]), 
-                         np.array([[0.0], 
-                                   [0.25], 
-                                   [0.5], 
-                                   [0.75], 
-                                   [1.0]])]
-                       ]
-@pytest.mark.parametrize("exp_data, expected_theta, expected_x", norm_feature_data_list)
-def test_norm_feature_data(exp_data, expected_theta, expected_x):
-    scaled_exp_data = exp_data.norm_feature_data()
-    assert np.allclose(expected_theta, scaled_exp_data.theta_vals) 
-    assert np.allclose(expected_x, scaled_exp_data.x_vals) 
-    
-    
-#This test function tests whether unnorm_feature_data checker works correctly
-                    #exp_data
-unnorm_feature_data_list = [exp_data1, exp_data2]
-@pytest.mark.parametrize("exp_data", unnorm_feature_data_list)
-def test_unnorm_feature_data(exp_data):
-    scaled_exp_data = exp_data.norm_feature_data()
-    exp_data_reg = scaled_exp_data.unnorm_feature_data()
-    assert np.allclose(exp_data.theta_vals, exp_data_reg.theta_vals)
-    assert np.allclose(exp_data.x_vals, exp_data_reg.x_vals)
     
 #This test function tests whether train_test_idx_split works correctly
 #Add sep_fact to exp_data to pretend it's simulation data
