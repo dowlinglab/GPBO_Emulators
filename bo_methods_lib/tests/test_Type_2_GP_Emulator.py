@@ -398,7 +398,7 @@ def test_eval_ei_misc(gp_emulator, simulator, exp_data, method):
 
 #This test function tests whether eval_ei_cand/val/test/and misc throw correct errors
                           #gp_emulator, simualtor, exp_data, ep_bias, best_error, method, data
-calc_best_error_err_list = [[gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, method, None],
+calc_ei_err_list = [[gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, method, None],
                             [gp_emulator1_e, simulator1, None, ep_bias, 1, method, True],
                             [gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, GPBO_Methods(Method_name_enum(1)), True],
                             [gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, "str", True],
@@ -406,7 +406,7 @@ calc_best_error_err_list = [[gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, 
                             [gp_emulator2_e, simulator2, exp_data2, None, 1, method, True],
                             [gp_emulator2_e, simulator2, exp_data2, ep_bias, 1, None, True]]
                                 
-@pytest.mark.parametrize("gp_emulator, simulator, exp_data, ep_bias, best_error, method, data", calc_best_error_err_list)
+@pytest.mark.parametrize("gp_emulator, simulator, exp_data, ep_bias, best_error, method, data", calc_ei_err_list)
 def test_calc_ei_err(gp_emulator, simulator, exp_data, ep_bias, best_error, method, data):
     gp_emulator_fail = copy.copy(gp_emulator)
     gp_model = gp_emulator_fail.set_gp_model()#Set model
@@ -429,9 +429,23 @@ def test_calc_ei_err(gp_emulator, simulator, exp_data, ep_bias, best_error, meth
         ei = gp_emulator_fail.eval_ei_test(exp_data, ep_bias, best_error, method)
     with pytest.raises((AssertionError, AttributeError, ValueError)):        
         gp_emulator_fail.gp_val_data = data #Set candidate point
-        ei = gp_emulator_fail.eval_ei_test(exp_data, ep_bias, best_error, method)
+        ei = gp_emulator_fail.eval_ei_val(exp_data, ep_bias, best_error, method)
     with pytest.raises((AssertionError, AttributeError, ValueError)):        
         ei = gp_emulator_fail.eval_ei_misc(data, exp_data, ep_bias, best_error, method)
+        
+    if method == GPBO_Methods(Method_name_enum(5)):
+        with pytest.raises((AssertionError, AttributeError, ValueError)):
+            gp_emulator_fail.cand_data = data #Set candidate point
+            ei = gp_emulator_fail.eval_ei_cand(exp_data, ep_bias, best_error, method, 0)
+        with pytest.raises((AssertionError, AttributeError, ValueError)):        
+            gp_emulator_fail.test_data = data #Set candidate point
+            ei = gp_emulator_fail.eval_ei_test(exp_data, ep_bias, best_error, method, 0.8)
+        with pytest.raises((AssertionError, AttributeError, ValueError)):        
+            gp_emulator_fail.gp_val_data = data #Set candidate point
+            ei = gp_emulator_fail.eval_ei_val(exp_data, ep_bias, best_error, method, "1")
+        with pytest.raises((AssertionError, AttributeError, ValueError)):        
+            ei = gp_emulator_fail.eval_ei_misc(data, exp_data, ep_bias, best_error, method, None)
+        
         
                  #gp_emulator, exp_data, method
 featurize_data_list = [[gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(3))],
@@ -519,18 +533,26 @@ expected_var2_test = np.array([
     1.35736582, 1.35736685, 1.35737094
 ])
                              #gp_emulator, expected_mean, expected_var
-eval_gp_mean_var_test_list = [[gp_emulator1_e, expected_mean1_test, expected_var1_test],
-                              [gp_emulator2_e, expected_mean2_test, expected_var2_test]]
-@pytest.mark.parametrize("gp_emulator, expected_mean, expected_var", eval_gp_mean_var_test_list)
-def test_eval_gp_mean_var_test(gp_emulator, expected_mean, expected_var):
+eval_gp_mean_var_test_list = [[gp_emulator1_e, False, expected_mean1_test, expected_var1_test],
+                              [gp_emulator1_e, True, expected_mean1_test, expected_var1_test],
+                              [gp_emulator2_e, False, expected_mean2_test, expected_var2_test]]
+@pytest.mark.parametrize("gp_emulator, covar, expected_mean, expected_var", eval_gp_mean_var_test_list)
+def test_eval_gp_mean_var_test(gp_emulator, covar, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model) 
-    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_test() #Calc mean, var of gp 
+    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_test(covar) #Calc mean, var of gp 
 
     assert len(gp_mean) == len(test_data.theta_vals) == len(gp_var)
     assert np.allclose(gp_mean, expected_mean, rtol=1e-02)
-    assert np.allclose(gp_var, expected_var, rtol=1e-02)
+    
+    #If covar is false, check variance values are correct
+    if covar == False:
+        assert np.allclose(gp_var, expected_var, rtol=1e-02)
+    #Otherwise check that square covariance matrix is returned
+    else:
+        assert len(gp_var.shape) == 2 
+        assert gp_var.shape[0] == gp_var.shape[1]
 
 expected_mean1_val = np.array([
     -4.09101293e+00, -1.45927444e-01, 3.06356251e-02, 2.59794613e+00, 1.22681324e+01, -1.02457629e+01, -2.20195064e+00, -1.62709135e-01,
@@ -583,18 +605,26 @@ expected_var2_val = np.array(
     ])
 
                              #gp_emulator, expected_mean, expected_var
-eval_gp_mean_var_val_list = [[gp_emulator1_e, expected_mean1_val, expected_var1_val],
-                              [gp_emulator2_e, expected_mean2_val, expected_var2_val]]
-@pytest.mark.parametrize("gp_emulator, expected_mean, expected_var", eval_gp_mean_var_val_list)
-def test_eval_gp_mean_var_val(gp_emulator, expected_mean, expected_var):
+eval_gp_mean_var_val_list = [[gp_emulator1_e, False, expected_mean1_val, expected_var1_val],
+                             [gp_emulator1_e, True, expected_mean1_val, expected_var1_val],
+                             [gp_emulator2_e, False, expected_mean2_val, expected_var2_val]]
+@pytest.mark.parametrize("gp_emulator, covar, expected_mean, expected_var", eval_gp_mean_var_val_list)
+def test_eval_gp_mean_var_val(gp_emulator, covar, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model) 
-    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_val() #Calc mean, var of gp 
+    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_val(covar) #Calc mean, var of gp 
 
     assert len(gp_mean) == len(gp_emulator.gp_val_data.theta_vals) == len(gp_var)
     assert np.allclose(gp_mean, expected_mean, rtol=1e-02)
-    assert np.allclose(gp_var, expected_var, rtol=1e-02)
+    
+    #If covar is false, check variance values are correct
+    if covar == False:
+        assert np.allclose(gp_var, expected_var, rtol=1e-02)
+    #Otherwise check that square covariance matrix is returned
+    else:
+        assert len(gp_var.shape) == 2 
+        assert gp_var.shape[0] == gp_var.shape[1]
     
 expected_mean1 = np.array([-4.09101293, -0.14592744,  0.03063563,  2.59794613, 12.26813236])
 expected_var1 = np.array([0.14894872, 0.14791648, 0.14785142, 0.14791648, 0.14894872])
@@ -610,10 +640,11 @@ expected_var2 = np.array([
 ])
 
                              #gp_emulator, simulator, exp_data, expected_mean, expected_var
-eval_gp_mean_var_misc_list = [[gp_emulator1_e, simulator1, exp_data1, expected_mean1, expected_var1],
-                              [gp_emulator2_e, simulator2, exp_data2, expected_mean2, expected_var2]]
-@pytest.mark.parametrize("gp_emulator, simulator, exp_data, expected_mean, expected_var", eval_gp_mean_var_misc_list)
-def test_eval_gp_mean_var_misc_cand(gp_emulator, simulator, exp_data, expected_mean, expected_var):
+eval_gp_mean_var_misc_list = [[gp_emulator1_e, False, simulator1, exp_data1, expected_mean1, expected_var1],
+                              [gp_emulator1_e, True, simulator1, exp_data1, expected_mean1, expected_var1],
+                              [gp_emulator2_e, False, simulator2, exp_data2, expected_mean2, expected_var2]]
+@pytest.mark.parametrize("gp_emulator, covar, simulator, exp_data, expected_mean, expected_var", eval_gp_mean_var_misc_list)
+def test_eval_gp_mean_var_misc_cand(gp_emulator, covar, simulator, exp_data, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model)
@@ -622,7 +653,7 @@ def test_eval_gp_mean_var_misc_cand(gp_emulator, simulator, exp_data, expected_m
     theta_vals = np.repeat(theta.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
     misc_data.theta_vals = theta_vals #Set misc thetas
     feature_misc_data = gp_emulator.featurize_data(misc_data) #Set feature vals
-    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_misc(misc_data, feature_misc_data) #Calc mean, var of gp 
+    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_misc(misc_data, feature_misc_data, covar) #Calc mean, var of gp 
     
     candidate = Data(None, exp_data.x_vals, None,None,None,None,None,None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
     theta = gp_emulator.gp_val_data.theta_vals[0].reshape(1,-1) #Set "candidate thetas"
@@ -630,13 +661,22 @@ def test_eval_gp_mean_var_misc_cand(gp_emulator, simulator, exp_data, expected_m
     candidate.theta_vals = theta_vals
     gp_emulator.cand_data = candidate #Set candidate point
     gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data) #Set feature vals
-    gp_mean_cand, gp_var_cand = gp_emulator.eval_gp_mean_var_cand() #Calc mean, var of gp 
+    gp_mean_cand, gp_var_cand = gp_emulator.eval_gp_mean_var_cand(covar) #Calc mean, var of gp 
 
     assert len(gp_mean) == len(misc_data.theta_vals) == len(gp_var) == len(gp_mean_cand) == len(gp_var_cand)
     assert np.allclose(gp_mean, expected_mean, rtol=1e-02)
-    assert np.allclose(gp_var, expected_var, rtol=1e-02)
     assert np.allclose(gp_mean_cand, expected_mean, rtol=1e-02)
-    assert np.allclose(gp_var_cand, expected_var, rtol=1e-02)
+    
+    #If covar is false, check variance values are correct
+    if covar == False:
+        assert np.allclose(gp_var, expected_var, rtol=1e-02)
+        assert np.allclose(gp_var_cand, expected_var, rtol=1e-02)
+    #Otherwise check that square covariance matrix is returned
+    else:
+        assert len(gp_var.shape) == 2 
+        assert len(gp_var_cand.shape) == 2 
+        assert gp_var.shape[0] == gp_var.shape[1]   
+        assert gp_var_cand.shape[0] == gp_var_cand.shape[1]
 
 #This function tests whether eval_gp_mean_var_test/val/cand/misc throw the correct errors     
                              #gp_emulator
@@ -658,27 +698,44 @@ def test_eval_gp_mean_var_err(gp_emulator):
         feat_misc_data = None
         gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_misc(misc_data, feat_misc_data) #Calc mean, var of gp 
         
+    with pytest.raises((AssertionError, AttributeError, ValueError)):  
+        gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_val(0) #Calc mean, var of gp 
+    with pytest.raises((AssertionError, AttributeError, ValueError)):  
+        gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_test("False") #Calc mean, var of gp 
+    with pytest.raises((AssertionError, AttributeError, ValueError)):  
+        gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_cand(1) #Calc mean, var of gp 
+    with pytest.raises((AssertionError, AttributeError, ValueError)):  
+        gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_misc(misc_data, feat_misc_data, "True") #Calc mean, var of gp 
+        
 #This test function tests whether eval_gp_sse_var checker works correctly
 expected_mean1_test_sse = np.array([73.98236105, 241.7185761])
 expected_var1_test_sse = np.array([217.19806523, 345.59589243])
 expected_mean2_test_sse = np.array([20335676.71874536])
 expected_var2_test_sse = np.array([7.56132822e+08])
                              #gp_emulator, exp_data, method, expected_mean, expected_var
-eval_gp_sse_var_test_list = [[gp_emulator1_e, exp_data1, method, expected_mean1_test_sse, expected_var1_test_sse],
-                             [gp_emulator1_e, exp_data1, method, expected_mean1_test_sse, expected_var1_test_sse],
-                             [gp_emulator2_e, exp_data2, method, expected_mean2_test_sse, expected_var2_test_sse]]
-@pytest.mark.parametrize("gp_emulator, exp_data, method, expected_mean, expected_var", eval_gp_sse_var_test_list)
-def test_eval_gp_sse_var_test(gp_emulator, exp_data, method, expected_mean, expected_var):
+eval_gp_sse_var_test_list = [[gp_emulator1_e, False, exp_data1, method, expected_mean1_test_sse, expected_var1_test_sse],
+                             [gp_emulator1_e, True, exp_data1, method, expected_mean1_test_sse, expected_var1_test_sse],
+                             [gp_emulator1_e, False, exp_data1, method, expected_mean1_test_sse, expected_var1_test_sse],
+                             [gp_emulator2_e, False, exp_data2, method, expected_mean2_test_sse, expected_var2_test_sse]]
+@pytest.mark.parametrize("gp_emulator, covar, exp_data, method, expected_mean, expected_var", eval_gp_sse_var_test_list)
+def test_eval_gp_sse_var_test(gp_emulator, covar, exp_data, method, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model) 
     gp_emulator.test_data.gp_mean, gp_emulator.test_data.gp_var = gp_emulator.eval_gp_mean_var_test() #Calc mean, var of gp 
-    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_test(method, exp_data) #Calc mean, var of gp sse
+    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_test(method, exp_data, covar) #Calc mean, var of gp sse
     mult_factor = exp_data.get_num_x_vals()
     
     assert len(sse_mean)*mult_factor == len(test_data.theta_vals) == len(sse_var)*mult_factor
     assert np.allclose(sse_mean, expected_mean, rtol=1e-02)
-    assert np.allclose(sse_var, expected_var, rtol=1e-02)
+    
+    #If covar is false, check variance values are correct
+    if covar == False:
+        assert np.allclose(sse_var, expected_var, rtol=1e-02)
+    #Otherwise check that square covariance matrix is returned
+    else:
+        assert len(sse_var.shape) == 2 
+        assert sse_var.shape[0] == sse_var.shape[1]
     
 #This test function tests whether eval_gp_sse_var checker works correctly
 expected_mean1_val_sse = np.array([
@@ -690,20 +747,28 @@ expected_var1_val_sse = np.array([
 expected_mean2_val_sse = np.array([16488667.09932764, 23926537.8891193, 21066297.06571797, 18022075.39720873, 52649112.95833728])
 expected_var2_val_sse = np.array([6.05317495e+08, 8.94804049e+08, 7.87682558e+08, 6.69138828e+08, 1.86135075e+09])
                              #gp_emulator, exp_data, expected_mean, expected_var
-eval_gp_sse_var_val_list = [[gp_emulator1_e, exp_data1, expected_mean1_val_sse, expected_var1_val_sse],
-                              [gp_emulator2_e, exp_data2, expected_mean2_val_sse, expected_var2_val_sse]]
-@pytest.mark.parametrize("gp_emulator, exp_data, expected_mean, expected_var", eval_gp_sse_var_val_list)
-def test_eval_gp_sse_var_val(gp_emulator, exp_data, expected_mean, expected_var):
+eval_gp_sse_var_val_list = [[gp_emulator1_e, False, exp_data1, expected_mean1_val_sse, expected_var1_val_sse],
+                            [gp_emulator1_e, True, exp_data1, expected_mean1_val_sse, expected_var1_val_sse],
+                            [gp_emulator2_e, False, exp_data2, expected_mean2_val_sse, expected_var2_val_sse]]
+@pytest.mark.parametrize("gp_emulator, covar, exp_data, expected_mean, expected_var", eval_gp_sse_var_val_list)
+def test_eval_gp_sse_var_val(gp_emulator, covar, exp_data, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model) 
     gp_emulator.gp_val_data.gp_mean, gp_emulator.gp_val_data.gp_var = gp_emulator.eval_gp_mean_var_val() #Calc mean, var of gp 
-    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_val(method, exp_data) #Calc mean, var of gp sse
+    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_val(method, exp_data, covar) #Calc mean, var of gp sse
     mult_factor = exp_data.get_num_x_vals()
     
     assert len(sse_mean)*mult_factor == len(gp_emulator.gp_val_data.theta_vals) == len(sse_var)*mult_factor
     assert np.allclose(sse_mean, expected_mean, rtol=1e-02)
-    assert np.allclose(sse_var, expected_var, rtol=1e-02)
+    
+    #If covar is false, check variance values are correct
+    if covar == False:
+        assert np.allclose(sse_var, expected_var, rtol=1e-02)
+    #Otherwise check that square covariance matrix is returned
+    else:
+        assert len(sse_var.shape) == 2 
+        assert sse_var.shape[0] == sse_var.shape[1]
 
 expected_mean1_sse = np.array([148.09705927])
 expected_var1_sse = np.array([112.78340684])
@@ -711,10 +776,11 @@ expected_mean2_sse = np.array([16488667.09932764])
 expected_var2_sse = np.array([6.05317495e+08])
 
                              #gp_emulator, simulator, exp_data, expected_mean, expected_var
-eval_gp_sse_var_misc_list = [[gp_emulator1_e, simulator1, exp_data1, expected_mean1_sse, expected_var1_sse],
-                              [gp_emulator2_e, simulator2, exp_data2, expected_mean2_sse, expected_var2_sse]]
-@pytest.mark.parametrize("gp_emulator, simulator, exp_data, expected_mean, expected_var", eval_gp_sse_var_misc_list)
-def test_eval_gp_sse_var_misc_cand(gp_emulator, simulator, exp_data, expected_mean, expected_var):
+eval_gp_sse_var_misc_list = [[gp_emulator1_e, False, simulator1, exp_data1, expected_mean1_sse, expected_var1_sse],
+                             [gp_emulator1_e, True, simulator1, exp_data1, expected_mean1_sse, expected_var1_sse],
+                             [gp_emulator2_e, False, simulator2, exp_data2, expected_mean2_sse, expected_var2_sse]]
+@pytest.mark.parametrize("gp_emulator, covar, simulator, exp_data, expected_mean, expected_var", eval_gp_sse_var_misc_list)
+def test_eval_gp_sse_var_misc_cand(gp_emulator, covar, simulator, exp_data, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator.set_gp_model()
     gp_emulator.train_gp(gp_model)
@@ -724,7 +790,7 @@ def test_eval_gp_sse_var_misc_cand(gp_emulator, simulator, exp_data, expected_me
     misc_data.theta_vals = theta_vals #Set misc thetas
     feature_misc_data = gp_emulator.featurize_data(misc_data) #Set feature vals
     misc_data.gp_mean, misc_data.gp_var = gp_emulator.eval_gp_mean_var_misc(misc_data, feature_misc_data) #Calc mean, var of gp 
-    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_misc(misc_data, method, exp_data) #Calc mean, var of gp sse
+    sse_mean, sse_var = gp_emulator.eval_gp_sse_var_misc(misc_data, method, exp_data, covar) #Calc mean, var of gp sse
     
     candidate = Data(None, exp_data.x_vals, None,None,None,None,None,None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
     theta = gp_emulator.gp_val_data.theta_vals[0].reshape(1,-1) #Set "candidate thetas"
@@ -733,24 +799,34 @@ def test_eval_gp_sse_var_misc_cand(gp_emulator, simulator, exp_data, expected_me
     gp_emulator.cand_data = candidate #Set candidate point
     gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data) #Set feature vals
     gp_emulator.cand_data.gp_mean, gp_emulator.cand_data.gp_var = gp_emulator.eval_gp_mean_var_cand() #Calc mean, var of gp 
-    sse_mean_cand, sse_var_cand = gp_emulator.eval_gp_sse_var_cand(method, exp_data) #Calc mean, var of gp sse
+    sse_mean_cand, sse_var_cand = gp_emulator.eval_gp_sse_var_cand(method, exp_data, covar) #Calc mean, var of gp sse
 
     mult_factor = exp_data.get_num_x_vals()
     
     assert len(sse_mean)*mult_factor == len(misc_data.theta_vals) == len(sse_var)*mult_factor == len(sse_mean_cand)*mult_factor == len(sse_var_cand)*mult_factor
     assert np.allclose(sse_mean, expected_mean, rtol=1e-02)
-    assert np.allclose(sse_var, expected_var, rtol=1e-02)
     assert np.allclose(sse_mean_cand, expected_mean, rtol=1e-02)
-    assert np.allclose(sse_var_cand, expected_var, rtol=1e-02)
+    
+    #If covar is false, check variance values are correct
+    if covar == False:
+        assert np.allclose(sse_var, expected_var, rtol=1e-02)
+        assert np.allclose(sse_var_cand, expected_var, rtol=1e-02)
+    #Otherwise check that square covariance matrix is returned
+    else:
+        assert len(sse_var.shape) == 2 
+        assert len(sse_var_cand.shape) == 2 
+        assert sse_var.shape[0] == sse_var.shape[1]   
+        assert sse_var_cand.shape[0] == sse_var_cand.shape[1]
 
 #This function tests whether eval_gp_sse_var_test/val/cand/misc throw the correct errors     
-                             #gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method
-eval_gp_sse_var_err_list = [[gp_emulator1_e, simulator1, exp_data1, False, True, True, method],
-                            [gp_emulator1_e, simulator1, exp_data1, True, False, True, method],
-                            [gp_emulator1_e, simulator1, exp_data1, True, True, False, method],
-                            [gp_emulator1_e, simulator1, exp_data1, True, True, False, None]]
-@pytest.mark.parametrize("gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method", eval_gp_sse_var_err_list)
-def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method):
+                             #gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method, set_covar
+eval_gp_sse_var_err_list = [[gp_emulator1_e, simulator1, exp_data1, False, True, True, method, True],
+                            [gp_emulator1_e, simulator1, exp_data1, True, False, True, method, True],
+                            [gp_emulator1_e, simulator1, exp_data1, True, True, False, method, True],
+                            [gp_emulator1_e, simulator1, exp_data1, True, True, False, method, False],
+                            [gp_emulator1_e, simulator1, exp_data1, True, True, False, None, True]]
+@pytest.mark.parametrize("gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method, set_covar", eval_gp_sse_var_err_list)
+def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method, set_covar):
     gp_emulator_fail = copy.copy(gp_emulator)
     train_data, test_data = gp_emulator_fail.set_train_test_data(sep_fact, seed)
     gp_model = gp_emulator_fail.set_gp_model()
@@ -771,7 +847,10 @@ def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_
             gp_emulator_fail.gp_val_data.gp_mean = None
         if set_gp_var is False:
             gp_emulator_fail.gp_val_data.gp_var = None
-        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_val(method, exp_data)        
+        if set_covar is False:
+            sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_val(method, exp_data, "False") 
+        else:
+            sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_val(method, exp_data)      
     with pytest.raises((AssertionError, AttributeError, ValueError)):  
         gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_test() 
         if set_data is False:
@@ -780,7 +859,10 @@ def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_
             gp_emulator_fail.test_data.gp_mean = None
         if set_gp_var is False:
             gp_emulator_fail.test_data.gp_var = None
-        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_test(method, exp_data)
+        if set_covar is False:
+            sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_test(method, exp_data, 0) 
+        else:
+            sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_test(method, exp_data) 
     with pytest.raises((AssertionError, AttributeError, ValueError)):  
         gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_cand() 
         if set_data is False:
@@ -789,7 +871,10 @@ def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_
             gp_emulator_fail.cand_data.gp_mean = None
         if set_gp_var is False:
             gp_emulator_fail.cand_data.gp_var = None
-        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_cand(method, exp_data)
+        if set_covar is False:
+            sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_cand(method, exp_data, "True") 
+        else:
+            sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_cand(method, exp_data) 
     with pytest.raises((AssertionError, AttributeError, ValueError)): 
         misc_data = candidate
         feat_misc_data = gp_emulator_fail.feature_cand_data
@@ -800,12 +885,22 @@ def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_
             misc_data.gp_mean = None
         if set_gp_var is False:
             misc_data.gp_var = None
-        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_misc(misc_data, method, exp_data)
+            
+        if set_covar is False:
+            sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_misc(misc_data, method, exp_data, 1) 
+        else:
+            sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_misc(misc_data, method, exp_data) 
     with pytest.raises((AssertionError, AttributeError, ValueError)): 
         misc_data = candidate
         feat_misc_data = gp_emulator_fail.feature_cand_data
         gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_misc(misc_data, feat_misc_data) #Calc mean, var of gp 
         sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_misc(misc_data, method, None)
+        
+    with pytest.raises((AssertionError, AttributeError, ValueError)): 
+        misc_data = candidate
+        feat_misc_data = gp_emulator_fail.feature_cand_data
+        gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_misc(misc_data, feat_misc_data) #Calc mean, var of gp 
+        sse_mean, sse_var = gp_emulator_fail.eval_gp_sse_var_misc(misc_data, method, exp_data, None)
 
 #Test that add_next_theta_to_train_data(theta_best_sse_data) works correctly
                              #gp_emulator, simulator, exp_data, expected_mean, expected_var

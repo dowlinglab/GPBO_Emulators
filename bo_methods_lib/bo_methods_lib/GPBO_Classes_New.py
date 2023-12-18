@@ -1222,7 +1222,7 @@ class GP_Emulator:
 
         return gp_mean, gp_var, gp_covar
     
-    def eval_gp_mean_var_misc(self, misc_data, featurized_misc_data):
+    def eval_gp_mean_var_misc(self, misc_data, featurized_misc_data, covar = False):
         """
         Evaluate the GP mean and variance for a heat map set
         
@@ -1230,11 +1230,12 @@ class GP_Emulator:
         -----------
         misc_data: instance of the Data class, data to evaluate gp mean and variance for containing at least theta_vals and x_vals
         featurized_misc_data: ndarray, featurized data to evaluate containing at least theta_vals and x_vals
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns:
         -------
         misc_gp_mean: ndarray, array of gp_mean for the test set
-        misc_gp_var: ndarray, array of gp variance for the test set
+        misc_var_return: ndarray, array of gp (co)variance for the test set
         
         Notes:
         ------
@@ -1244,6 +1245,7 @@ class GP_Emulator:
         assert isinstance(misc_data , Data), "misc_data must be type Data"
         assert isinstance(featurized_misc_data, np.ndarray), "featurized_misc_data must be np.ndarray"
         assert len(featurized_misc_data) > 0, "Must have data"
+        assert isinstance(covar, bool), "covar must be bool!"
         
         #Evaluate heat map data for GP
         misc_gp_mean, misc_gp_var, misc_gp_covar = self.__eval_gp_mean_var(featurized_misc_data)
@@ -1252,17 +1254,26 @@ class GP_Emulator:
         misc_data.gp_mean = misc_gp_mean
         misc_data.gp_var = misc_gp_var
         misc_data.gp_covar = misc_gp_covar
+        
+        if covar == False:
+            misc_var_return = misc_gp_var
+        else:
+            misc_var_return = misc_gp_covar
 
-        return misc_gp_mean, misc_gp_var
+        return misc_gp_mean, misc_var_return
     
-    def eval_gp_mean_var_test(self):
+    def eval_gp_mean_var_test(self, covar = False):
         """
         Evaluate the GP mean and variance for the test set
+        
+        Parameters:
+        -----------
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns:
         -------
         test_gp_mean: ndarray, array of gp_mean for the test set
-        test_gp_var: ndarray, array of gp variance for the test set
+        test_var_return: ndarray, array of gp (co)variance for the test set
         
         Notes:
         ------
@@ -1271,6 +1282,7 @@ class GP_Emulator:
         
         assert self.feature_test_data is not None, "Must have testing data. Run set_train_test_data() to generate"
         assert len(self.feature_test_data) > 0, "Must have testing data. Run set_train_test_data() to generate"
+        assert isinstance(covar, bool), "covar must be bool!"
         #Evaluate test data for GP
         test_gp_mean, test_gp_var, test_gp_covar = self.__eval_gp_mean_var(self.feature_test_data)
         
@@ -1278,17 +1290,26 @@ class GP_Emulator:
         self.test_data.gp_mean = test_gp_mean
         self.test_data.gp_var = test_gp_var
         self.test_data.gp_covar = test_gp_covar
+        
+        if covar == False:
+            test_var_return = test_gp_var
+        else:
+            test_var_return = test_gp_covar
 
-        return test_gp_mean, test_gp_var
+        return test_gp_mean, test_var_return
     
-    def eval_gp_mean_var_val(self):
+    def eval_gp_mean_var_val(self, covar = False):
         """
         Evaluate the GP mean and variance for the validation set
+        
+        Parameters:
+        -----------
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns:
         -------
         val_gp_mean: ndarray, array of gp_mean for the validation set
-        val_gp_var: ndarray, array of gp variance for the validation set
+        val_var_return: ndarray, array of gp (co)variance for the validation set
         
         Notes:
         ------
@@ -1298,6 +1319,7 @@ class GP_Emulator:
         assert self.feature_val_data is not None, "Must have validation data. Run set_train_test_data() to generate"
         assert isinstance(self.feature_val_data, np.ndarray), "self.feature_val_data must by np.ndarray"
         assert len(self.feature_val_data) > 0, "Must have validation data. Run set_train_test_data() to generate"
+        assert isinstance(covar, bool), "covar must be bool!"
         
         #Evaluate test data for GP
         val_gp_mean, val_gp_var, val_gp_covar = self.__eval_gp_mean_var(self.feature_val_data)
@@ -1307,16 +1329,25 @@ class GP_Emulator:
         self.gp_val_data.gp_var = val_gp_var
         self.gp_val_data.gp_covar = val_gp_covar
         
-        return val_gp_mean, val_gp_var
+        if covar == False:
+            val_var_return = val_gp_var
+        else:
+            val_var_return = val_gp_covar
+        
+        return val_gp_mean, val_var_return
     
-    def eval_gp_mean_var_cand(self):
+    def eval_gp_mean_var_cand(self, covar = False):
         """
-        Evaluate the GP mean and variance for the validation set
+        Evaluate the GP mean and variance for the candidate set
+        
+        Parameters:
+        -----------
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns:
         -------
         cand_gp_mean: ndarray, array of gp_mean for the candidate theta set
-        cand_gp_var: ndarray, array of gp variance for the candidate theta set
+        cand_var_return: ndarray, array of gp (co)variance for the candidate theta set
         
         Notes:
         ------
@@ -1325,6 +1356,7 @@ class GP_Emulator:
         
         assert self.feature_cand_data is not None, "Must have validation data. Run set_train_test_data() to generate"
         assert len(self.feature_cand_data) > 0, "Must have validation data. Run set_train_test_data() to generate"
+        assert isinstance(covar, bool), "covar must be bool!"
         #Evaluate test data for GP
         cand_gp_mean, cand_gp_var, cand_gp_covar = self.__eval_gp_mean_var(self.feature_cand_data)
         
@@ -1332,8 +1364,13 @@ class GP_Emulator:
         self.cand_data.gp_mean = cand_gp_mean
         self.cand_data.gp_var = cand_gp_var
         self.cand_data.gp_covar = cand_gp_covar
+        
+        if covar == False:
+            cand_var_return = cand_gp_var
+        else:
+            cand_var_return = cand_gp_covar
 
-        return cand_gp_mean, cand_gp_var
+        return cand_gp_mean, cand_var_return
     
 class Type_1_GP_Emulator(GP_Emulator):
     """
@@ -1348,9 +1385,9 @@ class Type_1_GP_Emulator(GP_Emulator):
     set_train_test_data(sep_fact, seed)
     __eval_gp_sse_var(data, covar)
     eval_gp_sse_var_misc(misc_data, covar)
-    eval_gp_sse_var_test()
-    eval_gp_sse_var_val()
-    eval_gp_sse_var_cand()
+    eval_gp_sse_var_test(covar)
+    eval_gp_sse_var_val(covar)
+    eval_gp_sse_var_cand(covar)
     calc_best_error()
     __eval_gp_ei(sim_data, exp_data, ep_bias, best_error_metrics)
     eval_ei_misc(misc_data, exp_data, ep_bias, best_error_metrics)
@@ -1502,6 +1539,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         Also stores the gp sse covariance matrix for the data as a class object stored in data.sse_covar
         
         """
+        assert isinstance(covar, bool), "covar must be bool!"
         #For type 1, sse is the gp_mean
         data.sse = data.gp_mean
         data.sse_var = data.gp_var
@@ -1538,9 +1576,13 @@ class Type_1_GP_Emulator(GP_Emulator):
                     
         return misc_sse_mean, misc_sse_var
     
-    def eval_gp_sse_var_test(self):
+    def eval_gp_sse_var_test(self, covar = False):
         """
         Evaluates GP model sse and sse variance and for an standard GPBO for the testing data
+        
+        Parameters
+        -----------
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns
         --------
@@ -1553,13 +1595,17 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert np.all(self.test_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_test()"
         
         #For type 1, sse is the gp_mean
-        test_sse_mean, test_sse_var = self.__eval_gp_sse_var(self.test_data)
+        test_sse_mean, test_sse_var = self.__eval_gp_sse_var(self.test_data, covar)
                     
         return test_sse_mean, test_sse_var
     
-    def eval_gp_sse_var_val(self):
+    def eval_gp_sse_var_val(self, covar = False):
         """
         Evaluates GP model sse and sse variance and for an standard GPBO for the validation data
+        
+        Parameters
+        -----------
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns
         --------
@@ -1572,13 +1618,17 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert np.all(self.gp_val_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         
         #For type 1, sse is the gp_mean
-        val_sse_mean, val_sse_var = self.__eval_gp_sse_var(self.gp_val_data)
+        val_sse_mean, val_sse_var = self.__eval_gp_sse_var(self.gp_val_data, covar)
                     
         return val_sse_mean, val_sse_var  
     
-    def eval_gp_sse_var_cand(self):
+    def eval_gp_sse_var_cand(self, covar = False):
         """
         Evaluates GP model sse and sse variance and for an standard GPBO for the candidate theta data
+        
+        Parameters
+        -----------
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns
         --------
@@ -1591,7 +1641,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert np.all(self.cand_data.gp_var is not None), "Must have the GP's mean and standard deviation. Hint: Use eval_gp_mean_var_val()"
         
         #For type 1, sse is the gp_mean
-        cand_sse_mean, cand_sse_var = self.__eval_gp_sse_var(self.cand_data)
+        cand_sse_mean, cand_sse_var = self.__eval_gp_sse_var(self.cand_data, covar)
                     
         return cand_sse_mean, cand_sse_var
     
@@ -1633,7 +1683,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
         """
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed, None)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_1()
         #Add ei data to validation data class
@@ -1766,9 +1816,9 @@ class Type_2_GP_Emulator(GP_Emulator):
     set_train_test_data(sep_fact, seed)
     __eval_gp_sse_var(data, method, exp_data, covar)
     eval_gp_sse_var_misc(misc_data, method, exp_data, covar)
-    eval_gp_sse_var_test(method, exp_data)
-    eval_gp_sse_var_val(method, exp_data)
-    eval_gp_sse_var_cand(method, exp_data)
+    eval_gp_sse_var_test(method, exp_data, covar)
+    eval_gp_sse_var_val(method, exp_data, covar)
+    eval_gp_sse_var_cand(method, exp_data, covar)
     calc_best_error(method, exp_data)
     __eval_gp_ei(sim_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
     eval_ei_misc(misc_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
@@ -1936,6 +1986,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         Also stores the gp sse covariance matrix for the data as a class object stored in data.sse_covar
         
         """
+        assert isinstance(covar, bool), "covar must be bool!"
         #Featurize data
         feature_eval_data = self.featurize_data(data)
         
@@ -2027,7 +2078,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return misc_sse_mean, misc_sse_var
     
-    def eval_gp_sse_var_test(self, method, exp_data):
+    def eval_gp_sse_var_test(self, method, exp_data, covar = False):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the test data
         
@@ -2035,6 +2086,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         method, Instance of GPBO_Methods, containing data for methods
         exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns
         --------
@@ -2051,11 +2103,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        test_sse_mean, test_sse_var = self.__eval_gp_sse_var(self.test_data, method, exp_data)
+        test_sse_mean, test_sse_var = self.__eval_gp_sse_var(self.test_data, method, exp_data, covar)
         
         return test_sse_mean, test_sse_var
     
-    def eval_gp_sse_var_val(self, method, exp_data):
+    def eval_gp_sse_var_val(self, method, exp_data, covar = False):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the validation data
         
@@ -2063,6 +2115,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         method, Instance of GPBO_Methods, containing data for methods
         exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns
         --------
@@ -2079,11 +2132,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        val_sse_mean, val_sse_var = self.__eval_gp_sse_var(self.gp_val_data, method, exp_data)
+        val_sse_mean, val_sse_var = self.__eval_gp_sse_var(self.gp_val_data, method, exp_data, covar)
         
         return val_sse_mean, val_sse_var
     
-    def eval_gp_sse_var_cand(self, method, exp_data):
+    def eval_gp_sse_var_cand(self, method, exp_data, covar = False):
         """
         Evaluates GP model sse and sse variance and for an emulator GPBO for the candidate theta data
         
@@ -2091,6 +2144,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         method, Instance of GPBO_Methods, containing data for methods
         exp_data, instance of the Data class, The experimental data of the class. Needs at least the x_vals and y_vals
+        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
         
         Returns
         --------
@@ -2107,7 +2161,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert np.all(exp_data.x_vals is not None), "Must have exp_data x and y to calculate best error"
         assert np.all(exp_data.y_vals is not None), "Must have exp_data x and y to calculate best error"
         
-        cand_sse_mean, cand_sse_var = self.__eval_gp_sse_var(self.cand_data, method, exp_data)
+        cand_sse_mean, cand_sse_var = self.__eval_gp_sse_var(self.cand_data, method, exp_data, covar)
         
         return cand_sse_mean, cand_sse_var
     
@@ -2181,8 +2235,14 @@ class Type_2_GP_Emulator(GP_Emulator):
         ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
         """
         assert method.method_name.value >= 3, "Must be using method 2A, 2B, or 2C"
+        #Set sparse grid depth if applicable
+        if method.sparse_grid == True:
+            assert isinstance(sg_depth, int) and sg_depth > 0, "sg_depth must be positive int for sparse grid"
+            depth = sg_depth
+        else:
+            depth = None
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed, sg_depth)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed, depth)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_2(method)
         #Add ei data to validation data class
@@ -2354,7 +2414,7 @@ class Expected_Improvement():
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
         seed: int or None, Determines seed for randomizations. None if seed is random
-        sg_depth: int or None, the depth to use for the Tasmanian sparse grid
+        sg_depth: int or None, the depth to use for the Tasmanian sparse grid. Only necessary for Sparse Grid method
         """
         assert len(gp_mean) == len(gp_var), "gp_mean and gp_var must be arrays of the same length"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics) == 3, "best_error_metrics must be a tuple of length 3"
@@ -2652,7 +2712,8 @@ class Expected_Improvement():
         ei_temp: ndarray, the expected improvement for one term of the GP model
         row_data: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter set
         """
-        assert isinstance(self.sg_depth, int), "depth must be int for sparse grid"
+        assert isinstance(self.sg_depth, int), "self.sg_depth must be positive int for sparse grid"
+        assert self.sg_depth > 0, "self.sg_depth must be positive int for sparse_grid"
         columns = ["best_error", "sse_temp", "improvement", "ei_total"]
 
         #Create a mask for values where pred_stdev >= 0 (Here approximation includes domain stdev >= 0) 

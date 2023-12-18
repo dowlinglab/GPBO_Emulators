@@ -142,3 +142,19 @@ def test_type_2_list(gp_mean, gp_var, best_error, method, ei_expected):
     acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed, depth)
     ei = acq_func.type_2(method)[0]
     assert np.isclose(ei, ei_expected, atol = 1e-2)
+    
+#Test Error Case for giving a sparse grid value that is not an integer to the sparse grid method
+#This test function tests whether Expected_Improvement throws the correct errors on initialization
+               ## method, depth
+type_2_err_list = [[GPBO_Methods(Method_name_enum(5)), None],
+                   [GPBO_Methods(Method_name_enum(5)), 0.8],
+                   [5, 1],
+                   ["C2", 1]]
+@pytest.mark.parametrize("method, depth", type_2_err_list)
+def test_type_2_err_list(method, depth):
+    with pytest.raises((AssertionError, AttributeError, ValueError)):   
+        best_error_metrics = tuple([np.ones(5), np.zeros(5), None])
+        gp_mean = np.array([-14, -3, 0, 1, 6])
+        gp_var = np.ones(5)*0.05**2
+        acq_func = Expected_Improvement(ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed, depth)
+        ei = acq_func.type_2(method)[0]  
