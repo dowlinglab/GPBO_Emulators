@@ -12,7 +12,7 @@ import bo_methods_lib
 import templates.ndcrc
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import Method_name_enum, Ep_enum, CS_name_enum, Kernel_enum, Gen_meth_enum
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import GPBO_Methods, Exploration_Bias, CaseStudyParameters, GPBO_Driver
-from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns, calc_muller, calc_cs1_polynomial, set_idcs_to_consider, calc_cs3_polynomial, calc_cs4_isotherm
+from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_param_str, simulator_helper_test_fxns, calc_muller, solve_pyomo_Muller_min, calc_cs1_polynomial, set_idcs_to_consider, calc_cs3_polynomial, calc_cs4_isotherm
 import pickle
 import gzip
 
@@ -53,8 +53,7 @@ def run_ep_or_sf_exp(job):
         lenscl = job.sp.lenscl
     
     #Define Simulator Class
-    simulator = simulator_helper_test_fxns(cs_name_enum, indecies_to_consider, job.sp.noise_mean, job.sp.noise_std, job.sp.normalize, 
-                                           job.sp.seed)
+    simulator = simulator_helper_test_fxns(cs_name_enum, indecies_to_consider, job.sp.noise_mean, job.sp.noise_std, job.sp.seed)
 
     #Generate Exp Data
     gen_meth_x = Gen_meth_enum(job.sp.gen_meth_x)
@@ -97,7 +96,7 @@ def run_ep_or_sf_exp(job):
         gen_meth_theta_val = job.sp.gen_meth_theta_val #Value is None
                        
     #Define cs_name and cs_params class
-    #Do I need a different name for each experiment to save its results to or will signac take care of that?
+    #Signac saves all BO_Results in different folders, so they can have the same name
     cs_name = "BO_Results"
     cs_params = CaseStudyParameters(cs_name, job.sp.ep0, job.sp.sep_fact, job.sp.normalize, kernel, lenscl, job.sp.outputscl,
                                     job.sp.retrain_GP, job.sp.reoptimize_obj, job.sp.gen_heat_map_data, job.sp.bo_iter_tot,
