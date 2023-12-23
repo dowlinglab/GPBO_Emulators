@@ -348,6 +348,7 @@ class Simulator:
     gen_y_data(data, noise_mean, noise_std)
     gen_exp_data(num_x_data, gen_meth_x)
     gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, gen_val_data)
+    gen_theta_vals(num_theta_data)
     sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, gen_val_data)
     """
     def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, seed, calc_y_fxn, calc_y_fxn_args):
@@ -3209,7 +3210,9 @@ class GPBO_Driver:
     __init__
     __gen_emulator()
     __get_best_error()
-    __make_starting_opt_pts()
+    __make_starting_opt_pts(best_error_metrics)
+    __gen_start_pts_mc_sparse(best_error_metrics)
+    __gen_start_pts_not_mc_sparse
     __opt_with_scipy(opt_obj, beta)
     __scipy_fxn(theta, opt_obj, best_error_metrics, beta)
     create_heat_map_param_data(n_points_set)
@@ -3318,10 +3321,15 @@ class GPBO_Driver:
         """
         Makes starting point for optimization with scipy
         
+        Parameters:
+        -----------
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        
         Returns:
         --------
         starting_pts: np.ndarray, array of parameter set initializations for self.__opt_with_scipy
         """
+        #Note: Could make this generate 2 sets of starting points based on whether you want to optimize sse or ei
         #For sparse grid and mc methods
         if self.method.sparse_grid == True or self.method.mc == True:
             starting_pts = self.__gen_start_pts_mc_sparse(best_error_metrics)
@@ -3333,6 +3341,10 @@ class GPBO_Driver:
     def __gen_start_pts_mc_sparse(self, best_error_metrics):
         """
         Makes starting point for optimization with scipy if using sparse grid or monte carlo methods
+        
+        Parameters:
+        -----------
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
         
         Returns:
         --------
