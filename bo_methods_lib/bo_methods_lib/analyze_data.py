@@ -34,7 +34,7 @@ def open_file_helper(file_path):
     
     return results
 
-def get_study_data_signac(criteria_dict, study_id, save_csv = False):
+def get_study_data_signac(criteria_dict, save_csv = False):
     """
     Get best ep or sf data from jobs and optionally save the csvs for the data
     
@@ -62,43 +62,11 @@ def get_study_data_signac(criteria_dict, study_id, save_csv = False):
     cs_name_enum = CS_name_enum(cs_name_val)
     
     #For the ep study
-    if study_id == "ep":
-        col_name = 'EP Method Val'
-        criteria_dict_ep = criteria_dict.copy()
-        criteria_dict_ep["sep_fact"] = 1.0
-        #Find all jobs of a certain cs and method type for the ep studies w/ SF = 1 in order of job id
-        jobs = sorted(project.find_jobs(criteria_dict_ep), key=lambda job: job._id)
-        
-    elif study_id == "sf":
-        col_name = 'Sep Fact'
-    
-        #Get best ep data from previous results if possible
-        criteria_dict_ep = criteria_dict.copy()
-        criteria_dict_ep["sep_fact"] = 1.0
-        jobs_ep = project.find_jobs(criteria_dict_ep)
-        
-        #Note, this will only ever be 1 job
-        for job in jobs_ep:
-            path_name = job.fn("ep_study_best_all.csv")
-        if os.path.exists(path_name):
-            df_ep_best = pd.read_csv(path_name, index_col = 0, header = 0)
-            
-        #If there is no results path infer it directly from the jobs
-        else:
-            df_ep, jobs_ep_out, cs_name, theta_true = get_study_data_signac(criteria_dict, "ep", save_csv = False) 
-            df_ep_best = get_best_data(df_ep, "ep", cs_name, theta_true, param_name_str, date_time_str = None, save_csv = False)
-            
-        #Set ep enum val to the best one for that cs and method
-        best_ep_enum_val = int(df_ep_best["EP Method Val"][(df_ep_best['BO Method'] == meth_name.name)])
-#         best_ep_enum_val = int(df_ep_best["EP Method Val"].iloc[0])
-        criteria_dict_sf = criteria_dict.copy()
-        criteria_dict_sf["ep_enum_val"] = best_ep_enum_val
-        
-        #Get all jobs with that ep enum val
-        jobs = project.find_jobs(criteria_dict_sf)
-    
-    else:
-        raise Warning("study_id must be ep or sf!")
+    col_name = 'EP Method Val'
+    criteria_dict_ep = criteria_dict.copy()
+    criteria_dict_ep["sep_fact"] = 1.0
+    #Find all jobs of a certain cs and method type for the ep studies w/ SF = 1 in order of job id
+    jobs = sorted(project.find_jobs(criteria_dict_ep), key=lambda job: job._id)
     
     #Do analysis for study
     #Initialize df for all sf/ep method data for each case study and method
@@ -117,17 +85,14 @@ def get_study_data_signac(criteria_dict, study_id, save_csv = False):
             #Read data
             df_job = results[run].results_df
             #Add the value of the SF/EP enum as a column
-            if study_id == "ep":
-                col_vals = job.sp.ep_enum_val
-            else:
-                col_vals = job.sp.sep_fact
+            col_vals = job.sp.ep_enum_val
             df_job[col_name] = col_vals
             #Add other important columns
             df_job["index"] = run
             df_job["BO Method"] = meth_name.name
             df_job["Max Evals"] = len(df_job)
             try:
-                df_job["Termination"] = results[0].why_term
+                df_job["Termination"] = results[run].why_term
             except:
                 pass
             df_job["Total Run Time"] = df_job["Time/Iter"]*df_job["Max Evals"]  
@@ -141,11 +106,6 @@ def get_study_data_signac(criteria_dict, study_id, save_csv = False):
 
     #get theta_true from 1st run since it never changes
     theta_true = results[0].simulator_class.theta_true
-    #Scale theta true if necessary
-    if results[0].configuration["Normalize"] == True:
-        lower_bound = results[0].simulator_class.bounds_theta_reg[0]
-        upper_bound = results[0].simulator_class.bounds_theta_reg[1]
-        theta_true = (theta_true - lower_bound) / (upper_bound - lower_bound)
     #Put it in a csv file in a directory based on the method and case study
     if save_csv:
         #Make directory name
@@ -153,7 +113,7 @@ def get_study_data_signac(criteria_dict, study_id, save_csv = False):
 #         if not os.path.isdir(dir_name):
 #             os.makedirs(dir_name)
 #         file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
-        file_name1 = job.fn(study_id + "_study_analysis.csv")
+        file_name1 = job.fn("ep_study_analysis.csv")
         df.to_csv(file_name1) 
 
     return df, jobs, cs_name_enum.name, theta_true
@@ -232,7 +192,7 @@ def get_study_data_org(date_time_str, name_cs_str, meth_name_str_list, study_id,
     
     return all_result_df, theta_true
 
-def get_best_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str = None, save_csv = False):
+def get_best_data(df, cs_name, theta_true, jobs = None, date_time_str = None, save_csv = False):
     """
     Given all data from a study, find the best value
     
@@ -249,12 +209,7 @@ def get_best_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str 
     df_best: pd.DataFrame, Dataframe containing the best result from the study given a case study and method name
     
     """
-    if study_id == "ep":
-        col_name = 'EP Method Val'
-    elif study_id == "sf":
-        col_name = 'Sep Fact'
-    else:
-        raise Warning("study_id must be EP or SF!")
+    col_name = 'EP Method Val'
     
     #Analyze for best data
     #Initialize best idcs
@@ -306,14 +261,14 @@ def get_best_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str 
             if not os.path.isdir(dir_name):
                 os.makedirs(dir_name)
                 
-            file_name2 = [dir_name + "/" + study_id + "_study_best.csv"]
+            file_name2 = [dir_name + "/ep_study_best.csv"]
         #Add file to directory 
         for file in file_name2:
             df_best.to_csv(file)
         
     return df_best
 
-def get_median_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str = None, save_csv = False):
+def get_median_data(df, cs_name, theta_true, jobs = None, date_time_str = None, save_csv = False):
     """
     Given data from a study, find the median value(s)
     
@@ -329,12 +284,7 @@ def get_median_data(df, study_id, cs_name, theta_true, jobs = None, date_time_st
     df_median: pd.DataFrame, Dataframe containing the median result from the study given a case study and method name
     
     """
-    if study_id == "ep":
-        col_name = 'EP Method Val'
-    elif study_id == "sf":
-        col_name = 'Sep Fact'
-    else:
-        raise Warning("study_id must be EP or SF!")
+    col_name = 'EP Method Val'
         
     #Get median values from df_best
     # Create a list containing 1 dataframe for each method in df_best
@@ -364,10 +314,10 @@ def get_median_data(df, study_id, cs_name, theta_true, jobs = None, date_time_st
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
         if date_time_str is None:
-            file_name2 = [job.fn(study_id + "_study_median.csv") for job in jobs]
+            file_name2 = [job.fn("ep_study_median.csv") for job in jobs]
         else:
-            dir_name =  date_time_str + study_id + "_study/" + cs_name
-            file_name2 = dir_name + "/" + study_id + "_study_median.csv"
+            dir_name =  date_time_str + "ep_study/" + cs_name
+            file_name2 = dir_name + "/" + "ep_study_median.csv"
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         #Add file to directory        
@@ -376,18 +326,18 @@ def get_median_data(df, study_id, cs_name, theta_true, jobs = None, date_time_st
 #         #Save this as a csv in the same directory as all data
 #         #Make directory if it doesn't already exist
 #         if date_time_str is None:
-#             dir_name = "Results/" + study_id + "_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
+#             dir_name = "Results/" + "ep_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
 #         else:
-#             dir_name =  date_time_str + study_id + "_study/" + cs_name
+#             dir_name =  date_time_str + "ep_study/" + cs_name
 #         if not os.path.isdir(dir_name):
 #             os.makedirs(dir_name)
 #         #Add file to directory
-#         file_name2 = dir_name + "/" + study_id + "_study_median.csv"
+#         file_name2 = dir_name + "/" + "ep_study_median.csv"
 #         df_median.to_csv(file_name2) 
         
     return df_median
 
-def get_mean_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str = None, save_csv = False):
+def get_mean_data(df, cs_name, theta_true, jobs = None, date_time_str = None, save_csv = False):
     """
     Given data from a study, find the mean value(s)
     
@@ -403,12 +353,7 @@ def get_mean_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str 
     df_median: pd.DataFrame, Dataframe containing the median result from the study given a case study and method name
     
     """
-    if study_id == "ep":
-        col_name = 'EP Method Val'
-    elif study_id == "sf":
-        col_name = 'Sep Fact'
-    else:
-        raise Warning("study_id must be EP or SF!")
+    col_name = 'EP Method Val'
         
     #Get median values from df_best
     # Create a list containing 1 dataframe for each method in df_best
@@ -443,10 +388,10 @@ def get_mean_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str 
         #Save this as a csv in the same directory as all data
         #Make directory if it doesn't already exist
         if date_time_str is None:
-            file_name2 = [job.fn(study_id + "_study_mean.csv") for job in jobs]
+            file_name2 = [job.fn("ep_study_mean.csv") for job in jobs]
         else:
-            dir_name =  date_time_str + study_id + "_study/" + cs_name
-            file_name2 = dir_name + "/" + study_id + "_study_mean.csv"
+            dir_name =  date_time_str + "ep_study/" + cs_name
+            file_name2 = dir_name + "/" + "ep_study_mean.csv"
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         #Add file to directory        
@@ -454,31 +399,30 @@ def get_mean_data(df, study_id, cs_name, theta_true, jobs = None, date_time_str 
         
     return df_mean
 
-def get_mean_med_best_over_sf(df, cs_name, theta_true, job_list):
+def get_mean_med_best_over_ep(df, cs_name, theta_true, job_list):
     df_list = []
     choices = ["mean", "median", "median_best", "best"]
     for choice in choices:        
         #Get df containing the best value at each sf for each method
         df_meth_sf = pd.DataFrame()
         names = df['BO Method'].unique()
-        sep_fact_list = df['Sep Fact'].unique()
+        ep_val_list = df['EP Method Val'].unique()
         #Loop over sfs
-        for sf in range(len(sep_fact_list)):
+        for ep in range(len(ep_val_list)):
             #Loop over names
             for name in names:
-                df_meth = df[ (df["BO Method"]==name) & (df["Sep Fact"] == sep_fact_list[sf]) ]   
-        #                 df_meth = df[(df["BO Method"]==name) & (df["Sep Fact"] == sep_fact_list[sf])]                  
+                df_meth = df[ (df["BO Method"]==name) & (df['EP Method Val'] == ep_val_list[ep]) ]                    
                 if choice == "mean":
-                    df_piece = get_mean_data(df_meth, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
+                    df_piece = get_mean_data(df_meth, cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
                 elif choice == "median":
-                    df_piece = get_median_data(df_meth, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
+                    df_piece = get_median_data(df_meth, cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
                     if len(df_piece) > 0:
                         df_piece = df_piece.iloc[0:1].reset_index(drop=True)
                 elif choice == "median_best":
-                    df_best = get_best_data(df_meth, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
-                    df_piece = get_median_data(df_best, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
+                    df_best = get_best_data(df_meth, cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
+                    df_piece = get_median_data(df_best, cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
                 elif choice == "best":
-                    df_piece = get_best_data(df_meth, "sf", cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
+                    df_piece = get_best_data(df_meth, cs_name, theta_true, job_list, date_time_str = None, save_csv = False)
                 df_meth_sf = pd.concat([df_meth_sf, df_piece])
         df_list.append(df_meth_sf)
         
@@ -525,50 +469,6 @@ def calc_L2_norm(df, theta_true):
     df["L2 Norm Theta"] = theta_L2_norm
         
     return df
-       
-def analyze_SF_data_for_plot(df, meth_name_str, sep_fact_list):
-    """
-    Returns the results of the Separation Factor Study SSE data for plotting
-    
-    Parameters
-    ----------
-    df: pd.DataFrame, Dataframe of all SF data
-    meth_name_str: str, String of the method name
-    sep_fact_list: list of str, the Separation Factors to consider
-    
-    Returns
-    -------
-    y_data: ndarray (n_sfs x 2), The array of the gp predicted minimum sse and actual sse data
-    data_names: list of str, the names of the gp predicted minimum sse and actual sse data
-    """
-    
-    y_data = np.zeros((len(sep_fact_list) , 2))
-    sse_min_all = np.ones(len(sep_fact_list))*np.inf
-    sse_min_act_all = np.ones(len(sep_fact_list))*np.inf
-
-    #Loop over sfs
-    for i in range(len(sep_fact_list)):
-        #Loop over runs
-        for j in range(max(df["Run Number"].unique())):
-            df_meth = df[(df["BO Method"]==meth_name_str) & (df["Sep Fact"] == sep_fact_list[i])]  
-            #Find lowest sse and corresponding theta
-            min_sse_index = np.argmin(df_meth['Min Obj Act']) #Should use Actual or GP min?
-            min_sse = df_meth['Min Obj'].iloc[min_sse_index]
-            min_sse_act = df_meth['Min Obj Act'].iloc[min_sse_index]
-
-            if min_sse_act < sse_min_all[i]:
-                sse_min_all[i] = min_sse
-                sse_min_act_all[i] = min_sse_act
-
-    if "B" in meth_name_str:
-        sse_min_all = np.exp(sse_min_all)
-        sse_min_act_all = np.exp(sse_min_act_all)
-        
-    y_data[:,0] = sse_min_all
-    y_data[:,1] = sse_min_act_all
-    data_names = ['Min Obj', 'Min Obj Act']
-    
-    return y_data, data_names
 
 def analyze_hypers(file_path, run_num):
     """

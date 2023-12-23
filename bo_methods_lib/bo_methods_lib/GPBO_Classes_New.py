@@ -3982,10 +3982,11 @@ class GPBO_Driver:
         #Set why_term strings
         why_terms = ["ei", "obj", "regret", "max_budget"]
         
+        #Initialize count
+        obj_counter = 0
+        
         #Do Bo iters while stopping criteria is not met
-        while terminate == False:
-            #Initialize count
-            count = 0
+        while terminate == False: 
             #Loop over number of max bo iters
             for i in range(self.cs_params.bo_iter_tot):
                 #Output results of 1 bo iter and the emulator used to get the results
@@ -4029,16 +4030,16 @@ class GPBO_Driver:
                 #Call stopping criteria after 1st iteration and update improvement counter
                 #If the improvement is negligible, add to counter
                 if improvement < self.cs_params.obj_tol:
-                    count +=1
+                    obj_counter += 1
                 #Otherwise reset the counter
                 else:
-                    count = 0 
+                    obj_counter = 0 
                     
                 #set flag if max ei is less than the tolerance 3 times in a row
                 if all(results_df["Max EI"].tail(3) < self.cs_params.ei_tol) and i > 2:
                     ei_flag = True
                 #set flag if small sse progress over 1/3 of total iteration budget
-                if count >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac) and i > 0:
+                if obj_counter >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac) and i > 0:
                     obj_flag = True
                 #set flag if reg_tol < speed 3 times in a row since this criteria assumes GP is good
                 if all(results_df["Regret"].tail(3) < results_df["Speed"].tail(3)) and i > 2:
@@ -4049,14 +4050,15 @@ class GPBO_Driver:
                 #Terminate if you meet 2 stopping criteria, hit the budget, or obj has not improved after 1/2 of iterations
                 if flags.count(True) >= 2:
                     terminate = True
-                    term_flags = [term for term, flag in zip(why_terms, flags) if flag]
+                    #Pull indecies of list that are true
+                    term_flags = [why_terms[index] for index, value in enumerate(flags) if value]
                     why_term = "-".join(term_flags)
                     break
                 elif i == self.cs_params.bo_iter_tot - 1:
                     terminate = True
                     why_term = why_terms[-1]
                     break                    
-                elif count >= int(self.cs_params.bo_iter_tot*0.5) and self.cs_params.bo_iter_tot > 10:
+                elif obj_counter >= int(self.cs_params.bo_iter_tot*0.5) and self.cs_params.bo_iter_tot > 10:
                     terminate = True
                     why_term = why_terms[1]
                     break
