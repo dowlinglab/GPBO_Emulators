@@ -45,6 +45,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_u = [ 2,  2]
         theta_ref = np.array([1.0, -1.0])     
         calc_y_fxn = calc_cs1_polynomial
+        calc_y_fxn_args = None
         
     elif cs_name.value == 2:                          
         theta_names = ['A_1', 'A_2', 'A_3', 'A_4', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4', 'c_1', 
@@ -57,6 +58,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
 #         theta_ref = np.array([0.5, 0.5, 0.8, 2/3, 0.25, 0.25, 0.35, 0.675, 0.5, 0.5, 0.6, 0.65, 0.5, 0.5, 0.35, 28333/50000, 0.75, 0.5,
 #     0.375, 0.25, 0.5, 0.625, 0.75, 0.75])
         calc_y_fxn = calc_muller
+        calc_y_fxn_args = calc_y_fxn_args = {"min muller": solve_pyomo_Muller_min(set_param_str(cs_name.value))}
         
     else:
         raise ValueError("self.CaseStudyParameters.cs_name.value must exist!")
@@ -71,7 +73,8 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      noise_mean,
                      noise_std,
                      seed,
-                     calc_y_fxn)
+                     calc_y_fxn,
+                     calc_y_fxn_args)
 
 cs_name  = CS_name_enum(1)
 indecies_to_consider = list(range(0, 2)) #This is what changes for different subproblems of CS1
@@ -146,6 +149,17 @@ def test_gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, ex
     sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x)
     assert len(sim_data.theta_vals) == len(sim_data.y_vals) == expected, "Need same number of theta_vals and y_vals generated"
     
+#This test function tests whether theta data is generated in the correct amount
+                    #num_theta_data, expected number of data generated
+gen_theta_vals_list = [[1, 1],
+                       [100,100],
+                       [52,52],
+                       [1000,1000]]
+@pytest.mark.parametrize("num_theta_data, expected", gen_theta_vals_list)
+def test_gen_theta_vals(num_theta_data, expected):
+    sim_data = simulator.gen_theta_vals(num_theta_data)
+    assert len(sim_data) == expected, "Need same number of theta_vals and expected values generated"
+    
 #This test function tests whether sim_data will not generate y data for gen_val_data = True
                     #num_theta_data, num_x_data, gen_meth_theta, gen_meth_x
 gen_sim_data_val_list = [[1, 1, Gen_meth_enum(1), Gen_meth_enum(1), False, False],
@@ -171,7 +185,15 @@ gen_sim_data_err_list = [[0, 0, Gen_meth_enum(1), Gen_meth_enum(1), sep_fact, Fa
 def test_gen_sim_data_err(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, gen_val):
     with pytest.raises((AssertionError, ValueError)):
         sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, gen_val)
-
+        
+#This test function tests whether sim_data will correctly will throw the correct errors
+                        #num_theta_data
+gen_theta_vals_err_list = [0, -1, None, "1"]
+@pytest.mark.parametrize("num_theta_data", gen_theta_vals_err_list)
+def test_gen_theta_vals_err(num_theta_data):
+    with pytest.raises((AssertionError, ValueError)):
+        sim_data = simulator.gen_theta_vals(num_theta_data)
+        
 #This test function tests whether y_data is generated correctly for CS1
                    #num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, expected y_data generated
 gen_y_data_list = [[1, 1, Gen_meth_enum(2), Gen_meth_enum(2), [-12]],
@@ -215,7 +237,7 @@ def test_sim_data_to_sse_sim_val_data(method, sim_data, exp_data, gen_val_data, 
     
 ## Case Study 2 Tests
 cs_name2  = CS_name_enum(2)
-indecies_to_consider2 = list(range(4, 12)) #This is what changes for different subproblems of CS2
+indecies_to_consider2 = list(range(16, 24)) #This is what changes for different subproblems of CS2
 simulator2 = simulator_helper_test_fxns(cs_name2, indecies_to_consider2, noise_mean, noise_std, seed)
 
 #This test function tests whether exp_data is generated in the correct amount
@@ -255,8 +277,8 @@ def test_gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, ex
     
 #This test function tests whether y_data is generated correctly for CS2
                    #num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, expected y_data generated
-gen_y_data_list2 = [[1, 1, Gen_meth_enum(2), Gen_meth_enum(2), [9.80653924]],
-                    [1, 2, Gen_meth_enum(2), Gen_meth_enum(2), [9.80653924,  49.8016291, -6.61499294,  1.85352926*10**-4]] ]
+gen_y_data_list2 = [[1, 1, Gen_meth_enum(2), Gen_meth_enum(2), [5.77378836]],
+                    [1, 2, Gen_meth_enum(2), Gen_meth_enum(2), [5.77378836, 15.28309326, 13.28336829, 27.4080502]] ]
 @pytest.mark.parametrize("num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, expected", gen_y_data_list2)
 def test_gen_y_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, expected):
     #Generate feature data

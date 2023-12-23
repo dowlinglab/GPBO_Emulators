@@ -47,6 +47,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_u = [ 2,  2]
         theta_ref = np.array([1.0, -1.0])     
         calc_y_fxn = calc_cs1_polynomial
+        calc_y_fxn_args = None
         
     elif cs_name.value == 2:                          
         theta_names = ['A_1', 'A_2', 'A_3', 'A_4', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4', 'c_1', 
@@ -59,6 +60,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
 #         theta_ref = np.array([0.5, 0.5, 0.8, 2/3, 0.25, 0.25, 0.35, 0.675, 0.5, 0.5, 0.6, 0.65, 0.5, 0.5, 0.35, 28333/50000, 0.75, 0.5,
 #     0.375, 0.25, 0.5, 0.625, 0.75, 0.75])
         calc_y_fxn = calc_muller
+        calc_y_fxn_args = calc_y_fxn_args = {"min muller": solve_pyomo_Muller_min(set_param_str(cs_name.value))}
         
     else:
         raise ValueError("self.CaseStudyParameters.cs_name.value must exist!")
@@ -73,12 +75,13 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      noise_mean,
                      noise_std,
                      seed,
-                     calc_y_fxn)
+                     calc_y_fxn,
+                     calc_y_fxn_args)
 
 cs_name1  = CS_name_enum(1)
 cs_name2  = CS_name_enum(2)
 indecies_to_consider1 = list(range(0, 2)) #This is what changes for different subproblems of CS1
-indecies_to_consider2 = list(range(4, 12)) #This is what changes for different subproblems of CS2
+indecies_to_consider2 = list(range(16, 24)) #This is what changes for different subproblems of CS2
 
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)
@@ -490,8 +493,8 @@ gp_emulator2_s = Type_1_GP_Emulator(sim_sse_data2, val_sse_data2, None, None, No
 #This test function tests whether eval_gp_mean_var checker works correctly
 expected_mean1_test = np.array([123.59112244, 140.70741161, 105.93285795,  11.12967871])
 expected_var1_test = np.array([0.00216589, 0.00041544, 0.00091293, 0.00109246])
-expected_mean2_test = np.array([1.04731139e+09, 7.22056709e+08, 1.04245927e+09, 7.56226959e+08])
-expected_var2_test = np.array([0.00268639, 0.00265817, 0.00268664, 0.00268468])
+expected_mean2_test = np.array([50.36836134, 45.37832133, 52.52976014, 50.8365624])
+expected_var2_test = np.array([0.08073604, 0.07964541, 0.08074561, 0.08069408])
                              #gp_emulator, covar, expected_mean, expected_var
 eval_gp_mean_var_test_list = [[gp_emulator1_s, False, expected_mean1_test, expected_var1_test],
                               [gp_emulator1_s, True, expected_mean1_test, expected_var1_test],
@@ -531,18 +534,17 @@ expected_var1_val = np.array([
 ])
 
 expected_mean2_val = np.array([
-    4.07610689e+08, 4.99447280e+08, 9.58283962e+08, 8.52787856e+08, 
-    6.76210101e+08, 8.81438172e+09, 1.21751739e+09, 5.66740297e+08, 
-    1.02410215e+09, 5.03289027e+08, 7.91898726e+08, 1.32779442e+09, 
-    2.93216625e+09, 1.34979052e+09, 3.38146097e+08, 1.19054293e+09, 
-    7.35364090e+08, 1.27715655e+09, 2.82220892e+08, 4.96493568e+08
+   46.26572228, 50.15431046, 52.43133554, 52.57020263, 49.80707933,
+   59.5679611 , 53.11598711, 48.60730849, 54.4175074 , 47.78350284,
+   52.80173355, 55.99134328, 54.1993025 , 53.40892424, 41.35994692,
+   56.50231249, 48.23527672, 55.2174025 , 46.09914695, 41.65406441
 ])
 
 expected_var2_val = np.array([
-    0.00266814, 0.00267209, 0.00268617, 0.00267093, 0.00268059,
-    0.00251564, 0.0026791, 0.0026501, 0.00264348, 0.00266669, 
-    0.00267, 0.00268239, 0.0026484, 0.00268539, 0.00265416,
-    0.00267798, 0.00268411, 0.00267194, 0.00263841, 0.00264614
+   0.08019197, 0.08037788, 0.08073073, 0.08033815, 0.08056522,
+   0.0753039 , 0.08052203, 0.07965312, 0.07933171, 0.08018865,
+   0.08027659, 0.08055938, 0.07956048, 0.08070672, 0.07975513,
+   0.08049227, 0.08066288, 0.08032219, 0.07930754, 0.07941382
 ])
 
                              #gp_emulator, covar, expected_mean, expected_var
@@ -569,8 +571,8 @@ def test_eval_gp_mean_var_val(gp_emulator, covar, expected_mean, expected_var):
     
 expected_mean1 = np.array([173.18646196])
 expected_var1 = np.array([1.66493029e-06])
-expected_mean2 = np.array([3094950.91217347])
-expected_var2 = np.array([5.64219813e-07])
+expected_mean2 = np.array([26.74296497])
+expected_var2 = np.array([1.69570618e-05])
 
                              #gp_emulator, covar, simulator, exp_data, expected_mean, expected_var
 eval_gp_mean_var_misc_list = [[gp_emulator1_s, False, simulator1, exp_data1, expected_mean1, expected_var1],
@@ -639,8 +641,8 @@ def test_eval_gp_mean_var_err(gp_emulator):
     
 expected_mean1 = np.array([173.18646196])
 expected_var1 = np.array([1.66493029e-06])
-expected_mean2 = np.array([3094950.91217347])
-expected_var2 = np.array([5.64219813e-07])
+expected_mean2 = np.array([26.74296497])
+expected_var2 = np.array([1.69570618e-05])
     
 #This test function tests whether eval_gp_sse_var checker works correctly
 #Define exploration bias and set ep_curr

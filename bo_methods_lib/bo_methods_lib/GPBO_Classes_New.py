@@ -24,6 +24,7 @@ import copy
 import scipy
 import matplotlib.pyplot as plt
 
+
 class Method_name_enum(Enum):
     """
     The base class for any GPBO Method names
@@ -349,7 +350,7 @@ class Simulator:
     gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, gen_val_data)
     sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, gen_val_data)
     """
-    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, seed, calc_y_fxn):
+    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, seed, calc_y_fxn, calc_y_fxn_args):
         """
         Parameters
         ----------
@@ -364,6 +365,7 @@ class Simulator:
         noise_std: float, int: The standard deviation of the noise
         seed: int or None, Determines seed for randomizations. None if seed is random
         calc_y_fxn: function, The function to calculate ysim data with
+        calc_y_fxn_args: dict, dictionary of arguments other than parameters and x to pass to calc_y_fxn
         """
         #Check for float/int
         assert all(isinstance(var,(float,int)) for var in [noise_std, noise_mean]) == True, "noise_mean and noise_std must be int or float"
@@ -377,7 +379,10 @@ class Simulator:
         assert len(bounds_theta_l) == len(bounds_theta_u) and len(bounds_x_l) == len(bounds_x_u), "bounds lists for x and theta must be same length"
         #Check indeces to consider in theta_ref
         assert all(0 <= idx <= len(theta_ref)-1 for idx in indeces_to_consider)==True, "indeces to consider must be in range of theta_ref"
-        #How to write assert statements for cs_params and calc_y_fxn
+        
+        assert isinstance(calc_y_fxn_args, dict) or calc_y_fxn_args is None, "calc_y_fxn_args must be dict or None"
+        
+        #How to write assert statements for calc_y_fxn?
         
         # Constructor method
         self.dim_x = len(bounds_x_l)
@@ -392,6 +397,7 @@ class Simulator:
         self.noise_mean = noise_mean
         self.noise_std = noise_std
         self.calc_y_fxn = calc_y_fxn
+        self.calc_y_fxn_args = calc_y_fxn_args
         self.seed = seed
     
     def __set_true_params(self):
@@ -527,7 +533,7 @@ class Simulator:
         Returns
         -------
         y_data: ndarray, The simulated y training data
-        """        
+        """   
         #Set seed
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -542,8 +548,8 @@ class Simulator:
             model_coefficients = self.theta_ref.copy()
             #Replace coefficients a specified indeces with their theta_val counterparts
             model_coefficients[self.indeces_to_consider] = data.theta_vals[i]               
-            #Create model coefficients
-            y_data.append(self.calc_y_fxn(model_coefficients, data.x_vals[i])) 
+            #Create y data coefficients
+            y_data.append(self.calc_y_fxn(model_coefficients, data.x_vals[i], self.calc_y_fxn_args))
 
         #Convert list to array and flatten array
         y_data = np.array(y_data).flatten()
@@ -553,7 +559,7 @@ class Simulator:
         
         #Add noise to data
         y_data = y_data + noise
-
+        
         return y_data
        
     def gen_exp_data(self, num_x_data, gen_meth_x):
@@ -655,6 +661,35 @@ class Simulator:
             sim_data.y_vals = self.gen_y_data(sim_data, 0, 0)
         
         return sim_data
+    
+    def gen_theta_vals(self, num_theta_data):
+        """
+        Generates theta points for an instance of the Data class
+        
+        Parameters
+        ----------
+        num_theta_data: int, number of theta values
+        gen_meth_theta: bool: Whether to generate theta data with LHS or grid method
+        
+        Returns:
+        --------
+        sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        """
+        assert isinstance(num_theta_data, int) and num_theta_data > 0, "num_theta_data must be int > 0"
+        gen_meth_theta = Gen_meth_enum(1)
+            
+        #Chck that num_data > 0
+        if num_theta_data <= 0 or isinstance(num_theta_data, int) == False:
+            raise ValueError('num_theta_data must be a positive integer')
+            
+        #Warn user if >5000 pts generated
+        if num_theta_data > 5000:
+            warnings.warn("More than 5000 points will be generated!")
+            
+        #Generate simulation data theta_vals and create instance of data class   
+        theta_vals = self.__vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta, self.seed))
+        
+        return theta_vals
    
     def sim_data_to_sse_sim_data(self, method, sim_data, exp_data, sep_fact, gen_val_data = False):
         """
@@ -2436,6 +2471,31 @@ class Expected_Improvement():
         self.best_error_x = best_error_metrics[2]
         self.seed = seed
         self.sg_depth = sg_depth
+        self.random_vars = self.__set_rand_vars()
+        
+        #Set random variables for MC
+        
+    def __set_rand_vars(self):
+        """
+        Sets random variables for MC integration
+        
+        Returns:
+        ---------
+        random_vars: np.ndarray, array of multivariate normal random variables
+        """
+        dim = len(self.exp_data.y_vals)
+        mc_samples = 2000 #Set 2000 MC samples
+        #Use set seed for integration 
+        if self.seed is not None:
+            np.random.seed(self.seed)
+        else:
+        #Always use the same seed if one is not set
+            np.random.seed(1)
+            
+        #Get random variables
+        random_vars = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
+            
+        return random_vars
     
     def type_1(self):
         """
@@ -2730,9 +2790,7 @@ class Expected_Improvement():
 
             #Obtain Sparse Grid points and weights
             points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=self.sg_depth, rule='gauss-hermite', 
-                                                          verbose=False)  
-            # print(np.amin(points_p), np.amax(points_p))
-            # print(len(points_p))         
+                                                          verbose=False)         
             # Calculate gp_var multiplied by points_p
             gp_stdev_points_p = gp_stdev_val * (np.sqrt(2)*points_p)
             
@@ -2758,7 +2816,7 @@ class Expected_Improvement():
             
         return ei_temp, row_data
 
-    def __get_sparse_grids(self, dim, output=0,depth=10, rule="gauss-hermite", verbose = False, alpha = 0):
+    def __get_sparse_grids(self, dim, output=0,depth=10, rule="gauss-hermite-odd", verbose = False, alpha = 0):
         '''
         This function shows the sparse grids generated with different rules
         
@@ -2810,21 +2868,9 @@ class Expected_Improvement():
         ei_mean: ndarray, the expected improvement for one term of the GP model
         row_data: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter set
         """
-        #Calculate number of mc samples = int((z_(0.05/2)*stdev/0.05*stdev)^2)
-        #Fenton, G.A.; Griffiths, D.V. Risk Assessment in Geotechnical Engineering; John Wiley & Sons: New York, NY, USA, 2008.
-        mc_samples = math.ceil((norm.ppf(1-0.05/2)/0.05)**2)
-        
         #Set column names
         columns = ["best_error", "sse_temp", "improvement", "ci_lower", "ci_upper", "ei_total"]
-        
-        #Set seed
-        if self.seed is not None:
-            np.random.seed(self.seed)
 
-        #Number of dimensions is len(y_target)
-        dim = len(y_target)
-        #Get random variable
-        epsilon = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
         #Calc EI
         #Create a mask for values where pred_stdev >= 0 (Here approximation includes domain stdev >= 0) 
         pos_stdev_mask = (gp_var >= 0)
@@ -2838,7 +2884,7 @@ class Expected_Improvement():
             mean_min_y = y_target_val - gp_mean_val
         
             # Calculate gp_var multiplied by points_p
-            gp_stdev_rand_var = gp_stdev_val * epsilon
+            gp_stdev_rand_var = gp_stdev_val * self.random_vars
 
             # Calculate the SSE for all data points simultaneously
             sse_temp = np.sum((mean_min_y[:, np.newaxis].T - gp_stdev_rand_var)**2, axis=1)
@@ -2849,12 +2895,8 @@ class Expected_Improvement():
             #Smooth improvement function
             improvement = (0.5)*(error_diff + np.sqrt(error_diff**2 + 1e-7)).reshape(-1,1)
 
-            # Calculate EI_temp using vectorized operations
-            improvement = improvement.flatten()
-            # Calculate the multivariate normal pdf for each row in 'epsilon'
-            # mvn = multivariate_normal.pdf(epsilon, mean=np.zeros(epsilon.shape[1]), cov=np.eye(epsilon.shape[1]))
-
-            ei_temp = improvement
+            # Flatten improvement
+            ei_temp = improvement.flatten()
 
         else:
             ei_temp = 0
@@ -2898,6 +2940,8 @@ class Expected_Improvement():
         #Set seed
         if self.seed is not None:
             np.random.seed(self.seed)
+        else:
+            np.random.seed(1)
 
         #Determine mean of all original samples and its shape
         theta_orig = np.mean(pilot_sample,axis=0)
@@ -3270,7 +3314,7 @@ class GPBO_Driver:
         
         return best_error, be_theta, best_errors_x
         
-    def __make_starting_opt_pts(self):
+    def __make_starting_opt_pts(self, best_error_metrics):
         """
         Makes starting point for optimization with scipy
         
@@ -3278,22 +3322,88 @@ class GPBO_Driver:
         --------
         starting_pts: np.ndarray, array of parameter set initializations for self.__opt_with_scipy
         """
+        #For sparse grid and mc methods
+        if self.method.sparse_grid == True or self.method.mc == True:
+            starting_pts = self.__gen_start_pts_mc_sparse(best_error_metrics)
+        else:
+            starting_pts = self.__gen_start_pts_not_mc_sparse()
+            
+        return starting_pts
+    
+    def __gen_start_pts_mc_sparse(self, best_error_metrics):
+        """
+        Makes starting point for optimization with scipy if using sparse grid or monte carlo methods
+        
+        Returns:
+        --------
+        starting_pts: np.ndarray, array of parameter set initializations for self.__opt_with_scipy
+        """
+        #Generate 1000 LHS Theta vals
+        theta_vals = self.simulator.gen_theta_vals(1000)
+        
+        #Add repeated theta_vals and experimental x values
+        rep_theta_vals = np.repeat(theta_vals, len(self.exp_data.x_vals) , axis = 0)
+        rep_x_vals = np.vstack([self.exp_data.x_vals]*1000)
+        
+        #Create instance of Data Class
+        sp_data = Data(rep_theta_vals, rep_x_vals, None, None, None, None, None, None, self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
+        
+        #Evaluate GP mean and Var (This is the slowest step)
+        feat_sp_data = self.gp_emulator.featurize_data(sp_data)
+        sp_data.gp_mean, sp_data.gp_var = self.gp_emulator.eval_gp_mean_var_misc(sp_data, feat_sp_data)
+
+        #Evaluate GP SSE and SSE_Var (This is the 2nd slowest step)
+        sp_data_sse_mean, sp_data_sse_var = self.gp_emulator.eval_gp_sse_var_misc(sp_data, self.method, self.exp_data)
+        
+        #Note - Idea here could be to evaluate the independence approximation EI and sort by that
+        #Evaluate EI using unscaled independence approximation (This is relatively quick)
+        method_to_calc_ei = GPBO_Methods(Method_name_enum(3))
+        sp_data_ei, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(sp_data, self.exp_data, self.ep_bias, best_error_metrics, 
+                                                                  method_to_calc_ei, self.sg_depth)
+        
+        ##Sort by min(-ei)
+        # Create a list of tuples containing indices and values
+        indexed_values = list(enumerate(-1*sp_data_ei)) #argmin(-ei) = argmax(ei)
+
+        # Sort the list of tuples based on values
+        sorted_values = sorted(indexed_values, key=lambda x: x[1])
+
+        # Extract the indices from the sorted list
+        min_indices = [index for index, _ in sorted_values]
+        #Sets the points in order based on the indices
+        all_pts = theta_vals[min_indices]
+        
+        #Choose top retrain_GP points as starting points
+        starting_pts = all_pts[:self.cs_params.reoptimize_obj+1]
+        
+        return starting_pts
+    
+    def __gen_start_pts_not_mc_sparse(self):
+        """
+        Makes starting point for optimization with scipy if not using sparse grid or monte carlo methods
+        
+        Returns:
+        --------
+        starting_pts: np.ndarray, array of parameter set initializations for self.__opt_with_scipy
+        """
         #If validation data doesn't exist or is shorter than the number of times you want to retrain
-        if self.gp_emulator.gp_val_data is None or len(self.gp_emulator.gp_val_data.get_unique_theta()) < self.cs_params.retrain_GP:
+        if self.gp_emulator.gp_val_data is None or len(self.gp_emulator.gp_val_data.get_unique_theta()) < self.cs_params.reoptimize_obj+1:
             #Create validation points equal to number of retrain_GP
-            #Number of x points will always be 1 because we only need the theta values
-            num_x = 1
-            #Gen method will always be LHS for starting points theta and x
-            gen_meth = Gen_meth_enum(1) 
-            #Create starting point data
-            sp_data = self.simulator.gen_sim_data(self.cs_params.retrain_GP, num_x, gen_meth, gen_meth, self.cs_params.sep_fact, True)
-            #Find unique theta values
-            starting_pts = sp_data.get_unique_theta()
+            starting_pts = self.simulator.gen_theta_vals(self.cs_params.reoptimize_obj+1)
         #Otherwise, your starting point array is your validation data unique theta values
         else:
-            #Find unique theta values
-            starting_pts = self.gp_emulator.gp_val_data.get_unique_theta()
-            
+            #Set seed
+            if self.cs_params.seed is not None:
+                np.random.seed(self.cs_params.seed)
+                
+            #Find unique theta values and make array of indices
+            points = self.gp_emulator.gp_val_data.get_unique_theta()
+            idcs = np.arange(len(points))
+            #Get random indices to use (sample w/out replacement)
+            idcs_to_use = np.random.choice(idcs, self.cs_params.reoptimize_obj+1, False)
+            #Get theta values associated with those indices
+            starting_pts = points[idcs_to_use]
+
         return starting_pts
     
     def __opt_with_scipy(self, opt_obj, beta = None):
@@ -3317,13 +3427,6 @@ class GPBO_Driver:
         #Note add +1 because index 0 counts as 1 reoptimization
         if self.cs_params.reoptimize_obj > 50:
             warnings.warn("The objective will be reoptimized more than 50 times!")
-        
-        #Set seed
-        if self.cs_params.seed is not None:
-            np.random.seed(self.cs_params.seed)
-                           
-        #Note. For reoptimizing, generate and use a validation point as a starting point for optimization
-        unique_val_thetas = self.__make_starting_opt_pts()
             
         #Initialize val_best and best_theta
         best_vals = np.full(self.cs_params.reoptimize_obj+1, np.inf)
@@ -3338,13 +3441,12 @@ class GPBO_Driver:
         #Need to account for normalization here (make bounds array of [0,1]^dim_theta)
         
         #Choose values of theta from validation set at random
-        theta_val_idc = list(range(len(unique_val_thetas)))
+        theta_val_idc = list(range(len(self.opt_start_pts)))
     
         ## Loop over each validation point/ a certain number of validation point thetas
         for i in range(self.cs_params.reoptimize_obj+1):
             #Choose a random index of theta to start with
-            unique_theta_index = random.sample(theta_val_idc, 1) #At different seeds, this chooses a different value for each fxn call
-            theta_guess = unique_val_thetas[unique_theta_index].flatten()
+            theta_guess = self.opt_start_pts[i].flatten()
             
             #Initialize L-BFGS-B as default optimization method
             obj_opt_method = "L-BFGS-B"
@@ -3734,6 +3836,9 @@ class GPBO_Driver:
         
         #Calculate new ep. Note. It is extemely important to do this AFTER setting the ep_max
         self.ep_bias.set_ep()
+        
+        #Set Optimization starting points for this iteration
+        self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics)
 
         #Call optimize acquistion fxn
         max_ei, max_ei_theta = self.__opt_with_scipy("neg_ei")
@@ -3929,7 +4034,7 @@ class GPBO_Driver:
 
                 flags = [ei_flag, obj_flag, regret_flag]
                  
-                #Terminate if you meet 2 stopping criteria or hit the budget
+                #Terminate if you meet 2 stopping criteria, hit the budget, or obj has not improved after 1/2 of iterations
                 if flags.count(True) >= 2:
                     terminate = True
                     term_flags = [term for term, flag in zip(why_terms, flags) if flag]
@@ -3938,6 +4043,10 @@ class GPBO_Driver:
                 elif i == self.cs_params.bo_iter_tot - 1:
                     terminate = True
                     why_term = why_terms[-1]
+                    break                    
+                elif count >= int(self.cs_params.bo_iter_tot*0.5) and self.cs_params.bo_iter_tot > 10:
+                    terminate = True
+                    why_term = why_terms[1]
                     break
                 #Continue if no stopping criteria are met   
                 else:

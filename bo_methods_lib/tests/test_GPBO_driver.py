@@ -47,6 +47,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_u = [ 2,  2]
         theta_ref = np.array([1.0, -1.0])     
         calc_y_fxn = calc_cs1_polynomial
+        calc_y_fxn_args = None
         
     elif cs_name.value == 2:                          
         theta_names = ['A_1', 'A_2', 'A_3', 'A_4', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4', 'c_1', 
@@ -59,6 +60,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
 #         theta_ref = np.array([0.5, 0.5, 0.8, 2/3, 0.25, 0.25, 0.35, 0.675, 0.5, 0.5, 0.6, 0.65, 0.5, 0.5, 0.35, 28333/50000, 0.75, 0.5,
 #     0.375, 0.25, 0.5, 0.625, 0.75, 0.75])
         calc_y_fxn = calc_muller
+        calc_y_fxn_args = calc_y_fxn_args = {"min muller": solve_pyomo_Muller_min(set_param_str(cs_name.value)), "noise std": noise_std}
         
     else:
         raise ValueError("self.CaseStudyParameters.cs_name.value must exist!")
@@ -73,7 +75,8 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      noise_mean,
                      noise_std,
                      seed,
-                     calc_y_fxn)
+                     calc_y_fxn,
+                     calc_y_fxn_args)
 
 CS_name  = CS_name_enum(1)
 indecies_to_consider = list(range(0, 2)) #This is what changes for different subproblems of CS1

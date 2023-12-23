@@ -6,7 +6,7 @@ from .GPBO_Classes_New import Simulator
 from pyomo.environ import *
 
 #Add your function here. SHould take theta_ref and x values
-def calc_cs1_polynomial(true_model_coefficients, x):
+def calc_cs1_polynomial(true_model_coefficients, x, args = None):
     """
     Calculates the value of y for case study 1
     
@@ -14,6 +14,7 @@ def calc_cs1_polynomial(true_model_coefficients, x):
     ----------
     true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
     x: ndarray, The list of xs that will be used to generate y
+    args: dict, extra arguments to pass to the function. Default None
     
     Returns
     --------
@@ -24,7 +25,7 @@ def calc_cs1_polynomial(true_model_coefficients, x):
     
     return y_poly
 
-def calc_cs3_polynomial(true_model_coefficients, x):
+def calc_cs3_polynomial(true_model_coefficients, x, args = None):
     """
     Calculates the value of y for case study 1
     
@@ -32,6 +33,7 @@ def calc_cs3_polynomial(true_model_coefficients, x):
     ----------
     true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
     x: ndarray, The list of xs that will be used to generate y
+    args: dict, extra arguments to pass to the function. Default None
     
     Returns
     --------
@@ -51,7 +53,7 @@ def calc_cs3_polynomial(true_model_coefficients, x):
        
     return y_model
 
-def calc_cs4_isotherm(true_model_coefficients, x):
+def calc_cs4_isotherm(true_model_coefficients, x, args = None):
     """
     Calculates the value of y for case study 1
     
@@ -59,6 +61,7 @@ def calc_cs4_isotherm(true_model_coefficients, x):
     ----------
     true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
     x: ndarray, The list of xs that will be used to generate y
+    args: dict, extra arguments to pass to the function. Default None
     
     Returns
     --------
@@ -78,7 +81,7 @@ def calc_cs4_isotherm(true_model_coefficients, x):
        
     return y_model
 
-def calc_muller(model_coefficients, x):
+def calc_muller(model_coefficients, x, args):
     """
     Caclulates the Muller Potential
     
@@ -86,12 +89,16 @@ def calc_muller(model_coefficients, x):
     ----------
         model_coefficients: ndarray, The array containing the values of Muller constants
         x: ndarray, Values of X
-        noise: ndarray, Any noise associated with the model calculation
+        args: dict, extra arguments to pass to the function.
     
     Returns:
     --------
         y_mul: float, value of Muller potential
     """
+    assert "min muller" in list(args.keys())
+    
+    min_muller = args["min muller"]
+    
     #Reshape x to matrix form
     #If array is not 2D, give it shape (len(array), 1)
     if not len(x.shape) > 1:
@@ -109,8 +116,9 @@ def calc_muller(model_coefficients, x):
     term2 = b*(X1 - x0)*(X2 - y0)
     term3 = c*(X2 - y0)**2
     y_mul = np.sum(A*np.exp(term1 + term2 + term3) )
+    y_mul_scl = np.log(max(y_mul - min_muller + 1e-12, 1e-12))
     
-    return y_mul
+    return y_mul_scl
 
 def solve_pyomo_Muller_min(param_name_str, verbose = False):
     """
@@ -219,6 +227,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_u = [ 2,  2]
         theta_ref = np.array([1.0, -1.0])     
         calc_y_fxn = calc_cs1_polynomial
+        calc_y_fxn_args = None
         
     #CS2_4 to CS2_24
     elif 2 <= cs_name.value <= 7 or cs_name.value == 10:                          
@@ -230,6 +239,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_u = [-100,  0, -150, 20,2, 2, 0,  2,  2,  2, 15,2, 0,0   , 0,  2, 2,  2, 2, 2 ,2 , 2, 2,2]
         theta_ref = np.array([-200,-100,-170,15,-1,-1,-6.5,0.7,0,0,11,0.6,-10,-10,-6.5,0.7,1,0,-0.5,-1,0,0.5,1.5,1])      
         calc_y_fxn = calc_muller
+        calc_y_fxn_args = {"min muller": solve_pyomo_Muller_min(set_param_str(cs_name.value))}
        
     #5 parameter Polynomial (CS3)
     elif cs_name.value == 8:
@@ -240,6 +250,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_u = [   0, 5.0, 20,  5.0,  20]
         theta_ref = np.array([-100, -1.0, 10, -0.1, 10])      
         calc_y_fxn = calc_cs3_polynomial
+        calc_y_fxn_args = None
     
     #4 parameter Isotherm (CS4)
     elif cs_name.value == 9:
@@ -250,9 +261,9 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_u = [100, 1, 500,  1e-1]
         theta_ref =  np.array([20,0.2,200,0.02])
         calc_y_fxn = calc_cs4_isotherm
+        calc_y_fxn_args = None
         
     else:
-        print(cs_name.value)
         raise ValueError("self.CaseStudyParameters.cs_name.value must exist!")
 
     return Simulator(indecies_to_consider, 
@@ -265,7 +276,8 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
                      noise_mean,
                      noise_std,
                      seed,
-                     calc_y_fxn)
+                     calc_y_fxn, 
+                     calc_y_fxn_args)
 
 
 def set_param_str(cs_name_val):
@@ -281,11 +293,11 @@ def set_param_str(cs_name_val):
     if cs_name_val == 1:
         param_name_str = "t1t2"
     elif cs_name_val == 2:
-        param_name_str = "a"
+        param_name_str = "x0"
     elif cs_name_val == 3:
         param_name_str = "x0y0"
     elif cs_name_val == 4:
-        param_name_str = "abc"
+        param_name_str = "Ax0y0"
     elif cs_name_val == 5:
         param_name_str = "abcx0"
     elif cs_name_val == 6:
