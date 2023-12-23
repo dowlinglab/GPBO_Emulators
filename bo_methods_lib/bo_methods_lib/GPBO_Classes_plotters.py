@@ -274,8 +274,8 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
     if isinstance(data_names, list):
         assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
     
-    colors = ["red", "blue", "green", "purple", "darkorange"]
-    method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid"]
+    colors = ["red", "blue", "green", "purple", "darkorange", "darkgoldenrod"]
+    method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid", "Monte Carlo"]
     #Number of subplots is 1
     fig, ax, num_subplots = create_subplots(1, sharex = False)
     
@@ -321,7 +321,7 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
             #For the best result, print a solid line                    
             if run_num_list[i] == j + 1:
 #                 print(run_num_list[i]-1, j)
-                ax[0].step(bo_space, data_df_j, alpha = 1, color = colors[i], label = label)
+                ax[0].plot(bo_space, data_df_j, alpha = 1, color = colors[i], label = label, linestyle='--', drawstyle='steps')
             else:
                 ax[0].step(bo_space, data_df_j, alpha = 0.3, color = colors[i])
                 
@@ -460,7 +460,7 @@ def plot_compare_mean_med_best(df, cs_name, theta_true, param_name_str, xbins, y
     choices = ["mean", "median", "median_best", "best"]
 
     #Get df containing the best value at each sf for each method
-    df_mean, df_med, df_med_best, df_best = get_mean_med_best_over_sf(df, cs_name, theta_true, param_name_str)
+    df_mean, df_med, df_med_best, df_best = get_mean_med_best_over_ep(df, cs_name, theta_true, param_name_str)
 
     #Loop over mean, best, and median
     for choice,title in zip(choices,titles):        

@@ -252,11 +252,11 @@ def get_best_data(df, cs_name, theta_true, jobs = None, date_time_str = None, sa
         #Make directory if it doesn't already exist
         if date_time_str is None:
             if len(jobs) > 1:
-                file_name2 = [job.fn(study_id + "_study_best_all.csv") for job in jobs]
+                file_name2 = [job.fn("ep_study_best_all.csv") for job in jobs]
             else:
-                file_name2 = [job.fn(study_id + "_study_best.csv") for job in jobs]
+                file_name2 = [job.fn("ep_study_best.csv") for job in jobs]
         else:
-            dir_name =  date_time_str + study_id + "_study/" + cs_name
+            dir_name =  date_time_str + "ep_study/" + cs_name
             
             if not os.path.isdir(dir_name):
                 os.makedirs(dir_name)
@@ -770,12 +770,6 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     
     all_data = [sse_sim, sse_mean, sse_var, ei]
     
-    #Scale theta true if necessary
-    if loaded_results[0].configuration["Normalize"] == True:
-        lower_bound = loaded_results[0].simulator_class.bounds_theta_reg[0]
-        upper_bound = loaded_results[0].simulator_class.bounds_theta_reg[1]
-        theta_true = (theta_true - lower_bound) / (upper_bound - lower_bound)
-    
     return all_data, test_mesh, theta_true, theta_opt, theta_next, train_theta, param_names, idcs_to_plot
 
 def analyze_xy_plot(file_path, run_num, bo_iter, x_lin_pts):
@@ -839,7 +833,7 @@ def get_driver_dependencies_from_results(loaded_results, run_num):
     cs_name = configuration["Case Study Name"]
     ep0 = loaded_results[run_num].results_df["Exploration Bias"].iloc[0]
     sep_fact = configuration["Separation Factor"]
-    normalize = simulator.normalize
+    normalize = configuration["Normalize"]
     kernel = configuration["Initial Kernel"]
     lenscl = configuration["Initial Lengthscale"]
     outputscl = configuration["Initial Outputscale"]
@@ -1004,10 +998,7 @@ def analyze_param_sens(file_path, run_num, bo_iter, param_id, n_points):
     exp_data = loaded_results[run_num].exp_data_class
     gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
     simulator = loaded_results[run_num].simulator_class
-    if loaded_results[0].configuration["Normalize"] == True:
-        theta_true = loaded_results[run_num].simulator_class.theta_true_norm
-    else:
-        theta_true = loaded_results[run_num].simulator_class.theta_true
+    theta_true = loaded_results[run_num].simulator_class.theta_true
     train_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data
     test_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].test_data
     enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
