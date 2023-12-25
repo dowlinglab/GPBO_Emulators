@@ -274,7 +274,7 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
     if isinstance(data_names, list):
         assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
     
-    colors = ["red", "blue", "green", "purple", "darkorange", "darkgoldenrod"]
+    colors = ["red", "blue", "green", "purple", "darkorange", "deeppink"]
     method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid", "Monte Carlo"]
     #Number of subplots is 1
     fig, ax, num_subplots = create_subplots(1, sharex = False)
