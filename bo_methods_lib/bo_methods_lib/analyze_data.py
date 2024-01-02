@@ -50,6 +50,7 @@ def get_study_data_signac(criteria_dict, save_csv = False):
     study_id: str "ep" or "sf", whether to analyze data for the 
     
     """
+    df_found = False
     project = signac.get_project()
     
     #Get method name and CS name
@@ -69,50 +70,71 @@ def get_study_data_signac(criteria_dict, save_csv = False):
     jobs = sorted(project.find_jobs(criteria_dict_ep), key=lambda job: job._id)
     
     #Do analysis for study
-    #Initialize df for all sf/ep method data for each case study and method
-    df = pd.DataFrame()
-    #Loop over all jobs of this category
-    for job in jobs:
-        assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
-        data_file = job.fn("BO_Results.gz")
+    #Loop over all jobs of this category and look for a file with all the data
+    if save_csv is False:
+        for job in jobs:
+            assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
+            
+            #Check if csv already exists
+            if os.path.exists(job.fn("ep_study_analysis.csv")):
+                #If so, load the file
+                df = pd.read_csv(job.fn("ep_study_analysis.csv"), index_col=0)
+                data_file = job.fn("BO_Results.gz")
+                df_found = True
+#                 print("Data already exists")
+                break
+
+     
+    #Otherwise create it
+    if not df_found:
+#         print("generating data")
+        #Initialize df for all sf/ep method data for each case study and method
+        df = pd.DataFrame()
+    
+        for job in jobs:
+            assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
+            data_file = job.fn("BO_Results.gz")
+            
+            #Open the file and get the dataframe
+            with gzip.open(data_file, 'rb') as fileObj:
+                results = pickle.load(fileObj)   
+            fileObj.close()
+        
+            tot_runs = results[0].configuration["Number of Workflow Restarts"]
+            #Loop over runs
+            for run in range(tot_runs):
+                #Read data
+                df_job = results[run].results_df
+                #Add the value of the SF/EP enum as a column
+                col_vals = job.sp.ep_enum_val
+                df_job[col_name] = col_vals
+                #Add other important columns
+                df_job["index"] = run
+                df_job["BO Method"] = meth_name.name
+                df_job["Max Evals"] = len(df_job)
+                try:
+                    df_job["Termination"] = results[run].why_term
+                except:
+                    pass
+                df_job["Total Run Time"] = df_job["Time/Iter"]*df_job["Max Evals"]  
+                #Add data to the dataframe with all the data
+                df = pd.concat([df, df_job], ignore_index=False)
+
+        #Set BO and run numbers as columns        
+        df.rename(columns={'index': 'Run Number'}, inplace=True)   
+        df.insert(1, "BO Iter", df.index)
+        df = df.reset_index(drop=True)
+    else:
+        #Unpickle results once if necessary to get theta_true data     
         #Open the file and get the dataframe
         with gzip.open(data_file, 'rb') as fileObj:
             results = pickle.load(fileObj)   
         fileObj.close()
-        tot_runs = results[0].configuration["Number of Workflow Restarts"]
-        #Loop over runs
-        for run in range(tot_runs):
-            #Read data
-            df_job = results[run].results_df
-            #Add the value of the SF/EP enum as a column
-            col_vals = job.sp.ep_enum_val
-            df_job[col_name] = col_vals
-            #Add other important columns
-            df_job["index"] = run
-            df_job["BO Method"] = meth_name.name
-            df_job["Max Evals"] = len(df_job)
-            try:
-                df_job["Termination"] = results[run].why_term
-            except:
-                pass
-            df_job["Total Run Time"] = df_job["Time/Iter"]*df_job["Max Evals"]  
-            #Add data to the dataframe with all the data
-            df = pd.concat([df, df_job], ignore_index=False)
-
-    #Set BO and run numbers as columns        
-    df.rename(columns={'index': 'Run Number'}, inplace=True)   
-    df.insert(1, "BO Iter", df.index)
-    df = df.reset_index(drop=True)
 
     #get theta_true from 1st run since it never changes
     theta_true = results[0].simulator_class.theta_true
     #Put it in a csv file in a directory based on the method and case study
     if save_csv:
-        #Make directory name
-#         dir_name = "Results/" + study_id + "_study/" + cs_name_enum.name + "/" + param_name_str + "/" + meth_name.name
-#         if not os.path.isdir(dir_name):
-#             os.makedirs(dir_name)
-#         file_name1 = dir_name + "/" + study_id + "_study_analysis.csv"
         file_name1 = job.fn("ep_study_analysis.csv")
         df.to_csv(file_name1) 
 
@@ -209,43 +231,69 @@ def get_best_data(df, cs_name, theta_true, jobs = None, date_time_str = None, sa
     df_best: pd.DataFrame, Dataframe containing the best result from the study given a case study and method name
     
     """
-    col_name = 'EP Method Val'
+    df_found = False
+    #See if file already exists
+    #If so, simply use it
+    #Loop over all jobs of this category and look for a file with all the data
+    if save_csv == False:
+        for job in jobs:
+            assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
+            data_file = job.fn("BO_Results.gz")
+
+            #Check if csv already exists
+            if os.path.exists(job.fn("ep_study_best_all.csv")) or os.path.exists(job.fn("ep_study_best.csv")):
+                if os.path.exists(job.fn("ep_study_best_all.csv")):
+                    filepath = job.fn("ep_study_best_all.csv")
+
+                elif os.path.exists(job.fn("ep_study_best.csv")):
+                    filepath = job.fn("ep_study_best.csv")
+
+                df_found = True
+                #If so, load the file
+                df_best = pd.read_csv(filepath, index_col=0)
+                break
+            
+    if not df_found:
+        col_name = 'EP Method Val'
+
+        #Analyze for best data
+        #Initialize best idcs
+        best_indecies = np.zeros(len(df['BO Method'].unique()))
+        count = 0
+        #Loop over methods, SFs/EPs/, and runs (capable of doing all or just 1 method)
+        for meth in df['BO Method'].unique():
+            #Loop over EPs or SFs and runs
+            sse_best_overall = np.inf
+            for param in df[col_name].unique():
+                for run in df['Run Number'].unique():
+                    #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
+                    sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & 
+                                                            (df['Run Number'] == run)  & (df['BO Iter']+1 == df["Max Evals"]) ]
+
+                    if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
+                        sse_run_best_value = sse_run_best_value.iloc[0][0]
+                    else:
+                        sse_run_best_value = sse_run_best_value.iloc[0]
+
+                    if sse_run_best_value < sse_best_overall:
+                        #Set value as new best
+                        sse_best_overall = sse_run_best_value
+                        #Find the first instance where the minimum sse is found
+                        index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & 
+                                         (df["Min Obj Act"] == sse_run_best_value)]
+
+                        best_indecies[count] = index[0]
+            count += 1
+
+
+        #Make new df of only best single iter over all runs and SFs
+        df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
+
+        #Calculate the L2 norm of the best runs
+        print(list(df_best['Theta Min Obj'].to_numpy()[:]))
+        df_best = calc_L2_norm(df_best, theta_true)
     
-    #Analyze for best data
-    #Initialize best idcs
-    best_indecies = np.zeros(len(df['BO Method'].unique()))
-    count = 0
-    #Loop over methods, SFs/EPs/, and runs (capable of doing all or just 1 method)
-    for meth in df['BO Method'].unique():
-        #Loop over EPs or SFs and runs
-        sse_best_overall = np.inf
-        for param in df[col_name].unique():
-            for run in df['Run Number'].unique():
-                #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
-                sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & 
-                                                        (df['Run Number'] == run)  & (df['BO Iter']+1 == df["Max Evals"]) ]
-
-                if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
-                    sse_run_best_value = sse_run_best_value.iloc[0][0]
-                else:
-                    sse_run_best_value = sse_run_best_value.iloc[0]
-                
-                if sse_run_best_value < sse_best_overall:
-                    #Set value as new best
-                    sse_best_overall = sse_run_best_value
-                    #Find the first instance where the minimum sse is found
-                    index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & 
-                                     (df["Min Obj Act"] == sse_run_best_value)]
-
-                    best_indecies[count] = index[0]
-        count += 1
-
-
-    #Make new df of only best single iter over all runs and SFs
-    df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
-    
-    #Calculate the L2 norm of the best runs
-    df_best = calc_L2_norm(df_best, theta_true)
+#     print(list(df_best['Theta Min Obj'].to_numpy()[:]))
     
     if save_csv:
         #Save this as a csv in the same directory as all data
@@ -284,31 +332,52 @@ def get_median_data(df, cs_name, theta_true, jobs = None, date_time_str = None, 
     df_median: pd.DataFrame, Dataframe containing the median result from the study given a case study and method name
     
     """
-    col_name = 'EP Method Val'
-        
-    #Get median values from df_best
-    # Create a list containing 1 dataframe for each method in df_best
-    df_list = []
-    for meth in df['BO Method'].unique():
-        df_meth = df[df["BO Method"]==meth]   
-        df_list.append(df_meth)
+    df_found = False
+    #See if file already exists
+    #If so, simply use it
+    #Loop over all jobs of this category and look for a file with all the data
+    if save_csv == False:
+        for job in jobs:
+            assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
+            data_file = job.fn("BO_Results.gz")
 
-    #Create new df for median values
-    df_median = pd.DataFrame()
+            #Check if csv already exists
+            if os.path.exists(job.fn("ep_study_median.csv")):
+                if os.path.exists(job.fn("ep_study_median.csv")):
+                    filepath = job.fn("ep_study_median.csv")
 
-    #Loop over all method dataframes
-    for df_meth in df_list:
-        #Add the row corresponding to the median value of SSE to the list
-        if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
-            median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')[0]
-        else:
-            median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')
- 
-        df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
-        
-    #Calculate the L2 Norm for the median values
-    df_median = calc_L2_norm(df_median, theta_true)  
-    
+                df_found = True
+                #If so, load the file
+                df_median = pd.read_csv(filepath, index_col=0)
+                break
+                
+    if df_found == False:
+        col_name = 'EP Method Val'
+
+        #Get median values from df_best
+        # Create a list containing 1 dataframe for each method in df_best
+        df_list = []
+        for meth in df['BO Method'].unique():
+            df_meth = df[df["BO Method"]==meth]   
+            df_list.append(df_meth)
+
+        #Create new df for median values
+        df_median = pd.DataFrame()
+
+        #Loop over all method dataframes
+        for df_meth in df_list:
+            #Add the row corresponding to the median value of SSE to the list
+            if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
+                median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')[0]
+            else:
+                median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')
+
+            df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
+
+        #Calculate the L2 Norm for the median values
+        print(list(df_median['Theta Min Obj'].to_numpy()[:]))
+        df_median = calc_L2_norm(df_median, theta_true)  
+
     #Save or show df
     if save_csv:
         #Save this as a csv in the same directory as all data
@@ -322,18 +391,18 @@ def get_median_data(df, cs_name, theta_true, jobs = None, date_time_str = None, 
             os.makedirs(dir_name)
         #Add file to directory        
         df_median.to_csv(file_name2)
-#     if save_csv:
-#         #Save this as a csv in the same directory as all data
-#         #Make directory if it doesn't already exist
-#         if date_time_str is None:
-#             dir_name = "Results/" + "ep_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
-#         else:
-#             dir_name =  date_time_str + "ep_study/" + cs_name
-#         if not os.path.isdir(dir_name):
-#             os.makedirs(dir_name)
-#         #Add file to directory
-#         file_name2 = dir_name + "/" + "ep_study_median.csv"
-#         df_median.to_csv(file_name2) 
+    #     if save_csv:
+    #         #Save this as a csv in the same directory as all data
+    #         #Make directory if it doesn't already exist
+    #         if date_time_str is None:
+    #             dir_name = "Results/" + "ep_study/" + cs_name + "/" + param_name_str + "/" + df['BO Method'].iloc[0]
+    #         else:
+    #             dir_name =  date_time_str + "ep_study/" + cs_name
+    #         if not os.path.isdir(dir_name):
+    #             os.makedirs(dir_name)
+    #         #Add file to directory
+    #         file_name2 = dir_name + "/" + "ep_study_median.csv"
+    #         df_median.to_csv(file_name2) 
         
     return df_median
 
@@ -353,35 +422,55 @@ def get_mean_data(df, cs_name, theta_true, jobs = None, date_time_str = None, sa
     df_median: pd.DataFrame, Dataframe containing the median result from the study given a case study and method name
     
     """
-    col_name = 'EP Method Val'
-        
-    #Get median values from df_best
-    # Create a list containing 1 dataframe for each method in df_best
-    df_list = []
-    for meth in df['BO Method'].unique():
-        df_meth = df[df["BO Method"]==meth]   
-        df_list.append(df_meth)
+    df_found = False
+    #See if file already exists
+    #If so, simply use it
+    #Loop over all jobs of this category and look for a file with all the data
+    if save_csv == False:
+        for job in jobs:
+            assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
+            data_file = job.fn("BO_Results.gz")
 
-    #Create new df for median values
-    df_mean = pd.DataFrame()
+            #Check if csv already exists
+            if os.path.exists(job.fn("ep_study_mean.csv")):
+                if os.path.exists(job.fn("ep_study_mean.csv")):
+                    filepath = job.fn("ep_study_mean.csv")
 
-    #Loop over all method dataframes
-    for df_meth in df_list:
-        #Add the row corresponding to the median value of SSE to the list
-        if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
-            #Find true mean
-            df_true_mean = df_meth["Min Obj Act"].mean()[0]
-        else:
-            #Find true mean
-            df_true_mean = df_meth["Min Obj Act"].mean()
+                df_found = True
+                #If so, load the file
+                df_mean = pd.read_csv(filepath, index_col=0)
+                break
+    
+    if df_found == False:
+        col_name = 'EP Method Val'
 
-        #Find point closest to true mean
-        df_closest_to_mean = df_meth.iloc[(df_meth["Min Obj Act"]-df_true_mean).abs().argsort()[:1]]
-        #Add mean min and max points to dfs
-        df_mean = pd.concat([df_mean, df_closest_to_mean])
-        
-    #Calculate the L2 Norm for the median values
-    df_mean = calc_L2_norm(df_mean, theta_true)  
+        #Get median values from df_best
+        # Create a list containing 1 dataframe for each method in df_best
+        df_list = []
+        for meth in df['BO Method'].unique():
+            df_meth = df[df["BO Method"]==meth]   
+            df_list.append(df_meth)
+
+        #Create new df for median values
+        df_mean = pd.DataFrame()
+
+        #Loop over all method dataframes
+        for df_meth in df_list:
+            #Add the row corresponding to the median value of SSE to the list
+            if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
+                #Find true mean
+                df_true_mean = df_meth["Min Obj Act"].mean()[0]
+            else:
+                #Find true mean
+                df_true_mean = df_meth["Min Obj Act"].mean()
+
+            #Find point closest to true mean
+            df_closest_to_mean = df_meth.iloc[(df_meth["Min Obj Act"]-df_true_mean).abs().argsort()[:1]]
+            #Add mean min and max points to dfs
+            df_mean = pd.concat([df_mean, df_closest_to_mean])
+
+        #Calculate the L2 Norm for the median values
+        df_mean = calc_L2_norm(df_mean, theta_true)  
     
     #Save or show df
     if save_csv:
@@ -428,8 +517,6 @@ def get_mean_med_best_over_ep(df, cs_name, theta_true, job_list):
         
     return df_list
                 
-        
-    
 def converter(instr):
     """
     Converts strings to arrays when loading pandas dataframes
@@ -459,7 +546,16 @@ def calc_L2_norm(df, theta_true):
     -------
     df: pd.DataFrame, The original dataframe containing the L2 norm values of the parameters
     """
-    #Calculate the difference between the true values and the GP best values in the dataframe for each parameter
+    #Calculate the difference between the true values and the GP best values in the dataframe for each parameter    
+    def string_to_array(s):
+        try:
+            return np.array(eval(s))
+        except (SyntaxError, NameError):
+            return s
+    
+    # Apply the function to the DataFrame column
+    df['Theta Min Obj'] = df['Theta Min Obj'].apply(string_to_array)
+    
     theta_min_obj = np.array(list(df['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
     del_theta = theta_min_obj - theta_true
     theta_L2_norm = np.zeros(del_theta.shape[0])
@@ -467,7 +563,7 @@ def calc_L2_norm(df, theta_true):
         theta_L2_norm[i] = np.linalg.norm(del_theta[i,:], ord = 2)
         
     df["L2 Norm Theta"] = theta_L2_norm
-        
+
     return df
 
 def analyze_hypers(file_path, run_num):

@@ -90,7 +90,7 @@ def create_subplots(num_subplots, sharex = "row"):
         fig, axes = plt.subplots(nrows = 1, ncols = 1, figsize = (6,6), squeeze = False, sharex = "row")
         ax = axes.reshape(1)
         
-    return fig, ax, len(ax)
+    return fig, axes, ax, len(ax)
     
 def subplot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fontsize):
     """
@@ -200,7 +200,7 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_l
     
     #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
     subplots_needed = data.shape[-1]
-    fig, ax, num_subplots = create_subplots(subplots_needed)
+    fig, axes, ax, num_subplots = create_subplots(subplots_needed)
     
     #Print the title and labels as appropriate
     set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
@@ -277,7 +277,7 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
     colors = ["red", "blue", "green", "purple", "darkorange", "deeppink"]
     method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid", "Monte Carlo"]
     #Number of subplots is 1
-    fig, ax, num_subplots = create_subplots(1, sharex = False)
+    fig, axes, ax, num_subplots = create_subplots(1, sharex = False)
     
     #Print the title and labels as appropriate
     set_plot_titles(fig, title, None, None, title_fontsize, other_fontsize)
@@ -377,7 +377,7 @@ def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, str
     
     #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
     subplots_needed = len(file_path_list)
-    fig, ax, num_subplots = create_subplots(subplots_needed, sharex = False)
+    fig, axes, ax, num_subplots = create_subplots(subplots_needed, sharex = False)
     
     #Print the title and labels as appropriate
     set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
@@ -466,7 +466,7 @@ def plot_compare_mean_med_best(df, cs_name, theta_true, param_name_str, xbins, y
     for choice,title in zip(choices,titles):        
         #Number of subplots is number of values to plot. This will always be 4 for this graph
         subplots_needed = 4 #log(SSE), L2 norm (Theta), iters for best sse, and termination
-        fig, ax, num_subplots = create_subplots(subplots_needed)
+        fig, axes, ax, num_subplots = create_subplots(subplots_needed)
         
         #Print the title and labels as appropriate
         set_plot_titles(fig, title, "Stats Comparison", None, title_fontsize, other_fontsize)
@@ -546,7 +546,7 @@ def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins,
     
     """
     subplots_needed = data.get_dim_x_vals()
-    fig, ax, num_subplots = create_subplots(subplots_needed)
+    fig, axes, ax, num_subplots = create_subplots(subplots_needed)
     
     #Print the title and labels as appropriate
     set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
@@ -603,7 +603,7 @@ def plot_theta_vs_y_given_x(data, theta_idx, data_names, exp_data, train_data, t
     
     """
     subplots_needed = len(data)
-    fig, ax, num_subplots = create_subplots(subplots_needed)
+    fig, axes, ax, num_subplots = create_subplots(subplots_needed)
     
     #Print the title and labels as appropriate
     set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
@@ -824,7 +824,7 @@ def parity_plot(y_data, y_sse_data, sse_data, method, log_plot, xbins, ybins, x_
                 
     sse_stdev = np.sqrt(sse_var)
         
-    fig, ax, num_subplots = create_subplots(subplots_needed, sharex = False)
+    fig, axes, ax, num_subplots = create_subplots(subplots_needed, sharex = False)
     
     #Print the title and labels as appropriate
     set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
@@ -929,7 +929,7 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
     
     #Make figures and define number of subplots  
     subplots_needed = len(z)
-    fig, ax, num_subplots = create_subplots(subplots_needed)
+    fig, axes, ax, num_subplots = create_subplots(subplots_needed)
     
     #Print the title
     if title is not None:
@@ -1017,7 +1017,7 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
     
     return plt.show()
 
-def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_iter_list, pair, z_choice, log_data, levels, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, cmap = "autumn", save_path = None):
+def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_iter_list, pair, z_choice, log_data, levels, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 24, cmap = "autumn", save_path = None):
     '''
     Plots comparison of y_sim, GP_mean, and GP_stdev
     Parameters
@@ -1035,17 +1035,20 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
         title: str or None, Title of graph
         title_fontsize: int, fontisize for title. Default 24
         other_fontsize: int, fontisize for other values. Default 20
-        save_path: str or None, Path to save figure to. Default None (do not save figure).    
+        save_path: list of str or None, Paths to save figure to. Default None (do not save figure).    
     Returns
     -------
         plt.show(), A heat map of test_mesh and z
     '''
     
     #Assert Statements
-    none_str_vars = [title, save_path]
+    assert isinstance(save_path, list) or save_path is None, "save_path must be list of str or None"
+    none_str_vars = [title]
+    if save_path is not None:
+        none_str_vars += [path for path in save_path]
     int_vars = [xbins, ybins, zbins, title_fontsize, other_fontsize]
     list_vars = [file_path_list, bo_methods_list, run_num_list, bo_iter_list]
-    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path  must be string or None"
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path must be string or None"
     assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
     assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive" 
     assert isinstance(levels, (list, int)) or levels is None, "levels must be list of int, int, or None"
@@ -1069,41 +1072,73 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
     
     #Make figures and define number of subplots based on number of files (different methods)  
     subplots_needed = len(file_path_list)
-    fig, ax, num_subplots = create_subplots(subplots_needed)
+    fig, axes, ax, num_subplots = create_subplots(subplots_needed)
+    
+    all_z_data = []
+    all_theta_opt = []
+    all_theta_next = []
+    all_train_theta = []
+    
+    #Get all data for subplots needed
+    #Loop over number of subplots needed
+    for i in range(subplots_needed):
+        #Get data
+        analysis_list = analyze_heat_maps(file_path_list[i], run_num_list[i], bo_iter_list[i], pair, log_data)
+        sim_sse_var_ei, test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, idcs_to_plot = analysis_list
+        sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
+
+        #Assert sattements
+        #Get x and y data from test_mesh
+        xx , yy = test_mesh #NxN, NxN
+        assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
+        
+        #Find z based on z_choice
+        if "sim" in z_choice:
+            z = sse_sim
+            title2 = r"$\mathbf{e(\theta)_{sim}}$"
+        elif "mean" in z_choice:
+            z = sse_mean
+            title2 = r"$\mathbf{e(\theta)_{gp}}$"
+        elif "var" in z_choice:
+            z = sse_var
+            title2 = r"$\mathbf{e(\theta)_{gp_{var}}}$"
+        elif "ei" in z_choice:
+            z = ei
+            title2 = r"$\mathbf{EI(\theta)}$"
+        else:
+            raise Warning("choice must contain 'sim', 'mean', 'var', or 'ei'")
+
+#         if i == subplots_needed - 1:
+#             z = z+5
+        #Assert statements
+        assert z.shape==xx.shape, "Array z must be NxN"
+        all_z_data.append(z)
+        all_theta_opt.append(theta_opt)
+        all_theta_next.append(theta_next)
+        all_train_theta.append(train_theta)
+                 
+    # Find the maximum and minimum values in your data to normalize the color scale
+    vmin = min(np.min(arr) for arr in all_z_data)
+    vmax = max(np.max(arr) for arr in all_z_data)
+
+    # Create a common color normalization for all subplots
+    norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
+    cbar_ticks = np.linspace(vmin, vmax, zbins)
 
     #Set plot details
     #Loop over number of subplots
     for i in range(num_subplots):
-        if i < len(file_path_list):
+        if i < subplots_needed:
             #Get data
-            analysis_list = analyze_heat_maps(file_path_list[i], run_num_list[i], bo_iter_list[i], pair, log_data)
-            sim_sse_var_ei, test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, idcs_to_plot = analysis_list
-            sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
+#             analysis_list = analyze_heat_maps(file_path_list[i], run_num_list[i], bo_iter_list[i], pair, log_data)
+#             sim_sse_var_ei, test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, idcs_to_plot = analysis_list
+#             sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
+            z = all_z_data[i]
+            theta_opt = all_theta_opt[i]
+            theta_next = all_theta_next[i]
+            train_theta = all_train_theta[i]
             
-            #Assert sattements
-            #Get x and y data from test_mesh
-            xx , yy = test_mesh #NxN, NxN
-            assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
             
-            #Find z based on 
-            if "sim" in z_choice:
-                z = sse_sim
-                title2 = r"$\mathbf{e(\theta)_{sim}}$"
-            elif "mean" in z_choice:
-                z = sse_mean
-                title2 = r"$\mathbf{e(\theta)_{gp}}$"
-            elif "var" in z_choice:
-                z = sse_var
-                title2 = r"$\mathbf{e(\theta)_{gp_{var}}}$"
-            elif "ei" in z_choice:
-                z = ei
-                title2 = r"$\mathbf{EI(\theta)}$"
-            else:
-                raise Warning("choice must contain 'sim', 'mean', 'var', or 'ei'")
-                
-            #Assert statements
-            assert z.shape==xx.shape, "Array z must be NxN"
-
             #Set number format based on magnitude
             if np.amax(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000:
                 fmt = '%.2e'           
@@ -1111,11 +1146,12 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
                 fmt = '%2.2f'
 
             #Create a colormap and colorbar for each subplot
-            cs_fig = ax[i].contourf(xx, yy, z, levels = zbins, cmap = plt.cm.get_cmap(cmap))
+            cs_fig = ax[i].contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(cmap), norm = norm)
+#             cs_fig = ax[i].contourf(xx, yy, z, levels = zbins, cmap = plt.cm.get_cmap(cmap), norm = norm)
             
             #Create a line contour for each colormap
-            if levels is not None:   
-                cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
+            if levels is not None:  
+                cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3, norm = norm)
                 ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
                 
             #plot min obj, max ei, true and training param values as appropriate
@@ -1139,23 +1175,12 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
            #Set axes off if it's an extra
             ax[i].set_axis_off()
             
-        #Make colorbar on last plot which is invisible
+        #Make colorbar on last plot
         if i == num_subplots - 1:            
-            if subplots_needed == 1:
-                cbar = plt.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
-
-            else:
-                if num_subplots == subplots_needed:
-                    side = "right"
-                    pad = 0.2
-
-                else:
-                    side = "left"
-                    pad = 0.01
+            cb_ax = fig.add_axes([1.03,0,0.04,1])
+            new_ticks = matplotlib.ticker.MaxNLocator(nbins=12) #Set up to 12 ticks
+            cbar = fig.colorbar(cs_fig, orientation='vertical', ax=axes, cax=cb_ax, ticks = new_ticks)
             
-                divider1 = make_axes_locatable(ax[i])
-                cax1 = divider1.append_axes(side, size="5%", pad=pad)
-                cbar = plt.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt)
             cbar.ax.tick_params(labelsize=other_fontsize)
             if log_data == True:
                 title2 = "log(" + title2 + ")"
@@ -1182,18 +1207,48 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
     set_plot_titles(fig, title, xlabel, ylabel, title_fontsize, other_fontsize)
     
     #Plots legend and title
-    if not subplots_needed == 5:
-        fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
-    else:
-        fig.legend(handles, labels, loc= "lower right", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.1), borderaxespad=0)
+    fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)
+
     plt.tight_layout()
 
     #Save or show figure
     if save_path is not None:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        for save_path_dir in save_path:
+            save_path_to = save_path_dir + "Heat_Maps/" + z_choice + "_all_methods/" + plot_axis_names[0] + "-" + plot_axis_names[1]
+#             print(save_path_to)
+            save_fig(save_path_to, ext='png', close=False, verbose=False)  
+        plt.close() #Only close figure after for loop
     else:
         plt.show()
         plt.close()
     
     return plt.show()
 
+# def clippedcolorbar(CS, **kwargs):
+#     from matplotlib.cm import ScalarMappable
+#     from numpy import arange, floor, ceil
+#     fig = CS.get_figure()
+#     vmin = CS.get_clim()[0]
+#     vmax = CS.get_clim()[1]
+#     m = ScalarMappable(cmap=CS.get_cmap())
+#     m.set_array(CS.get_array())
+#     m.set_clim(CS.get_clim())
+#     step = CS.levels[1] - CS.levels[0]
+#     cliplower = CS.zmin<vmin
+#     clipupper = CS.zmax>vmax
+#     noextend = 'extend' in kwargs.keys() and kwargs['extend']=='neither'
+#     # set the colorbar boundaries
+#     boundaries = arange((floor(vmin/step)-1+1*(cliplower and noextend))*step, (ceil(vmax/step)+1-1*(clipupper and noextend))*step, step)
+#     kwargs['boundaries'] = boundaries
+#     # if the z-values are outside the colorbar range, add extend marker(s)
+#     # This behavior can be disabled by providing extend='neither' to the function call
+#     if not('extend' in kwargs.keys()) or kwargs['extend'] in ['min','max']:
+#         extend_min = cliplower or ( 'extend' in kwargs.keys() and kwargs['extend']=='min' )
+#         extend_max = clipupper or ( 'extend' in kwargs.keys() and kwargs['extend']=='max' )
+#         if extend_min and extend_max:
+#             kwargs['extend'] = 'both'
+#         elif extend_min:
+#             kwargs['extend'] = 'min'
+#         elif extend_max:
+#             kwargs['extend'] = 'max'
+#     return fig.colorbar(m, **kwargs)
