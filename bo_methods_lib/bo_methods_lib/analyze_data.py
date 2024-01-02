@@ -290,7 +290,6 @@ def get_best_data(df, cs_name, theta_true, jobs = None, date_time_str = None, sa
         df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
 
         #Calculate the L2 norm of the best runs
-        print(list(df_best['Theta Min Obj'].to_numpy()[:]))
         df_best = calc_L2_norm(df_best, theta_true)
     
 #     print(list(df_best['Theta Min Obj'].to_numpy()[:]))
@@ -375,7 +374,6 @@ def get_median_data(df, cs_name, theta_true, jobs = None, date_time_str = None, 
             df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
 
         #Calculate the L2 Norm for the median values
-        print(list(df_median['Theta Min Obj'].to_numpy()[:]))
         df_median = calc_L2_norm(df_median, theta_true)  
 
     #Save or show df
@@ -554,9 +552,12 @@ def calc_L2_norm(df, theta_true):
             return s
     
     # Apply the function to the DataFrame column
-    df['Theta Min Obj'] = df['Theta Min Obj'].apply(string_to_array)
     
-    theta_min_obj = np.array(list(df['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
+    try:
+        theta_min_obj = np.array(list(df['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
+    except:
+        df['Theta Min Obj'] = df['Theta Min Obj'].apply(string_to_array)
+        theta_min_obj = np.array(list(df['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
     del_theta = theta_min_obj - theta_true
     theta_L2_norm = np.zeros(del_theta.shape[0])
     for i in range(del_theta.shape[0]):
