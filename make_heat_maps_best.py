@@ -23,7 +23,7 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 
 #Set Stuff
 date_time_str = None
-meth_name_str_list = [1,2,3,4,5]
+meth_name_list = [1,2,3,4,5,6]
 study_id = "ep"
 log_data = True
 save_csv = False
@@ -31,14 +31,12 @@ get_ei = False
 save_fig = True
 
 #Set criteria dict
-criteria_dict = {"cs_name_val" : 8,
-                 "param_name_str" : "t1t2t3t4t5",
+criteria_dict = {"cs_name_val" : 9,
+                 "param_name_str" : "t1t2t3t4",
                  "retrain_GP": 25,
                  "num_x_data": 5,
-                 "outputscl": 1,
-                 "num_val_pts": 0,
-                 "sep_fact": 1.0,
-                 "ep_enum_val": 1,
+                 "outputscl": None,
+                 "bo_iter_tot": 50,
                  "lenscl": None}
 
 # criteria_dict = {"cs_name_val" : 1,
@@ -53,7 +51,7 @@ criteria_dict = {"cs_name_val" : 8,
 
 #Set plot details
 title_fontsize = 24
-other_fontsize = 20
+other_fontsize = 24
 xbins = 4
 ybins = 5
 zbins = 900
@@ -65,24 +63,25 @@ project = signac.get_project()
 #Get Best Data from ep experiment
 df = pd.DataFrame()
 job_list = []
-for meth_name_val in meth_name_str_list:
+for meth_name_val in meth_name_list:
     criteria_dict["meth_name_val"] = meth_name_val
-    df_piece, jobs, name_cs_str, theta_true = get_study_data_signac(criteria_dict, study_id, save_csv)
+    df_piece, jobs, name_cs_str, theta_true = get_study_data_signac(criteria_dict, save_csv)
     job_list += [job for job in jobs]
     df = pd.concat([df, df_piece], ignore_index=True)
 
-df_best = get_best_data(df, study_id, name_cs_str, theta_true, job_list, date_time_str, True)
+df_best = get_best_data(df, name_cs_str, theta_true, job_list, date_time_str, save_csv)
 
 #Get only the jobs which are the best
+project = signac.get_project()
 job_list_best = []
-for meth_name_val in meth_name_str_list:
+for meth_name_val in meth_name_list:
     #Get best ep data from previous results if possible    
     criteria_dict_ep = criteria_dict.copy()
     criteria_dict_ep["meth_name_val"] = meth_name_val
     criteria_dict_ep["sep_fact"] = 1.0
     meth_name = Method_name_enum(meth_name_val).name
     
-    path_name = job_list[0].fn(study_id + "_study_best_all.csv")
+    path_name = job_list[0].fn("ep_study_best_all.csv")
     df_ep_best = pd.read_csv(path_name, header = 0)
     best_ep_enum_val = int(df_ep_best["EP Method Val"][(df_ep_best['BO Method'] == meth_name)])
     criteria_dict_ep["ep_enum_val"] = best_ep_enum_val
@@ -91,7 +90,7 @@ for meth_name_val in meth_name_str_list:
     jobs_best = project.find_jobs(criteria_dict_ep)
     job_list_best += [job for job in jobs_best]
 
-assert len(meth_name_str_list) == len(job_list_best), "lens not equal. Check Criteria dict"
+assert len(meth_name_list) == len(job_list_best), "lens not equal. Check Criteria dict"
 
 #Get Best Data from ep experiment
 df_best_path = job_list_best[0].fn("ep_study_best_all.csv")
@@ -99,7 +98,7 @@ df_best = pd.read_csv(df_best_path, header = 0, index_col = 0)
 
 run_num_list = list(map(int, df_best["Run Number"].to_numpy() + 1))
 bo_iter_list = list(map(int, df_best["BO Iter"].to_numpy() + 1))
-meth_names = list(df_best["BO Method"])
+meth_name_str_list = list(df_best["BO Method"])
 
 #Make heat maps
 #Loop over best run/iter for each method
@@ -112,7 +111,6 @@ for i in range(len(job_list_best)):
     dim_theta = np.array(numbers).reshape(-1, 1)
     dim_theta = len(dim_theta)
     dim_list = np.linspace(0, dim_theta-1, dim_theta)
-    method_name = Method_name_enum(meth_name_str_list[i]).name
 
     #Get Number of pairs
     pairs = len((list(combinations(dim_list, 2))))
@@ -154,11 +152,13 @@ for i in range(len(job_list_best)):
     filenames = []
     
     #Add all Heat map data files to list
-    for job in [job_list_best[i]]:
-        #Create directory to store Heat Map Movies
-        dir_name = job.fn("")
-        heat_map_files = glob.glob(job.fn("Heat_Maps/*/*.png"))
-        filenames += heat_map_files
+    #Define the job according to which it is in the list
+    job = job_list_best[i]
+    #Create directory to store Heat Map Movies
+    dir_name = job.fn("")
+    #Add files from that job
+    heat_map_files = glob.glob(job.fn("Heat_Maps/"+path_end+"/*.png"))
+    filenames += heat_map_files
   
     if save_fig is True:
         if not os.path.isdir(dir_name):

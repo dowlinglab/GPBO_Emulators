@@ -265,7 +265,10 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
     Plots 5 value plots for EI, SSE, Min SSE, and EI values vs BO iter for all 5 methods
     """
      #Assert Statements
-    none_str_vars = [x_label, y_label, title, save_path]
+    assert isinstance(save_path, list) or save_path is None, "save_path must be list of str or None"
+    none_str_vars = [x_label, y_label, title]
+    if save_path is not None:
+        none_str_vars += [path for path in save_path]
     int_vars = [xbins, ybins, title_fontsize, other_fontsize]
     assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, save_path, and ylabel must be string or None"
     assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
@@ -321,9 +324,9 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
             #For the best result, print a solid line                    
             if run_num_list[i] == j + 1:
 #                 print(run_num_list[i]-1, j)
-                ax[0].plot(bo_space, data_df_j, alpha = 1, color = colors[i], label = label, linestyle='--', drawstyle='steps')
+                ax[0].plot(bo_space, data_df_j, alpha = 1, color = colors[i], label = label, drawstyle='steps')
             else:
-                ax[0].step(bo_space, data_df_j, alpha = 0.3, color = colors[i])
+                ax[0].step(bo_space, data_df_j, alpha = 0.2, color = colors[i], linestyle='--', drawstyle='steps')
                 
     #Set plot details 
 #     bo_len_max = 10
@@ -343,7 +346,11 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
         plt.show()
         plt.close()
     else:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        for save_path_dir in save_path:
+            save_path_to = save_path_dir + "Line_Plots/" + '_'.join(map(str, data_names)).replace(" ", "_").lower() + "_all_runs"
+#             print(save_path_to)
+            save_fig(save_path_to, ext='png', close=False, verbose=False)  
+        plt.close() #Only close figure after for loop
         
     return
 
@@ -1009,7 +1016,7 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
             path_end =  '-'.join(z_save_names)  
         else:
             path_end = '-'.join(z_titles)
-        save_path = save_path + "Heat_Maps/" + param_names[0] + "-" + param_names[1] + "/" + path_end
+        save_path = save_path + "Heat_Maps/" + path_end + "/" + param_names[0] + "-" + param_names[1]
         save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()

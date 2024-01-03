@@ -10,7 +10,7 @@ from itertools import combinations
 import bo_methods_lib
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import CS_name_enum, Method_name_enum
 from bo_methods_lib.bo_methods_lib.analyze_data import get_study_data_signac, get_best_data, open_file_helper, analyze_heat_maps
-from bo_methods_lib.bo_methods_lib.GPBO_Classes_plotters import plot_heat_maps, compare_method_heat_maps
+from bo_methods_lib.bo_methods_lib.GPBO_Classes_plotters import plot_method_sse_one_plot
 from skimage.transform import resize
 
 #Ignore warnings
@@ -25,14 +25,14 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 date_time_str = None
 meth_name_list = [1,2,3,4,5,6]
 study_id = "ep"
-log_data = True
+log_data = False
 save_csv = False
 get_ei = False 
 save_fig = True
 
 #Set criteria dict
-criteria_dict = {"cs_name_val" : 2,
-                 "param_name_str" : "y0",
+criteria_dict = {"cs_name_val" : 9,
+                 "param_name_str" : "t1t2t3t4",
                  "retrain_GP": 25,
                  "num_x_data": 5,
                  "outputscl": None,
@@ -42,8 +42,8 @@ criteria_dict = {"cs_name_val" : 2,
 #Set plot details
 title_fontsize = 24
 other_fontsize = 24
-xbins = 4
-ybins = 5
+xbins = 5
+ybins = 7
 zbins = 900
 cmap = "autumn"
 z_choice = "sse_mean"
@@ -82,6 +82,13 @@ for meth_name_val in meth_name_list:
     jobs_best = project.find_jobs(criteria_dict_ep)
     job_list_best += [job for job in jobs_best]
     
+#Set the save path as the job path
+if save_fig == True:
+    #Save all jobs to it 
+    save_paths = [job.fn("") for job in job_list_best]
+else:
+    save_paths = None
+       
 # for i in range(len(job_list_best)): 
 #     print(job_list_best[i].id)
     
@@ -90,64 +97,22 @@ assert len(meth_name_list) == len(job_list_best), "lens not equal. Check Criteri
 run_num_list = list(map(int, df_best["Run Number"].to_numpy() + 1))
 bo_iter_list = list(map(int, df_best["BO Iter"].to_numpy() + 1))
 meth_name_str_list = list(df_best["BO Method"]) 
-    
-#Loop over best run/iter for each method
-string_val = df_best["Theta Min Obj"].iloc[0]
-numbers = [float(num) for num in string_val.replace('[', '').replace(']', '').split()]
-dim_theta = np.array(numbers).reshape(-1, 1)
-dim_theta = len(dim_theta)
-dim_list = np.linspace(0, dim_theta-1, dim_theta)
 
-#Get Number of pairs
-pairs = len((list(combinations(dim_list, 2))))
+x_label = "BO Iterations"
+title = None
 
-#Set the save path as the job path
-if save_fig == True:
-    #Save all jobs to it 
-    save_paths = [job.fn("") for job in job_list_best]
-else:
-    save_paths = None
+file_path_list = [job.fn("BO_Results.gz") for job in job_list_best]
 
-#For each pair
-for pair in range(pairs):
-    title = None
+data_names = ["Max EI"]
+string_for_df_theta = ["Max EI"]
+y_label = "Max " + r"$\mathbf{EI(\theta)}$"
 
-    levels = [100,100,100,100,100,100]
-    file_path_list = [job.fn("BO_Results.gz") for job in job_list_best]
+plot_method_sse_one_plot(file_path_list, meth_name_str_list, run_num_list, string_for_df_theta, data_names, xbins, ybins, 
+                                   title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_paths)
 
-    compare_method_heat_maps(file_path_list, meth_name_str_list, run_num_list, bo_iter_list, pair, 
-                     z_choice, log_data, levels, xbins, ybins, zbins, title, title_fontsize, other_fontsize, 
-                     cmap, save_paths)
-        
-#Create mp4/gif files from pngs
-#Initialize filename list
-filenames = []
-#Add all Heat map data files to list (All will be the same so just take files from 1st job)
-#Create directory to store Heat Map Movies
-job = job_list_best[0]
-heat_map_files = glob.glob(job.fn("Heat_Maps/"+ z_choice + "_all_methods" + "/*.png"))
-filenames += heat_map_files
+data_names = ["Min SSE"]
+string_for_df_theta = ["Min Obj Cum."]
+y_label = r"$\mathbf{e(\theta)}$"
 
-for job in job_list_best:
-    if save_fig is True:
-        dir_name = job.fn("")
-        if not os.path.isdir(dir_name):
-            os.makedirs(dir_name)
-        gif_path = dir_name + z_choice + "_all_methods" + ".mp4"
-
-        #Create .mp4 file
-        with imageio.get_writer(gif_path, mode='I', fps=0.3) as writer: #Note. For gif use duration instead of fps
-            #For each file
-            for filename in filenames: 
-                #Get image
-                image = imageio.imread(filename, pilmode = "RGBA")
-                #Get the correct shape for the pngs based on the 1st file
-                if filename == filenames[0]: 
-                    shape = image.shape
-                    #Force image to have XY dims divisible by 16
-                    new_shape = (np.ceil(shape[0] / 16) * 16, np.ceil(shape[1] / 16) * 16, shape[2])
-                #If item shapes not the same force them to be the same. Fixes issues where pixels are off
-                if image.shape is not shape: 
-                    image = resize(image, (new_shape))
-                #Add file to movie as a uint8 type and multiply array by 255 to get correct coloring
-                writer.append_data((image*255).astype(np.uint8))
+plot_method_sse_one_plot(file_path_list, meth_name_str_list, run_num_list, string_for_df_theta, data_names, xbins, ybins, 
+                                   title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_paths)
