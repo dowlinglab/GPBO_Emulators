@@ -293,7 +293,7 @@ def set_param_str(cs_name_val):
     if cs_name_val == 1:
         param_name_str = "t1t2"
     elif cs_name_val == 2:
-        param_name_str = "x0"
+        param_name_str = "y0"
     elif cs_name_val == 3:
         param_name_str = "x0y0"
     elif cs_name_val == 4:
