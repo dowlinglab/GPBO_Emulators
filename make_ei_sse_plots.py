@@ -31,8 +31,9 @@ get_ei = False
 save_fig = True
 
 #Set criteria dict
-criteria_dict = {"cs_name_val" : 9,
-                 "param_name_str" : "t1t2t3t4",
+criteria_dict = {"cs_name_val" : 1,
+                 "param_name_str" : "t1t2",
+                 "ep_enum_val":1,
                  "retrain_GP": 25,
                  "num_x_data": 5,
                  "outputscl": None,

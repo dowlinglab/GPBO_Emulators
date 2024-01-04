@@ -1163,13 +1163,13 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
                 
             #plot min obj, max ei, true and training param values as appropriate
             if theta_true is not None:
-                ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1))
+                ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1), zorder = 2)
             if train_theta is not None:
-                ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]],color="green",s=100,label="Train",marker= "x")
-            if theta_opt is not None:
-                ax[i].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
+                ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]],color="green",s=100,label="Train",marker= "x", zorder = 1)
             if theta_next is not None:
-                ax[i].scatter(theta_next[idcs_to_plot[0]],theta_next[idcs_to_plot[1]],color="black",s=150,label ="Max EI",marker = ".")
+                ax[i].scatter(theta_next[idcs_to_plot[0]],theta_next[idcs_to_plot[1]],color="black",s=175,label ="Max EI",marker = ".", zorder = 3)
+            if theta_opt is not None:
+                ax[i].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, zorder = 4)
 
             #Set plot details
             subplot_details(ax[i], xx, yy, None, None, bo_methods_list[i], xbins, ybins, other_fontsize)

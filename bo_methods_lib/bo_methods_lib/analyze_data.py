@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import copy
 import signac
+from ast import literal_eval
 
 from .GPBO_Classes_New import *
 from .GPBO_Class_fxns import * 
@@ -63,35 +64,42 @@ def get_study_data_signac(criteria_dict, save_csv = False):
     cs_name_enum = CS_name_enum(cs_name_val)
     
     #For the ep study
-    col_name = 'EP Method Val'
     criteria_dict_ep = criteria_dict.copy()
     criteria_dict_ep["sep_fact"] = 1.0
     #Find all jobs of a certain cs and method type for the ep studies w/ SF = 1 in order of job id
     jobs = sorted(project.find_jobs(criteria_dict_ep), key=lambda job: job._id)
     
+#     print([job.id for job in jobs])
+#     print("")
+    
     #Do analysis for study
     #Loop over all jobs of this category and look for a file with all the data
     if save_csv is False:
+        df_all_jobs = pd.DataFrame()
         for job in jobs:
             assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
             
             #Check if csv already exists
             if os.path.exists(job.fn("ep_study_analysis.csv")):
                 #If so, load the file
-                df = pd.read_csv(job.fn("ep_study_analysis.csv"), index_col=0)
+                df_job = pd.read_csv(job.fn("ep_study_analysis.csv"), index_col=0)
+                #Add df_job to df overall after completion
+                df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
                 data_file = job.fn("BO_Results.gz")
                 df_found = True
-#                 print("Data already exists")
-                break
-
+                
+        #Reset index on df after adding all columns 
+        df_all_jobs = df_all_jobs.reset_index(drop=True) 
      
     #Otherwise create it
     if not df_found:
-#         print("generating data")
-        #Initialize df for all sf/ep method data for each case study and method
-        df = pd.DataFrame()
-    
+        #Initialize df for all jobs for the specific case study and method
+        df_all_jobs = pd.DataFrame()
         for job in jobs:
+            #Initialize df for a single job
+            df_job = pd.DataFrame()
+            
+            #Assert file exists and set it as a parameter
             assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
             data_file = job.fn("BO_Results.gz")
             
@@ -99,31 +107,48 @@ def get_study_data_signac(criteria_dict, save_csv = False):
             with gzip.open(data_file, 'rb') as fileObj:
                 results = pickle.load(fileObj)   
             fileObj.close()
-        
+            
+            #Back out number of workflow restarts
             tot_runs = results[0].configuration["Number of Workflow Restarts"]
+            
             #Loop over runs
             for run in range(tot_runs):
-                #Read data
-                df_job = results[run].results_df
-                #Add the value of the SF/EP enum as a column
+                #Read data as pd.df
+                df_run = results[run].results_df
+                #Add the EP enum value as a column
                 col_vals = job.sp.ep_enum_val
-                df_job[col_name] = col_vals
+                df_run['EP Method Val'] = col_vals
                 #Add other important columns
-                df_job["index"] = run
-                df_job["BO Method"] = meth_name.name
-                df_job["Max Evals"] = len(df_job)
-                try:
-                    df_job["Termination"] = results[run].why_term
-                except:
-                    pass
-                df_job["Total Run Time"] = df_job["Time/Iter"]*df_job["Max Evals"]  
-                #Add data to the dataframe with all the data
-                df = pd.concat([df, df_job], ignore_index=False)
+                df_run["index"] = run
+                df_run["BO Method"] = meth_name.name
+                df_run["Max Evals"] = len(df_run)
+#                 try:
+                df_run["Termination"] = results[run].why_term
+#                 except:
+#                     pass
+                df_run["Total Run Time"] = df_run["Time/Iter"]*df_run["Max Evals"]  
+                
+                #Set BO and run numbers as columns        
+                df_run.rename(columns={'index': 'Run Number'}, inplace=True)   
+                df_run.insert(1, "BO Iter", df_run.index)
+                
+                #Add run dataframe to job dataframe after
+                df_job = pd.concat([df_job, df_run], ignore_index=False)
+            
+            #Reset index on job dataframe
+            df_job = df_job.reset_index(drop=True)
+                
+            #Put in a csv file in a directory based on the method and case study
+            if save_csv: 
+                file_name1 = job.fn("ep_study_analysis.csv")
+                df_job.to_csv(file_name1) 
 
-        #Set BO and run numbers as columns        
-        df.rename(columns={'index': 'Run Number'}, inplace=True)   
-        df.insert(1, "BO Iter", df.index)
-        df = df.reset_index(drop=True)
+            #Add job dataframe to dataframe of all jobs after completion
+            df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
+
+        #Reset index on df after adding all columns 
+        df_all_jobs = df_all_jobs.reset_index(drop=True)    
+            
     else:
         #Unpickle results once if necessary to get theta_true data     
         #Open the file and get the dataframe
@@ -133,12 +158,8 @@ def get_study_data_signac(criteria_dict, save_csv = False):
 
     #get theta_true from 1st run since it never changes
     theta_true = results[0].simulator_class.theta_true
-    #Put it in a csv file in a directory based on the method and case study
-    if save_csv:
-        file_name1 = job.fn("ep_study_analysis.csv")
-        df.to_csv(file_name1) 
 
-    return df, jobs, cs_name_enum.name, theta_true
+    return df_all_jobs, jobs, cs_name_enum.name, theta_true
 
 def get_study_data_org(date_time_str, name_cs_str, meth_name_str_list, study_id, study_param_list, save_csv = False):
     """
@@ -253,9 +274,7 @@ def get_best_data(df, cs_name, theta_true, jobs = None, date_time_str = None, sa
                 df_best = pd.read_csv(filepath, index_col=0)
                 break
             
-    if not df_found:
-        col_name = 'EP Method Val'
-
+    if df_found == False:
         #Analyze for best data
         #Initialize best idcs
         best_indecies = np.zeros(len(df['BO Method'].unique()))
@@ -264,10 +283,10 @@ def get_best_data(df, cs_name, theta_true, jobs = None, date_time_str = None, sa
         for meth in df['BO Method'].unique():
             #Loop over EPs or SFs and runs
             sse_best_overall = np.inf
-            for param in df[col_name].unique():
-                for run in df['Run Number'].unique():
+            for param in df['EP Method Val'].unique():
+                for run in df['Run Number'].unique():                    
                     #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
-                    sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df[col_name] == param) & 
+                    sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df['EP Method Val'] == param) & 
                                                             (df['Run Number'] == run)  & (df['BO Iter']+1 == df["Max Evals"]) ]
 
                     if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
@@ -279,7 +298,7 @@ def get_best_data(df, cs_name, theta_true, jobs = None, date_time_str = None, sa
                         #Set value as new best
                         sse_best_overall = sse_run_best_value
                         #Find the first instance where the minimum sse is found
-                        index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df[col_name] == param) & 
+                        index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df['EP Method Val'] == param) & 
                                          (df["Min Obj Act"] == sse_run_best_value)]
 
                         best_indecies[count] = index[0]
@@ -291,8 +310,6 @@ def get_best_data(df, cs_name, theta_true, jobs = None, date_time_str = None, sa
 
         #Calculate the L2 norm of the best runs
         df_best = calc_L2_norm(df_best, theta_true)
-    
-#     print(list(df_best['Theta Min Obj'].to_numpy()[:]))
     
     if save_csv:
         #Save this as a csv in the same directory as all data
@@ -547,17 +564,19 @@ def calc_L2_norm(df, theta_true):
     #Calculate the difference between the true values and the GP best values in the dataframe for each parameter    
     def string_to_array(s):
         try:
-            return np.array(eval(s))
+            return np.array(eval(s), dtype=np.float64)
         except (SyntaxError, NameError):
             return s
     
-    # Apply the function to the DataFrame column
-    
+    # Apply the function to the DataFrame column   
     try:
+        #If the values are not being read as strings this works
         theta_min_obj = np.array(list(df['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
     except:
-        df['Theta Min Obj'] = df['Theta Min Obj'].apply(string_to_array)
-        theta_min_obj = np.array(list(df['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
+        #Otherwise, turn the theta values into a list and manually format the strings to be arrays
+        thetas_as_list = np.array(df['Theta Min Obj']).tolist()
+        theta_min_obj = np.array([list(map(float, s.strip('[]').split())) for s in thetas_as_list])
+
     del_theta = theta_min_obj - theta_true
     theta_L2_norm = np.zeros(del_theta.shape[0])
     for i in range(del_theta.shape[0]):
