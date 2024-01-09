@@ -51,12 +51,12 @@ def get_study_data_signac(criteria_dict, save_csv = False):
     study_id: str "ep" or "sf", whether to analyze data for the 
     
     """
+    #Note, will need to run with save_csv = True whenever new jobs are added to ensure correct numbering of runs
     df_found = False
     project = signac.get_project()
     
     #Get method name and CS name
     cs_name_val = criteria_dict["cs_name_val"]
-    param_name_str = criteria_dict["param_name_str"]
     meth_name_val = criteria_dict["meth_name_val"]
     
     
@@ -68,7 +68,8 @@ def get_study_data_signac(criteria_dict, save_csv = False):
     criteria_dict_ep["sep_fact"] = 1.0
     #Find all jobs of a certain cs and method type for the ep studies w/ SF = 1 in order of job id
     jobs = sorted(project.find_jobs(criteria_dict_ep), key=lambda job: job._id)
-    
+    #Find number of different exploration bias calc methods
+    len_eps = len([job.id for job in jobs])
 #     print([job.id for job in jobs])
 #     print("")
     
@@ -95,6 +96,10 @@ def get_study_data_signac(criteria_dict, save_csv = False):
     if not df_found:
         #Initialize df for all jobs for the specific case study and method
         df_all_jobs = pd.DataFrame()
+
+        #initialize job counter for each ep bias calc method
+        col_val_run_jobs = np.zeros(len_eps)
+
         for job in jobs:
             #Initialize df for a single job
             df_job = pd.DataFrame()
@@ -117,15 +122,16 @@ def get_study_data_signac(criteria_dict, save_csv = False):
                 df_run = results[run].results_df
                 #Add the EP enum value as a column
                 col_vals = job.sp.ep_enum_val
-                df_run['EP Method Val'] = col_vals
+                # df_run['EP Method Val'] = col_vals
+                df_run['EP Method Val'] = Ep_enum(int(col_vals))
+                #Number of runs is the run number of the job + run number of runs before it w/ same ep_enum_val
+                job_run_count = col_val_run_jobs[col_vals]
+                df_run["index"] = int(run + job_run_count)
                 #Add other important columns
-                df_run["index"] = run
                 df_run["BO Method"] = meth_name.name
+                df_run["Job ID"] = job.id
                 df_run["Max Evals"] = len(df_run)
-#                 try:
                 df_run["Termination"] = results[run].why_term
-#                 except:
-#                     pass
                 df_run["Total Run Time"] = df_run["Time/Iter"]*df_run["Max Evals"]  
                 
                 #Set BO and run numbers as columns        
@@ -134,7 +140,10 @@ def get_study_data_signac(criteria_dict, save_csv = False):
                 
                 #Add run dataframe to job dataframe after
                 df_job = pd.concat([df_job, df_run], ignore_index=False)
-            
+
+            #Update job_run_count for every df line with the same ep method val 
+            col_val_run_jobs[col_vals] += tot_runs
+
             #Reset index on job dataframe
             df_job = df_job.reset_index(drop=True)
                 
