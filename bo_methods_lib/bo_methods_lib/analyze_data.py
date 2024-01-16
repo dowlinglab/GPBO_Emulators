@@ -70,8 +70,6 @@ def get_study_data_signac(criteria_dict, save_csv = False):
     jobs = sorted(project.find_jobs(criteria_dict_ep), key=lambda job: job._id)
     #Find number of different exploration bias calc methods
     len_eps = len([job.id for job in jobs])
-#     print([job.id for job in jobs])
-#     print("")
     
     #Do analysis for study
     #Loop over all jobs of this category and look for a file with all the data
@@ -123,7 +121,7 @@ def get_study_data_signac(criteria_dict, save_csv = False):
                 #Add the EP enum value as a column
                 col_vals = job.sp.ep_enum_val
                 # df_run['EP Method Val'] = col_vals
-                df_run['EP Method Val'] = int(col_vals)
+                df_run['EP Method Val'] = Ep_enum(int(col_vals)).name
                 #Number of runs is the run number of the job + run number of runs before it w/ same ep_enum_val
                 # print(col_vals, col_val_run_jobs)
                 job_run_count = col_val_run_jobs[col_vals-1]
