@@ -123,15 +123,19 @@ def get_study_data_signac(criteria_dict, save_csv = False):
                 #Add the EP enum value as a column
                 col_vals = job.sp.ep_enum_val
                 # df_run['EP Method Val'] = col_vals
-                df_run['EP Method Val'] = Ep_enum(int(col_vals))
+                df_run['EP Method Val'] = int(col_vals)
                 #Number of runs is the run number of the job + run number of runs before it w/ same ep_enum_val
-                job_run_count = col_val_run_jobs[col_vals]
+                # print(col_vals, col_val_run_jobs)
+                job_run_count = col_val_run_jobs[col_vals-1]
                 df_run["index"] = int(run + job_run_count)
                 #Add other important columns
                 df_run["BO Method"] = meth_name.name
                 df_run["Job ID"] = job.id
                 df_run["Max Evals"] = len(df_run)
-                df_run["Termination"] = results[run].why_term
+                try:
+                    df_run["Termination"] = results[run].why_term
+                except:
+                    pass
                 df_run["Total Run Time"] = df_run["Time/Iter"]*df_run["Max Evals"]  
                 
                 #Set BO and run numbers as columns        
@@ -142,7 +146,7 @@ def get_study_data_signac(criteria_dict, save_csv = False):
                 df_job = pd.concat([df_job, df_run], ignore_index=False)
 
             #Update job_run_count for every df line with the same ep method val 
-            col_val_run_jobs[col_vals] += tot_runs
+            col_val_run_jobs[col_vals-1] += tot_runs
 
             #Reset index on job dataframe
             df_job = df_job.reset_index(drop=True)
