@@ -9,7 +9,7 @@ from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_param_str
 project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
-cs_val_list  = [2] #Corresponds to CS1 and all subproblems of CS2. Full list is [1, 2, 3, 4, 5, 6, 7, 8, 9]
+cs_val_list  = [2,3]
 meth_val_list = [1, 2, 3, 4, 5, 6] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
@@ -26,11 +26,10 @@ if isinstance(lenscl, list):
     lenscl = json.dumps(lenscl)
 outputscl = None
 retrain_GP = 25
-reoptimize_obj = 20
-bo_iter_tot = 100
-bo_run_tot = 5
+reoptimize_obj = 25
+bo_iter_tot = 75
+bo_run_total = 10
 save_data = False
-seed = 1
 ei_tol = 1e-7
 obj_tol = 1e-7
 num_x_data = 5
@@ -62,34 +61,39 @@ for cs_name_val in cs_val_list:
     for meth_name_val in meth_val_list:
         #Loop over exploration parameter methods
         for ep_enum_val in ep_val_list:
-            #Create job parameter dict
-            sp = {"cs_name_val": cs_name_val, 
-                  "meth_name_val": meth_name_val,
-                  "param_name_str": param_name_str,
-                  "ep0": ep0, 
-                  "ep_enum_val": ep_enum_val,
-                  "sep_fact" : sep_fact,
-                  "normalize" : normalize,
-                  "gen_heat_map_data" : gen_heat_map_data,
-                  "noise_mean":noise_mean,
-                  "noise_std": noise_std,
-                  "kernel_enum_val": kernel_enum_val,
-                  "lenscl": lenscl,
-                  "outputscl": outputscl,
-                  "retrain_GP": retrain_GP,
-                  "reoptimize_obj": reoptimize_obj,
-                  "bo_iter_tot": bo_iter_tot,
-                  "bo_run_tot":bo_run_tot,
-                  "save_data": save_data,
-                  "seed":seed,
-                  "ei_tol":ei_tol,
-                  "obj_tol":obj_tol,
-                  "num_x_data":num_x_data,
-                  "gen_meth_theta":gen_meth_theta,
-                  "gen_meth_x":gen_meth_x,
-                  "gen_meth_theta_val":gen_meth_theta_val,
-                  "num_theta_multiplier": num_theta_multiplier,
-                  "num_val_pts":num_val_pts}
+            #Initialize seed
+            seed = 1
+            #Loop over number of runs
+            for bo_run_tot in range(1,bo_run_total+1):
+                #Create job parameter dict
+                sp = {"cs_name_val": cs_name_val, 
+                    "meth_name_val": meth_name_val,
+                    "param_name_str": param_name_str,
+                    "ep0": ep0, 
+                    "ep_enum_val": ep_enum_val,
+                    "sep_fact" : sep_fact,
+                    "normalize" : normalize,
+                    "gen_heat_map_data" : gen_heat_map_data,
+                    "noise_mean":noise_mean,
+                    "noise_std": noise_std,
+                    "kernel_enum_val": kernel_enum_val,
+                    "lenscl": lenscl,
+                    "outputscl": outputscl,
+                    "retrain_GP": retrain_GP,
+                    "reoptimize_obj": reoptimize_obj,
+                    "bo_iter_tot": bo_iter_tot,
+                    "bo_run_tot":bo_run_tot,
+                    "save_data": save_data,
+                    "seed":seed,
+                    "ei_tol":ei_tol,
+                    "obj_tol":obj_tol,
+                    "num_x_data":num_x_data,
+                    "gen_meth_theta":gen_meth_theta,
+                    "gen_meth_x":gen_meth_x,
+                    "gen_meth_theta_val":gen_meth_theta_val,
+                    "num_theta_multiplier": num_theta_multiplier,
+                    "num_val_pts":num_val_pts}
+                seed += 2
             #Create jobs for exploration bias study
             job = project.open_job(sp).init()
         
