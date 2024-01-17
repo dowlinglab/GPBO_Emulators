@@ -887,7 +887,10 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
                 sg_depth = loaded_results[run_num].configuration["Sparse Grid Depth"]
                 heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)[0]
             except:
-                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth =10)[0]   
+                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth =10)[0]  
+
+        if log_data == True:
+            heat_map_data.ei = np.log(heat_map_data.ei)
         
     #Create test mesh
     #Define original theta_vals (for restoration later)
