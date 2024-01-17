@@ -94,8 +94,8 @@ for cs_name_val in cs_val_list:
                     "num_theta_multiplier": num_theta_multiplier,
                     "num_val_pts":num_val_pts}
                 seed += 2
-            #Create jobs for exploration bias study
-            job = project.open_job(sp).init()
+                #Create jobs for exploration bias study
+                job = project.open_job(sp).init()
         
 #         #Check that sep_fact study has not already been completed
 #         #Initialize flag
