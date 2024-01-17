@@ -108,12 +108,12 @@ class CS_name_enum(Enum):
     Notes: 
     -------
     1 = CS1 2 Param Polynomial
-    2 = CS2 4 Param Muller Potential
-    3 = CS2 8 Param Muller Potential
-    4 = CS2 12 Param Muller Potential
-    5 = CS2 16 Param Muller Potential
-    6 = CS2 20 Param Muller Potential
-    7 = CS2 24 Param Muller Potential
+    2 = CS2 4 Param (x0) Muller Potential
+    3 = CS2 4 Param (y0) Muller Potential
+    4 = CS2 8 Param (x0y0) Muller Potential
+    5 = CS2 12 Param (Ax0y0) Muller Potential
+    6 = CS2 8 Param (Ax0) Muller Potential
+    7 = CS2 8 Param (Ay0) Muller Potential
     8 = CS3 5 Param Polynomial
     9 = CS4 4 Param Isotherm
     """
@@ -122,12 +122,12 @@ class CS_name_enum(Enum):
         raise ValueError("There are 9 options for Enum: 1 to 9")
         
     CS1 = 1
-    CS2_4 = 2
-    CS2_8 = 3
-    CS2_12 = 4
-    CS2_16 = 5
-    CS2_20 = 6
-    CS2_24 = 7
+    CS2_x0 = 2
+    CS2_y0 = 3
+    CS2_x0y0 = 4
+    CS2_Ax0y0 = 5
+    CS2_Ax0 = 6
+    CS2_Ay0 = 7
     CS3 = 8
     CS4 = 9
     
