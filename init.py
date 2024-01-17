@@ -9,7 +9,7 @@ from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_param_str
 project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
-cs_val_list  = [2,3]
+cs_val_list  = [4, 5]
 meth_val_list = [1, 2, 3, 4, 5, 6] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
@@ -27,8 +27,8 @@ if isinstance(lenscl, list):
 outputscl = None
 retrain_GP = 25
 reoptimize_obj = 25
-bo_iter_tot = 75
-bo_run_total = 10
+bo_iter_tot = 50
+bo_run_total = 5
 save_data = False
 ei_tol = 1e-7
 obj_tol = 1e-7
