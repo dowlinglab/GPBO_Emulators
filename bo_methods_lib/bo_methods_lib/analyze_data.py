@@ -793,11 +793,12 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     enum_ep = Ep_enum(loaded_results[run_num].configuration["Exploration Bias Method Value"])
     ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
     ep_bias = Exploration_Bias(None, ep_at_iter, enum_ep, None, None, None, None, None, None, None)
+
+    cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
     
     if loaded_results[run_num].heat_map_data_dict is not None:
         heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
     else:
-        cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
         driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, ep_bias, gen_meth_theta)
         loaded_results[run_num].heat_map_data_dict = driver.create_heat_map_param_data()
         heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
@@ -816,6 +817,14 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     #Get index of param set
     idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]   
     best_error =  loaded_results[run_num].results_df["Best Error"].iloc[bo_iter]
+    if method.emulator == False:
+        #Type 1 best error is inferred from training data 
+        best_error, be_theta = gp_emulator.calc_best_error()
+        best_errors_x = None
+    else:
+        #Type 2 best error must be calculated given the experimental data
+        best_error, be_theta, best_errors_x = gp_emulator.calc_best_error(method, exp_data)
+    best_error_metrics = (best_error, be_theta, best_errors_x)
     theta_true = loaded_results[run_num].simulator_class.theta_true
     theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
     theta_next = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
@@ -872,9 +881,13 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
             
     if get_ei:
         if method.emulator == False:
-            heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error)
+            heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics)[0]
         else:
-            heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error, method)   
+            try:
+                sg_depth = loaded_results[run_num].configuration["Sparse Grid Depth"]
+                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)[0]
+            except:
+                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth =10)[0]   
         
     #Create test mesh
     #Define original theta_vals (for restoration later)

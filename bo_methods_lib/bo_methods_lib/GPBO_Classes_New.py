@@ -4136,6 +4136,7 @@ class GPBO_Driver:
                          "Number of Workflow Restarts" : self.cs_params.bo_run_tot,
                          "Seed" : self.cs_params.seed,
                          "EI Tolerance" : self.cs_params.ei_tol,
+                         "Sparse Grid Depth": self.sg_depth,
                          "Obj Improvement Tolerance" : self.cs_params.obj_tol,
                          "Theta Generation Enum Value": self.gen_meth_theta.value}
                 

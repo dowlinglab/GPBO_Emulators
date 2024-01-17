@@ -1089,8 +1089,12 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
     #Get all data for subplots needed
     #Loop over number of subplots needed
     for i in range(subplots_needed):
+        if "ei" in z_choice:
+            get_ei = True
+        else:
+            get_ei = False
         #Get data
-        analysis_list = analyze_heat_maps(file_path_list[i], run_num_list[i], bo_iter_list[i], pair, log_data)
+        analysis_list = analyze_heat_maps(file_path_list[i], run_num_list[i], bo_iter_list[i], pair, log_data, get_ei)
         sim_sse_var_ei, test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, idcs_to_plot = analysis_list
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
 
