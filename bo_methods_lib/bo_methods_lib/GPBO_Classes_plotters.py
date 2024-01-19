@@ -162,8 +162,7 @@ def set_plot_titles(fig, title, x_label, y_label, title_fontsize = 24, other_fon
     if y_label is not None:
         fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold')
         
-    return
-    
+    return   
     
 def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_label, y_label, log_data = False, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
@@ -260,7 +259,7 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_l
 
     return
 
-def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, string_for_df, data_names, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
+def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, z_choices, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
     """
     Plots 5 value plots for EI, SSE, Min SSE, and EI values vs BO iter for all 5 methods
     """
@@ -273,9 +272,9 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
     assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, save_path, and ylabel must be string or None"
     assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
     assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
-    assert isinstance(data_names, list) or data_names is None, "data_names must be list or None"
-    if isinstance(data_names, list):
-        assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
+    assert isinstance(z_choices, list), "z_choices must be list of string. List must contain at least 'ei' or 'sse'"
+    assert all(isinstance(item, str) for item in z_choices), "z_choices elements must be string"
+    assert any(item in z_choices for item in ["ei", "min_sse", "sse"]), "z_choices must contain at least 'min_sse', 'ei', or 'sse'"
     
     colors = ["red", "blue", "green", "purple", "darkorange", "deeppink"]
     method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid", "Monte Carlo"]
@@ -289,7 +288,7 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
     #Loop over different methdods (number of subplots)
     for i in range(len(file_path_list)):
         #Get best data for method
-        data, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num_list[i], string_for_df)
+        data, data_names, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num_list[i], z_choices)
         #The index of the data is i, and one data type is in the last row of the data
         one_data_type = data        
 
@@ -302,7 +301,7 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
         #Loop over all runs
         for j in range(one_data_type.shape[0]):
             #Get data
-            data, data_true = analyze_sse_min_sse_ei(file_path_list[i], j+1, string_for_df)
+            data, data_names, data_true = analyze_sse_min_sse_ei(file_path_list[i], j+1, z_choices)
             #The index of the data is i, and one data type is in the last row of the data
             one_data_type = data
             #Remove elements that are numerically 0            
@@ -339,7 +338,7 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, strin
     plt.tight_layout()
     if log_data == False:
         plt.yscale("log")
-    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    fig.legend(handles, labels, loc= "center left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.60), borderaxespad=0)
     
     #save or show figure
     if save_path is None:
@@ -368,7 +367,7 @@ def get_data_to_bo_iter_term(data_all_iters):
         
     return data_df_j
                     
-def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, string_for_df, data_names, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
+def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, z_choice, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
     """
     Plots 5 value plots for EI, SSE, Min SSE, and EI values vs BO iter for all 5 methods
     """
@@ -378,9 +377,9 @@ def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, str
     assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, save_path, and ylabel must be string or None"
     assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
     assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
-    assert isinstance(data_names, list) or data_names is None, "data_names must be list or None"
-    if isinstance(data_names, list):
-        assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
+    
+    assert isinstance(z_choice, str), "z_choice must be a string 'min_sse', 'ei', or 'sse'"
+    assert any(item == z_choice for item in ["ei", "min_sse", "sse"]), "z_choice must be 'min_sse', 'ei', or 'sse'"
     
     #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
     subplots_needed = len(file_path_list)
@@ -394,7 +393,7 @@ def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, str
         #If you still have data to plot
         if i < subplots_needed:
             #Get data
-            data, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num_list[i], string_for_df)
+            data, data_names, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num_list[i], z_choice)
 
             #The index of the data is i, and one data type is in the last row of the data
             one_data_type = data
@@ -437,7 +436,7 @@ def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, str
     
     #Plots legend and title
     plt.tight_layout()
-    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
+    fig.legend(handles, labels, loc= "center left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.60), borderaxespad=0)
     
     #save or show figure
     if save_path is None:
@@ -879,16 +878,16 @@ def plot_heat_maps(test_mesh, theta_true, theta_obj_min, theta_ei_max, train_the
 
             #plot min obj, max ei, true and training param values as appropriate
             if theta_true is not None:
-                ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1))
+                ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1), zorder = 2)
             if train_theta is not None:
-                ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]],color="green",s=100,label="Train",marker= "x")
+                ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]],color="green",s=100,label="Train",marker= "x", zorder =1)
+            if theta_ei_max is not None:
+                ax[i].scatter(theta_ei_max[idcs_to_plot[0]],theta_ei_max[idcs_to_plot[1]],color="black",s=175,label ="Max EI",marker = ".", zorder =3)
             if theta_obj_min is not None:
                 try: #Note this is just for getting the scaled muller test working
-                    ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
+                    ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, zorder = 4)
                 except:
-                    ax[i].scatter(theta_obj_min[0],theta_obj_min[1], color="white", s=175, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3)
-            if theta_ei_max is not None:
-                ax[i].scatter(theta_ei_max[idcs_to_plot[0]],theta_ei_max[idcs_to_plot[1]],color="black",s=150,label ="Max EI",marker = ".")
+                    ax[i].scatter(theta_obj_min[0],theta_obj_min[1], color="white", s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, zorder =4)
 
             #Define x and y labels
             if "theta" in param_names[0]:
@@ -1139,32 +1138,3 @@ def compare_method_heat_maps(file_path_list, bo_methods_list, run_num_list, bo_i
         plt.close()
     
     return plt.show()
-
-# def clippedcolorbar(CS, **kwargs):
-#     from matplotlib.cm import ScalarMappable
-#     from numpy import arange, floor, ceil
-#     fig = CS.get_figure()
-#     vmin = CS.get_clim()[0]
-#     vmax = CS.get_clim()[1]
-#     m = ScalarMappable(cmap=CS.get_cmap())
-#     m.set_array(CS.get_array())
-#     m.set_clim(CS.get_clim())
-#     step = CS.levels[1] - CS.levels[0]
-#     cliplower = CS.zmin<vmin
-#     clipupper = CS.zmax>vmax
-#     noextend = 'extend' in kwargs.keys() and kwargs['extend']=='neither'
-#     # set the colorbar boundaries
-#     boundaries = arange((floor(vmin/step)-1+1*(cliplower and noextend))*step, (ceil(vmax/step)+1-1*(clipupper and noextend))*step, step)
-#     kwargs['boundaries'] = boundaries
-#     # if the z-values are outside the colorbar range, add extend marker(s)
-#     # This behavior can be disabled by providing extend='neither' to the function call
-#     if not('extend' in kwargs.keys()) or kwargs['extend'] in ['min','max']:
-#         extend_min = cliplower or ( 'extend' in kwargs.keys() and kwargs['extend']=='min' )
-#         extend_max = clipupper or ( 'extend' in kwargs.keys() and kwargs['extend']=='max' )
-#         if extend_min and extend_max:
-#             kwargs['extend'] = 'both'
-#         elif extend_min:
-#             kwargs['extend'] = 'min'
-#         elif extend_max:
-#             kwargs['extend'] = 'max'
-#     return fig.colorbar(m, **kwargs)

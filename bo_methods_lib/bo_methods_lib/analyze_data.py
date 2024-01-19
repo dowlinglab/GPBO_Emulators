@@ -169,10 +169,10 @@ def get_study_data_signac(job, dir_name, save_csv = False):
         #Or use the run number from tot_run when tot_runs > 0
         elif tot_runs > 1:
             #Number of runs is the (seed # of the run - initial seed )/2 if tot_runs > 1 
-            df_run["index"] = int(run)
+            df_run["index"] = int(run + 1)
         else:
             #Otherwise it is (seed # of the run - 1 )/2 if tot_runs = 1 (Old job initialization system)
-            df_run["index"] = int((results[run].configuration["Seed"] - 1)/2)
+            df_run["index"] = int((results[run].configuration["Seed"] - 1)/2 + 1 )
         #Add other important columns
         df_run["BO Method"] = Method_name_enum(job.sp.meth_name_val).name
         df_run["Job ID"] = job.id
@@ -185,7 +185,7 @@ def get_study_data_signac(job, dir_name, save_csv = False):
 
         #Set BO and run numbers as columns        
         df_run.rename(columns={'index': 'Run Number'}, inplace=True)   
-        df_run.insert(1, "BO Iter", df_run.index)
+        df_run.insert(1, "BO Iter", df_run.index + 1)
 
         #Add run dataframe to job dataframe after
         df_job = pd.concat([df_job, df_run], ignore_index=False)
@@ -281,14 +281,6 @@ def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save
         #Calculate the L2 norm of the best runs
         df_best = calc_L2_norm(df_best, theta_true)
         
-    #Get list of best jobs
-    job_list_best = []
-    job_id_list_best = list(df_best["Job ID"])
-    for job_id in job_id_list_best:
-        job = project.open_job(id=job_id)
-        if job:
-            job_list_best.append(job)
-        
     #Put in order of method
     row_order = sorted([Method_name_enum[meth].value for meth in df['BO Method'].unique()])
     order = [Method_name_enum(num).name for num in row_order]
@@ -298,7 +290,14 @@ def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save
 
     # Sort the DataFrame based on the categorical order
     df_best = df_best.sort_values(by='BO Method')
-
+    
+    #Get list of best jobs
+    job_list_best = []
+    job_id_list_best = list(df_best["Job ID"])
+    for job_id in job_id_list_best:
+        job = project.open_job(id=job_id)
+        if job:
+            job_list_best.append(job)
     
     if save_csv:
         #Save this as a csv in the same directory as all data
@@ -381,16 +380,6 @@ def get_median_data(criteria_dict, df = None, jobs = None, theta_true = None, sa
         #Calculate the L2 Norm for the median values
         df_median = calc_L2_norm(df_median, theta_true)  
 
-    
-    #Get list of best jobs
-    job_list_med = []
-
-    job_id_list_med = list(df_median["Job ID"])
-    for job_id in job_id_list_med:
-        job = project.open_job(id=job_id)
-        if job:
-            job_list_med.append(job)
-        
     #Put in order of method
     row_order = sorted([Method_name_enum[meth].value for meth in df['BO Method'].unique()])
     order = [Method_name_enum(num).name for num in row_order]
@@ -400,8 +389,16 @@ def get_median_data(criteria_dict, df = None, jobs = None, theta_true = None, sa
 
     # Sort the DataFrame based on the categorical order
     df_median = df_median.sort_values(by='BO Method')
-
     
+    #Get list of best jobs
+    job_list_med = []
+
+    job_id_list_med = list(df_median["Job ID"])
+    for job_id in job_id_list_med:
+        job = project.open_job(id=job_id)
+        if job:
+            job_list_med.append(job)
+   
     if save_csv:
         #Save this as a csv in the same directory as all data
         #Create directory based on criteria dict
@@ -487,16 +484,7 @@ def get_mean_data(criteria_dict, df = None, jobs = None, theta_true = None, save
 
         #Calculate the L2 Norm for the median values
         df_mean = calc_L2_norm(df_mean, theta_true)  
-    
-    #Get list of best jobs
-    job_list_mean = []
 
-    job_id_list_mean = list(df_mean["Job ID"])
-    for job_id in job_id_list_mean:
-        job = project.open_job(id=job_id)
-        if job:
-            job_list_mean.append(job)
-        
     #Put in order of method
     row_order = sorted([Method_name_enum[meth].value for meth in df['BO Method'].unique()])
     order = [Method_name_enum(num).name for num in row_order]
@@ -506,6 +494,15 @@ def get_mean_data(criteria_dict, df = None, jobs = None, theta_true = None, save
 
     # Sort the DataFrame based on the categorical order
     df_mean = df_mean.sort_values(by='BO Method')
+    
+    #Get list of best jobs
+    job_list_mean = []
+
+    job_id_list_mean = list(df_mean["Job ID"])
+    for job_id in job_id_list_mean:
+        job = project.open_job(id=job_id)
+        if job:
+            job_list_mean.append(job)
 
     if save_csv:
         #Save this as a csv in the same directory as all data
@@ -517,22 +514,6 @@ def get_mean_data(criteria_dict, df = None, jobs = None, theta_true = None, save
             df_mean.to_csv(file)
         
     return df_mean, job_list_mean
-                
-def converter(instr):
-    """
-    Converts strings to arrays when loading pandas dataframes
-    
-    Parameters
-    ----------
-    instr: str, The string form of the array
-    
-    Returns 
-    -------
-    outstr: ndarry (object type), array of the string
-    
-    """
-    outstr = np.fromstring(instr[1:-1],sep=' ')
-    return outstr
 
 def calc_L2_norm(df, theta_true):
     """
@@ -610,7 +591,7 @@ def analyze_hypers(file_path, run_num):
     
     return hps, hp_names, hp_true
 
-def analyze_sse_min_sse_ei(file_path, run_num, strings_for_df):
+def analyze_sse_min_sse_ei(file_path, run_num, z_choices):
     """
     Gets the data into an array for any comination of sse, log_sse, and ei
     
@@ -625,6 +606,25 @@ def analyze_sse_min_sse_ei(file_path, run_num, strings_for_df):
     data: np.ndarray, The data for plotting
     data_true: np.ndarray or None, the true values of the data
     """
+    if isinstance(z_choices, str):
+        z_choices = [z_choices]
+    assert isinstance(z_choices, list), "z_choices must be list of string. List must contain at least 'ei' or 'sse'"
+    assert all(isinstance(item, str) for item in z_choices), "z_choices elements must be string"
+    assert any(item in z_choices for item in ["ei", "min_sse", "sse"]), "z_choices must contain at least 'min_sse', 'ei', or 'sse'"
+    
+    strings_for_df = [] 
+    data_names = []
+    for z in z_choices:
+        if "min_sse" in z_choices:
+            strings_for_df += ["Min Obj Cum."]
+            data_names += ["Min SSE"]     
+        if "sse" == z_choices:
+            strings_for_df += ["Min Obj Act"]
+            data_names += ["SSE"]
+        if "ei" in z_choices:
+            strings_for_df += ["Max EI"]
+            data_names += ["Max EI"]
+            
     run_num -= 1
     loaded_results = open_file_helper(file_path)
     runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
@@ -650,9 +650,9 @@ def analyze_sse_min_sse_ei(file_path, run_num, strings_for_df):
                 else:
                     data[j,i,k] = run.results_df[strings_for_df[k]].to_numpy().astype(float)[i]
             
-    return data, data_true
+    return data, data_names, data_true
 
-def analyze_thetas(file_path, run_num, string_for_df_theta):
+def analyze_thetas(file_path, run_num, z_choice):
     """
     Gets the data into an array for thetas corresponding to the minimum sse at each iteration
     
@@ -669,6 +669,17 @@ def analyze_thetas(file_path, run_num, string_for_df_theta):
     data_true: np.ndarray or None, the true parameter values
     
     """
+    
+    assert isinstance(z_choice, str), "z_choices must be string"
+    assert any(item == z_choice for item in ["ei", "min_sse", "sse"]), "z_choice must be 'min_sse', 'ei', or 'sse'"
+
+    if "min_sse" in z_choice:
+        string_for_df_theta = "Theta Min Obj Cum."  
+    if "sse" == z_choice:
+        string_for_df_theta = "Theta Min Obj"
+    if "ei" in z_choice:
+        string_for_df_theta = "Theta Max EI"
+            
     run_num -= 1
     loaded_results = open_file_helper(file_path)
     runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]

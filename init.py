@@ -64,7 +64,7 @@ for cs_name_val in cs_val_list:
             #Initialize seed
             seed = 1
             #Loop over number of runs
-            for bo_run_num in range(0,bo_run_total):
+            for bo_run_num in range(1,bo_run_total+1):
                 #Create job parameter dict
                 sp = {"cs_name_val": cs_name_val, 
                     "meth_name_val": meth_name_val,
