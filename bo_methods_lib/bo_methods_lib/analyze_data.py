@@ -553,7 +553,7 @@ def calc_L2_norm(df, theta_true):
 
     return df
 
-def analyze_hypers(file_path, run_num):
+def analyze_hypers(file_path, run_num, save_csv = False):
     """
     Collects and plots hyperparameter data
     
@@ -568,30 +568,53 @@ def analyze_hypers(file_path, run_num):
     hp_names: str, the names of the hyperparameters
     hp_true: np.ndarray or None, the true values of the hyperparameters
     """
-    run_num -= 1
-    loaded_results = open_file_helper(file_path)
-    runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
-    num_sets = loaded_results[run_num].configuration["Max BO Iters"]
-    dim_hps = len(loaded_results[run_num].list_gp_emulator_class[0].trained_hyperparams[0]) + 2
-    hps = np.zeros((runs, num_sets, dim_hps))
-    hp_names = [f"\\ell_{i}" for i in range(1, dim_hps+1)]
-    hp_names[-2] = "\sigma"
-    hp_names[-1] = "\\tau"
-    hp_true = None
-
-    for j in range(runs):
-        run = loaded_results[j]
-        for i in range(len(run.list_gp_emulator_class)):
-           # Extract the array and convert other elements to float
-            array_part = run.list_gp_emulator_class[i].trained_hyperparams[0]
-            rest_part = np.array(run.list_gp_emulator_class[i].trained_hyperparams[1:], dtype=float)
-            hp = np.concatenate([array_part, rest_part])
-            # Create the resulting array of shape (1, 10)
-            hps[j,i,:] = hp
+    #Check to see if file already exists
+    org_dir_name = os.path.dirname(file_path)
+    hp_dir_name =  org_dir_name + "/Results/hyperparameters/"
+    hp_data_file = hp_dir_name + "hp_data.npy"
+    hp_data_name_file = hp_dir_name + "hp_names.npy"
     
+    #If data is saved, load it and use it
+    if all(os.path.exists(hp_file_path) for hp_file_path in [hp_data_file, hp_data_name_file]):
+        hps = np.load(hp_data_file)
+        hp_names = np.load(hp_data_name_file)
+        hp_true = None
+        
+    #Otherwise generate and save it  
+    else:            
+        run_num -= 1
+        loaded_results = open_file_helper(file_path)
+        runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
+        num_sets = loaded_results[run_num].configuration["Max BO Iters"]
+        dim_hps = len(loaded_results[run_num].list_gp_emulator_class[0].trained_hyperparams[0]) + 2
+        hps = np.zeros((runs, num_sets, dim_hps))
+        hp_names = [f"\\ell_{i}" for i in range(1, dim_hps+1)]
+        hp_names[-2] = "\sigma"
+        hp_names[-1] = "\\tau"
+        hp_true = None
+
+        for j in range(runs):
+            run = loaded_results[j]
+            for i in range(len(run.list_gp_emulator_class)):
+               # Extract the array and convert other elements to float
+                array_part = run.list_gp_emulator_class[i].trained_hyperparams[0]
+                rest_part = np.array(run.list_gp_emulator_class[i].trained_hyperparams[1:], dtype=float)
+                hp = np.concatenate([array_part, rest_part])
+                # Create the resulting array of shape (1, 10)
+                hps[j,i,:] = hp
+
+        if save_csv:
+            #Make directory if it doesn't exist
+            if not os.path.exists(hp_dir_name):
+                os.makedirs(hp_dir_name)
+            
+            #Save data
+            np.save(hp_data_file, hps)
+            np.save(hp_data_name_file, hp_names) 
+
     return hps, hp_names, hp_true
 
-def analyze_sse_min_sse_ei(file_path, run_num, z_choices):
+def analyze_sse_min_sse_ei(file_path, run_num, z_choices, save_csv = False):
     """
     Gets the data into an array for any comination of sse, log_sse, and ei
     
@@ -625,34 +648,55 @@ def analyze_sse_min_sse_ei(file_path, run_num, z_choices):
             strings_for_df += ["Max EI"]
             data_names += ["Max EI"]
             
-    run_num -= 1
-    loaded_results = open_file_helper(file_path)
-    runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
-    num_sets = loaded_results[run_num].configuration["Max BO Iters"]
+    #Check to see if file already exists
+    org_dir_name = os.path.dirname(file_path)
+    dir_name =  org_dir_name + "/Results/z_choice/"
+    data_file = dir_name + '_'.join(map(str, data_names)).replace(" ", "_").lower() + ".npy"
+    data_name_file = dir_name + '_'.join(map(str, data_names)).replace(" ", "_").lower() + "_names.npy"
     
-    #Get Method from loaded results
-    enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
-    meth_name = Method_name_enum(enum_method)
-    method = GPBO_Methods(meth_name)
-    
-    dim_data = len(strings_for_df) #obj, min obj, and ei
-    data = np.zeros((runs, num_sets, dim_data))
-    data_true = None
+    #If data is saved, load it and use it
+    if all(os.path.exists(data_file_path) for data_file_path in [data_file, data_name_file]):
+        data = np.load(data_file)
+        data_names = np.load(data_name_file)
+        data_true = None
+            
+    else:
+        run_num -= 1
+        loaded_results = open_file_helper(file_path)
+        runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
+        num_sets = loaded_results[run_num].configuration["Max BO Iters"]
 
-    for j in range(runs):
-        run = loaded_results[j]
-        # Extract the array and convert other elements to float
-        for i in range(len(run.results_df["Min Obj Act"])):
-            for k in range(len(strings_for_df)):
-                #For 2B and 1B, need exp values for sse
-                if method.obj.value == 2 and "Obj" in strings_for_df[k]:
-                    data[j,i,k] = np.exp(run.results_df[strings_for_df[k]].to_numpy().astype(float)[i])
-                else:
-                    data[j,i,k] = run.results_df[strings_for_df[k]].to_numpy().astype(float)[i]
+        #Get Method from loaded results
+        enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
+        meth_name = Method_name_enum(enum_method)
+        method = GPBO_Methods(meth_name)
+
+        dim_data = len(strings_for_df) #obj, min obj, and ei
+        data = np.zeros((runs, num_sets, dim_data))
+        data_true = None
+
+        for j in range(runs):
+            run = loaded_results[j]
+            # Extract the array and convert other elements to float
+            for i in range(len(run.results_df["Min Obj Act"])):
+                for k in range(len(strings_for_df)):
+                    #For 2B and 1B, need exp values for sse
+                    if method.obj.value == 2 and "Obj" in strings_for_df[k]:
+                        data[j,i,k] = np.exp(run.results_df[strings_for_df[k]].to_numpy().astype(float)[i])
+                    else:
+                        data[j,i,k] = run.results_df[strings_for_df[k]].to_numpy().astype(float)[i]
+        if save_csv:
+            #Make directory if it doesn't exist
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+            
+            #Save data
+            np.save(data_file, data)
+            np.save(data_name_file, data_names)
             
     return data, data_names, data_true
 
-def analyze_thetas(file_path, run_num, z_choice):
+def analyze_thetas(file_path, run_num, z_choice, save_csv = False):
     """
     Gets the data into an array for thetas corresponding to the minimum sse at each iteration
     
@@ -679,25 +723,49 @@ def analyze_thetas(file_path, run_num, z_choice):
         string_for_df_theta = "Theta Min Obj"
     if "ei" in z_choice:
         string_for_df_theta = "Theta Max EI"
-            
-    run_num -= 1
-    loaded_results = open_file_helper(file_path)
-    runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
-    num_sets = loaded_results[run_num].configuration["Max BO Iters"]
-    dim_data = len(loaded_results[run_num].results_df[string_for_df_theta].to_numpy()[0]) #len theta best
-
-    data = np.zeros((runs, num_sets, dim_data))
-    data_true = loaded_results[run_num].simulator_class.theta_true
-    data_names = loaded_results[run_num].simulator_class.theta_true_names
+        
+    #Check to see if file already exists
+    org_dir_name = os.path.dirname(file_path)
+    dir_name =  org_dir_name + "/Results/z_choice/"
+    data_file = dir_name + '_'.join(map(str, data_names)).replace(" ", "_").lower() + "_theta.npy"
+    data_true_file = dir_name + '_'.join(map(str, data_names)).replace(" ", "_").lower() + "_theta_true.npy"
+    data_name_file = dir_name + '_'.join(map(str, data_names)).replace(" ", "_").lower() + "theta_names.npy"
     
-    for j in range(runs):
-        run = loaded_results[j]
-        num_iters = len(run.results_df[string_for_df_theta])
-        for i in range(num_iters):
-            # Extract the array and convert other elements to float
-            theta_min_obj = run.results_df[string_for_df_theta].to_numpy()[i]
-            # Create the resulting array of shape (1, 10)
-            data[j,i,:] = theta_min_obj
+    #If data is saved, load it and use it
+    if all(os.path.exists(data_file_path) for data_file_path in [data_file, data_name_file, data_true_file]):
+        data = np.load(data_file)
+        data_names = np.load(data_name_file)
+        data_true = np.load(data_true_file)
+            
+    else:
+        run_num -= 1
+        loaded_results = open_file_helper(file_path)
+        runs = loaded_results[run_num].configuration["Number of Workflow Restarts"]
+        num_sets = loaded_results[run_num].configuration["Max BO Iters"]
+        dim_data = len(loaded_results[run_num].results_df[string_for_df_theta].to_numpy()[0]) #len theta best
+
+        data = np.zeros((runs, num_sets, dim_data))
+        data_true = loaded_results[run_num].simulator_class.theta_true
+        data_names = loaded_results[run_num].simulator_class.theta_true_names
+
+        for j in range(runs):
+            run = loaded_results[j]
+            num_iters = len(run.results_df[string_for_df_theta])
+            for i in range(num_iters):
+                # Extract the array and convert other elements to float
+                theta_min_obj = run.results_df[string_for_df_theta].to_numpy()[i]
+                # Create the resulting array of shape (1, 10)
+                data[j,i,:] = theta_min_obj
+                
+        if save_csv:
+            #Make directory if it doesn't exist
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+            
+            #Save data
+            np.save(data_file, data)
+            np.save(data_name_file, data_names)
+            np.save(data_true_file, data_true)
             
     return data, data_names, data_true
 
@@ -741,7 +809,7 @@ def analyze_train_test(file_path, run_num, bo_iter):
     
     return train_data, test_data, val_data, x_exp, data_names, data_true
 
-def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = False):
+def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = False, save_csv =False):
     """
     Gets the heat map data necessary for plotting heat maps
     
@@ -764,140 +832,198 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     train_theta: ndarray, Training parameter values
     param_names: list, The names of the parameters
     """
-    run_num -= 1
-    bo_iter -= 1
-    loaded_results = open_file_helper(file_path)
+    #Check if data already exists, if so, just use it
+    org_dir_name = os.path.dirname(file_path)
+    dir_name =  org_dir_name + "/Results/gp_evaluations/run_" + str(run_num) + "pair_" +str(pair_id)+ "/"
     
-    #Create Heat Map Data for a run and iter
+    test_mesh_data_file = dir_name + "test_mesh.npy"
+    theta_true_data_file = dir_name + "param_true.npy"
+    theta_opt_data_file = dir_name + "param_min_sse.npy"
+    theta_next_data_file = dir_name + "param_max_ei.npy"
+    train_theta_data_file = dir_name + "param_theta.npy"
+    param_names_data_file = dir_name + "param_names.npy"
+    idcs_to_plot_data_file = dir_name + "idc_to_plot.npy"
+    sse_sim_data_file = dir_name + "sse_sim.npy"
+    sse_mean_data_file =dir_name + "sse_gp_mean.npy"
+    sse_var_data_file = dir_name + "sse_gp_var.npy"
+    ei_data_file = dir_name + "ei.npy"
+    data_files_no_ei = [test_mesh_data_file, theta_true_data_file, theta_opt_data_file, theta_next_data_file, train_theta_data_file, param_names_data_file, idcs_to_plot_data_file, sse_sim_data_file, sse_mean_data_file, sse_var_data_file]
+    data_files_w_ei = data_files_no_ei + [ei_data_file]
+    
+    if all(get_ei and not os.path.exists(ei_data_file)) or not all(os.path.exists(data_file_path) for data_file_path in data_files_w_ei):
+        run_num -= 1
+        bo_iter -= 1
+        loaded_results = open_file_helper(file_path)
 
-    #Regeneate simulator, gp_emulator, exerimental data, best error, true theta, lowest obj theta, and highest ei theta
-    gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
-    exp_data = loaded_results[run_num].exp_data_class
-    simulator = loaded_results[run_num].simulator_class
-    
-    enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
-    enum_ep = Ep_enum(loaded_results[run_num].configuration["Exploration Bias Method Value"])
-    ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
-    ep_bias = Exploration_Bias(None, ep_at_iter, enum_ep, None, None, None, None, None, None, None)
+        #Create Heat Map Data for a run and iter
 
-    cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
-    
-    if loaded_results[run_num].heat_map_data_dict is not None:
-        heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
-    else:
-        driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, ep_bias, gen_meth_theta)
-        loaded_results[run_num].heat_map_data_dict = driver.create_heat_map_param_data()
-        heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
-        
-    #Get pair ID
-    if isinstance(pair_id, str):
-        param_names = pair_id
-    elif isinstance(pair_id, int):
-        param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[pair_id]
-    else:
-        raise Warning("Invalid pair_id!")
-        
-    heat_map_data = heat_map_data_dict[param_names]
-    
-    
-    #Get index of param set
-    idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]   
-    best_error =  loaded_results[run_num].results_df["Best Error"].iloc[bo_iter]
-    if method.emulator == False:
-        #Type 1 best error is inferred from training data 
-        best_error, be_theta = gp_emulator.calc_best_error()
-        best_errors_x = None
-    else:
-        #Type 2 best error must be calculated given the experimental data
-        best_error, be_theta, best_errors_x = gp_emulator.calc_best_error(method, exp_data)
-    best_error_metrics = (best_error, be_theta, best_errors_x)
-    theta_true = loaded_results[run_num].simulator_class.theta_true
-    theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
-    theta_next = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
-    train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
-    sep_fact = loaded_results[run_num].configuration["Separation Factor"]
-    seed = loaded_results[run_num].configuration["Seed"]    
-    meth_name = Method_name_enum(enum_method)
-    method = GPBO_Methods(meth_name)    
-            
-    #Calculate GP mean and var for heat map data
-    featurized_hm_data = gp_emulator.featurize_data(heat_map_data)
-    heat_map_data.gp_mean, heat_map_data.gp_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data, featurized_hm_data)
-    
-    #If not in emulator form, rearrange the data such that y_sim can be calculated
-    if method.emulator == False:
-        #Rearrange the data such that it is in emulator form
-        n_points = int(np.sqrt(heat_map_data.get_num_theta())) #Since meshgrid data is always in meshgrid form this gets num_points/param
-        repeat_x = n_points**2 #Square because only 2 values at a time change
-        x_vals = np.vstack([exp_data.x_vals]*repeat_x) #Repeat x_vals n_points**2 number of times
-#         print(x_vals)
-        repeat_theta = exp_data.get_num_x_vals() #Repeat theta len(x) number of times
-        theta_vals =  np.repeat(heat_map_data.theta_vals, repeat_theta , axis =0) #Create theta data repeated
-        #Generate full data class
-        heat_map_data = Data(theta_vals, x_vals, None,heat_map_data.gp_mean,heat_map_data.gp_var,None,None,None,
-                             simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
-            
-    #Calculate y and sse values
-    heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0 , 0)
-    heat_map_sse_data = simulator.sim_data_to_sse_sim_data(method, heat_map_data, exp_data, sep_fact, gen_val_data = False)
+        #Regeneate simulator, gp_emulator, exerimental data, best error, true theta, lowest obj theta, and highest ei theta
+        gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
+        exp_data = loaded_results[run_num].exp_data_class
+        simulator = loaded_results[run_num].simulator_class
 
-    #Calculate SSE, SSE var, and EI with GP
-    if method.emulator == False:
-        heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data)            
-    else:
-        heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data, method, exp_data)
+        enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
+        enum_ep = Ep_enum(loaded_results[run_num].configuration["Exploration Bias Method Value"])
+        ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
+        ep_bias = Exploration_Bias(None, ep_at_iter, enum_ep, None, None, None, None, None, None, None)
 
-    #Get log or unlogged data values        
-    if log_data == False:
-        #Change sse sim, mean, and stdev to not log for 1B and 2B
-        if method.obj.value == 2:
-            #SSE variance is var*(e^((log(sse)))^2
-            heat_map_data.sse = np.exp(heat_map_data.sse)
-            heat_map_data.sse_var = heat_map_data.sse_var*heat_map_data.sse**2            
-            heat_map_sse_data.y_vals = np.exp(heat_map_sse_data.y_vals)
-            
-    #If getting log values
-    else:
-        #Get log data from 1A, 2A, and 2C
-        if method.obj.value == 1:            
-            #SSE Variance is var/sse**2
-            heat_map_data.sse_var = heat_map_data.sse_var/heat_map_data.sse**2
-            heat_map_data.sse = np.log(heat_map_data.sse)
-            heat_map_sse_data.y_vals = np.log(heat_map_sse_data.y_vals)
-            
-    if get_ei:
-        if method.emulator == False:
-            heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics)[0]
+        cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
+
+        if loaded_results[run_num].heat_map_data_dict is not None:
+            heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
         else:
-            try:
-                sg_depth = loaded_results[run_num].configuration["Sparse Grid Depth"]
-                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)[0]
-            except:
-                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth =10)[0]  
+            driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, ep_bias, gen_meth_theta)
+            loaded_results[run_num].heat_map_data_dict = driver.create_heat_map_param_data()
+            heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
 
-        if log_data == True:
-            heat_map_data.ei = np.log(heat_map_data.ei)
-        
-    #Create test mesh
-    #Define original theta_vals (for restoration later)
-    org_theta = heat_map_data.theta_vals
-    #Redefine the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
-    heat_map_data.theta_vals = heat_map_data.theta_vals[:,idcs_to_plot]
-    #Create a meshgrid with x and y values fron the uniwue theta values of that array
-    unique_theta = heat_map_data.get_unique_theta()
-    theta_pts = int(np.sqrt(len(unique_theta)))
-    test_mesh = unique_theta.reshape(theta_pts,theta_pts,-1).T
-    heat_map_data.theta_vals = org_theta
+        #Get pair ID
+        if isinstance(pair_id, str):
+            param_names = pair_id
+        elif isinstance(pair_id, int):
+            param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[pair_id]
+        else:
+            raise Warning("Invalid pair_id!")
 
-    sse_sim = heat_map_sse_data.y_vals.reshape(theta_pts,theta_pts).T
-    sse_mean = heat_map_data.sse.reshape(theta_pts,theta_pts).T
-    sse_var = heat_map_data.sse_var.reshape(theta_pts,theta_pts).T
-    if get_ei:
-        ei = heat_map_data.ei.reshape(theta_pts,theta_pts).T
+        heat_map_data = heat_map_data_dict[param_names]    
+
+        #Get index of param set
+        idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]   
+        best_error =  loaded_results[run_num].results_df["Best Error"].iloc[bo_iter]
+        if method.emulator == False:
+            #Type 1 best error is inferred from training data 
+            best_error, be_theta = gp_emulator.calc_best_error()
+            best_errors_x = None
+        else:
+            #Type 2 best error must be calculated given the experimental data
+            best_error, be_theta, best_errors_x = gp_emulator.calc_best_error(method, exp_data)
+        best_error_metrics = (best_error, be_theta, best_errors_x)
+        theta_true = loaded_results[run_num].simulator_class.theta_true
+        theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
+        theta_next = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
+        train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
+        sep_fact = loaded_results[run_num].configuration["Separation Factor"]
+        seed = loaded_results[run_num].configuration["Seed"]    
+        meth_name = Method_name_enum(enum_method)
+        method = GPBO_Methods(meth_name)    
+
+        #Calculate GP mean and var for heat map data
+        featurized_hm_data = gp_emulator.featurize_data(heat_map_data)
+        heat_map_data.gp_mean, heat_map_data.gp_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data, featurized_hm_data)
+
+        #If not in emulator form, rearrange the data such that y_sim can be calculated
+        if method.emulator == False:
+            #Rearrange the data such that it is in emulator form
+            n_points = int(np.sqrt(heat_map_data.get_num_theta())) #Since meshgrid data is always in meshgrid form this gets num_points/param
+            repeat_x = n_points**2 #Square because only 2 values at a time change
+            x_vals = np.vstack([exp_data.x_vals]*repeat_x) #Repeat x_vals n_points**2 number of times
+    #         print(x_vals)
+            repeat_theta = exp_data.get_num_x_vals() #Repeat theta len(x) number of times
+            theta_vals =  np.repeat(heat_map_data.theta_vals, repeat_theta , axis =0) #Create theta data repeated
+            #Generate full data class
+            heat_map_data = Data(theta_vals, x_vals, None,heat_map_data.gp_mean,heat_map_data.gp_var,None,None,None,
+                                 simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
+
+        #Calculate y and sse values
+        heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0 , 0)
+        heat_map_sse_data = simulator.sim_data_to_sse_sim_data(method, heat_map_data, exp_data, sep_fact, gen_val_data = False)
+
+        #Calculate SSE, SSE var, and EI with GP
+        if method.emulator == False:
+            heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data)            
+        else:
+            heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data, method, exp_data)
+
+        #Get log or unlogged data values        
+        if log_data == False:
+            #Change sse sim, mean, and stdev to not log for 1B and 2B
+            if method.obj.value == 2:
+                #SSE variance is var*(e^((log(sse)))^2
+                heat_map_data.sse = np.exp(heat_map_data.sse)
+                heat_map_data.sse_var = heat_map_data.sse_var*heat_map_data.sse**2            
+                heat_map_sse_data.y_vals = np.exp(heat_map_sse_data.y_vals)
+
+        #If getting log values
+        else:
+            #Get log data from 1A, 2A, and 2C
+            if method.obj.value == 1:            
+                #SSE Variance is var/sse**2
+                heat_map_data.sse_var = heat_map_data.sse_var/heat_map_data.sse**2
+                heat_map_data.sse = np.log(heat_map_data.sse)
+                heat_map_sse_data.y_vals = np.log(heat_map_sse_data.y_vals)
+                
+        if save_csv:
+            test_mesh_data = np.save(test_mesh_data_file)
+            theta_true_data = np.save(theta_true_data_file, theta_true)
+            theta_opt_data = np.save(theta_opt_data_file, theta_opt)
+            theta_next_data = np.save(theta_next_data_file, theta_next)
+            train_theta_data = np.save(train_theta_data_file, train_theta)
+            param_names_data = np.save(param_names_data_file, param_names)
+            idcs_to_plot_data = np.save(idcs_to_plot_data_file, idcs_to_plot)
+           
+        if get_ei:
+            if method.emulator == False:
+                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics)[0]
+            else:
+                try:
+                    sg_depth = loaded_results[run_num].configuration["Sparse Grid Depth"]
+                    heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)[0]
+                except:
+                    heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data,exp_data,ep_bias,best_error_metrics,method,sg_depth =10)[0] 
+
+            if log_data == True:
+                heat_map_data.ei = np.log(heat_map_data.ei)
+                
+        #Define original theta_vals (for restoration later)
+        org_theta = heat_map_data.theta_vals
+        #Redefine the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
+        heat_map_data.theta_vals = heat_map_data.theta_vals[:,idcs_to_plot]
+        #Create a meshgrid with x and y values fron the uniwue theta values of that array
+        unique_theta = heat_map_data.get_unique_theta()
+        theta_pts = int(np.sqrt(len(unique_theta)))
+        test_mesh = unique_theta.reshape(theta_pts,theta_pts,-1).T
+        heat_map_data.theta_vals = org_theta
+
+        sse_sim = heat_map_sse_data.y_vals.reshape(theta_pts,theta_pts).T
+        sse_mean = heat_map_data.sse.reshape(theta_pts,theta_pts).T
+        sse_var = heat_map_data.sse_var.reshape(theta_pts,theta_pts).T
+        if get_ei:
+            ei = heat_map_data.ei.reshape(theta_pts,theta_pts).T
+        else:
+            ei = None
+    
     else:
-        ei = None
+        test_mesh = np.load(test_mesh_data_file)
+        theta_true = np.load(theta_true_data_file)
+        theta_opt = np.load(theta_opt_data_file)
+        theta_next =np.load(theta_next_data_file)
+        train_theta =np.load(train_theta_data_file)
+        param_names =np.load(param_names_data_file)
+        idcs_to_plot =np.load(idcs_to_plot_data_file)
+        sse_sim = np.load(sse_sim_data_file)
+        sse_mean = np.load(sse_mean_data_file)
+        sse_var = np.load(sse_var_data_file)
+        if get_ei:
+            ei = np.load(ei_data_file.npy)
+        else:
+            ei = None
+            
+    if save_csv:
+        np.save(test_mesh_data_file, test_mesh)
+        np.save(theta_true_data_file, theta_true)
+        np.save(theta_opt_data_file, theta_opt)
+        np.save(theta_next_data_file, theta_next)
+        np.save(train_theta_data_file, train_theta)
+        np.save(param_names_data_file, param_names)
+        np.save(idcs_to_plot_data_file, idcs_to_plot)
+        np.save(sse_sim_data_file, sse_sim)
+        np.save(sse_mean_data_file, sse_mean)
+        np.save(sse_var_data_file, sse_var)
+        if get_ei:
+            np.save(ei_data_file, ei)
     
     all_data = [sse_sim, sse_mean, sse_var, ei]
+    
+    #Save data if necessary
     
     return all_data, test_mesh, theta_true, theta_opt, theta_next, train_theta, param_names, idcs_to_plot
 
