@@ -64,7 +64,7 @@ for cs_name_val in cs_val_list:
             #Initialize seed
             seed = 1
             #Loop over number of runs
-            for bo_run_tot in range(1,bo_run_total+1):
+            for bo_run_num in range(0,bo_run_total):
                 #Create job parameter dict
                 sp = {"cs_name_val": cs_name_val, 
                     "meth_name_val": meth_name_val,
@@ -82,7 +82,8 @@ for cs_name_val in cs_val_list:
                     "retrain_GP": retrain_GP,
                     "reoptimize_obj": reoptimize_obj,
                     "bo_iter_tot": bo_iter_tot,
-                    "bo_run_tot":1,
+                    "bo_run_tot": 1,
+                    "bo_run_num": bo_run_num,
                     "save_data": save_data,
                     "seed":seed,
                     "ei_tol":ei_tol,

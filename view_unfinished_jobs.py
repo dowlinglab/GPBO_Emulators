@@ -47,4 +47,5 @@ def get_unfinished_ep_jobs(project, cs_name_val):
         return
 
 project = signac.get_project()
-get_unfinished_ep_jobs(project, 2)
+case_study = input("Enter a case study value: ")
+get_unfinished_ep_jobs(project, int(case_study))

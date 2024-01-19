@@ -9,7 +9,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import matplotlib.pyplot as plt
 from .GPBO_Classes_New import Data
-from.analyze_data import analyze_sse_min_sse_ei, analyze_thetas, get_best_data, get_median_data, get_mean_data, analyze_heat_maps, get_mean_med_best_over_ep
+from.analyze_data import analyze_sse_min_sse_ei, analyze_thetas, get_best_data, get_median_data, get_mean_data, analyze_heat_maps
 
 
 def save_fig(path, ext='png', close=True, verbose=True):
@@ -446,102 +446,7 @@ def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, str
     else:
         save_fig(save_path, ext='png', close=True, verbose=False)  
         
-    return
-                    
-def plot_compare_mean_med_best(df, cs_name, theta_true, param_name_str, xbins, ybins, title, log_data, title_fontsize, other_fontsize, save_path):
-    """
-    Compares Number of Evaluations, L2 Norm of Theta, and SSE of data using a mean, median, or mode statistic
-    """
-    #Set Axes Titles
-    if log_data is True:
-        ax_title_list = [r'$\log(e(\theta))$', r'$\vert\vert \theta - \theta_{true} \vert \vert_{2}$', 'Evaluations (Best)', 'Evaluations (Termination)']
-    else:
-        ax_title_list = [r'$e(\theta)$', r'$\vert\vert \theta - \theta_{true} \vert \vert_{2}$', 'Evaluations (Best)', 'Evaluations (Termination)']
-    ax_df_key_list = ["Min Obj Cum.", "L2 Norm Theta", "BO Iter", "Max Evals"] 
-    
-    #Get BO method names
-    names = df['BO Method'].unique().tolist()
-    sep_fact_list = df['EP Method Val'].unique()
-    x_data = np.array(list(map(float, sep_fact_list))) #Make sure SF values are float
-    titles = ["Mean", "Median", "Median of Best", "Best"]
-    choices = ["mean", "median", "median_best", "best"]
-
-    #Get df containing the best value at each sf for each method
-    df_mean, df_med, df_med_best, df_best = get_mean_med_best_over_ep(df, cs_name, theta_true, param_name_str)
-
-    #Loop over mean, best, and median
-    for choice,title in zip(choices,titles):        
-        #Number of subplots is number of values to plot. This will always be 4 for this graph
-        subplots_needed = 4 #log(SSE), L2 norm (Theta), iters for best sse, and termination
-        fig, axes, ax, num_subplots = create_subplots(subplots_needed)
-        
-        #Print the title and labels as appropriate
-        set_plot_titles(fig, title, "Stats Comparison", None, title_fontsize, other_fontsize)
-        
-        if choice == "mean":
-            df_plot = df_mean
-        elif choice == "median":
-            df_plot = df_med
-        elif choice == "median_best":
-            df_plot = df_med_best
-        elif choice == "best":
-            df_plot = df_best
-        else:
-            raise Warning("choice must be 'mean', 'median', 'median_best', or 'best'")
-                    
-        #Loop over different subplots (number of subplots)
-        for i in range(num_subplots): 
-            y_data_list = []
-            #Loop over names
-            for name in names:
-                df_meth_sf = df_plot[df_plot['BO Method'] == name]                 
-                #If plotting log sse, make sure the data is log
-                if i == 0:
-                    #Make unlogged data from 1A, 2A and 2C in log form
-                    if log_data is True and "B" not in name:
-                        ax[i].plot(x_data, np.log(df_meth_sf[ax_df_key_list[i]]), label = str(name))
-                        y_data = np.log(df_meth_sf[ax_df_key_list[i]])               
-                    #Make log data from 2B and 1B in normal form
-                    elif log_data is False and "B" in name:
-                        ax[i].plot(x_data, np.exp(df_meth_sf[ax_df_key_list[i]].astype(np.float64)), label = str(name))
-                        y_data = np.exp(df_meth_sf[ax_df_key_list[i]].astype(np.float64))
-                    #Otherwise plot it as is
-                    else:
-                        ax[i].plot(x_data, df_meth_sf[ax_df_key_list[i]], label = str(name))
-                        y_data = df_meth_sf[ax_df_key_list[i]]
-                    
-                #Add +1 to BO iter for number of iterations when plotting
-                elif i == 2:
-                    ax[i].plot(x_data, df_meth_sf[ax_df_key_list[i]] + 1, label = str(name))
-                    y_data = df_meth_sf[ax_df_key_list[i]] + 1
-                  
-                #Otherwise plot the number of iterations until termination as is
-                else:
-                    ax[i].plot(x_data, df_meth_sf[ax_df_key_list[i]], label = str(name))
-                    y_data = df_meth_sf[ax_df_key_list[i]]
-                
-                y_data_list.append(y_data)
-                
-            #Set plot details 
-            title = ax_title_list[i]
-            subplot_details(ax[i], x_data, np.array(y_data_list), None, None, title, xbins, ybins, other_fontsize)
-
-            #Fetch handles and labels on 1st iteration
-            if i == 0:
-                handles, labels = ax[0].get_legend_handles_labels()
-
-        #Plots legend and title
-        plt.tight_layout()
-        fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
-
-        #save or show figure
-        if save_path is None:
-            plt.show()
-            plt.close()
-        else:
-            save_fig(save_path + choice, ext='png', close=True, verbose=False)  
-
-    return
+    return                  
 
 def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
