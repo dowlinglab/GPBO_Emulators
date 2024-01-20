@@ -109,13 +109,15 @@ class CS_name_enum(Enum):
     -------
     1 = CS1 2 Param Polynomial
     2 = CS2 4 Param (x0) Muller Potential
-    3 = CS2 4 Param (y0) Muller Potential
-    4 = CS2 8 Param (x0y0) Muller Potential
-    5 = CS2 12 Param (Ax0y0) Muller Potential
-    6 = CS2 8 Param (Ax0) Muller Potential
-    7 = CS2 8 Param (Ay0) Muller Potential
-    8 = CS3 5 Param Polynomial
-    9 = CS4 4 Param Isotherm
+    3 = CS3 4 Param (y0) Muller Potential
+    4 = CS4 8 Param (x0y0) Muller Potential
+    5 = CS5 12 Param (Ax0y0) Muller Potential
+    6 = CS6 8 Param (Ax0) Muller Potential
+    7 = CS7 8 Param (Ay0) Muller Potential
+    8 = CS8 5 Param Polynomial with varying scale parameters
+    9 = CS9 4 Param Isotherm
+    10 = CS10 5 Param Polynomial with same scale parameters
+    11 = cs11 4 Param Isotherm (Different functional form from 9)
     """
     #Check that values are only 1 to 2
     if Enum in range(1, 10) == False:
@@ -123,13 +125,16 @@ class CS_name_enum(Enum):
         
     CS1 = 1
     CS2_x0 = 2
-    CS2_y0 = 3
-    CS2_x0y0 = 4
-    CS2_Ax0y0 = 5
-    CS2_Ax0 = 6
-    CS2_Ay0 = 7
-    CS3 = 8
-    CS4 = 9
+    CS3_y0 = 3
+    CS4_x0y0 = 4
+    CS5_Ax0y0 = 5
+    CS6_Ax0 = 6
+    CS7_Ay0 = 7
+    CS8 = 8
+    CS9 = 9
+    CS10 = 10
+    CS11 = 11
+    
     
 class Ep_enum(Enum):
     """

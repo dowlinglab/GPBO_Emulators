@@ -105,7 +105,7 @@ def calc_cs5_isotherm(true_model_coefficients, x, args = None):
     assert x.shape[0] == 2, "Isotherm x_data must be 2 dimensional"
     x1, x2 = x #Split x into 2 parts by splitting the rows
 
-    y_model =  (t1*x1)/(t2+x1) + (t3*x2)/(t4+x2)
+    y_model =  (t1*x1)/(1 + t2*x2) + (t3*x2)/(1+ t4*x2)
        
     return y_model
 
@@ -296,9 +296,9 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4', 'theta_5']
         bounds_x_l = [-5, -5]
         bounds_x_u = [ 5,  5]
-        bounds_theta_l = [-5,-5,-10, -5, -5]
-        bounds_theta_u = [ 5, 5, 10,  5,  5]
-        theta_ref = np.array([-2, -1, 7, -3, 0.5])      
+        bounds_theta_l = [-5,-5,-5, -10, -5]
+        bounds_theta_u = [ 5, 5, 5,  10,  5]
+        theta_ref = np.array([1, -2, 0.5, 7, -3])      
         calc_y_fxn = calc_cs3_polynomial
         calc_y_fxn_args = None
 
@@ -306,11 +306,11 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
     elif cs_name.value == 11:
         theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
         bounds_x_l = [1, 1]
-        bounds_x_u = [ 11,  11]
+        bounds_x_u = [ 6,  6]
         bounds_theta_l = [1e-1, 1e-1, 1e-1, 1e-1]
-        bounds_theta_u = [10, 10, 10,  10]
-        theta_ref =  np.array([2,1,3,1])
-        calc_y_fxn = calc_cs4_isotherm
+        bounds_theta_u = [5, 5, 5,  5]
+        theta_ref =  np.array([2,4,3,1])
+        calc_y_fxn = calc_cs5_isotherm
         calc_y_fxn_args = None
         
     else:
@@ -338,7 +338,7 @@ def set_param_str(cs_name_val):
     ----------
     cs_name_val: int, the string of the case study name
     """
-    assert 9 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 9 inclusive"
+    assert 11 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 9 inclusive"
     
     if cs_name_val == 1:
         param_name_str = "t1t2"
