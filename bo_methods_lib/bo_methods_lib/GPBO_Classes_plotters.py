@@ -193,7 +193,7 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_l
     assert isinstance(data_true, (list, np.ndarray)) or data_true is None, "data_true must be list, ndarray, or None"
     if data_true is not None:
          assert all(isinstance(item, (float,int)) for item in data_true), "data_true elements must be float/int"
-    assert isinstance(data_names, list), "data_names must be list"
+    assert isinstance(data_names, (list, np.ndarray)), "data_names must be list or np.ndarray"
     assert all(isinstance(item, str) for item in data_names), "data_names elements must be string"
    
     
@@ -259,7 +259,7 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, xbins, ybins, title, x_l
 
     return
 
-def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, z_choices, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
+def plot_method_sse_one_plot(file_path_list, run_num_list, z_choices, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
     """
     Plots 5 value plots for EI, SSE, Min SSE, and EI values vs BO iter for all 5 methods
     """
@@ -301,6 +301,7 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, z_cho
         #loop as long as there are runs in the file
         while not term_loop:
             j = run_num_count-1 #Iterable
+
             #Remove elements that are numerically 0            
             data_df_j = get_data_to_bo_iter_term(one_data_type[j])
             #Define x axis
@@ -320,15 +321,15 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, z_cho
 
             #For the best result, print a solid line                    
             if run_num_list[i] == j + 1:
-                ax[0].plot(bo_space, data_df_j, alpha = 1, color = colors[i], label = label, drawstyle='steps')
+                ax[0].plot(bo_space, data_df_j, alpha = 1, color = colors[GPBO_method_val-1], label = label, drawstyle='steps')
             else:
-                ax[0].step(bo_space, data_df_j, alpha = 0.2, color = colors[i], linestyle='--', drawstyle='steps')
+                ax[0].step(bo_space, data_df_j, alpha = 0.2, color = colors[GPBO_method_val-1], linestyle='--', drawstyle='steps')
 
             #Add 1 to run number and terminate if the total amount of runs is equal to the total amount
-            run_num_count += 1
             if run_num_count == one_data_type.shape[0]:
                 term_loop = True
-                
+            run_num_count += 1
+
     #Set plot details 
 #     bo_len_max = 10
     bo_space_org = np.linspace(1,bo_len_max,100)
@@ -369,7 +370,7 @@ def get_data_to_bo_iter_term(data_all_iters):
         
     return data_df_j
                     
-def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, z_choice, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
+def plot_compare_method_ei_sse(file_path_list, run_num_list, z_choice, xbins, ybins, title, x_label, y_label, log_data, title_fontsize, other_fontsize, save_path):
     """
     Plots 5 value plots for EI, SSE, Min SSE, and EI values vs BO iter for all 5 methods
     """
@@ -382,63 +383,87 @@ def plot_compare_method_ei_sse(file_path_list, bo_method_list, run_num_list, z_c
     
     assert isinstance(z_choice, str), "z_choice must be a string 'min_sse', 'ei', or 'sse'"
     assert any(item == z_choice for item in ["ei", "min_sse", "sse"]), "z_choice must be 'min_sse', 'ei', or 'sse'"
+
+    colors = ["red", "blue", "green", "purple", "darkorange", "deeppink"]
+    method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid", "Monte Carlo"]
     
-    #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
-    subplots_needed = len(file_path_list)
+    #Number of subplots is number of runs in the run list (which will be the last spot of the shape parameter)
+    subplots_needed = len(run_num_list)
     fig, axes, ax, num_subplots = create_subplots(subplots_needed, sharex = False)
     
     #Print the title and labels as appropriate
     set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+
+    meth_bo_max_evals = np.zeros(len(run_num_list))
     
-    #Loop over different hyperparameters (number of subplots)
-    for i in range(num_subplots):
-        #If you still have data to plot
-        if i < subplots_needed:
-            #Get data
-            data, data_names, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num_list[i], z_choice)
+    #Loop over different files
+    for i in range(len(file_path_list)):
+        #Get data
+        run_num_count = 1
+        term_loop = False
 
-            #The index of the data is i, and one data type is in the last row of the data
-            one_data_type = data
-            #Loop over all runs
-            for j in range(one_data_type.shape[0]):
-                #Create label based on run #
-                label = "Run: "+str(j+1) 
-                
-                data_df_j = get_data_to_bo_iter_term(one_data_type[j])
-                
-                #Define x axis
-                bo_len = len(data_df_j)
-                bo_space = np.linspace(1,bo_len,bo_len)
-                
-                #Set appropriate notation
-                if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
-                    ax[i].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
-                    
-                #Plot data
-                if log_data == True:
-                    data_df_j = np.log(data_df_j)
-                ax[i].step(bo_space, data_df_j, label = label)
-                
-                #Plot true value if applicable
-                if data_true is not None and j == one_data_type.shape[0] - 1:
-                    ax[i].axhline(y=data_true[i], color = "red", linestyle='-', label = "True Value")
-                    
-                #Set plot details 
-                title = bo_method_list[i]
-                subplot_details(ax[i], bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
-        
+        data, data_names, data_true, GPBO_method_val = analyze_sse_min_sse_ei(file_path_list[i], 0, z_choice)
+        #The index of the data is i, and one data type is in the last row of the data
+        one_data_type = data
 
-        #Set axes off if it's an extra
-        else:
-            ax[i].set_axis_off()
+        #Set subplot index to the corresponding method value number
+        ax_idx = int(GPBO_method_val - 1)
+
+        #Loop over all runs
+        while not term_loop:
+            j =  run_num_count - 1
+            #Create label based on run #
+            label = "Run: "+ str(j+1) 
+            data_df_j = get_data_to_bo_iter_term(one_data_type[j])
+            #Define x axis
+            bo_len = len(data_df_j)
+            bo_space = np.linspace(1,bo_len,bo_len)
             
-        #Fetch handles and labels on last iteration
-        if i == 0:
-            handles, labels = ax[0].get_legend_handles_labels()
+            #Set appropriate notation
+            if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
+                ax[ax_idx].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                
+            #Plot data
+            if log_data == True:
+                data_df_j = np.log(data_df_j)
+
+            #For the best result, print a solid line                    
+            if run_num_list[ax_idx] == j + 1:
+                ax[ax_idx].plot(bo_space, data_df_j, alpha = 1, color = colors[ax_idx], label = label, drawstyle='steps')
+            else:
+                ax[ax_idx].plot(bo_space, data_df_j, alpha = 0.2, color = colors[ax_idx], linestyle='--', drawstyle='steps')
+            
+            #Plot true value if applicable
+            if data_true is not None and j == one_data_type.shape[0] - 1:
+                ax[ax_idx].axhline(y=data_true[i], color = "black", linestyle='-', label = "True Value")
+                
+            #Set plot details 
+            title = method_names[ax_idx]
+            if bo_len > meth_bo_max_evals[ax_idx]:
+                meth_bo_max_evals[ax_idx] = bo_len
+                subplot_details(ax[ax_idx], bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
+        
+            #Add 1 to run number and terminate if the total amount of runs is equal to the total amount
+            if run_num_count == one_data_type.shape[0]:
+                term_loop = True
+            run_num_count += 1
     
+    #Set extra axes off
+    for k in range(subplots_needed,num_subplots):
+        ax[k].set_axis_off()
+
+    handles, labels = ax[0].get_legend_handles_labels()
+    for k in range(subplots_needed):
+        if k+1 < subplots_needed:
+            h, l = ax[k+1].get_legend_handles_labels()
+            handles.extend(h)
+            labels.extend(l)
+        if log_data == False:
+            ax[k].set_yscale("log")
+
     #Plots legend and title
     plt.tight_layout()
-    fig.legend(handles, labels, loc= "center left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.60), borderaxespad=0)
+    # fig.legend(handles, labels, loc= "center left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.60), borderaxespad=0)
     
     #save or show figure
     if save_path is None:
