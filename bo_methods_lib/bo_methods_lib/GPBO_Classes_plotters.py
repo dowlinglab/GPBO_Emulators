@@ -286,24 +286,21 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, z_cho
     
     bo_len_max = 1
     #Loop over different methdods (number of subplots)
-    for i in range(len(file_path_list)):
-        #Get best data for method
-        data, data_names, data_true = analyze_sse_min_sse_ei(file_path_list[i], run_num_list[i], z_choices)
-        #The index of the data is i, and one data type is in the last row of the data
-        one_data_type = data        
+    for i in range(len(file_path_list)):     
+        #Set run counter as 1 to start
+        run_num_count = 1
+        term_loop = False
 
+        #Get data
+        data, data_names, data_true, GPBO_method_val = analyze_sse_min_sse_ei(file_path_list[i], 0, z_choices)
         #Create label based on method #
-        label = method_names[i] 
+        label = method_names[GPBO_method_val-1] 
+        #The index of the data is i, and one data type is in the last row of the data
+        one_data_type = data
         
-#         if log_data == False:
-#             ax[0].semilogy()
-
-        #Loop over all runs
-        for j in range(one_data_type.shape[0]):
-            #Get data
-            data, data_names, data_true = analyze_sse_min_sse_ei(file_path_list[i], j+1, z_choices)
-            #The index of the data is i, and one data type is in the last row of the data
-            one_data_type = data
+        #loop as long as there are runs in the file
+        while not term_loop:
+            j = run_num_count-1 #Iterable
             #Remove elements that are numerically 0            
             data_df_j = get_data_to_bo_iter_term(one_data_type[j])
             #Define x axis
@@ -316,16 +313,21 @@ def plot_method_sse_one_plot(file_path_list, bo_method_list, run_num_list, z_cho
             #Set appropriate notation
             if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
                 ax[0].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+
             #Plot data
             if log_data == True:
                 data_df_j = np.log(data_df_j)
 
             #For the best result, print a solid line                    
             if run_num_list[i] == j + 1:
-#                 print(run_num_list[i]-1, j)
                 ax[0].plot(bo_space, data_df_j, alpha = 1, color = colors[i], label = label, drawstyle='steps')
             else:
                 ax[0].step(bo_space, data_df_j, alpha = 0.2, color = colors[i], linestyle='--', drawstyle='steps')
+
+            #Add 1 to run number and terminate if the total amount of runs is equal to the total amount
+            run_num_count += 1
+            if run_num_count == one_data_type.shape[0]:
+                term_loop = True
                 
     #Set plot details 
 #     bo_len_max = 10

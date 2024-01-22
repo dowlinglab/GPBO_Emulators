@@ -9,6 +9,7 @@ from .GPBO_Classes_New import *
 from .GPBO_Class_fxns import * 
 import pickle
 import gzip
+import json
 
 def open_file_helper(file_path):
     """
@@ -103,8 +104,8 @@ def get_df_all_jobs(criteria_dict, save_csv = False):
         job_list += [job]
 
         #See if result data exists, if so add it to df
-        if os.path.exists(job.fn(dir_name + "ep_study_analysis.csv")):
-            df_job = pd.read_csv(job.fn(dir_name + "ep_study_analysis.csv"), index_col=0)
+        if os.path.exists(job.fn("ep_study_analysis.csv")):
+            df_job = pd.read_csv(job.fn("ep_study_analysis.csv"), index_col=0)
             data_file = job.fn("BO_Results.gz")
         #Otherwise, create it
         else:
@@ -193,9 +194,10 @@ def get_study_data_signac(job, dir_name, save_csv = False):
     #Reset index on job dataframe
     df_job = df_job.reset_index(drop=True)
 
-    #Put in a csv file in a directory based on the method and case study
+    print(job.fn("ep_study_analysis.csv"))
+    #Put in a csv file in a directory based on the job
     if save_csv: 
-        file_name1 = job.fn(dir_name + "ep_study_analysis.csv")
+        file_name1 = job.fn("ep_study_analysis.csv")
         df_job.to_csv(file_name1) 
 
     return df_job, theta_true
@@ -226,6 +228,8 @@ def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save
     
     #Create a directory name based on the search criteria
     dir_name = "Results/" + make_dir_name_from_criteria(criteria_dict) + "/"
+
+    print(dir_name + "ep_study_best.csv")
     
     #Initialize data_created as False
     df_found = False
@@ -236,9 +240,9 @@ def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save
         data_file = job.fn("BO_Results.gz")
 
         #Check if csv already exists
-        if os.path.exists(job.fn(dir_name + "ep_study_best.csv")):
+        if os.path.exists(job.fn("ep_study_best.csv")):
             #If so, load the file
-            filepath = job.fn(dir_name + "ep_study_best.csv")
+            filepath = job.fn("ep_study_best.csv")
             df_best = pd.read_csv(filepath, index_col=0)
             # df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
             df_found = True
@@ -302,11 +306,10 @@ def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save
     if save_csv:
         #Save this as a csv in the same directory as all data
         #Create directory based on criteria dict
-        file_name2 = [job.fn(dir_name + "ep_study_best.csv") for job in jobs]
+        file_name = dir_name + "ep_study_best.csv"
 
         #Add file to directory 
-        for file in file_name2:
-            df_best.to_csv(file)
+        df_best.to_csv(file_name)
         
     return df_best, job_list_best
 
@@ -573,6 +576,8 @@ def analyze_hypers(file_path, run_num, save_csv = False):
     hp_dir_name =  org_dir_name + "/Results/hyperparameters/"
     hp_data_file = hp_dir_name + "hp_data.npy"
     hp_data_name_file = hp_dir_name + "hp_names.npy"
+
+    print([hp_file_path for hp_file_path in [hp_data_file, hp_data_name_file]])
     
     #If data is saved, load it and use it
     if all(os.path.exists(hp_file_path) for hp_file_path in [hp_data_file, hp_data_name_file]):
@@ -653,11 +658,17 @@ def analyze_sse_min_sse_ei(file_path, run_num, z_choices, save_csv = False):
     dir_name =  org_dir_name + "/Results/z_choice/"
     data_file = dir_name + '_'.join(map(str, data_names)).replace(" ", "_").lower() + ".npy"
     data_name_file = dir_name + '_'.join(map(str, data_names)).replace(" ", "_").lower() + "_names.npy"
+
+    print([data_file_path for data_file_path in [data_file, data_name_file]])
     
     #If data is saved, load it and use it
     if all(os.path.exists(data_file_path) for data_file_path in [data_file, data_name_file]):
         data = np.load(data_file)
         data_names = np.load(data_name_file)
+        #Get method value from json file
+        with open(org_dir_name+ "/signac_statepoint.json", 'r') as json_file:
+            # Load the JSON data
+            enum_method = json.load(json_file)["meth_name_val"]
         data_true = None
             
     else:
@@ -694,7 +705,7 @@ def analyze_sse_min_sse_ei(file_path, run_num, z_choices, save_csv = False):
             np.save(data_file, data)
             np.save(data_name_file, data_names)
             
-    return data, data_names, data_true
+    return data, data_names, data_true, enum_method
 
 def analyze_thetas(file_path, run_num, z_choice, save_csv = False):
     """
@@ -1056,7 +1067,9 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     idcs_to_plot_data_file = dir_name + "idc_to_plot.npy"
 
     data_file_list = [hm_data_file, theta_true_data_file, theta_opt_data_file, theta_next_data_file, train_theta_data_file, 
-                      param_names_data_file, idcs_to_plot_data_file,]
+                      param_names_data_file, idcs_to_plot_data_file]
+    
+    print([file_name for file_name in data_file_list])
     
     if not all(os.path.exists(data_file_path) for data_file_path in data_file_list):
         run_num -= 1
@@ -1141,24 +1154,6 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
         else:
             heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data, method, exp_data)
 
-        #Get log or unlogged data values        
-        if log_data == False:
-            #Change sse sim, mean, and stdev to not log for 1B and 2B
-            if method.obj.value == 2:
-                #SSE variance is var*(e^((log(sse)))^2
-                heat_map_data.sse = np.exp(heat_map_data.sse)
-                heat_map_data.sse_var = heat_map_data.sse_var*heat_map_data.sse**2            
-                heat_map_sse_data.y_vals = np.exp(heat_map_sse_data.y_vals)
-
-        #If getting log values
-        else:
-            #Get log data from 1A, 2A, and 2C
-            if method.obj.value == 1:            
-                #SSE Variance is var/sse**2
-                heat_map_data.sse_var = heat_map_data.sse_var/heat_map_data.sse**2
-                heat_map_data.sse = np.log(heat_map_data.sse)
-                heat_map_sse_data.y_vals = np.log(heat_map_sse_data.y_vals)
-
     else:
         heat_map_data = open_file_helper(hm_data_file)
         theta_true = np.load(theta_true_data_file)
@@ -1168,7 +1163,7 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
         param_names =np.load(param_names_data_file)
         idcs_to_plot =np.load(idcs_to_plot_data_file)
            
-    if get_ei:
+    if get_ei and heat_map_data.ei is None:
         if method.emulator == False:
             heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics)[0]
         else:
@@ -1176,11 +1171,8 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
                 sg_depth = loaded_results[run_num].configuration["Sparse Grid Depth"]
                 heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)[0]
             except:
-                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data,exp_data,ep_bias,best_error_metrics,method,sg_depth =10)[0] 
-
-        if log_data == True:
-            heat_map_data.ei = np.log(heat_map_data.ei)
-                
+                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data,exp_data,ep_bias,best_error_metrics,method,sg_depth =10)[0]  
+    
     #Define original theta_vals (for restoration later)
     org_theta = heat_map_data.theta_vals
     #Redefine the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
@@ -1190,14 +1182,6 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     theta_pts = int(np.sqrt(len(unique_theta)))
     test_mesh = unique_theta.reshape(theta_pts,theta_pts,-1).T
     heat_map_data.theta_vals = org_theta
-
-    sse_sim = heat_map_sse_data.y_vals.reshape(theta_pts,theta_pts).T
-    sse_mean = heat_map_data.sse.reshape(theta_pts,theta_pts).T
-    sse_var = heat_map_data.sse_var.reshape(theta_pts,theta_pts).T
-    if get_ei:
-        ei = heat_map_data.ei.reshape(theta_pts,theta_pts).T
-    else:
-        ei = None
     
     if save_csv:
         fileObj = gzip.open(hm_data_file, 'wb', compresslevel  = 1)
@@ -1209,8 +1193,34 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
         np.save(train_theta_data_file, train_theta)
         np.save(param_names_data_file, param_names)
         np.save(idcs_to_plot_data_file, idcs_to_plot)
-    
-    all_data = [sse_sim, sse_mean, sse_var, ei]
+        
+    #Define sse_sim, sse_gp_mean, and sse_gp_var, and ei based on whether to report log scaled data
+
+    #Get log or unlogged data values        
+    if log_data == False:
+        #Change sse sim, mean, and stdev to not log for 1B and 2B
+        if method.obj.value == 2:
+            #SSE variance is var*(e^((log(sse)))^2
+            sse_mean = np.exp(heat_map_data.sse)
+            sse_var = (heat_map_data.sse_var*heat_map_data.sse**2)      
+            sse_sim = np.exp(heat_map_sse_data.y_vals)
+        if get_ei:
+            ei = heat_map_data.ei.reshape(theta_pts,theta_pts,-1).T
+
+    #If getting log values
+    else:
+        #Get log data from 1A, 2A, and 2C
+        if method.obj.value == 1:            
+            #SSE Variance is var/sse**2
+            sse_var = heat_map_data.sse_var/heat_map_data.sse**2
+            sse_mean = np.log(heat_map_data.sse)
+            sse_sim = np.log(heat_map_sse_data.y_vals)
+        if get_ei:
+            ei = np.log(heat_map_data.ei).reshape(theta_pts,theta_pts,-1).T
+
+    #Reshape data to correct shape and add to list to return
+    reshape_list = [sse_sim, sse_mean, sse_var]     
+    all_data = [var.reshape(theta_pts,theta_pts,-1).T for var in reshape_list] + [ei]
     
     return all_data, test_mesh, theta_true, theta_opt, theta_next, train_theta, param_names, idcs_to_plot
 
