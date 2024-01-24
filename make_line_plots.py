@@ -2,16 +2,12 @@ import numpy as np
 import pandas as pd
 import signac
 import os
-import imageio
-import glob
-import itertools
 from itertools import combinations
+import signac
 
 import bo_methods_lib
-from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import CS_name_enum, Method_name_enum
-from bo_methods_lib.bo_methods_lib.analyze_data import get_study_data_signac, get_best_data, open_file_helper, analyze_heat_maps
-from bo_methods_lib.bo_methods_lib.GPBO_Classes_plotters import plot_method_sse_one_plot
-from skimage.transform import resize
+from bo_methods_lib.bo_methods_lib.analyze_data import get_best_data, make_plot_dict, get_df_all_jobs, make_dir_name_from_criteria, analyze_hypers, analyze_thetas 
+from bo_methods_lib.bo_methods_lib.GPBO_Classes_plotters import plot_objs_all_methods, plot_one_obj_all_methods, plot_2D_Data_w_BO_Iter
 
 #Ignore warnings
 import warnings
@@ -24,6 +20,7 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 #Set Stuff
 meth_name_val_list = [1, 2, 3, 4, 5, 6]
 save_csv = False
+save_fig = False
 
 criteria_dict = {"cs_name_val" : 1,
                  "ep_enum_val": 1,
@@ -54,11 +51,12 @@ bo_iter_list = list(map(int, df_best["BO Iter"].to_numpy()))
 z_choices = ["sse", "sse_sim", "ei"]
 
 #Get best plots for all objectives with all 6 methods on each subplot
-plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
+x_label = "BO Iterations"
 plot_dict = make_plot_dict(False, None, x_label, None, line_levels = None, save_path=None)
+plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
+
 
 #Get plot with each method on a different subplot for each obj
-x_label = "BO Iterations"
 y_labels = [r"$\mathbf{e(\theta)}$", "Min " + r"$\mathbf{e(\theta)}$", "Max " + r"$\mathbf{EI(\theta)}$"]
 for i in range(len(z_choices)):
     #Set z_choice
