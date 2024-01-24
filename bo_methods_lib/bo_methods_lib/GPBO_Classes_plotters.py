@@ -335,8 +335,8 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
     """
     keys_to_check = ["title","log_data","title_size","other_size","xbins","ybins","zbins","save_path","cmap","line_levels"]
     assert all(key in plot_dict for key in keys_to_check), "plot_dict must have all keys. Generate plot_dict with make_plot_dict()"
-    keys_not_none = ["xlabel", "ylabel"]
-    assert all(plot_dict[key] is not None for key in keys_not_none), "line_levels, zbins, and cmap must not be None!"
+    keys_not_none = ["xlabel"]
+    assert all(plot_dict[key] is not None for key in keys_not_none), "x_label must not be None!"
     
     #Break down plot dict and check for correct things
     title = plot_dict["title"]
@@ -347,7 +347,6 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
     ybins = plot_dict["ybins"]
     save_path = plot_dict["save_path"]
     x_label = plot_dict["xlabel"]
-    y_label = plot_dict["ylabel"]
     
     #Assert Statements
     list_vars = [file_path_list, run_num_list, z_choices]
@@ -471,7 +470,7 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
     keys_to_check = ["title","log_data","title_size","other_size","xbins","ybins","zbins","save_path","cmap","line_levels"]
     assert all(key in plot_dict for key in keys_to_check), "plot_dict must have all keys. Generate plot_dict with make_plot_dict()"
     keys_not_none = ["xlabel", "ylabel"]
-    assert all(plot_dict[key] is not None for key in keys_not_none), "line_levels, zbins, and cmap must not be None!"
+    assert all(plot_dict[key] is not None for key in keys_not_none), "x_label and y_label must not be None!"
     
     #Break down plot dict and check for correct things
     title = plot_dict["title"]
