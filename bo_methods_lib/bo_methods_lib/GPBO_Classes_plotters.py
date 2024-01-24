@@ -5,7 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 import os
 import matplotlib.ticker
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
 import json
 from matplotlib import colormaps
 from collections.abc import Iterable
@@ -82,6 +82,7 @@ def create_subplots(num_subplots, sharex = "row", sharey = 'none'):
     ax: matplotlib.axes.Axes, 1D array of axes
     len(ax): The number of axes generated total
     """
+
     assert num_subplots >= 1, "Number of subplots must be at least 1"
     #Make figures and define number of subplots  
     #If you are making more than one figure
@@ -89,15 +90,21 @@ def create_subplots(num_subplots, sharex = "row", sharey = 'none'):
         #Make enough rows and columns and get close to equal number of each
         row_num = int(np.floor(np.sqrt(num_subplots)))
         col_num = int(np.ceil(num_subplots/row_num))
+
         assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
         #Creat subplots
-        fig, axes = plt.subplots(nrows = row_num, ncols = col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = sharex, sharey = sharey)
+        gridspec_kw = {'wspace': 0.4, 'hspace': 0.2}
+        fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = sharex, sharey = sharey)
         ax = axes.reshape(row_num * col_num)
     else:
         #One subplot if num_subplots = 1
         fig, axes = plt.subplots(nrows = 1, ncols = 1, figsize = (6,6), squeeze = False, sharex = "row")
         ax = axes.reshape(1)
-        
+
+    for i, axs in enumerate(axes.flatten()):
+        if i >= num_subplots:
+            axs.axis('off')
+
     return fig, axes, ax, len(ax)
     
 def subplot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fontsize):
@@ -370,6 +377,7 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
     for i in range(len(file_path_list)):     
         #Get data
         data, data_names, data_true, GPBO_method_val = analyze_sse_min_sse_ei(file_path_list[i], z_choices)
+        print(num_subplots, data.shape[-1])
         #Create label based on method #
         label = method_names[GPBO_method_val-1] 
         
@@ -783,6 +791,7 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
             
     #Make figures and define number of subplots based on number of files (different methods)  
     subplots_needed = len(z_choices)
+
     fig, axes, ax, num_subplots = create_subplots(subplots_needed, sharex = True, sharey = True)
 
     #Get method value from json file
@@ -819,32 +828,41 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
             cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
 #             new_ticks = np.logspace(np.log10(vmin), np.log10(vmax), 7)
             new_ticks = matplotlib.ticker.LogLocator() #Set up to 12 ticks
-            fmt = matplotlib.ticker.LogFormatter()
+            def custom_format(x, pos):
+                return f'{{10^{int(np.log10(x))}}}' if x != 0 else '0'
             
         #Otherwise do not scale
         else:
             norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False) 
             cbar_ticks = np.linspace(vmin, vmax, zbins)
-            new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks
-            fmt = matplotlib.ticker.ScalarFormatter()
+            new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks       
 
         #Create a colormap and colorbar normalization for each subplot   
         cs_fig = ax[i].contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(cmap), norm = norm)
         
         divider1 = make_axes_locatable(ax[i])
-        cax1 = divider1.append_axes("right", size="5%", pad=0.2)
+        cax1 = divider1.append_axes("right", size="5%", pad="5%")
         try:
-            cbar = plt.colorbar(cs_fig, orientation='vertical', ax = ax[i], cax = cax1, ticks = new_ticks, format = fmt)
+            cbar = plt.colorbar(cs_fig, orientation='vertical', cax = cax1, ticks = new_ticks, use_gridspec=True) #format = fmt
         except:
             print(np.exp(z))
             print(np.nanmin(np.exp(z)), np.nanmax(np.exp(z)))
+
+        # Use a custom formatter for the colorbar
+        if not log_data and vmin >0:
+            fmt = matplotlib.ticker.FuncFormatter(custom_format)
+        else:
+            print("string meth")
+            fmt = matplotlib.ticker.StrMethodFormatter("{:2.2e}") 
+
+        cbar.ax.yaxis.set_major_formatter(fmt)
         cbar.ax.tick_params(labelsize=other_fontsize)
         cbar.ax.set_ylabel(title2, fontsize=other_fontsize, fontweight='bold')
 
         #Create a line contour for each colormap
         if levels is not None:  
             cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3, norm = norm)
-            ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1)
+            # ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1) #Uncomment for numbers
 
         #plot min obj, max ei, true and training param values as appropriate
         if theta_true is not None:
@@ -879,12 +897,18 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
         xlabel = r'$\mathbf{'+ plot_axis_names[0]+ '}$'
         ylabel = r'$\mathbf{'+ plot_axis_names[1]+ '}$'
 
-    set_plot_titles(fig, title, xlabel, ylabel, title_fontsize, other_fontsize)
+    for ax in axes[-1]:
+        ax.set_xlabel(xlabel, fontsize = other_fontsize)
+
+    for ax in axes[:, 0]:
+        ax.set_ylabel(ylabel, fontsize = other_fontsize)
+
+    set_plot_titles(fig, title, None, None, title_fontsize, other_fontsize)
     
     #Plots legend and title
     fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)
 
-    plt.tight_layout()
+    plt.tight_layout(h_pad=1)
 
     #Save or show figure
     if save_path is not None:
@@ -1051,7 +1075,7 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
         #Create a line contour for each colormap
         if levels is not None:  
             cs2_fig = ax[ax_idx].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3, norm = norm)
-            ax[ax_idx].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
+            # ax[ax_idx].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
 
         #plot min obj, max ei, true and training param values as appropriate
         if theta_true is not None:
@@ -1096,8 +1120,14 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
     else:
         xlabel = r'$\mathbf{'+ plot_axis_names[0]+ '}$'
         ylabel = r'$\mathbf{'+ plot_axis_names[1]+ '}$'
+        
+    for ax in axes[-1]:
+        ax.set_xlabel(xlabel, fontsize = other_fontsize)
 
-    set_plot_titles(fig, title, xlabel, ylabel, title_fontsize, other_fontsize)
+    for ax in axes[:, 0]:
+        ax.set_ylabel(ylabel, fontsize = other_fontsize)
+
+    set_plot_titles(fig, title, None, None, title_fontsize, other_fontsize)
     
     #Plots legend and title
     fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)

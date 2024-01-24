@@ -773,9 +773,7 @@ def analyze_thetas(file_path, z_choice, save_csv = False):
             np.save(data_name_file, data_names)
             np.save(data_true_file, data_true)
             
-    for name in data_names:
-        if "theta" in name:
-            name = "\\" + name
+    data_names = [element.replace('theta', '\\theta') for element in data_names]
             
     print(data_names)
             
