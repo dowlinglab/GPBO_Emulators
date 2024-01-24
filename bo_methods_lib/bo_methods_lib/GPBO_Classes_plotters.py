@@ -84,28 +84,35 @@ def create_subplots(num_subplots, sharex = "row", sharey = 'none'):
     """
 
     assert num_subplots >= 1, "Number of subplots must be at least 1"
+    assert isinstance(num_subplots, int), "Num subplots must be int"
     #Make figures and define number of subplots  
-    #If you are making more than one figure
-    if num_subplots > 1:
-        #Make enough rows and columns and get close to equal number of each
-        row_num = int(np.floor(np.sqrt(num_subplots)))
-        col_num = int(np.ceil(num_subplots/row_num))
+    #If you are making more than one figure, sharex is always true
+    if num_subplots == 1:
+        sharex = True
 
-        assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
-        #Creat subplots
-        gridspec_kw = {'wspace': 0.4, 'hspace': 0.2}
-        fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = sharex, sharey = sharey)
-        ax = axes.reshape(row_num * col_num)
-    else:
-        #One subplot if num_subplots = 1
-        fig, axes = plt.subplots(nrows = 1, ncols = 1, figsize = (6,6), squeeze = False, sharex = "row")
-        ax = axes.reshape(1)
+    #Make enough rows and columns and get close to equal number of each
+    row_num = int(np.floor(np.sqrt(num_subplots)))
+    col_num = int(np.ceil(num_subplots/row_num))
+    assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
+    total_ax_num = row_num * col_num
 
+    #Creat subplots
+    gridspec_kw = {'wspace': 0.4, 'hspace': 0.2}
+    fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = sharex, sharey = sharey)
+
+    #Turn off unused axes
     for i, axs in enumerate(axes.flatten()):
         if i >= num_subplots:
             axs.axis('off')
 
-    return fig, axes, ax, len(ax)
+    #Make plot mapping to map an axes to an iterable value
+    plot_mapping = {}
+    for i in range(row_num):
+        for j in range(col_num):
+            plot_number = i * col_num + j
+            plot_mapping[plot_number] = (i, j)
+
+    return fig, axes, total_ax_num, plot_mapping
     
 def subplot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fontsize):
     """
@@ -268,52 +275,54 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, plot_dict):
     
     #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
     subplots_needed = data.shape[-1]
-    fig, axes, ax, num_subplots = create_subplots(subplots_needed, sharex = True)
+    fig, axes, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True)
     
     #Print the title and labels as appropriate
     set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
 
     #Loop over different hyperparameters (number of subplots)
-    for i in range(subplots_needed):
-        #The index of the data is i, and one data type is in the last row of the data
-        one_data_type = data[:,:,i]
-        #Loop over all runs
-        for j in range(one_data_type.shape[0]):
-            #Create label based on run #
-            label = "Run: "+str(j+1) 
-            #Remove elements that are numerically 0
-            data_df_run = pd.DataFrame(data = one_data_type[j])
-            data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-14).any(axis=1),0]
-            data_df_i = data_df_run.loc[:,0] #Used to be df_i
-            #Ensure we have at least 2 elements to plot
-            if len(data_df_j) < 2:
-                data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
-            #Define x axis
-            bo_len = len(data_df_j)
-            bo_space = np.linspace(1,bo_len,bo_len)
-            #Set appropriate notation
-            if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
-                ax[i].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
-            #Plot data
-            if log_data == True:
-                data_df_j = np.log(data_df_j)
-            ax[i].step(bo_space, data_df_j, label = label)
-            #Plot true value if applicable
-            if data_true is not None and j == one_data_type.shape[0] - 1:
-                ax[i].axhline(y=data_true[i], color = "red", linestyle='--', label = "True Value")
-            
-            #Set plot details 
-            title = r'$'+ data_names[i]+ '$'
-            subplot_details(ax[i], bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
-            
-        if not log_data and data_true is None:
-            ax[i].set_yscale("log")
+    for i, ax in enumerate(axes.flatten()):
+        #Only plot data if axis is visible
+        if i < subplots_needed:
+            #The index of the data is i, and one data type is in the last row of the data
+            #Grab the mapping from plot_mapping
+            ax_row, ax_col = plot_mapping[i]
+            one_data_type = data[:,:,i]
+            #Loop over all runs
+            for j in range(one_data_type.shape[0]):
+                #Create label based on run #
+                label = "Run: "+str(j+1) 
+                #Remove elements that are numerically 0
+                data_df_run = pd.DataFrame(data = one_data_type[j])
+                data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-14).any(axis=1),0]
+                data_df_i = data_df_run.loc[:,0] #Used to be df_i
+                #Ensure we have at least 2 elements to plot
+                if len(data_df_j) < 2:
+                    data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
+                #Define x axis
+                bo_len = len(data_df_j)
+                bo_space = np.linspace(1,bo_len,bo_len)
+                #Set appropriate notation
+                if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
+                    ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                #Plot data
+                if log_data == True:
+                    data_df_j = np.log(data_df_j)
+                ax.step(bo_space, data_df_j, label = label)
+                #Plot true value if applicable
+                if data_true is not None and j == one_data_type.shape[0] - 1:
+                    ax.axhline(y=data_true[i], color = "red", linestyle='--', label = "True Value")
+                
+                #Set plot details 
+                title = r'$'+ data_names[i]+ '$'
+                subplot_details(ax, bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
+                
+            if not log_data and data_true is None:
+                ax.set_yscale("log")
 
-    #Set extra axes off
-    for k in range(subplots_needed,num_subplots):
-        ax[k].set_axis_off()
-
-    handles, labels = ax[-1].get_legend_handles_labels()
+        #Add legends and handles from last subplot that is visible
+        if i == subplots_needed -1:
+            handles, labels = axes[0, -1].get_legend_handles_labels()
             
     #Plots legend and title
     plt.tight_layout()
@@ -377,7 +386,6 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
     for i in range(len(file_path_list)):     
         #Get data
         data, data_names, data_true, GPBO_method_val = analyze_sse_min_sse_ei(file_path_list[i], z_choices)
-        print(num_subplots, data.shape[-1])
         #Create label based on method #
         label = method_names[GPBO_method_val-1] 
         
