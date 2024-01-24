@@ -12,8 +12,12 @@ from collections.abc import Iterable
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import matplotlib.ticker as ticker
 from .GPBO_Classes_New import Data, Method_name_enum
 from.analyze_data import analyze_sse_min_sse_ei, analyze_thetas, get_best_data, get_median_data, get_mean_data, analyze_heat_maps
+
+import warnings
+np.warnings = warnings
 
 
 def save_fig(path, ext='png', close=True, verbose=True):
@@ -788,33 +792,53 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
         GPBO_method_val = json.load(json_file)["meth_name_val"]
         
     #Loop over number of subplots
-    for i in range(subplots_needed):
+    for i in range(len(all_z_data)):
         #Get data for z_choice
         z = all_z_data[i]
+        need_unscale = False
+        
+        #Unlog scale the data if vmin is 0 and log_data = True
+        if np.min(z) == -np.inf or np.isnan(np.min(z)):
+            warnings.warn("Cannot plot log scaled data! Reverting to original")
+            need_unscale = True 
+            if log_data:
+                z = np.exp(all_z_data[i])
         
         #Create normalization
-        vmin = min(np.min(arr) for arr in all_z_data)
-        if vmin == 0:
-            vmin = 1e-12
-        vmax = max(np.max(arr) for arr in all_z_data)
-
-        #Create a colormap and colorbar normalization for each subplot
-        if log_data == True or vmin < 0:
-            norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
-            cbar_ticks = np.linspace(vmin, vmax, zbins)
-            cs_fig = ax[i].contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(cmap), norm = norm)
-            new_ticks = matplotlib.ticker.MaxNLocator(nbins=12) #Set up to 12 ticks
+        vmin = np.nanmin(z)
+        vmax = np.nanmax(z)
+        
+        if need_unscale == False and log_data:
             title2 = "log(" + all_z_titles[i] + ")"
         else:
-            norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
-            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
-            cs_fig = ax[i].contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(cmap), norm = norm)
-            new_ticks= matplotlib.ticker.LogLocator(numticks=12)
             title2 = all_z_titles[i]
+        
+        #Choose an appropriate colormap and scaling based on vmin, vmax, and log_data
+        #If not using log data and vmin > 0, use log10 to view plots
+        if not log_data and vmin > 0:
+            norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
+            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
+#             new_ticks = np.logspace(np.log10(vmin), np.log10(vmax), 7)
+            new_ticks = matplotlib.ticker.LogLocator() #Set up to 12 ticks
+            fmt = matplotlib.ticker.LogFormatter()
+            
+        #Otherwise do not scale
+        else:
+            norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False) 
+            cbar_ticks = np.linspace(vmin, vmax, zbins)
+            new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks
+            fmt = matplotlib.ticker.ScalarFormatter()
+
+        #Create a colormap and colorbar normalization for each subplot   
+        cs_fig = ax[i].contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(cmap), norm = norm)
         
         divider1 = make_axes_locatable(ax[i])
         cax1 = divider1.append_axes("right", size="5%", pad=0.2)
-        cbar = plt.colorbar(cs_fig, orientation='vertical', ax = ax[i], cax = cax1, ticks = new_ticks)
+        try:
+            cbar = plt.colorbar(cs_fig, orientation='vertical', ax = ax[i], cax = cax1, ticks = new_ticks, format = fmt)
+        except:
+            print(np.exp(z))
+            print(np.nanmin(np.exp(z)), np.nanmax(np.exp(z)))
         cbar.ax.tick_params(labelsize=other_fontsize)
         cbar.ax.set_ylabel(title2, fontsize=other_fontsize, fontweight='bold')
 
@@ -838,10 +862,6 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
 
     #Get legend information and make colorbar on last plot
     handles, labels = ax[-1].get_legend_handles_labels() 
-    
-    for k in range(subplots_needed):
-        if log_data == False:
-                ax[i].set_yscale("log")
 
     for k in range(subplots_needed, num_subplots):
        #Set axes off if it's an extra
@@ -874,194 +894,6 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
 #             print(save_path_to)
             save_fig(save_path_to, ext='png', close=False, verbose=False)  
         plt.close() #Only close figure after for loop
-    else:
-        plt.show()
-        plt.close()
-    
-    return plt.show()
-
-def plot_heat_maps(test_mesh, z, z_choices, param_info_dict, plot_dict):
-    '''
-    Plots comparison of y_sim, GP_mean, and GP_stdev
-    Parameters
-    ----------
-        test_mesh
-        z
-        z_choices: str, "sse_sim", "sse_mean", "sse_var", or "ei". The values that will be plotted
-        param_info_dict
-        plot_dict: dict, dictionary of plotting options. Generate with make_plot_dict()
-    Returns
-    -------
-        plt.show(), A heat map of test_mesh and z
-    '''
-    keys_to_check = ["title","log_data","title_size","other_size","xbins","ybins","zbins","save_path","cmap","line_levels"]
-    assert all(key in plot_dict for key in keys_to_check), "plot_dict must have all keys. Generate plot_dict with make_plot_dict()"
-    keys_not_none = ["line_levels", "zbins", "cmap"]
-    assert all(plot_dict[key] is not None for key in keys_not_none), "line_levels, zbins, and cmap must not be None!"
-    
-    #Break down plot dict and check for correct things
-    title = plot_dict["title"]
-    log_data = plot_dict["log_data"]
-    title_fontsize = plot_dict["title_size"]
-    other_fontsize = plot_dict["other_size"]
-    xbins = plot_dict["xbins"]
-    ybins = plot_dict["ybins"]
-    zbins = plot_dict["zbins"]
-    save_path = plot_dict["save_path"]
-    cmap = plot_dict["cmap"]
-    levels = plot_dict["line_levels"]
-    
-    #Break down param_info_dict
-    theta_true = param_info_dict["true"]
-    theta_obj_min = param_info_dict["min_sse"]
-    theta_ei_max = param_info_dict["max_ei"]
-    train_theta = param_info_dict["train"]
-    param_names = param_info_dict["names"]
-    idcs_to_plot = param_info_dict["idcs"]
-
-    
-    #Assert Statements
-    list_vars = [z, z_choices]
-    assert all(isinstance(var, Iterable) for var in list_vars), "z and z_choices must be iterable"
-    assert isinstance(z_choices, list), "z_choices must be list"
-    for z_choice in z_choices:
-        assert z_choice in ['sse_sim', 'sse_mean', 'sse_var','ei'], "z_choices elements must be 'sse_sim', 'sse_mean', 'sse_var', or 'ei'"
-    
-    z_titles = []
-    
-    for z_choice in z_choices:
-        if "sse_sim" == z_choice:
-            z_titles += ["\mathbf{e(\\theta)_{sim}}"]
-        if "sse_mean" == z_choice:
-            z_titles += ["\mathbf{e(\\theta)_{gp}}"]
-        if "sse_var" == z_choice:
-            z_titles += ["\mathbf{\sigma^2_{gp}}"] 
-        if "ei" == z_choice:
-            z_titles += ["\mathbf{EI(\\theta)}"]
-    
-    #Define plot levels
-    if levels is None:
-        tot_lev = None
-    elif len(levels) == 1:
-        tot_lev = levels*len(z) 
-    else:
-        tot_lev = levels
-        
-    #Assert sattements
-    #Get x and y data from test_mesh
-    xx , yy = test_mesh #NxN, NxN
-    assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
-    
-    #Make figures and define number of subplots  
-    subplots_needed = len(z)
-    fig, axes, ax, num_subplots = create_subplots(subplots_needed, sharex = True, sharey = True)
-    
-    #Print the title
-    if title is not None:
-        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
-
-    #Set plot details
-    #Loop over number of subplots
-    for i in range(num_subplots):
-        #Assert statements
-        assert z[i].shape==xx.shape, "Array z must be NxN"
-        vmin = np.min(z[i])
-        vmax = np.max(z[i])
-
-        # Create a common color normalization for subplot
-        if log_data == True:
-            norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
-            cbar_ticks = np.linspace(vmin, vmax, zbins)
-        else:
-            norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
-            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
-
-        #Set number format based on magnitude
-        if np.amax(abs(z[i])) < 1e-1 or np.amax(abs(z[i])) > 1000:
-            fmt = '%.2e'           
-        else:
-            fmt = '%2.2f'
-
-        #Create a colormap and colorbar for each subplot
-        try:
-            cs_fig = ax[i].contourf(xx, yy, z[i], levels = zbins, cmap = plt.cm.get_cmap(cmap))
-        except:
-            cs_fig = ax[i].contourf(xx, yy, z[i], levels = [np.max(z[i])-1e-9, np.max(z[i])], cmap = plt.cm.get_cmap(cmap))
-            
-        
-        if log_data is True:
-            new_ticks = matplotlib.ticker.MaxNLocator(nbins=12) #Set up to 12 ticks
-            title2 = "log(" + z_titles[i] + ")"
-        else:
-            new_ticks= matplotlib.ticker.LogLocator(numticks=12)
-            title2 = z_titles[i]
-            
-        divider1 = make_axes_locatable(ax[i])
-        cax1 = divider1.append_axes("right", size="4%", pad=0.2)
-        cbar = plt.colorbar(cs_fig, ax = ax[i], cax = cax1, format=fmt, ticks = new_ticks)
-#         cb_ax = fig.add_axes([1.03,0,0.04,1])
-#         cbar = plt.colorbar(cs_fig, orientation='vertical', ax=ax[i], cax=cb_ax, ticks = new_ticks)
-        cbar.ax.tick_params(labelsize=other_fontsize)
-        cbar.ax.set_ylabel(rf"${title2}$", fontsize=other_fontsize, fontweight='bold')
-
-        #Create a line contour for each colormap
-        if levels is not None:   
-            cs2_fig = ax[i].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3)
-            ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
-
-        #plot min obj, max ei, true and training param values as appropriate
-        if theta_true is not None:
-            ax[i].scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", label = "True", s=200, marker = (5,1), zorder = 2)
-        if train_theta is not None:
-            ax[i].scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]],color="green",s=100,label="Train",marker= "x", zorder =1)
-        if theta_ei_max is not None:
-            ax[i].scatter(theta_ei_max[idcs_to_plot[0]],theta_ei_max[idcs_to_plot[1]],color="black",s=175,label ="Max EI",marker = "^", zorder =3)
-        if theta_obj_min is not None:
-            try: #Note this is just for getting the scaled muller test working
-                ax[i].scatter(theta_obj_min[idcs_to_plot[0]],theta_obj_min[idcs_to_plot[1]], color="white", s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, zorder = 4)
-            except:
-                ax[i].scatter(theta_obj_min[0],theta_obj_min[1], color="white", s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, zorder =4)
-
-        #Define x and y labels
-        if "theta" in param_names[0]:
-            xlabel = r'$\mathbf{'+ "\\" + param_names[0]+ '}$'
-            ylabel = r'$\mathbf{'+ "\\" + param_names[1]+ '}$'
-        else:
-            xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
-            ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
-
-        #Set plot details
-        if title is not None:
-            subplot_details(ax[i], xx, yy, xlabel, ylabel, rf"${title2}$", xbins, ybins, other_fontsize)
-        else:
-            subplot_details(ax[i], xx, yy, xlabel, ylabel, rf"${title2}$", xbins, ybins, other_fontsize)
-            
-        if log_data == False:
-            ax[i].set_yscale("log")
-     
-    for k in range(subplots_needed, num_subplots):
-       #Set axes off if it's an extra
-        ax[k].set_axis_off()
-        
-    for k in range(subplots_needed, num_subplots):
-        if log_data == False:
-                ax[i].set_yscale("log")
-        
-    #Get legend information
-    handles, labels = ax[-1].get_legend_handles_labels()
-        
-    #Plots legend and title
-    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
-    fig.tight_layout()
-
-    #Save or show figure
-    if save_path is not None:   
-        if z_save_names:
-            path_end =  '-'.join(z_save_names)  
-        else:
-            path_end = '-'.join(z_titles)
-        save_path = save_path + "Heat_Maps/" + path_end + "/" + param_names[0] + "-" + param_names[1]
-        save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
@@ -1139,8 +971,15 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
             get_ei = False
         #Get data
         analysis_list = analyze_heat_maps(file_path_list[i], run_num_list[i], bo_iter_list[i], pair, log_data, get_ei)
-        sim_sse_var_ei, test_mesh, theta_true, theta_opt, theta_next, train_theta, plot_axis_names, idcs_to_plot = analysis_list
+        sim_sse_var_ei, test_mesh, param_info_dict = analysis_list
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
+        
+        theta_true = param_info_dict["true"]
+        theta_opt = param_info_dict["min_sse"]
+        theta_next = param_info_dict["max_ei"]
+        train_theta = param_info_dict["train"]
+        plot_axis_names = param_info_dict["names"]
+        idcs_to_plot = param_info_dict["idcs"]
 
         #Assert sattements
         #Get x and y data from test_mesh
