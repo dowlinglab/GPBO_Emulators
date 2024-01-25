@@ -1054,18 +1054,18 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
     vmin = min(np.min(arr) for arr in all_z_data)
     vmax = max(np.max(arr) for arr in all_z_data)
     #Check if data scales 3 orders of magnitude
-    mag_diff = math.log10(abs(vmax)) - math.log10(abs(vmin)) > 3.0
+    mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
 
     # Create a common color normalization for all subplots
     #Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3 
-    if log_data == True or need_unscale or mag_diff:
+    if log_data == True or need_unscale or not mag_diff :
         norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
         cbar_ticks = np.linspace(vmin, vmax, zbins)
-        new_ticks = matplotlib.ticker.MaxNLocator(nbins=12) #Set up to 12 ticks
+        new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks
     else:
         norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
         cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
-        new_ticks= matplotlib.ticker.LogLocator(numticks=12)
+        new_ticks= matplotlib.ticker.LogLocator(numticks=7)
 
     #Set plot details
     #Loop over number of subplots
@@ -1155,13 +1155,18 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
 
     plt.tight_layout()
 
+    save_path_dir = os.path.join("Results", save_path, "Heat_Maps", plot_axis_names[0] + "-" + plot_axis_names[1], z_choice)
+    save_path_to = os.path.join(save_path_dir, z_choice)
+    print(save_path_to)
+
     #Save or show figure
     if save_path is not None:
-        for save_path_dir in save_path:
-            save_path_to = save_path_dir + "Heat_Maps/" + z_choice + "_all_methods/" + plot_axis_names[0] + "-" + plot_axis_names[1]
-#             print(save_path_to)
-            save_fig(save_path_to, ext='png', close=False, verbose=False)  
-        plt.close() #Only close figure after for loop
+        pass
+        # save_path_dir = os.path.join("Results", save_path, "Heat_Maps", plot_axis_names[0] + "-" + plot_axis_names[1], z_choice)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_path_to = os.path.join(save_path_dir z_choice)
+        # save_fig(save_path_to, ext='png', close=False, verbose=False)  
+        # plt.close() #Only close figure after for loop
     else:
         plt.show()
         plt.close()
