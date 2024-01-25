@@ -219,7 +219,7 @@ def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None,
     """
     assert isinstance(cmap, str) and cmap in list(colormaps), "cmap must be a string in matplotlib.colormaps"
     assert isinstance(log_data, bool), "log_data must be bool"
-    assert isinstance(save_path, list) or save_path is None, "save_path must be list of str or None"
+    assert isinstance(save_path, str) or save_path is None, "save_path must be str or None"
     none_str_vars = [title, xlabel, ylabel]
     if save_path is not None:
         none_str_vars += [path for path in save_path]
@@ -281,7 +281,7 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, plot_dict):
     fig, axes, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True)
     
     #Print the title and labels as appropriate
-    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+    set_plot_titles(fig, title, None, None, title_fontsize, other_fontsize)
 
     #Loop over different hyperparameters (number of subplots)
     for i, ax in enumerate(axes.flatten()):
@@ -327,6 +327,13 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, plot_dict):
         if i == subplots_needed -1:
             handles, labels = axes[0, -1].get_legend_handles_labels()
             
+    
+    for axs in axes[-1]:
+        axs.set_xlabel(x_label, fontsize = other_fontsize)
+
+    for axs in axes[:, 0]:
+        axs.set_ylabel(y_label, fontsize = other_fontsize)
+
     #Plots legend and title
     plt.tight_layout()
     fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.75), borderaxespad=0)
@@ -336,8 +343,10 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, plot_dict):
         plt.show()
         plt.close()
     else:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
-
+        save_path_dir = os.path.dirname(save_path)
+        print(save_path)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_fig(save_path, ext='png', close=True, verbose=False) 
     return
 
 def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
@@ -457,11 +466,12 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
         plt.show()
         plt.close()
     else:
-        for save_path_dir in save_path:
-            save_path_to = save_path_dir + "Line_Plots/" + '_'.join(map(str, data_names)).replace(" ", "_").lower() + "_all_runs"
-#             print(save_path_to)
-            save_fig(save_path_to, ext='png', close=False, verbose=False)  
-        plt.close() #Only close figure after for loop
+        z_choices_sort = sorted(z_choices, key=lambda x: ("sse", "min_sse", "ei").index(x))
+        save_path_dir = os.path.join("Results", save_path, "line_plots", "all_meth_mult_obj")
+        save_path_to = os.path.join(save_path_dir, '_'.join(map(str, z_choices_sort)))
+        print(save_path_to)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_fig(save_path_to, ext='png', close=True, verbose=False)  
         
     return
 
@@ -599,7 +609,11 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
         plt.show()
         plt.close()
     else:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        save_path_dir = os.path.join("Results", save_path, "line_plots", "all_meth_1_obj")
+        save_path_to = os.path.join(save_path_dir, z_choices)
+        print(save_path_to)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_fig(save_path_to, ext='png', close=True, verbose=False)  
         
     return                  
 
@@ -656,7 +670,9 @@ def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins,
         plt.show()
         plt.close()
     else:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        print(save_path)
+        # os.makedirs(os.path.dirname(save_path))
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     
     return
 
@@ -715,7 +731,8 @@ def plot_theta_vs_y_given_x(data, theta_idx, data_names, exp_data, train_data, t
         plt.show()
         plt.close()
     else:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        pass
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     
     return
 
@@ -831,9 +848,8 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
             vmin = np.nanmin(z)
             vmax = np.nanmax(z)
             #Check if data scales 3 orders of magnitude
-            mag_diff = math.log10(abs(vmax)) - math.log10(abs(vmin)) > 3.0 if vmin > 0 else False
+            mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) > 2.0 if vmin > 0 else False
             
-
             if need_unscale == False and log_data:
                 title2 = "log(" + all_z_titles[i] + ")"
             else:
@@ -841,21 +857,19 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
 
             #Choose an appropriate colormap and scaling based on vmin, vmax, and log_data
             #If not using log data, vmin > 0, and the data scales 3 orders+ of magnitude use log10 to view plots
-            if not log_data and vmin > 0 and mag_diff:
+            if log_data or vmin < 0 or not mag_diff:
+                norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False) 
+                cbar_ticks = np.linspace(vmin, vmax, zbins)
+                new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks  
+                def custom_format(x, pos):
+                    return '{:2.2e}'.format(x) if x != 0 else '0'
+            else:
                 norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
                 cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
     #             new_ticks = np.logspace(np.log10(vmin), np.log10(vmax), 7)
                 new_ticks = matplotlib.ticker.LogLocator(numticks=7) #Set up to 12 ticks
                 def custom_format(x, pos):
                     return f'{eval("10**" + str(int(np.log10(x))))}' if x != 0 else '0'
-
-            #Otherwise do not scale
-            else:
-                norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False) 
-                cbar_ticks = np.linspace(vmin, vmax, zbins)
-                new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks  
-                def custom_format(x, pos):
-                    return '{:2.2e}'.format(x) if x != 0 else '0'
 
             #Create a colormap and colorbar normalization for each subplot   
             cs_fig = ax.contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(cmap), norm = norm)
@@ -895,8 +909,8 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
     handles, labels = axes[0,0].get_legend_handles_labels() 
                       
     #Print the title
-    if title is not None:
-        title = title + " " + str(plot_axis_names)
+    if title is None:
+        title = method_names[GPBO_method_val-1]
         
     #Print the title and labels as appropriate
     #Define x and y labels
@@ -922,11 +936,15 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
     
     #Save or show figure
     if save_path is not None:
-        for save_path_dir in save_path:
-            save_path_to = save_path_dir + "Heat_Maps/" + z_choice + "_all_methods/" + plot_axis_names[0] + "-" + plot_axis_names[1]
-#             print(save_path_to)
-            save_fig(save_path_to, ext='png', close=False, verbose=False)  
-        plt.close() #Only close figure after for loop
+        z_choices_sort = sorted(z_choices, key=lambda x: ('sse_sim', 'sse_mean', 'sse_var','ei').index(x))
+        z_choices_str = '_'.join(map(str, z_choices_sort))
+        title_str = title.replace(" ", "_").lower()
+        save_path_dir = os.path.join("Results", save_path, "heat_maps", title_str, plot_axis_names[0] + "-" + 
+                                     plot_axis_names[1], z_choices_str)
+        save_path_to = os.path.join(save_path_dir, "run_"+ str(run_num) + "_" + "iter_" + str(bo_iter))
+        print(save_path_to)
+        # os.makedirs(save_path_dir)
+        # save_fig(save_path_to, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
@@ -1153,20 +1171,15 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
     #Plots legend and title
     fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)
 
-    plt.tight_layout()
-
-    save_path_dir = os.path.join("Results", save_path, "Heat_Maps", plot_axis_names[0] + "-" + plot_axis_names[1], z_choice)
-    save_path_to = os.path.join(save_path_dir, z_choice)
-    print(save_path_to)
+    plt.tight_layout()  
 
     #Save or show figure
     if save_path is not None:
-        pass
-        # save_path_dir = os.path.join("Results", save_path, "Heat_Maps", plot_axis_names[0] + "-" + plot_axis_names[1], z_choice)
+        save_path_dir = os.path.join("Results", save_path, "heat_maps", plot_axis_names[0] + "-" + plot_axis_names[1])
+        save_path_to = os.path.join(save_path_dir, z_choice)
+        print(save_path_to)
         # os.makedirs(save_path_dir, exist_ok=True)
-        # save_path_to = os.path.join(save_path_dir z_choice)
-        # save_fig(save_path_to, ext='png', close=False, verbose=False)  
-        # plt.close() #Only close figure after for loop
+        # save_fig(save_path_to, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
@@ -1293,7 +1306,8 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
      
     #Save or show figure
     if save_path is not None:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        pass
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
@@ -1383,7 +1397,8 @@ def parity_plot(y_data, y_sse_data, sse_data, method, log_plot, xbins, ybins, x_
 
     #Save or show figure
     if save_path is not None:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        pass
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
@@ -1550,14 +1565,15 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
 
     plt.tight_layout()
 
+    nlr_plot = "func_ls_compare" if not theta_true else "sse_contour"
+
     #Save or show figure
     if save_path is not None:   
-        if z_save_names:
-            path_end =  '-'.join(z_save_names)  
-        else:
-            path_end = '-'.join(z_titles)
-        save_path = save_path + "Heat_Maps/" + path_end + "/" + param_names[0] + "-" + param_names[1]
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        save_path_dir = os.path.join("Results", save_path, "heat_maps", param_names[0] + "-" + param_names[1])
+        save_path_to = os.path.join(save_path_dir, )
+        print(save_path_to)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
