@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-import torch
+import math
 from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 import os
@@ -822,14 +822,17 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
 
             #Unlog scale the data if vmin is 0 and log_data = True
             if np.min(z) == -np.inf or np.isnan(np.min(z)):
-                warnings.warn("Cannot plot log scaled data! Reverting to original")
                 need_unscale = True 
                 if log_data:
+                    warnings.warn("Cannot plot log scaled data! Reverting to original")
                     z = np.exp(all_z_data[i])
 
             #Create normalization
             vmin = np.nanmin(z)
             vmax = np.nanmax(z)
+            #Check if data scales 3 orders of magnitude
+            mag_diff = math.log10(abs(vmax)) - math.log10(abs(vmin)) > 3.0 if vmin > 0 else False
+            
 
             if need_unscale == False and log_data:
                 title2 = "log(" + all_z_titles[i] + ")"
@@ -837,12 +840,12 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
                 title2 = all_z_titles[i]
 
             #Choose an appropriate colormap and scaling based on vmin, vmax, and log_data
-            #If not using log data and vmin > 0, use log10 to view plots
-            if not log_data and vmin > 0:
+            #If not using log data, vmin > 0, and the data scales 3 orders+ of magnitude use log10 to view plots
+            if not log_data and vmin > 0 and mag_diff:
                 norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
                 cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
     #             new_ticks = np.logspace(np.log10(vmin), np.log10(vmax), 7)
-                new_ticks = matplotlib.ticker.LogLocator() #Set up to 12 ticks
+                new_ticks = matplotlib.ticker.LogLocator(numticks=7) #Set up to 12 ticks
                 def custom_format(x, pos):
                     return f'{eval("10**" + str(int(np.log10(x))))}' if x != 0 else '0'
 
@@ -1037,17 +1040,32 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
         all_theta_next.append(theta_next)
         all_train_theta.append(train_theta)
                  
+    #Initialize need_unscale to False
+    need_unscale = False
+    
+    #Unlog scale the data if vmin is 0 and log_data = True
+    if np.amin(all_z_data) == -np.inf or np.isnan(np.amin(all_z_data)):
+        need_unscale = True 
+        if log_data:
+            warnings.warn("Cannot plot log scaled data! Reverting to original")
+            z = np.exp(all_z_data[i])
+
     # Find the maximum and minimum values in your data to normalize the color scale
     vmin = min(np.min(arr) for arr in all_z_data)
     vmax = max(np.max(arr) for arr in all_z_data)
+    #Check if data scales 3 orders of magnitude
+    mag_diff = math.log10(abs(vmax)) - math.log10(abs(vmin)) > 3.0
 
     # Create a common color normalization for all subplots
-    if log_data == True:
+    #Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3 
+    if log_data == True or need_unscale or mag_diff:
         norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
         cbar_ticks = np.linspace(vmin, vmax, zbins)
+        new_ticks = matplotlib.ticker.MaxNLocator(nbins=12) #Set up to 12 ticks
     else:
         norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
         cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
+        new_ticks= matplotlib.ticker.LogLocator(numticks=12)
 
     #Set plot details
     #Loop over number of subplots
@@ -1104,11 +1122,8 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
     handles, labels = ax[-1, -1].get_legend_handles_labels() 
 
     cb_ax = fig.add_axes([1.03,0,0.04,1])
-    if log_data is True:
-        new_ticks = matplotlib.ticker.MaxNLocator(nbins=12) #Set up to 12 ticks
+    if log_data is True and not need_unscale:
         title2 = "log(" + title2 + ")"
-    else:
-        new_ticks= matplotlib.ticker.LogLocator(numticks=12)
         
     cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks)
     cbar.ax.tick_params(labelsize=other_fontsize)
@@ -1397,8 +1412,8 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     '''
     keys_to_check = ["title","log_data","title_size","other_size","xbins","ybins","zbins","save_path","cmap","line_levels"]
     assert all(key in plot_dict for key in keys_to_check), "plot_dict must have all keys. Generate plot_dict with make_plot_dict()"
-    keys_not_none = ["line_levels", "zbins", "cmap"]
-    assert all(plot_dict[key] is not None for key in keys_not_none), "line_levels, zbins, and cmap must not be None!"
+    keys_not_none = ["zbins", "cmap"]
+    assert all(plot_dict[key] is not None for key in keys_not_none), "zbins, and cmap must not be None!"
     
     #Break down plot dict and check for correct things
     title = plot_dict["title"]
@@ -1432,6 +1447,8 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
         tot_lev = levels*len(all_z_data) 
     else:
         tot_lev = levels
+
+    assert tot_lev is None or len(tot_lev) == len(all_z_data), "levels must be length 1, None, or len(all_z_data)"
         
     #Assert sattements
     #Get x and y data from test_mesh
@@ -1445,9 +1462,11 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     # Find the maximum and minimum values in your data to normalize the color scale
     vmin = min(np.min(arr) for arr in all_z_data)
     vmax = max(np.max(arr) for arr in all_z_data)
+    print(vmin,vmax)
+    mag_diff = math.log10(abs(vmax)) - math.log10(abs(vmin)) > 3.0 if vmin > 0 else False
 
     # Create a common color normalization for all subplots
-    if log_data == True:
+    if log_data == True or mag_diff or vmin <0:
         norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
         cbar_ticks = np.linspace(vmin, vmax, zbins)
     else:
@@ -1471,7 +1490,7 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
         #Create a line contour for each colormap
         if levels is not None:  
             cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3, norm = norm)
-            ax[ax_row, ax_col].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1)
+            # ax[ax_row, ax_col].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1)
 
         #plot min obj, max ei, true and training param values as appropriate
         if theta_true is not None:
@@ -1488,10 +1507,11 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     handles, labels = ax[-1, -1].get_legend_handles_labels() 
 
     cb_ax = fig.add_axes([1.03,0,0.04,1])
-    if log_data is True:
-        new_ticks = matplotlib.ticker.MaxNLocator() #Set up to 12 ticks
+    if log_data is True or vmax-vmin < 1e3:
+        new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 7 ticks
     else:
-        new_ticks = matplotlib.ticker.LogLocator(numticks=12)
+        new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+
     title2 = z_titles[i] 
         
     if "theta" in param_names[0]:
@@ -1519,8 +1539,9 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     #Define x and y labels
     set_plot_titles(fig, title, None, None, title_fontsize, other_fontsize)
     
-    #Plots legend and title
-    fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)
+    #Plots legend
+    if labels:
+        fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)
 
     plt.tight_layout()
 
