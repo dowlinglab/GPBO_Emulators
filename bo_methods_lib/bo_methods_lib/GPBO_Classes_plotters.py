@@ -1462,11 +1462,11 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     # Find the maximum and minimum values in your data to normalize the color scale
     vmin = min(np.min(arr) for arr in all_z_data)
     vmax = max(np.max(arr) for arr in all_z_data)
-    print(vmin,vmax)
-    mag_diff = math.log10(abs(vmax)) - math.log10(abs(vmin)) > 3.0 if vmin > 0 else False
+    mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
 
     # Create a common color normalization for all subplots
-    if log_data == True or mag_diff or vmin <0:
+    if log_data == True or not mag_diff or vmin <0:
+        print(vmin, vmax)
         norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
         cbar_ticks = np.linspace(vmin, vmax, zbins)
     else:
@@ -1507,7 +1507,7 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     handles, labels = ax[-1, -1].get_legend_handles_labels() 
 
     cb_ax = fig.add_axes([1.03,0,0.04,1])
-    if log_data is True or vmax-vmin < 1e3:
+    if log_data is True or not mag_diff or vmin < 0:
         new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 7 ticks
     else:
         new_ticks = matplotlib.ticker.LogLocator(numticks=7)
@@ -1529,7 +1529,7 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
         
     cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks)
     cbar.ax.tick_params(labelsize=other_fontsize)
-    cbar.ax.set_ylabel(title2, fontsize=other_fontsize, fontweight='bold')
+    cbar.ax.set_ylabel("Function Value", fontsize=other_fontsize, fontweight='bold')
                       
     #Print the title
     if title is not None:
