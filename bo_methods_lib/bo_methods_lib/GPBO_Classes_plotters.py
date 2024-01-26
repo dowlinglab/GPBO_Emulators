@@ -1565,7 +1565,7 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
 
     plt.tight_layout()
 
-    nlr_plot = "func_ls_compare" if not theta_true else "sse_contour"
+    nlr_plot = "func_ls_compare" if theta_true is None else "sse_contour"
 
     #Save or show figure
     if save_path is not None:   
