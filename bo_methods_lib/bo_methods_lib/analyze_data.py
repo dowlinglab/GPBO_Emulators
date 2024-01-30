@@ -168,7 +168,7 @@ def get_study_data_signac(job, save_csv = False):
         df_run['EP Method Val'] = Ep_enum(int(col_vals)).name
         #Use job's run number if it has one
         if "bo_run_num" in job.statepoint():
-            df_run["index"] = job.sp.bo_run_num 
+            df_run["index"] = job.sp.bo_run_num
         #Or use the run number from tot_run when tot_runs > 0
         elif tot_runs > 1:
             #Number of runs is the (seed # of the run - initial seed )/2 if tot_runs > 1 

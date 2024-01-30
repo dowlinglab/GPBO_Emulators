@@ -577,7 +577,7 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
             if log_data == True:
                 data_df_j = np.log(data_df_j)
 
-            #For result where run num list is the number of runs, print a solid line                    
+            #For result where run num list is the number of runs, print a solid line 
             if run_num_list[ax_idx] == j + 1:
                 ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = colors[ax_idx], label = label, drawstyle='steps')
             else:
@@ -594,7 +594,7 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
                 subplot_details(ax[ax_row, ax_col], bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
 
             #Add 1 to run number and terminate if the total amount of runs is equal to the total amount
-            if run_num_count == one_data_type.shape[0]:
+            if run_num_count >= one_data_type.shape[0]:
                 term_loop = True
             run_num_count += 1
 
