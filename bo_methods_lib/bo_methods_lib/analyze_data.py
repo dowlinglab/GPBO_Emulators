@@ -179,6 +179,7 @@ def get_study_data_signac(job, save_csv = False):
         #Add other important columns
         df_run["BO Method"] = Method_name_enum(job.sp.meth_name_val).name
         df_run["Job ID"] = job.id
+        
         df_run["Max Evals"] = len(df_run)
         try:
             df_run["Termination"] = results[run].why_term
@@ -189,15 +190,21 @@ def get_study_data_signac(job, save_csv = False):
         #Set BO and run numbers as columns        
         df_run.rename(columns={'index': 'Run Number'}, inplace=True)   
         df_run.insert(1, "BO Iter", df_run.index + 1)
-
+        
         #Add run dataframe to job dataframe after
         df_job = pd.concat([df_job, df_run], ignore_index=False)
 
+    #Set number of runs in job in the table
+    # df_job["Runs in Job"] = tot_runs
     #Reset index on job dataframe
     df_job = df_job.reset_index(drop=True)
-    # print(df_job.head())
+<<<<<<< HEAD
 
-    print(os.path.join(job.fn("analysis_data"), "tabulated_data.csv"))
+    # print(df_job.head())
+=======
+>>>>>>> fbaec757a3d4c908c4aeb6521d892e68a8a9d3e1
+
+    # print(os.path.join(job.fn("analysis_data"), "tabulated_data.csv"))
     #Put in a csv file in a directory based on the job
     if save_csv: 
         file_name1 = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
@@ -303,11 +310,10 @@ def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save
         if job:
             job_list_best.append(job)
     
-    print(dir_name + "best_results.csv")
     if save_csv:
         #Save this as a csv in the same directory as all data
         #Create directory based on criteria dict
-        file_name = dir_name + "best_results.csv"
+        file_name = os.path.join(dir_name, "best_results.csv")
 
         #Add file to directory 
         df_best.to_csv(file_name)
@@ -398,11 +404,11 @@ def get_median_data(criteria_dict, df = None, jobs = None, theta_true = None, sa
         if job:
             job_list_med.append(job)
 
-    print(dir_name + "median_results.csv")
+    # print(dir_name + "median_results.csv")
     if save_csv:
         #Save this as a csv in the same directory as all data
         #Create directory based on criteria dict
-        file_name = dir_name + "median_results.csv"
+        file_name = os.path.join(dir_name, "median_results.csv")
 
         #Add file to directory 
         df_median.to_csv(file_name)
@@ -500,11 +506,11 @@ def get_mean_data(criteria_dict, df = None, jobs = None, theta_true = None, save
         if job:
             job_list_mean.append(job)
 
-    print(dir_name + "mean_results.csv")
+    # print(dir_name + "mean_results.csv")
     if save_csv:
         #Save this as a csv in the same directory as all data
         #Create directory based on criteria dict
-        file_name = dir_name + "mean_results.csv"
+        file_name = os.path.join(dir_name, "mean_results.csv")
 
         #Add file to directory 
         df_mean.to_csv(file_name)
@@ -570,7 +576,7 @@ def analyze_hypers(file_path, save_csv = False):
     hp_data_file = os.path.join(hp_dir_name, "hp_data.npy")
     hp_data_name_file = os.path.join(hp_dir_name, "hp_names.npy")
 
-    print([hp_file_path for hp_file_path in [hp_data_file, hp_data_name_file]])
+    # print([hp_file_path for hp_file_path in [hp_data_file, hp_data_name_file]])
     
     #If data is saved, load it and use it
     if all(os.path.exists(hp_file_path) for hp_file_path in [hp_data_file, hp_data_name_file]):
@@ -631,8 +637,6 @@ def analyze_sse_min_sse_ei(file_path, z_choices, save_csv = False):
     assert all(isinstance(item, str) for item in z_choices), "z_choices elements must be string"
     assert any(item in z_choices for item in ["ei", "min_sse", "sse"]), "z_choices must contain at least 'min_sse', 'ei', or 'sse'"
     
-    z_choices_sort = sorted(z_choices, key=lambda x: ("sse", "min_sse", "ei").index(x))
-    
     strings_for_df = [] 
     data_names = []
     
@@ -657,7 +661,7 @@ def analyze_sse_min_sse_ei(file_path, z_choices, save_csv = False):
     dir_name =  os.path.join(org_dir_name, "analysis_data", "z_choice")
     data_files = [os.path.join(dir_name, z_choice + "_data.npy") for z_choice in z_choices]
     
-    print(data_files)
+    # print(data_files)
 
     #If data is saved, load it and use it
     if all(os.path.exists(data_file) for data_file in data_files):
@@ -736,7 +740,7 @@ def analyze_thetas(file_path, z_choice, save_csv = False):
     data_true_file = os.path.join(dir_name, "true_param.npy")
     data_name_file = os.path.join(dir_name, "param_names.npy")
     
-    print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
+    # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
     
     #If data is saved, load it and use it
     if all(os.path.exists(data_file_path) for data_file_path in [data_file, data_name_file, data_true_file]):
@@ -774,8 +778,6 @@ def analyze_thetas(file_path, z_choice, save_csv = False):
             np.save(data_true_file, data_true)
             
     data_names = [element.replace('theta', '\\theta') for element in data_names]
-            
-    print(data_names)
             
     return data, data_names, data_true
 
@@ -854,7 +856,7 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
 
     data_file_list = [hm_data_file, hm_sse_data_file, param_info_file]
     
-    print([file_name for file_name in data_file_list])
+    # print([file_name for file_name in data_file_list])
     
     if not all(os.path.exists(data_file_path) for data_file_path in data_file_list):
         run_num -= 1

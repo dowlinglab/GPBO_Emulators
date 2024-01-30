@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-import torch
+import math
 from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 import os
@@ -219,7 +219,7 @@ def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None,
     """
     assert isinstance(cmap, str) and cmap in list(colormaps), "cmap must be a string in matplotlib.colormaps"
     assert isinstance(log_data, bool), "log_data must be bool"
-    assert isinstance(save_path, list) or save_path is None, "save_path must be list of str or None"
+    assert isinstance(save_path, str) or save_path is None, "save_path must be str or None"
     none_str_vars = [title, xlabel, ylabel]
     if save_path is not None:
         none_str_vars += [path for path in save_path]
@@ -281,7 +281,7 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, plot_dict):
     fig, axes, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True)
     
     #Print the title and labels as appropriate
-    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+    set_plot_titles(fig, title, None, None, title_fontsize, other_fontsize)
 
     #Loop over different hyperparameters (number of subplots)
     for i, ax in enumerate(axes.flatten()):
@@ -327,6 +327,13 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, plot_dict):
         if i == subplots_needed -1:
             handles, labels = axes[0, -1].get_legend_handles_labels()
             
+    
+    for axs in axes[-1]:
+        axs.set_xlabel(x_label, fontsize = other_fontsize)
+
+    for axs in axes[:, 0]:
+        axs.set_ylabel(y_label, fontsize = other_fontsize)
+
     #Plots legend and title
     plt.tight_layout()
     fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.75), borderaxespad=0)
@@ -336,8 +343,10 @@ def plot_2D_Data_w_BO_Iter(data, data_names, data_true, plot_dict):
         plt.show()
         plt.close()
     else:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
-
+        save_path_dir = os.path.dirname(save_path)
+        print(save_path)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_fig(save_path, ext='png', close=True, verbose=False) 
     return
 
 def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
@@ -457,11 +466,12 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
         plt.show()
         plt.close()
     else:
-        for save_path_dir in save_path:
-            save_path_to = save_path_dir + "Line_Plots/" + '_'.join(map(str, data_names)).replace(" ", "_").lower() + "_all_runs"
-#             print(save_path_to)
-            save_fig(save_path_to, ext='png', close=False, verbose=False)  
-        plt.close() #Only close figure after for loop
+        z_choices_sort = sorted(z_choices, key=lambda x: ("sse", "min_sse", "ei").index(x))
+        save_path_dir = os.path.join("Results", save_path, "line_plots", "all_meth_mult_obj")
+        save_path_to = os.path.join(save_path_dir, '_'.join(map(str, z_choices_sort)))
+        print(save_path_to)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_fig(save_path_to, ext='png', close=True, verbose=False)  
         
     return
 
@@ -531,12 +541,19 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
     #Loop over different files
     for i in range(len(file_path_list)):
         #Get data
-        run_num_count = 1
         term_loop = False
-
         data, data_names, data_true, GPBO_method_val = analyze_sse_min_sse_ei(file_path_list[i], z_choices)
         #The index of the data is i, and one data type is in the last row of the data
         one_data_type = data
+
+        #Get run numer from statepoint if it exists
+        job_dir_name = os.path.dirname(file_path_list[i])
+        with open(job_dir_name+ "/signac_statepoint.json", 'r') as json_file:
+        # Load the JSON data
+            try:
+                run_num_count = json.load(json_file)["bo_run_num"]
+            except:
+                run_num_count = 1
 
         #Set subplot index to the corresponding method value number
         ax_idx = int(GPBO_method_val - 1)
@@ -560,7 +577,7 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
             if log_data == True:
                 data_df_j = np.log(data_df_j)
 
-            #For the best result, print a solid line                    
+            #For result where run num list is the number of runs, print a solid line                    
             if run_num_list[ax_idx] == j + 1:
                 ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = colors[ax_idx], label = label, drawstyle='steps')
             else:
@@ -599,7 +616,11 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
         plt.show()
         plt.close()
     else:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        save_path_dir = os.path.join("Results", save_path, "line_plots", "all_meth_1_obj")
+        save_path_to = os.path.join(save_path_dir, z_choices)
+        print(save_path_to)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_fig(save_path_to, ext='png', close=True, verbose=False)  
         
     return                  
 
@@ -656,7 +677,9 @@ def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins,
         plt.show()
         plt.close()
     else:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        print(save_path)
+        # os.makedirs(os.path.dirname(save_path))
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     
     return
 
@@ -715,7 +738,8 @@ def plot_theta_vs_y_given_x(data, theta_idx, data_names, exp_data, train_data, t
         plt.show()
         plt.close()
     else:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        pass
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     
     return
 
@@ -822,37 +846,37 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
 
             #Unlog scale the data if vmin is 0 and log_data = True
             if np.min(z) == -np.inf or np.isnan(np.min(z)):
-                warnings.warn("Cannot plot log scaled data! Reverting to original")
                 need_unscale = True 
                 if log_data:
+                    warnings.warn("Cannot plot log scaled data! Reverting to original")
                     z = np.exp(all_z_data[i])
 
             #Create normalization
             vmin = np.nanmin(z)
             vmax = np.nanmax(z)
-
+            #Check if data scales 3 orders of magnitude
+            mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) > 2.0 if vmin > 0 else False
+            
             if need_unscale == False and log_data:
                 title2 = "log(" + all_z_titles[i] + ")"
             else:
                 title2 = all_z_titles[i]
 
             #Choose an appropriate colormap and scaling based on vmin, vmax, and log_data
-            #If not using log data and vmin > 0, use log10 to view plots
-            if not log_data and vmin > 0:
-                norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-                cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
-    #             new_ticks = np.logspace(np.log10(vmin), np.log10(vmax), 7)
-                new_ticks = matplotlib.ticker.LogLocator() #Set up to 12 ticks
-                def custom_format(x, pos):
-                    return f'{eval("10**" + str(int(np.log10(x))))}' if x != 0 else '0'
-
-            #Otherwise do not scale
-            else:
+            #If not using log data, vmin > 0, and the data scales 3 orders+ of magnitude use log10 to view plots
+            if log_data or vmin < 0 or not mag_diff:
                 norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False) 
                 cbar_ticks = np.linspace(vmin, vmax, zbins)
                 new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks  
                 def custom_format(x, pos):
                     return '{:2.2e}'.format(x) if x != 0 else '0'
+            else:
+                norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
+                cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
+    #             new_ticks = np.logspace(np.log10(vmin), np.log10(vmax), 7)
+                new_ticks = matplotlib.ticker.LogLocator(numticks=7) #Set up to 12 ticks
+                def custom_format(x, pos):
+                    return f'{eval("10**" + str(int(np.log10(x))))}' if x != 0 else '0'
 
             #Create a colormap and colorbar normalization for each subplot   
             cs_fig = ax.contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(cmap), norm = norm)
@@ -892,8 +916,8 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
     handles, labels = axes[0,0].get_legend_handles_labels() 
                       
     #Print the title
-    if title is not None:
-        title = title + " " + str(plot_axis_names)
+    if title is None:
+        title = method_names[GPBO_method_val-1]
         
     #Print the title and labels as appropriate
     #Define x and y labels
@@ -919,11 +943,15 @@ def plot_hms_gp_compare(file_path, run_num, bo_iter, pair, z_choices, plot_dict)
     
     #Save or show figure
     if save_path is not None:
-        for save_path_dir in save_path:
-            save_path_to = save_path_dir + "Heat_Maps/" + z_choice + "_all_methods/" + plot_axis_names[0] + "-" + plot_axis_names[1]
-#             print(save_path_to)
-            save_fig(save_path_to, ext='png', close=False, verbose=False)  
-        plt.close() #Only close figure after for loop
+        z_choices_sort = sorted(z_choices, key=lambda x: ('sse_sim', 'sse_mean', 'sse_var','ei').index(x))
+        z_choices_str = '_'.join(map(str, z_choices_sort))
+        title_str = title.replace(" ", "_").lower()
+        save_path_dir = os.path.join("Results", save_path, "heat_maps", title_str, plot_axis_names[0] + "-" + 
+                                     plot_axis_names[1], z_choices_str)
+        save_path_to = os.path.join(save_path_dir, "run_"+ str(run_num) + "_" + "iter_" + str(bo_iter))
+        print(save_path_to)
+        # os.makedirs(save_path_dir)
+        # save_fig(save_path_to, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
@@ -1037,17 +1065,32 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
         all_theta_next.append(theta_next)
         all_train_theta.append(train_theta)
                  
+    #Initialize need_unscale to False
+    need_unscale = False
+    
+    #Unlog scale the data if vmin is 0 and log_data = True
+    if np.amin(all_z_data) == -np.inf or np.isnan(np.amin(all_z_data)):
+        need_unscale = True 
+        if log_data:
+            warnings.warn("Cannot plot log scaled data! Reverting to original")
+            z = np.exp(all_z_data[i])
+
     # Find the maximum and minimum values in your data to normalize the color scale
     vmin = min(np.min(arr) for arr in all_z_data)
     vmax = max(np.max(arr) for arr in all_z_data)
+    #Check if data scales 3 orders of magnitude
+    mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
 
     # Create a common color normalization for all subplots
-    if log_data == True:
+    #Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3 
+    if log_data == True or need_unscale or not mag_diff :
         norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
         cbar_ticks = np.linspace(vmin, vmax, zbins)
+        new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks
     else:
         norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
         cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
+        new_ticks= matplotlib.ticker.LogLocator(numticks=7)
 
     #Set plot details
     #Loop over number of subplots
@@ -1104,11 +1147,8 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
     handles, labels = ax[-1, -1].get_legend_handles_labels() 
 
     cb_ax = fig.add_axes([1.03,0,0.04,1])
-    if log_data is True:
-        new_ticks = matplotlib.ticker.MaxNLocator(nbins=12) #Set up to 12 ticks
+    if log_data is True and not need_unscale:
         title2 = "log(" + title2 + ")"
-    else:
-        new_ticks= matplotlib.ticker.LogLocator(numticks=12)
         
     cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks)
     cbar.ax.tick_params(labelsize=other_fontsize)
@@ -1138,15 +1178,15 @@ def plot_hms_all_methods(file_path_list, run_num_list, bo_iter_list, pair, z_cho
     #Plots legend and title
     fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)
 
-    plt.tight_layout()
+    plt.tight_layout()  
 
     #Save or show figure
     if save_path is not None:
-        for save_path_dir in save_path:
-            save_path_to = save_path_dir + "Heat_Maps/" + z_choice + "_all_methods/" + plot_axis_names[0] + "-" + plot_axis_names[1]
-#             print(save_path_to)
-            save_fig(save_path_to, ext='png', close=False, verbose=False)  
-        plt.close() #Only close figure after for loop
+        save_path_dir = os.path.join("Results", save_path, "heat_maps", plot_axis_names[0] + "-" + plot_axis_names[1])
+        save_path_to = os.path.join(save_path_dir, z_choice)
+        print(save_path_to)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_fig(save_path_to, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
@@ -1273,7 +1313,8 @@ def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_
      
     #Save or show figure
     if save_path is not None:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        pass
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
@@ -1363,7 +1404,8 @@ def parity_plot(y_data, y_sse_data, sse_data, method, log_plot, xbins, ybins, x_
 
     #Save or show figure
     if save_path is not None:
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        pass
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
@@ -1397,8 +1439,8 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     '''
     keys_to_check = ["title","log_data","title_size","other_size","xbins","ybins","zbins","save_path","cmap","line_levels"]
     assert all(key in plot_dict for key in keys_to_check), "plot_dict must have all keys. Generate plot_dict with make_plot_dict()"
-    keys_not_none = ["line_levels", "zbins", "cmap"]
-    assert all(plot_dict[key] is not None for key in keys_not_none), "line_levels, zbins, and cmap must not be None!"
+    keys_not_none = ["zbins", "cmap"]
+    assert all(plot_dict[key] is not None for key in keys_not_none), "zbins, and cmap must not be None!"
     
     #Break down plot dict and check for correct things
     title = plot_dict["title"]
@@ -1432,6 +1474,8 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
         tot_lev = levels*len(all_z_data) 
     else:
         tot_lev = levels
+
+    assert tot_lev is None or len(tot_lev) == len(all_z_data), "levels must be length 1, None, or len(all_z_data)"
         
     #Assert sattements
     #Get x and y data from test_mesh
@@ -1445,9 +1489,11 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     # Find the maximum and minimum values in your data to normalize the color scale
     vmin = min(np.min(arr) for arr in all_z_data)
     vmax = max(np.max(arr) for arr in all_z_data)
+    mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
 
     # Create a common color normalization for all subplots
-    if log_data == True:
+    if log_data == True or not mag_diff or vmin <0:
+        print(vmin, vmax)
         norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
         cbar_ticks = np.linspace(vmin, vmax, zbins)
     else:
@@ -1471,7 +1517,7 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
         #Create a line contour for each colormap
         if levels is not None:  
             cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3, norm = norm)
-            ax[ax_row, ax_col].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1)
+            # ax[ax_row, ax_col].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1)
 
         #plot min obj, max ei, true and training param values as appropriate
         if theta_true is not None:
@@ -1488,10 +1534,11 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     handles, labels = ax[-1, -1].get_legend_handles_labels() 
 
     cb_ax = fig.add_axes([1.03,0,0.04,1])
-    if log_data is True:
-        new_ticks = matplotlib.ticker.MaxNLocator() #Set up to 12 ticks
+    if log_data is True or not mag_diff or vmin < 0:
+        new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 7 ticks
     else:
-        new_ticks = matplotlib.ticker.LogLocator(numticks=12)
+        new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+
     title2 = z_titles[i] 
         
     if "theta" in param_names[0]:
@@ -1509,7 +1556,7 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
         
     cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks)
     cbar.ax.tick_params(labelsize=other_fontsize)
-    cbar.ax.set_ylabel(title2, fontsize=other_fontsize, fontweight='bold')
+    cbar.ax.set_ylabel("Function Value", fontsize=other_fontsize, fontweight='bold')
                       
     #Print the title
     if title is not None:
@@ -1519,19 +1566,21 @@ def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, p
     #Define x and y labels
     set_plot_titles(fig, title, None, None, title_fontsize, other_fontsize)
     
-    #Plots legend and title
-    fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)
+    #Plots legend
+    if labels:
+        fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)
 
     plt.tight_layout()
 
+    nlr_plot = "func_ls_compare" if theta_true is None else "sse_contour"
+
     #Save or show figure
     if save_path is not None:   
-        if z_save_names:
-            path_end =  '-'.join(z_save_names)  
-        else:
-            path_end = '-'.join(z_titles)
-        save_path = save_path + "Heat_Maps/" + path_end + "/" + param_names[0] + "-" + param_names[1]
-        save_fig(save_path, ext='png', close=True, verbose=False)  
+        save_path_dir = os.path.join("Results", save_path, "heat_maps", param_names[0] + "-" + param_names[1])
+        save_path_to = os.path.join(save_path_dir, )
+        print(save_path_to)
+        # os.makedirs(save_path_dir, exist_ok=True)
+        # save_fig(save_path, ext='png', close=True, verbose=False)  
     else:
         plt.show()
         plt.close()
