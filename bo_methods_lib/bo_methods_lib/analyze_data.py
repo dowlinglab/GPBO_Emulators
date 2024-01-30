@@ -199,11 +199,15 @@ def get_study_data_signac(job, save_csv = False):
     #Reset index on job dataframe
     df_job = df_job.reset_index(drop=True)
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     # print(df_job.head())
 =======
 >>>>>>> fbaec757a3d4c908c4aeb6521d892e68a8a9d3e1
 
+=======
+
+>>>>>>> fbaec757a3d4c908c4aeb6521d892e68a8a9d3e1
     # print(os.path.join(job.fn("analysis_data"), "tabulated_data.csv"))
     #Put in a csv file in a directory based on the job
     if save_csv: 
