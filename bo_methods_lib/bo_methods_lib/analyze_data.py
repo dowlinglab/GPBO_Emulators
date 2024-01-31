@@ -36,7 +36,7 @@ def open_file_helper(file_path):
     
     return results
 
-def make_dir_name_from_criteria(criteria_dict):
+def make_dir_name_from_criteria(criteria_dict, is_nested = False):
     """
     Makes a directory string name from a criteria dictionary
     """
@@ -49,7 +49,7 @@ def make_dir_name_from_criteria(criteria_dict):
     for key, value in criteria_dict.items():
         if isinstance(value, dict):
             # Recursively format nested dictionaries
-            nested_path = make_dir_name_from_criteria(value)
+            nested_path = make_dir_name_from_criteria(value, True)
             parts.append(f"{key.replace('$', '')}_{nested_path}")
         elif isinstance(value, list):
             # Format lists as a string without square brackets and commas
@@ -58,445 +58,311 @@ def make_dir_name_from_criteria(criteria_dict):
         else:
             parts.append(f"{key.replace('$', '')}_{value}")
 
-    return "/".join(parts)
+    result_dir = "/".join(parts) if is_nested else os.path.join("Results", "/".join(parts))
+    return result_dir
 
-def get_df_all_jobs(criteria_dict, save_csv = False):
+class Summarize_Data:
     """
-    Creates a dataframe of all information for a given experiment
-    
+    The base class for Gaussian Processes
     Parameters
-    ----------
-    criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
-    save_csv: bool, whether to save csvs. Default False
     
-    Returns
-    -------
-    df_all_jobs: A dataframe of the all of the data for the given dictionary
-    job_list: list, a list of jobs from Signac that fit criteria dict for the methods in meth_name_val_list
-    theta_true: np.ndarray, True values of the case study parameters
-    
+    Methods
+    --------------
+    __init__
+    __calc_L2_norm()
+    __get_data
+    get_best
+    get_median
+    get_mean
     """
+    # Class variables and attributes
     
-    assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
-    assert isinstance(save_csv, bool), "save_csv must be boolean"
-    
-    #Get project
-    project = signac.get_project()
-    
-    #Initialize data_created as False
-    data_created = False
+    def __init__(self, criteria_dict, project, save_csv):
+        """
+        Parameters
+        ----------
+        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
+        """
+        #Asserts
+        assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
+        assert isinstance(save_csv, bool), "save_csv must be boolean"
 
-    #Intialize dataframe and job list for all jobs in criteria_dict
-    df_all_jobs = pd.DataFrame()
-    job_list = []
+        # Constructor method
+        self.criteria_dict = criteria_dict
+        self.project = project
+        self.study_results_dir = os.path.join("Results", make_dir_name_from_criteria(self.criteria_dict))
+        self.save_csv = save_csv
     
-    #Find all jobs of a certain cs and method type for the criteria in order of job id
-    jobs = sorted(project.find_jobs(criteria_dict), key=lambda job: job._id)
-    
-    #Loop over each job
-    for job in jobs:
-        assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!" 
-        data_file = job.fn("BO_Results.gz")
-        #Add job to job list
-        job_list += [job]
-
-        #create workspace directory for data files if it doesn't already exists
-        data_direc = job.fn("analysis_data")
-        os.makedirs(data_direc, exist_ok=True)
-        tab_data_path = os.path.join(data_direc , "tabulated_data.csv")
-
-        # # #See if result data exists, if so add it to df
-        if os.path.exists(tab_data_path):
-            df_job = pd.read_csv(tab_data_path, index_col=0)
-
-        #Otherwise, create it
-        else:
-            data_created = True
-            df_job, theta_true = get_study_data_signac(job, save_csv = save_csv)
-            
-        #Add job dataframe to dataframe of all jobs
-        df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
-
-    #Reset index on df_all_jobs after adding all rows 
-    df_all_jobs = df_all_jobs.reset_index(drop=True)     
-    
-    #Open Datafile to get theta_true if necessary
-    if data_created == False:
-        with gzip.open(data_file, 'rb') as fileObj:
-            results = pickle.load(fileObj)   
-        fileObj.close()
-        theta_true = results[0].simulator_class.theta_true
+    def get_df_all_jobs(self):
+        """
+        Creates a dataframe of all information for a given experiment
         
-    return df_all_jobs, job_list, theta_true
-
-def get_study_data_signac(job, save_csv = False):
-    """
-    Get best data from jobs and optionally save the csvs for the data
-    
-    Parameters
-    ----------
-    criteria_dict: dictionary, Criteria for jobs to analyze   
-    save_csv: bool, Whether or not to save csv data from analysis
-    
-    Returns
-    -------
-    df: pd.DataFrame, Dataframe containing the results from the study given a case study and method name
-    study_id: str "ep" or "sf", whether to analyze data for the 
-    
-    """
-    #Initialize df for a single job
-    df_job = pd.DataFrame()
-    data_file = job.fn("BO_Results.gz")
-
-    #Open the file and get the dataframe
-    with gzip.open(data_file, 'rb') as fileObj:
-        results = pickle.load(fileObj)   
-    fileObj.close()
-
-    #Back out number of workflow restarts
-    tot_runs = results[0].configuration["Number of Workflow Restarts"]
-    
-    #get theta_true from 1st run since it never changes within a case study
-    theta_true = results[0].simulator_class.theta_true
-
-    #Loop over runs
-    for run in range(tot_runs):
-        #Read data as pd.df
-        df_run = results[run].results_df
-        #Add the EP enum value as a column
-        col_vals = job.sp.ep_enum_val
-        df_run['EP Method Val'] = Ep_enum(int(col_vals)).name
-        #Use job's run number if it has one
-        if "bo_run_num" in job.statepoint():
-            df_run["index"] = job.sp.bo_run_num
-        #Or use the run number from tot_run when tot_runs > 0
-        elif tot_runs > 1:
-            #Number of runs is the (seed # of the run - initial seed )/2 if tot_runs > 1 
-            df_run["index"] = int(run + 1)
-        #May delete this else when bo_run_num is added to all jobs
-        else:
-            #Otherwise it is (seed # of the run - 1 )/2 if tot_runs = 1 (Old job initialization system)
-            df_run["index"] = int((results[run].configuration["Seed"] - 1)/2 + 1 )
-        #Add other important columns
-        df_run["BO Method"] = Method_name_enum(job.sp.meth_name_val).name
-        df_run["Job ID"] = job.id
-        df_run["Max Evals"] = len(df_run)
-        df_run["Termination"] = results[run].why_term
-        df_run["Total Run Time"] = df_run["Time/Iter"]*df_run["Max Evals"]  
-
-        #Set BO and run numbers as columns        
-        df_run.rename(columns={'index': 'Run Number'}, inplace=True)   
-        df_run.insert(1, "BO Iter", df_run.index + 1)
+        Parameters
+        ----------
+        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
+        save_csv: bool, whether to save csvs. Default False
         
-        #Add run dataframe to job dataframe after
-        df_job = pd.concat([df_job, df_run], ignore_index=False)
-
-    #Reset index on job dataframe
-    df_job = df_job.reset_index(drop=True)
-
-    # print(os.path.join(job.fn("analysis_data"), "tabulated_data.csv"))
-    #Put in a csv file in a directory based on the job
-    if save_csv: 
-        file_name1 = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
-        df_job.to_csv(file_name1) 
-
-    return df_job, theta_true
-
-
-def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save_csv = False):
-    """
-    Given all data from a study, find the best value
-    
-    Parameters
-    ----------
-    criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
-    meth_name_val_list: list, list of method numbers to consider. See /bo_methods_lib/GPBO_Classes_New.py Method_name_enum class
-    save_csv: bool, Whether or not to save csv data from analysis. Set to false to avoid regernating data
-    
-    Returns
-    -------
-    df_best: pd.DataFrame, Dataframe containing the best result from the study given a case study and method name
-    
-    """
-    #Get project
-    project = signac.get_project()
-    
-    assert isinstance(criteria_dict, dict), "criteria_dict must be dictionary"
-    if not all(var is not None for var in [df, jobs, theta_true]) == True:
-        #Get data from Criteria dict if you need it
-        df, jobs, theta_true = get_df_all_jobs(criteria_dict, save_csv)
-    
-    #Create a directory name based on the search criteria
-    dir_name = "Results/" + make_dir_name_from_criteria(criteria_dict) + "/"
-
-    #Check if csv already exists
-    if os.path.exists(dir_name + "best_results.csv"):
-        #If so, load the file
-        filepath = dir_name + "best_results.csv"
-        df_best = pd.read_csv(filepath, index_col=0)
-
-    else:
-        #Otherwise make the data from the original df
-        #Start by sorting pd dataframe by lowest obj func value overall
-        df_sorted = df.sort_values(by='Min Obj Cum.', ascending=False)
-        #Then take only the 1st instance for each method
-        df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first')
-        #Calculate the L2 norm of the best runs
-        df_best = calc_L2_norm(df_best, theta_true)
-        #Put rows in order of method
-        row_order = sorted([Method_name_enum[meth].value for meth in df['BO Method'].unique()])
-        order = [Method_name_enum(num).name for num in row_order]
-        # Reindex the DataFrame with the specified row order
-        df_best['BO Method'] = pd.Categorical(df_best['BO Method'], categories=order, ordered=True)
-        # Sort the DataFrame based on the categorical order
-        df_best = df_best.sort_values(by='BO Method')
-    
-    #Get list of best jobs
-    job_list_best = []
-    job_id_list_best = list(df_best["Job ID"])
-    for job_id in job_id_list_best:
-        job = project.open_job(id=job_id)
-        if job:
-            job_list_best.append(job)
-    
-    if save_csv:
-        #Make directory if it doesn't exist
-        os.makedirs(dir_name, exist_ok=True)
-        #Save this as a csv in the same directory as all data
-        file_name = os.path.join(dir_name, "best_results.csv")
-        #Add file to directory 
-        df_best.to_csv(file_name)
+        Returns
+        -------
+        df_all_jobs: A dataframe of the all of the data for the given dictionary
+        job_list: list, a list of jobs from Signac that fit criteria dict for the methods in meth_name_val_list
+        theta_true: np.ndarray, True values of the case study parameters
         
-    return df_best, job_list_best
-
-def get_median_data(criteria_dict, df = None, jobs = None, theta_true = None, save_csv = False):
-    """
-    Given data from a study, find the median value(s)
-    
-    Parameters
-    ----------
-    df: pd.DataFrame, dataframe including study data
-    col_name: str, column name in the pandas dataframe to find the best value w.r.t
-    theta_true: true parameter values from case study. Important for calculating L2 Norms
-    save_csv: bool, Whether or not to save csv data from analysis
-    
-    Returns
-    -------
-    df_median: pd.DataFrame, Dataframe containing the median result from the study given a case study and method name
-    
-    """
-    #Get project
-    project = signac.get_project()
-    
-    assert isinstance(criteria_dict, dict), "criteria_dict must be dictionary"
-    if not all(var is not None for var in [df, jobs, theta_true]) == True:
-        #Get data from Criteria dict if you need it
-        df, jobs, theta_true = get_df_all_jobs(criteria_dict, save_csv)
-    
-    #Create a directory name based on the search criteria
-    dir_name = "Results/" + make_dir_name_from_criteria(criteria_dict) + "/"
-
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-
-    #Check if csv already exists
-    if os.path.exists(dir_name + "median_results.csv"):
-        #If so, load the file
-        filepath = dir_name + "median_results.csv"
-        df_median = pd.read_csv(filepath, index_col=0)
-    else:
-        #Get median values from df_best
-        # Create a list containing 1 dataframe for each method in df_best
-        df_list = []
-        for meth in df['BO Method'].unique():
-            df_meth = df[df["BO Method"]==meth]   
-            df_list.append(df_meth)
-
-        #Create new df for median values
-        df_median = pd.DataFrame()
-
-        #Loop over all method dataframes
-        for df_meth in df_list:
-            #Add the row corresponding to the median value of SSE to the list
-            if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
-                median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')[0]
-            else:
-                median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')
-
-            df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
-
-        #Calculate the L2 Norm for the median values
-        df_median = calc_L2_norm(df_median, theta_true)  
-
-    #Put in order of method
-    row_order = sorted([Method_name_enum[meth].value for meth in df['BO Method'].unique()])
-    order = [Method_name_enum(num).name for num in row_order]
-
-    # Reindex the DataFrame with the specified row order
-    df_median['BO Method'] = pd.Categorical(df_median['BO Method'], categories=order, ordered=True)
-
-    # Sort the DataFrame based on the categorical order
-    df_median = df_median.sort_values(by='BO Method')
-    
-    #Get list of best jobs
-    job_list_med = []
-
-    job_id_list_med = list(df_median["Job ID"])
-    for job_id in job_id_list_med:
-        job = project.open_job(id=job_id)
-        if job:
-            job_list_med.append(job)
-
-    # print(dir_name + "median_results.csv")
-    if save_csv:
-        #Make directory if it doesn't exist
-        os.makedirs(dir_name, exist_ok=True)
-        #Save this as a csv in the same directory as all data
-        file_name = os.path.join(dir_name, "median_results.csv")
-        #Add file to directory 
-        df_median.to_csv(file_name)
+        """
+        #Intialize dataframe and job list for all jobs in criteria_dict
+        df_all_jobs = pd.DataFrame()
+        job_list = []
         
-    return df_median, job_list_med
-
-def get_mean_data(criteria_dict, df = None, jobs = None, theta_true = None, save_csv = False):
-    """
-    Given data from a study, find the mean value(s)
-    
-    Parameters
-    ----------
-    df: pd.DataFrame, dataframe including study data
-    col_name: str, column name in the pandas dataframe to find the best value w.r.t
-    theta_true: true parameter values from case study. Important for calculating L2 Norms
-    save_csv: bool, Whether or not to save csv data from analysis
-    
-    Returns
-    -------
-    df_median: pd.DataFrame, Dataframe containing the median result from the study given a case study and method name
-    
-    """
-    #Get project
-    project = signac.get_project()
-    
-    assert isinstance(criteria_dict, dict), "criteria_dict must be dictionary"
-    if not all(var is not None for var in [df, jobs, theta_true]) == True:
-        #Get data from Criteria dict if you need it
-        df, jobs, theta_true = get_df_all_jobs(criteria_dict, save_csv)
-    
-    #Create a directory name based on the search criteria
-    dir_name = "Results/" + make_dir_name_from_criteria(criteria_dict) + "/"
-    
-    #Initialize data_created as False
-    df_found = False
-    
-    #See if relavent files exist
-   
-
-    #Check if csv already exists
-    if os.path.exists(dir_name + "mean_results.csv"):
-        #If so, load the file
-        filepath = dir_name + "mean_results.csv"
-        df_mean = pd.read_csv(filepath, index_col=0)
-
-    else:
+        #Find all jobs of a certain cs and method type for the criteria in order of job id
+        jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
+        
+        #Loop over each job
         for job in jobs:
-            assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
+            assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!" 
+            #Add job to job list and set data_file
+            job_list += [job]
             data_file = job.fn("BO_Results.gz")
-            col_name = 'EP Method Val'
-            #Get median values from df_best
-            # Create a list containing 1 dataframe for each method in df_best
-            df_list = []
+        
+            # # #See if result data exists, if so add it to df
+            tab_data_path = os.path.join(job.fn("analysis_data") , "tabulated_data.csv")
+            found_data, df_job = self.__get_existing_data(tab_data_path)
+            #Otherwise, create them
+            if not found_data:
+                df_job, theta_true = self.__get_study_data_signac(job)
+                
+            #Add job dataframe to dataframe of all jobs
+            df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
+
+        #Reset index on df_all_jobs after adding all rows 
+        df_all_jobs = df_all_jobs.reset_index(drop=True)     
+        
+        #Open Datafile to get theta_true if necessary
+        if not found_data:
+            results = open_file_helper(data_file)
+            theta_true = results[0].simulator_class.theta_true
+            
+        return df_all_jobs, job_list, theta_true
+    
+    def __get_study_data_signac(self, job):
+        """
+        Get best data from jobs and optionally save the csvs for the data
+        
+        Parameters
+        ----------
+        job: job, The job to get data from
+        
+        Returns
+        -------
+        df: pd.DataFrame, Dataframe containing the results from the study given a case study and method name
+        study_id: str "ep" or "sf", whether to analyze data for the 
+        
+        """
+        #Initialize df for a single job
+        df_job = pd.DataFrame()
+        data_file = job.fn("BO_Results.gz")
+
+        #Open the file and get the dataframe
+        results = open_file_helper(data_file)
+
+        #Find number of workflow restarts in that job
+        tot_runs = results[0].configuration["Number of Workflow Restarts"]
+        #get theta_true from 1st run since it never changes within a case study
+        theta_true = results[0].simulator_class.theta_true
+
+        #Loop over runs in each job
+        for run in range(tot_runs):
+            #Read data as pd.df
+            df_run = results[run].results_df
+            #Add the EP enum value as a column
+            col_vals = job.sp.ep_enum_val
+            df_run['EP Method Val'] = Ep_enum(int(col_vals)).name
+            #Set index as the job's run number if it has one (cases where there is only 1 run per job)
+            if "bo_run_num" in job.statepoint():
+                df_run["index"] = job.sp.bo_run_num
+            #Or use the run number from tot_run when tot_runs > 0
+            elif tot_runs > 1:
+                #Number of runs is the (seed # of the run - initial seed )/2 if tot_runs > 1 
+                df_run["index"] = int(run + 1)
+            #May delete this else when bo_run_num is added to all jobs
+            else:
+                #Otherwise it is (seed # of the run - 1 )/2 if tot_runs = 1 (Old job initialization system)
+                df_run["index"] = int((results[run].configuration["Seed"] - 1)/2 + 1 )
+            #Add other important columns
+            df_run["BO Method"] = Method_name_enum(job.sp.meth_name_val).name
+            df_run["Job ID"] = job.id
+            df_run["Max Evals"] = len(df_run)
+            df_run["Termination"] = results[run].why_term
+            df_run["Total Run Time"] = df_run["Time/Iter"]*df_run["Max Evals"]  
+
+            #Set BO and run numbers as columns        
+            df_run.rename(columns={'index': 'Run Number'}, inplace=True)   
+            df_run.insert(1, "BO Iter", df_run.index + 1)
+            
+            #Add run dataframe to job dataframe after
+            df_job = pd.concat([df_job, df_run], ignore_index=False)
+
+        #Reset index on job dataframe
+        df_job = df_job.reset_index(drop=True)
+
+        #Put in a csv file in a directory based on the job
+        if self.save_csv:
+            csv_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
+            self.__save_data(self, df_job, csv_path)
+
+        return df_job, theta_true
+
+    def get_best_data(self):
+        #Get data from Criteria dict if you need it
+        df, jobs, theta_true = self.get_df_all_jobs()
+        data_best_path = os.path.join(self.study_results_dir, "best_results")
+        data_exists, df_best = self.__get_existing_data(data_best_path)
+        if not data_exists:
+            #Start by sorting pd dataframe by lowest obj func value overall
+            df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
+            #Then take only the 1st instance for each method
+            df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first').copy()
+            #Calculate the L2 norm of the best runs
+            df_best = self.__calc_l2_norm(df_best, theta_true)
+            #Sort df_best
+            df_best = self.__sort_by_meth(df_best)
+
+        #Get list of best jobs
+        job_list_best = self.__get_job_list(df_best)
+
+        return df_best, job_list_best
+    
+    def get_median_data(self):
+        #Get data from Criteria dict if you need it
+        df, jobs, theta_true = self.get_df_all_jobs()
+        data_path = os.path.join(self.study_results_dir, "median_results")
+        data_exists, df_median = self.__get_existing_data(data_path)
+        if not data_exists:
+            #Initialize df for median values
+            df_median = pd.DataFrame()
+            #Loop over all methods
             for meth in df['BO Method'].unique():
-                df_meth = df[df["BO Method"]==meth]   
-                df_list.append(df_meth)
-
-            #Create new df for median values
-            df_mean = pd.DataFrame()
-
-            #Loop over all method dataframes
-            for df_meth in df_list:
+                #Create a new dataframe w/ just the data for one method in it
+                df_meth = df[df["BO Method"]==meth]
                 #Add the row corresponding to the median value of SSE to the list
-                if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
-                    #Find true mean
+                if isinstance(df_meth["Min Obj Act"].iloc[0], np.ndarray):
+                    median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')[0]
+                else:
+                    median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')
+                #Add df to median
+                df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
+            #Calculate the L2 Norm for the median values
+            df_median = self.__calc_l2_norm(df_median, theta_true)
+            #Sort df
+            df_median = self.__sort_by_meth(df_median)
+
+        #Get list of best jobs
+        job_list_med = self.__get_job_list(df_median)
+
+        return df_median, job_list_med
+    
+    def get_mean_data(self):
+        #Get data from Criteria dict if you need it
+        df, jobs, theta_true = self.get_df_all_jobs()
+        data_path = os.path.join(self.study_results_dir, "mean_results")
+        data_exists, df_mean = self.__get_existing_data(data_path)
+        if not data_exists:
+            #Initialize df for median values
+            df_mean = pd.DataFrame()
+            #Loop over all methods
+            for meth in df['BO Method'].unique():
+                #Get dataframe of data for just one method
+                df_meth = df[df["BO Method"]==meth]  
+                #Add find the true mean of the data
+                if isinstance(df_meth["Min Obj Act"].iloc[0], np.ndarray):
                     df_true_mean = df_meth["Min Obj Act"].mean()[0]
                 else:
-                    #Find true mean
                     df_true_mean = df_meth["Min Obj Act"].mean()
-
                 #Find point closest to true mean
                 df_closest_to_mean = df_meth.iloc[(df_meth["Min Obj Act"]-df_true_mean).abs().argsort()[:1]]
-                #Add mean min and max points to dfs
+                #Add closest point to mean to df
                 df_mean = pd.concat([df_mean, df_closest_to_mean])
+            #Calculate the L2 Norm for the mean values
+            df_mean = self.__calc_l2_norm(df_mean, theta_true)
+            #Sort df
+            df_mean = self.__sort_by_meth(df_mean)
 
-        #Calculate the L2 Norm for the median values
-        df_mean = calc_L2_norm(df_mean, theta_true)  
+        #Get list of best jobs
+        job_list_mean = self.__get_job_list(df_mean)
 
-    #Put in order of method
-    row_order = sorted([Method_name_enum[meth].value for meth in df['BO Method'].unique()])
-    order = [Method_name_enum(num).name for num in row_order]
-
-    # Reindex the DataFrame with the specified row order
-    df_mean['BO Method'] = pd.Categorical(df_mean['BO Method'], categories=order, ordered=True)
-
-    # Sort the DataFrame based on the categorical order
-    df_mean = df_mean.sort_values(by='BO Method')
+        return df_mean, job_list_mean
     
-    #Get list of best jobs
-    job_list_mean = []
+    def __get_existing_data(self, path):
+        """Skeleton Class for analyzing pd dataframe data"""
+        assert isinstance(path, str), "path_end must be str"
 
-    job_id_list_mean = list(df_mean["Job ID"])
-    for job_id in job_id_list_mean:
-        job = project.open_job(id=job_id)
-        if job:
-            job_list_mean.append(job)
+        #Check if csv already exists
+        if os.path.exists(path):
+            #If so, load the file
+            data = pd.read_csv(path, index_col=0)
+            return True, data
+        else:
+            return False, None
 
-    # print(dir_name + "mean_results.csv")
-    if save_csv:
-        #Save this as a csv in the same directory as all data
-        #Create directory based on criteria dict
-        file_name = os.path.join(dir_name, "mean_results.csv")
+    def __get_job_list(self, df_data):
+        #Get list of best jobs
+        job_list = []
+        job_id_list = list(df_data["Job ID"])
+        for job_id in job_id_list:
+            job = self.project.open_job(id=job_id)
+            if job:
+                job_list.append(job)
+        return job_list
 
-        #Add file to directory 
-        df_mean.to_csv(file_name)
+
+    def __sort_by_meth(self, df_data):
+        #Put rows in order of method
+        row_order = sorted([Method_name_enum[meth].value for meth in df_data['BO Method'].unique()])
+        order = [Method_name_enum(num).name for num in row_order]
+        # Reindex the DataFrame with the specified row order
+        df_data['BO Method'] = pd.Categorical(df_data['BO Method'], categories=order, ordered=True)
+        # Sort the DataFrame based on the categorical order
+        df_data = df_data.sort_values(by='BO Method')
+        return df_data
+    
+    def __calc_l2_norm(self, df_data, theta_true):
+        #Calculate the difference between the true values and the GP best values in the dataframe for each parameter    
+        def string_to_array(s):
+            try:
+                return np.array(eval(s), dtype=np.float64)
+            except (SyntaxError, NameError):
+                return s
         
-    return df_mean, job_list_mean
-
-def calc_L2_norm(df, theta_true):
-    """
-    Calculates the L2 norm of Theta Values in a Pandas DataFrame
-    
-    Parameters
-    ----------
-    df: pd.DataFrame, The original dataframe containing the parameters you want to calculate the L2 norm for
-    theta_true: ndarray, The true values of the parameters
-    
-    Returns
-    -------
-    df: pd.DataFrame, The original dataframe containing the L2 norm values of the parameters
-    """
-    #Calculate the difference between the true values and the GP best values in the dataframe for each parameter    
-    def string_to_array(s):
+        # Apply the function to the DataFrame column   
         try:
-            return np.array(eval(s), dtype=np.float64)
-        except (SyntaxError, NameError):
-            return s
+            #If the values are not being read as strings this works
+            theta_min_obj = np.array(list(df_data['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
+        except:
+            #Otherwise, turn the theta values into a list and manually format the strings to be arrays
+            thetas_as_list = np.array(df_data['Theta Min Obj']).tolist()
+            theta_min_obj = np.array([list(map(float, s.strip('[]').split())) for s in thetas_as_list])
+
+        del_theta = theta_min_obj - theta_true
+        theta_L2_norm = np.zeros(del_theta.shape[0])
+        for i in range(del_theta.shape[0]):
+            theta_L2_norm[i] = np.linalg.norm(del_theta[i,:], ord = 2)
+            
+        df_data["L2 Norm Theta"] = theta_L2_norm
+
+        return df_data
     
-    # Apply the function to the DataFrame column   
-    try:
-        #If the values are not being read as strings this works
-        theta_min_obj = np.array(list(df['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
-    except:
-        #Otherwise, turn the theta values into a list and manually format the strings to be arrays
-        thetas_as_list = np.array(df['Theta Min Obj']).tolist()
-        theta_min_obj = np.array([list(map(float, s.strip('[]').split())) for s in thetas_as_list])
-
-    del_theta = theta_min_obj - theta_true
-    theta_L2_norm = np.zeros(del_theta.shape[0])
-    for i in range(del_theta.shape[0]):
-        theta_L2_norm[i] = np.linalg.norm(del_theta[i,:], ord = 2)
-        
-    df["L2 Norm Theta"] = theta_L2_norm
-
-    return df
+    def __save_data(self, data, save_path):
+        #Split path into parts
+        ext = os.path.splitext(save_path)[-1]
+        #Extract directory name
+        dirname = os.path.dirname(save_path)
+        #Make directory if it doesn't already exist
+        os.makedirs(dirname, exist_ok=True)
+        #Based on extension, save in different ways
+        if ext == '.csv':
+            data.to_csv(save_path)
+        else:
+            warnings.warn("NOT a CSV")
+        return
 
 def analyze_hypers(file_path, save_csv = False):
     """
