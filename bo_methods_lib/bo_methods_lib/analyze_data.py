@@ -36,7 +36,7 @@ def open_file_helper(file_path):
     
     return results
 
-class Summarize_Data:
+class General_Analysis:
     """
     The base class for Gaussian Processes
     Parameters
@@ -125,7 +125,7 @@ class Summarize_Data:
         
             # # #See if result data exists, if so add it to df
             tab_data_path = os.path.join(job.fn("analysis_data") , "tabulated_data.csv")
-            found_data, df_job = self.get_existing_data(tab_data_path)
+            found_data, df_job = self.__get_existing_data(tab_data_path)
             #Otherwise, create them
             if not found_data:
                 df_job, theta_true = self.get_study_data_signac(job)
@@ -215,7 +215,7 @@ class Summarize_Data:
         #Get data from Criteria dict if you need it
         df, jobs, theta_true = self.get_df_all_jobs()
         data_best_path = os.path.join(self.study_results_dir, "best_results")
-        data_exists, df_best = self.get_existing_data(data_best_path)
+        data_exists, df_best = self.__get_existing_data(data_best_path)
         if not data_exists:
             #Start by sorting pd dataframe by lowest obj func value overall
             df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
@@ -235,7 +235,7 @@ class Summarize_Data:
         #Get data from Criteria dict if you need it
         df, jobs, theta_true = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "median_results")
-        data_exists, df_median = self.get_existing_data(data_path)
+        data_exists, df_median = self.__get_existing_data(data_path)
         if not data_exists:
             #Initialize df for median values
             df_median = pd.DataFrame()
@@ -264,7 +264,7 @@ class Summarize_Data:
         #Get data from Criteria dict if you need it
         df, jobs, theta_true = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "mean_results")
-        data_exists, df_mean = self.get_existing_data(data_path)
+        data_exists, df_mean = self.__get_existing_data(data_path)
         if not data_exists:
             #Initialize df for median values
             df_mean = pd.DataFrame()
@@ -291,14 +291,24 @@ class Summarize_Data:
 
         return df_mean, job_list_mean
     
-    def get_existing_data(self, path):
-        """Skeleton Class for analyzing pd dataframe data"""
+    def __get_existing_data(self, path):
         assert isinstance(path, str), "path_end must be str"
-
+        #Split path into parts
+        ext = os.path.splitext(path)[-1]
+        #Extract directory name
+        dirname = os.path.dirname(path)
+        #Make directory if it doesn't already exist
+        os.makedirs(dirname, exist_ok=True)
+        #Based on extension, save in different ways
         #Check if csv already exists
         if os.path.exists(path):
             #If so, load the file
-            data = pd.read_csv(path, index_col=0)
+            if ext == ".csv":
+                data = pd.read_csv(path, index_col=0)
+            elif ext == ".npy":
+                data = np.load(path)
+            elif ext == ".pickle" or ext == ".gz":
+                data = open_file_helper(path)
             return True, data
         else:
             return False, None
@@ -360,8 +370,84 @@ class Summarize_Data:
         #Based on extension, save in different ways
         if ext == '.csv':
             data.to_csv(save_path)
+        elif ext == '.npy':
+            np.save(save_path, data)
         else:
             warnings.warn("NOT a CSV")
+        return
+    
+    def preprocess_z_choice(z_choice_map_dict):
+        #Given z choice
+        return
+    
+    ##STOPPED HERE
+    def analyze_sse_min_sse_ei(self, job, z_choices):
+        """
+        Gets the data into an array for any comination of sse, log_sse, and ei
+        
+        Parameters
+        ----------
+        file_path: str, The file path of the data
+        value_names: list of str, the values to plot. In order, sse, min_sse, and ei
+        
+        Returns
+        -------
+        data: np.ndarray, The data for plotting
+        data_true: np.ndarray or None, the true values of the data
+        """
+        #Deal with Z
+
+        #Get job method, the number of runs, and the max number of iters for the job from statepoint
+        with open(self.job.fn("signac_statepoint.json"), 'r') as json_file:
+            # Load the JSON data
+            sp_data = json.load(json_file)
+            enum_method = sp_data["meth_name_val"]
+            meth_name = Method_name_enum(enum_method)
+            method = GPBO_Methods(meth_name)
+            tot_runs = sp_data["bo_run_tot"]
+            max_iters = sp_data["bo_iter_tot"]
+
+        #Initialize Data matrix
+        data = np.zeros((tot_runs, max_iters, len(z_choices)))
+
+        #Check if we have job csv data and create it if not
+        tab_data_path = os.path.join(self.job.fn("analysis_data") , "tabulated_data.csv")
+        found_data, df_job = self.__get_existing_data(tab_data_path)
+        if not found_data:
+            df_job, theta_true = self.get_study_data_signac(self.job)
+
+        #Sort df_job by run and iter
+        df_job = df_job.sort_values(by=['Run Number', 'BO Iter'], ascending=True)
+            
+        #Loop over each choice
+        for z in range(len(z_choices)):
+            #Loop over runs
+            for run in tot_runs-1:
+                #Make a df of only the data which meets that run criteria
+                df_run = df_job[df_job["Run Number"]==run]  
+                z_data = df_run[col_name[z]]
+                #Set data to be where it needs to go in the above data matrix
+                data[run,:len(z_data),z] = z_data
+
+        return data, data_names, data_true, sp_data
+        
+
+    
+    def analyze_thetas(self):
+        "Gets parameter value data for a specific job"
+        return
+    
+    def analyze_hypers(self):
+        return
+
+    def analyze_heat_maps(self):
+        "Gets heat map data and analysis for a specific job"
+        return
+
+    def __get_saved_data(self, path, ext):
+        return
+    
+    def analyze_hypers(self):
         return
 
 def analyze_hypers(file_path, save_csv = False):
@@ -426,96 +512,7 @@ def analyze_hypers(file_path, save_csv = False):
 
     return hps, hp_names, hp_true
 
-class Specific_Analysis(General_Analysis):
-    """
-    The base class for analyzing specific data based on a list of jobs
-    Parameters
     
-    Methods
-    --------------
-    __init__
-    __calc_L2_norm()
-    __get_data
-    get_best
-    get_median
-    get_mean
-    """
-    # Class variables and attributes
-    
-    def __init__(self, project, job, target_run, target_iter, save_csv):
-        """
-        Parameters
-        ----------
-        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
-        """
-        #Asserts
-        assert isinstance(job, str), "job_workspace_dir must be a string"
-        # Inherit objects from GP_Emulator Base Class
-        super().__init__(project, save_csv)
-        # Constructor method
-        self.job = job
-        self.target_run = target_run
-        self.target_iter = target_iter
-
-    def preprocess_z_choice(z_choice_map_dict):
-        #Given z choice
-        return
-    
-    def analyze_sse_min_sse_ei(self, z_choices):
-        """
-        Gets the data into an array for any comination of sse, log_sse, and ei
-        
-        Parameters
-        ----------
-        file_path: str, The file path of the data
-        value_names: list of str, the values to plot. In order, sse, min_sse, and ei
-        
-        Returns
-        -------
-        data: np.ndarray, The data for plotting
-        data_true: np.ndarray or None, the true values of the data
-        """
-        #Deal with Z
-
-        #Get job method, the number of runs, and the max number of iters for the job from statepoint
-        with open(self.job.fn("signac_statepoint.json"), 'r') as json_file:
-            # Load the JSON data
-            sp_data = json.load(json_file)
-            enum_method = sp_data["meth_name_val"]
-            meth_name = Method_name_enum(enum_method)
-            method = GPBO_Methods(meth_name)
-            tot_runs = sp_data["bo_run_tot"]
-            max_iters = sp_data["bo_iter_tot"]
-
-        #Initialize Data matrix
-        data = np.zeros((tot_runs, max_iters, len(z_choices)))
-
-        #Check if we have job csv data and create it if not
-        tab_data_path = os.path.join(self.job.fn("analysis_data") , "tabulated_data.csv")
-        found_data, df_job = self.get_existing_data(tab_data_path)
-        if not found_data:
-            df_job, theta_true = self.get_study_data_signac(self.job)
-
-        #Sort df_job by run and iter
-        df_job = df_job.sort_values(by=['Run Number', 'BO Iter'], ascending=True)
-            
-        #Loop over each choice
-            #Set data to be where it needs to go in the above data matrix
-        
-
-    def analyze_thetas(self):
-        "Gets parameter value data for a specific job"
-        return
-    
-    def analyze_hypers(self):
-        return
-
-    def analyze_heat_maps(self):
-        "Gets heat map data and analysis for a specific job"
-        return
-
-    def __get_saved_data(self, path, ext):
-        return
 
 
 
