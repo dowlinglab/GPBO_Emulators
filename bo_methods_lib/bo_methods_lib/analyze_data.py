@@ -173,18 +173,15 @@ def get_study_data_signac(job, save_csv = False):
         elif tot_runs > 1:
             #Number of runs is the (seed # of the run - initial seed )/2 if tot_runs > 1 
             df_run["index"] = int(run + 1)
+        #May delete this else when bo_run_num is added to all jobs
         else:
             #Otherwise it is (seed # of the run - 1 )/2 if tot_runs = 1 (Old job initialization system)
             df_run["index"] = int((results[run].configuration["Seed"] - 1)/2 + 1 )
         #Add other important columns
         df_run["BO Method"] = Method_name_enum(job.sp.meth_name_val).name
         df_run["Job ID"] = job.id
-        
         df_run["Max Evals"] = len(df_run)
-        try:
-            df_run["Termination"] = results[run].why_term
-        except:
-            pass
+        df_run["Termination"] = results[run].why_term
         df_run["Total Run Time"] = df_run["Time/Iter"]*df_run["Max Evals"]  
 
         #Set BO and run numbers as columns        
@@ -194,11 +191,8 @@ def get_study_data_signac(job, save_csv = False):
         #Add run dataframe to job dataframe after
         df_job = pd.concat([df_job, df_run], ignore_index=False)
 
-    #Set number of runs in job in the table
-    # df_job["Runs in Job"] = tot_runs
     #Reset index on job dataframe
     df_job = df_job.reset_index(drop=True)
-    # print(df_job.head())
 
     # print(os.path.join(job.fn("analysis_data"), "tabulated_data.csv"))
     #Put in a csv file in a directory based on the job
@@ -235,69 +229,27 @@ def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save
     #Create a directory name based on the search criteria
     dir_name = "Results/" + make_dir_name_from_criteria(criteria_dict) + "/"
 
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-
     #Check if csv already exists
     if os.path.exists(dir_name + "best_results.csv"):
         #If so, load the file
         filepath = dir_name + "best_results.csv"
         df_best = pd.read_csv(filepath, index_col=0)
-        # df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
-        # df_found = True
 
     else:
-        #See if relavent files exist
-        for job in jobs:
-            assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
-            data_file = job.fn("BO_Results.gz")
-                
-            #INSTEAD JUST SORT BY SSE AND FIND THE 1ST INSTANCE OF EACH METHOD
-            #Analyze for best data
-            #Initialize best idcs
-            best_indecies = np.zeros(len(df['BO Method'].unique()))
-            count = 0
-            #Loop over methods, SFs/EPs/, and runs (capable of doing all or just 1 method)
-            for meth in df['BO Method'].unique():
-                #Loop over EPs or SFs and runs
-                sse_best_overall = np.inf
-                for param in df['EP Method Val'].unique():
-                    for run in df['Run Number'].unique():                    
-                        #Find the best sse at the end of the run. This is guaraneteed to be the lowest sse value found for that run
-                        sse_run_best_value = df["Min Obj Cum."][(df['BO Method'] == meth) & (df['EP Method Val'] == param) & 
-                                                                (df['Run Number'] == run)  & (df['BO Iter']+1 == df["Max Evals"]) ]
-
-                        if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
-                            sse_run_best_value = sse_run_best_value.iloc[0][0]
-                        else:
-                            sse_run_best_value = sse_run_best_value.iloc[0]
-
-                        if sse_run_best_value < sse_best_overall:
-                            #Set value as new best
-                            sse_best_overall = sse_run_best_value
-                            #Find the first instance where the minimum sse is found
-                            index = df.index[(df['BO Method'] == meth) & (df["Run Number"] == run) & (df['EP Method Val'] == param) & 
-                                                (df["Min Obj Act"] == sse_run_best_value)]
-
-                            best_indecies[count] = index[0]
-                count += 1
-
-
-        #Make new df of only best single iter over all runs and SFs
-        df_best = pd.DataFrame(df.iloc[df.index.isin(best_indecies)])
-
+        #Otherwise make the data from the original df
+        #Start by sorting pd dataframe by lowest obj func value overall
+        df_sorted = df.sort_values(by='Min Obj Cum.', ascending=False)
+        #Then take only the 1st instance for each method
+        df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first')
         #Calculate the L2 norm of the best runs
         df_best = calc_L2_norm(df_best, theta_true)
-        
-    #Put in order of method
-    row_order = sorted([Method_name_enum[meth].value for meth in df['BO Method'].unique()])
-    order = [Method_name_enum(num).name for num in row_order]
-
-    # Reindex the DataFrame with the specified row order
-    df_best['BO Method'] = pd.Categorical(df_best['BO Method'], categories=order, ordered=True)
-
-    # Sort the DataFrame based on the categorical order
-    df_best = df_best.sort_values(by='BO Method')
+        #Put rows in order of method
+        row_order = sorted([Method_name_enum[meth].value for meth in df['BO Method'].unique()])
+        order = [Method_name_enum(num).name for num in row_order]
+        # Reindex the DataFrame with the specified row order
+        df_best['BO Method'] = pd.Categorical(df_best['BO Method'], categories=order, ordered=True)
+        # Sort the DataFrame based on the categorical order
+        df_best = df_best.sort_values(by='BO Method')
     
     #Get list of best jobs
     job_list_best = []
@@ -308,10 +260,10 @@ def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save
             job_list_best.append(job)
     
     if save_csv:
+        #Make directory if it doesn't exist
+        os.makedirs(dir_name, exist_ok=True)
         #Save this as a csv in the same directory as all data
-        #Create directory based on criteria dict
         file_name = os.path.join(dir_name, "best_results.csv")
-
         #Add file to directory 
         df_best.to_csv(file_name)
         
@@ -353,31 +305,25 @@ def get_median_data(criteria_dict, df = None, jobs = None, theta_true = None, sa
         filepath = dir_name + "median_results.csv"
         df_median = pd.read_csv(filepath, index_col=0)
     else:
-        #See if relavent files exist
-        for job in jobs:
-            assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
-            data_file = job.fn("BO_Results.gz")
-            col_name = 'EP Method Val'
+        #Get median values from df_best
+        # Create a list containing 1 dataframe for each method in df_best
+        df_list = []
+        for meth in df['BO Method'].unique():
+            df_meth = df[df["BO Method"]==meth]   
+            df_list.append(df_meth)
 
-            #Get median values from df_best
-            # Create a list containing 1 dataframe for each method in df_best
-            df_list = []
-            for meth in df['BO Method'].unique():
-                df_meth = df[df["BO Method"]==meth]   
-                df_list.append(df_meth)
+        #Create new df for median values
+        df_median = pd.DataFrame()
 
-            #Create new df for median values
-            df_median = pd.DataFrame()
+        #Loop over all method dataframes
+        for df_meth in df_list:
+            #Add the row corresponding to the median value of SSE to the list
+            if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
+                median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')[0]
+            else:
+                median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')
 
-            #Loop over all method dataframes
-            for df_meth in df_list:
-                #Add the row corresponding to the median value of SSE to the list
-                if isinstance(df["Min Obj Act"].iloc[0], np.ndarray):
-                    median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')[0]
-                else:
-                    median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')
-
-                df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
+            df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
 
         #Calculate the L2 Norm for the median values
         df_median = calc_L2_norm(df_median, theta_true)  
@@ -403,10 +349,10 @@ def get_median_data(criteria_dict, df = None, jobs = None, theta_true = None, sa
 
     # print(dir_name + "median_results.csv")
     if save_csv:
+        #Make directory if it doesn't exist
+        os.makedirs(dir_name, exist_ok=True)
         #Save this as a csv in the same directory as all data
-        #Create directory based on criteria dict
         file_name = os.path.join(dir_name, "median_results.csv")
-
         #Add file to directory 
         df_median.to_csv(file_name)
         
