@@ -252,6 +252,7 @@ def get_best_data(criteria_dict, df = None, jobs = None, theta_true = None, save
             assert os.path.exists(job.fn("BO_Results.gz")), "File must exist!"
             data_file = job.fn("BO_Results.gz")
                 
+            #INSTEAD JUST SORT BY SSE AND FIND THE 1ST INSTANCE OF EACH METHOD
             #Analyze for best data
             #Initialize best idcs
             best_indecies = np.zeros(len(df['BO Method'].unique()))
@@ -665,6 +666,7 @@ def analyze_sse_min_sse_ei(file_path, z_choices, save_csv = False):
         data_true = None
             
     else:
+        save_csv = True
         loaded_results = open_file_helper(file_path)
         runs = loaded_results[0].configuration["Number of Workflow Restarts"]
         num_sets = loaded_results[0].configuration["Max BO Iters"]
@@ -679,6 +681,7 @@ def analyze_sse_min_sse_ei(file_path, z_choices, save_csv = False):
         data_true = None
 
         #Loop over runs
+        # REPLACE WITH tabulated_data.csv IF YOU CAN
         for j in range(runs):
             run = loaded_results[j]
             #Loop over iterations
@@ -858,9 +861,12 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
         run_num -= 1
         bo_iter -= 1
         loaded_results = open_file_helper(file_path)
+        
+        #If there is only 1 run, set run num to 0
+        if len(loaded_results) == 1:
+            run_num = 0
 
         #Create Heat Map Data for a run and iter
-
         #Regeneate simulator, gp_emulator, exerimental data, best error, true theta, lowest obj theta, and highest ei theta
         gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
         exp_data = loaded_results[run_num].exp_data_class

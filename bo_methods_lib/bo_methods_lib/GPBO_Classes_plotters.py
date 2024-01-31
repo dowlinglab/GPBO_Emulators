@@ -398,6 +398,7 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
     #Loop over different methdods (number of subplots)
     for i in range(len(file_path_list)):     
         #Get data
+        job_dir_name = os.path.dirname(file_path_list[i])
         data, data_names, data_true, GPBO_method_val = analyze_sse_min_sse_ei(file_path_list[i], z_choices)
         #Create label based on method #
         label = method_names[GPBO_method_val-1] 
@@ -413,6 +414,14 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
                  #Set run counter as 1 to start
                 run_num_count = 1
                 term_loop = False
+                
+                #Find run number if it is given, otherwise initialize at 1
+                with open(job_dir_name+ "/signac_statepoint.json", 'r') as json_file:
+                # Load the JSON data
+                    try:
+                        run_number = json.load(json_file)["bo_run_num"]
+                    except:
+                        run_number = run_num_count
 
                 #loop as long as there are runs in the file
                 while not term_loop:
@@ -436,7 +445,7 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
                         data_df_j = np.log(data_df_j)
 
                     #For the best result, print a solid line                    
-                    if run_num_list[i] == j + 1:
+                    if run_num_list[i] == run_number:
                         ax.plot(bo_space, data_df_j, alpha = 1, color = colors[GPBO_method_val-1], label = label, drawstyle='steps')
                     else:
                         ax.step(bo_space, data_df_j, alpha = 0.2, color = colors[GPBO_method_val-1], linestyle='--', drawstyle='steps')
@@ -548,12 +557,15 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
 
         #Get run numer from statepoint if it exists
         job_dir_name = os.path.dirname(file_path_list[i])
+        
+        run_num_count = 1
+        #Find run number if it is given, otherwise initialize at 1
         with open(job_dir_name+ "/signac_statepoint.json", 'r') as json_file:
         # Load the JSON data
             try:
-                run_num_count = json.load(json_file)["bo_run_num"]
+                run_number = json.load(json_file)["bo_run_num"]
             except:
-                run_num_count = 1
+                run_number = run_num_count
 
         #Set subplot index to the corresponding method value number
         ax_idx = int(GPBO_method_val - 1)
@@ -578,7 +590,7 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
                 data_df_j = np.log(data_df_j)
 
             #For result where run num list is the number of runs, print a solid line 
-            if run_num_list[ax_idx] == j + 1:
+            if run_num_list[ax_idx] == run_number:
                 ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = colors[ax_idx], label = label, drawstyle='steps')
             else:
                 ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 0.2, color = colors[ax_idx], linestyle='--', drawstyle='steps')
