@@ -36,31 +36,6 @@ def open_file_helper(file_path):
     
     return results
 
-def make_dir_name_from_criteria(criteria_dict, is_nested = False):
-    """
-    Makes a directory string name from a criteria dictionary
-    """
-    
-    #Organize Dictionary keys and values sorted from lowest to highest
-    sorted_dict = dict(sorted(criteria_dict.items(), key=lambda item: (item[0], item[1])))
-    
-    #Make list of parts
-    parts = []
-    for key, value in criteria_dict.items():
-        if isinstance(value, dict):
-            # Recursively format nested dictionaries
-            nested_path = make_dir_name_from_criteria(value, True)
-            parts.append(f"{key.replace('$', '')}_{nested_path}")
-        elif isinstance(value, list):
-            # Format lists as a string without square brackets and commas
-            list_str = "_".join(map(str, value))
-            parts.append(f"{key.replace('$', '')}_{list_str}")
-        else:
-            parts.append(f"{key.replace('$', '')}_{value}")
-
-    result_dir = "/".join(parts) if is_nested else os.path.join("Results", "/".join(parts))
-    return result_dir
-
 class Summarize_Data:
     """
     The base class for Gaussian Processes
@@ -90,9 +65,34 @@ class Summarize_Data:
         # Constructor method
         self.criteria_dict = criteria_dict
         self.project = project
-        self.study_results_dir = os.path.join("Results", make_dir_name_from_criteria(self.criteria_dict))
+        self.study_results_dir = os.path.join("Results", self.make_dir_name_from_criteria(self.criteria_dict))
         self.save_csv = save_csv
     
+    def make_dir_name_from_criteria(self, dict_to_use, is_nested = False):
+        """
+        Makes a directory string name from a criteria dictionary
+        """
+        
+        #Organize Dictionary keys and values sorted from lowest to highest
+        sorted_dict = dict(sorted(dict_to_use.items(), key=lambda item: (item[0], item[1])))
+        
+        #Make list of parts
+        parts = []
+        for key, value in dict_to_use.items():
+            if isinstance(value, dict):
+                # Recursively format nested dictionaries
+                nested_path = self.make_dir_name_from_criteria(value, True)
+                parts.append(f"{key.replace('$', '')}_{nested_path}")
+            elif isinstance(value, list):
+                # Format lists as a string without square brackets and commas
+                list_str = "_".join(map(str, value))
+                parts.append(f"{key.replace('$', '')}_{list_str}")
+            else:
+                parts.append(f"{key.replace('$', '')}_{value}")
+
+        result_dir = "/".join(parts) if is_nested else os.path.join("Results", "/".join(parts))
+        return result_dir
+
     def get_df_all_jobs(self):
         """
         Creates a dataframe of all information for a given experiment
@@ -425,6 +425,86 @@ def analyze_hypers(file_path, save_csv = False):
             np.save(hp_data_name_file, hp_names) 
 
     return hps, hp_names, hp_true
+
+class Specific_Analysis:
+    """
+    The base class for analyzing specific data based on a list of jobs
+    Parameters
+    
+    Methods
+    --------------
+    __init__
+    __calc_L2_norm()
+    __get_data
+    get_best
+    get_median
+    get_mean
+    """
+    # Class variables and attributes
+    
+    def __init__(self, job_workspace_dir, save_csv):
+        """
+        Parameters
+        ----------
+        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
+        """
+        #Asserts
+        assert isinstance(job_workspace_dir, str), "job_workspace_dir must be a string"
+        assert isinstance(save_csv, bool), "save_csv must be boolean"
+
+        # Constructor method
+        self.job_workspace_dir = job_workspace_dir
+        self.save_csv = save_csv
+
+    def preprocess_z_choice(z_choice_map_dict):
+        z_choice_map_dict ={"sse": ("Min Obj Act","\mathbf{e(\\theta)}"),
+                            "min_sse": ("Min Obj Cum.", "\mathbf{Min\,e(\\theta)}"),
+                            "ei": ("Max EI", "\mathbf{Max\,EI(\\theta)}")}
+        if isinstance(z_choice, list):
+            strings_for_df = [] 
+            data_names = []
+            
+            for z_choice in z_choices:
+                if "sse" == z_choice:
+                    strings_for_df += ["Min Obj Act"]
+                    data_names += ["\mathbf{e(\\theta)}"]
+                if "min_sse" == z_choice:
+                    strings_for_df += ["Min Obj Cum."]
+                    data_names += ["\mathbf{Min\,e(\\theta)}"]        
+                if "ei" == z_choice:
+                    strings_for_df += ["Max EI"]
+                    data_names += ["\mathbf{Max\,EI(\\theta)}"]
+        else:
+            if "min_sse" in z_choice:
+            string_for_df_theta = "Theta Min Obj Cum."  
+        if "sse" == z_choice:
+            string_for_df_theta = "Theta Min Obj"
+        if "ei" in z_choice:
+            string_for_df_theta = "Theta Max EI"
+    def analyze_sse_min_sse_ei(self, z_choices):
+        """
+        Gets the data into an array for any comination of sse, log_sse, and ei
+        
+        Parameters
+        ----------
+        file_path: str, The file path of the data
+        value_names: list of str, the values to plot. In order, sse, min_sse, and ei
+        
+        Returns
+        -------
+        data: np.ndarray, The data for plotting
+        data_true: np.ndarray or None, the true values of the data
+        """
+
+    def analyze_thetas(self):
+        "Gets parameter value data for a specific job"
+
+    def analyze_heat_maps(self):
+        "Gets heat map data and analysis for a specific job"
+
+    def __get_saved_data(self, path, ext):
+
+
 
 def analyze_sse_min_sse_ei(file_path, z_choices, save_csv = False):
     """
