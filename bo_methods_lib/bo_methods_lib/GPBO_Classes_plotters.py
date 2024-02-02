@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.ticker as ticker
 from .GPBO_Classes_New import Data, Method_name_enum
-from.analyze_data import analyze_sse_min_sse_ei, analyze_thetas, analyze_heat_maps
+from.analyze_data import *
 
 import warnings
 np.warnings = warnings
