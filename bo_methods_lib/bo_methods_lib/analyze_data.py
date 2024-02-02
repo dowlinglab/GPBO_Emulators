@@ -125,10 +125,10 @@ class General_Analysis:
         
             # # #See if result data exists, if so add it to df
             tab_data_path = os.path.join(job.fn("analysis_data") , "tabulated_data.csv")
-            found_data, df_job = self.__get_existing_data(tab_data_path)
+            found_data, df_job = self.__load_data(tab_data_path)
             #Otherwise, create them
             if not found_data:
-                df_job, theta_true = self.get_study_data_signac(job)
+                df_job, theta_true_data = self.get_study_data_signac(job)
                 
             #Add job dataframe to dataframe of all jobs
             df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
@@ -141,7 +141,7 @@ class General_Analysis:
             results = open_file_helper(data_file)
             theta_true = results[0].simulator_class.theta_true
             
-        return df_all_jobs, job_list, theta_true
+        return df_all_jobs, job_list, theta_true_data
     
     def get_study_data_signac(self, job):
         """
@@ -168,6 +168,8 @@ class General_Analysis:
         tot_runs = results[0].configuration["Number of Workflow Restarts"]
         #get theta_true from 1st run since it never changes within a case study
         theta_true = results[0].simulator_class.theta_true
+        theta_true_names = results[0].simulator_class.theta_true_names
+        theta_true_data = dict(zip(theta_true_names, theta_true))
 
         #Loop over runs in each job
         for run in range(tot_runs):
@@ -203,26 +205,28 @@ class General_Analysis:
 
         #Reset index on job dataframe
         df_job = df_job.reset_index(drop=True)
-
+        
         #Put in a csv file in a directory based on the job
         if self.save_csv:
-            csv_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
-            self.__save_data(self, df_job, csv_path)
+            all_data_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
+            theta_data_path = os.path.join(job.fn("analysis_data"), "true_param_data.json")
+            self.__save_data(self, df_job, all_data_path)
+            self.__save_data(self, theta_true_data, theta_data_path)
 
-        return df_job, theta_true
+        return df_job, theta_true_data
 
     def get_best_data(self):
         #Get data from Criteria dict if you need it
-        df, jobs, theta_true = self.get_df_all_jobs()
+        df, jobs, theta_true_data = self.get_df_all_jobs()
         data_best_path = os.path.join(self.study_results_dir, "best_results")
-        data_exists, df_best = self.__get_existing_data(data_best_path)
+        data_exists, df_best = self.__load_data(data_best_path)
         if not data_exists:
             #Start by sorting pd dataframe by lowest obj func value overall
             df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
             #Then take only the 1st instance for each method
             df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first').copy()
             #Calculate the L2 norm of the best runs
-            df_best = self.__calc_l2_norm(df_best, theta_true)
+            df_best = self.__calc_l2_norm(df_best, np.array([theta_true_data.values()]))
             #Sort df_best
             df_best = self.__sort_by_meth(df_best)
 
@@ -233,9 +237,9 @@ class General_Analysis:
     
     def get_median_data(self):
         #Get data from Criteria dict if you need it
-        df, jobs, theta_true = self.get_df_all_jobs()
+        df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "median_results")
-        data_exists, df_median = self.__get_existing_data(data_path)
+        data_exists, df_median = self.__load_data(data_path)
         if not data_exists:
             #Initialize df for median values
             df_median = pd.DataFrame()
@@ -251,7 +255,7 @@ class General_Analysis:
                 #Add df to median
                 df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
             #Calculate the L2 Norm for the median values
-            df_median = self.__calc_l2_norm(df_median, theta_true)
+            df_median = self.__calc_l2_norm(df_median, np.array([theta_true_data.values()]))
             #Sort df
             df_median = self.__sort_by_meth(df_median)
 
@@ -262,9 +266,9 @@ class General_Analysis:
     
     def get_mean_data(self):
         #Get data from Criteria dict if you need it
-        df, jobs, theta_true = self.get_df_all_jobs()
+        df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "mean_results")
-        data_exists, df_mean = self.__get_existing_data(data_path)
+        data_exists, df_mean = self.__load_data(data_path)
         if not data_exists:
             #Initialize df for median values
             df_mean = pd.DataFrame()
@@ -282,7 +286,7 @@ class General_Analysis:
                 #Add closest point to mean to df
                 df_mean = pd.concat([df_mean, df_closest_to_mean])
             #Calculate the L2 Norm for the mean values
-            df_mean = self.__calc_l2_norm(df_mean, theta_true)
+            df_mean = self.__calc_l2_norm(df_mean, np.array([theta_true_data.values()]))
             #Sort df
             df_mean = self.__sort_by_meth(df_mean)
 
@@ -291,28 +295,7 @@ class General_Analysis:
 
         return df_mean, job_list_mean
     
-    def __get_existing_data(self, path):
-        assert isinstance(path, str), "path_end must be str"
-        #Split path into parts
-        ext = os.path.splitext(path)[-1]
-        #Extract directory name
-        dirname = os.path.dirname(path)
-        #Make directory if it doesn't already exist
-        os.makedirs(dirname, exist_ok=True)
-        #Based on extension, save in different ways
-        #Check if csv already exists
-        if os.path.exists(path):
-            #If so, load the file
-            if ext == ".csv":
-                data = pd.read_csv(path, index_col=0)
-            elif ext == ".npy":
-                data = np.load(path)
-            elif ext == ".pickle" or ext == ".gz":
-                data = open_file_helper(path)
-            return True, data
-        else:
-            return False, None
-
+    
     def __get_job_list(self, df_data):
         #Get list of best jobs
         job_list = []
@@ -360,6 +343,34 @@ class General_Analysis:
 
         return df_data
     
+    def __load_data(self, path):
+        assert isinstance(path, str), "path_end must be str"
+        #Split path into parts
+        ext = os.path.splitext(path)[-1]
+        #Extract directory name
+        dirname = os.path.dirname(path)
+        #Make directory if it doesn't already exist
+        os.makedirs(dirname, exist_ok=True)
+        #Based on extension, save in different ways
+        #Check if csv already exists
+        if os.path.exists(path):
+            #If so, load the file
+            if ext == ".csv":
+                data = pd.read_csv(path, index_col=0)
+            elif ext == ".npy":
+                data = np.load(path)
+            elif ext == ".pkl" or ext == ".gz":
+                data = open_file_helper(path)
+            elif ext == ".json":
+                with open(path, 'r') as file:
+                    data = json.load(file)
+            else:
+                raise ValueError("NOT a csv, json, npy, pkl, or gz file")
+            return True, data
+        else:
+            return False, None
+
+    
     def __save_data(self, data, save_path):
         #Split path into parts
         ext = os.path.splitext(save_path)[-1]
@@ -372,8 +383,17 @@ class General_Analysis:
             data.to_csv(save_path)
         elif ext == '.npy':
             np.save(save_path, data)
+        elif ext == ".json":
+            with open(save_path, 'w') as file:
+                json.dump(data, file)
+        elif ext == ".gz":
+            with gzip.open(save_path, 'wb', compresslevel=1) as file:
+                data = pickle.dump(data, file)
+        elif ext == ".pkl":
+            with open(save_path, 'wb', compresslevel=1) as file:
+                data = pickle.dump(data, file)
         else:
-            warnings.warn("NOT a CSV")
+            raise ValueError("NOT a csv, json, npy, pkl, or gz file")
         return
     
     def preprocess_z_choice(z_choice_map_dict):
@@ -381,6 +401,67 @@ class General_Analysis:
         return
     
     ##STOPPED HERE
+    def __z_choice_helper(self, z_choices, theta_true_data, data_type):
+        "creates column and data names based on data type"
+
+        if data_type == "objs":
+            col_name = [] 
+            data_names = []
+            for z_choice in z_choices:
+                if "sse" == z_choice:
+                    col_name += ["Min Obj Act"]
+                    data_names += ["\mathbf{e(\\theta)}"]
+                if "min_sse" == z_choice:
+                    col_name += ["Min Obj Cum."]
+                    data_names += ["\mathbf{Min\,e(\\theta)}"]        
+                if "ei" == z_choice:
+                    col_name += ["Max EI"]
+                    data_names += ["\mathbf{Max\,EI(\\theta)}"]
+
+        elif data_type == "params":
+            data_names = list(theta_true_data.keys())
+            if "min_sse" in z_choice:
+                col_name = "Theta Min Obj Cum."  
+            elif "sse" == z_choice:
+                col_name = "Theta Min Obj"
+            elif "ei" in z_choice:
+                col_name = "Theta Max EI"
+            else:
+                warnings.warn("z_choice must be 'ei', 'sse', or 'min_sse'.")
+        return col_name, data_names
+
+    def __preprocess_analyze(self, job, z_choice, data_type):
+        "Basic framework for analyzing a certain type of data"
+        #Look for data if it already exists, if not create it
+        #Check if we have theta data and create it if not
+        tab_data_path = os.path.join(self.job.fn("analysis_data") , "tabulated_data.csv")
+        true_param_data_path = os.path.join(self.job.fn("analysis_data") , "true_param_data.json")
+        # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
+        found_data1, df_job = self.__load_data(tab_data_path)
+        found_data2, theta_true_data = self.__load_data(true_param_data_path)
+
+        if not found_data1 and found_data2:
+            df_job, theta_true_data = self.get_study_data_signac(self.job)
+
+        #Get statepoint info
+        with open(self.job.fn("signac_statepoint.json"), 'r') as json_file:
+            # Load the JSON data
+            sp_data = json.load(json_file)
+            tot_runs = sp_data["bo_run_tot"]
+            max_iters = sp_data["bo_iter_tot"]
+
+        if data_type == "objs":
+            data_true = None
+            data = np.zeros((tot_runs, max_iters, len(z_choice)))
+        elif data_type == "params":
+            data_true = theta_true_data
+            data = np.zeros((tot_runs, max_iters, len(list(theta_true_data.keys()))))
+
+        #Sort df_job by run and iter
+        df_job = df_job.sort_values(by=['Run Number', 'BO Iter'], ascending=True)
+
+        return df_job, data, data_true, sp_data, tot_runs
+
     def analyze_sse_min_sse_ei(self, job, z_choices):
         """
         Gets the data into an array for any comination of sse, log_sse, and ei
@@ -395,30 +476,9 @@ class General_Analysis:
         data: np.ndarray, The data for plotting
         data_true: np.ndarray or None, the true values of the data
         """
-        #Deal with Z
+        df_job, data, data_true, sp_data, tot_runs = self.__preprocess_analyze(self, job, z_choices, "objs")
+        col_name, data_names = self.__z_choice_helper(z_choices, data_true, "objs")
 
-        #Get job method, the number of runs, and the max number of iters for the job from statepoint
-        with open(self.job.fn("signac_statepoint.json"), 'r') as json_file:
-            # Load the JSON data
-            sp_data = json.load(json_file)
-            enum_method = sp_data["meth_name_val"]
-            meth_name = Method_name_enum(enum_method)
-            method = GPBO_Methods(meth_name)
-            tot_runs = sp_data["bo_run_tot"]
-            max_iters = sp_data["bo_iter_tot"]
-
-        #Initialize Data matrix
-        data = np.zeros((tot_runs, max_iters, len(z_choices)))
-
-        #Check if we have job csv data and create it if not
-        tab_data_path = os.path.join(self.job.fn("analysis_data") , "tabulated_data.csv")
-        found_data, df_job = self.__get_existing_data(tab_data_path)
-        if not found_data:
-            df_job, theta_true = self.get_study_data_signac(self.job)
-
-        #Sort df_job by run and iter
-        df_job = df_job.sort_values(by=['Run Number', 'BO Iter'], ascending=True)
-            
         #Loop over each choice
         for z in range(len(z_choices)):
             #Loop over runs
@@ -433,9 +493,22 @@ class General_Analysis:
         
 
     
-    def analyze_thetas(self):
+    def analyze_thetas(self, job, z_choice):
         "Gets parameter value data for a specific job"
-        return
+        df_job, data, data_true, sp_data, tot_runs = self.__preprocess_analyze(self, job, z_choice, "params")
+        col_name, data_names = self.__z_choice_helper(z_choice, data_true, "params")
+
+        #Loop over runs
+        for run in tot_runs-1:
+            #Make a df of only the data which meets that run criteria
+            df_run = df_job[df_job["Run Number"]==run]  
+            z_data = df_run[col_name]
+            #Set data to be where it needs to go in the above data matrix
+            data[run,:len(z_data),:] = z_data
+                
+        data_names = [element.replace('theta', '\\theta') for element in data_names]
+
+        return data, data_names, data_true, sp_data
     
     def analyze_hypers(self):
         return
