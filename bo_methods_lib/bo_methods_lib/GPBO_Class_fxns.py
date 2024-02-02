@@ -25,7 +25,7 @@ def calc_cs1_polynomial(true_model_coefficients, x, args = None):
     
     return y_poly
 
-def calc_cs3_polynomial(true_model_coefficients, x, args = None):
+def calc_cs8_10_polynomial(true_model_coefficients, x, args = None):
     """
     Calculates the value of y for case study 1
     
@@ -81,7 +81,47 @@ def calc_cs4_isotherm(true_model_coefficients, x, args = None):
        
     return y_model
 
-def calc_cs5_isotherm(true_model_coefficients, x, args = None):
+def calc_cs11_BOD(true_model_coefficients, x, args = None):
+    """
+    Calculates the value of y for case study 1
+    
+    Parameters
+    ----------
+    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
+    x: ndarray, The list of xs that will be used to generate y
+    args: dict, extra arguments to pass to the function. Default None
+    
+    Returns
+    --------
+    y_poly: ndarray, The noiseless values of y given theta_true and x
+    """
+    assert len(true_model_coefficients) == 2, "true_model_coefficients must be length 2"
+    t1, t2 = true_model_coefficients
+    y_model =  t1*(1-np.exp(-t2*x))
+       
+    return y_model
+
+def calc_cs12_yield(true_model_coefficients, x, args = None):
+    """
+    Calculates the value of y for case study 1
+    
+    Parameters
+    ----------
+    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
+    x: ndarray, The list of xs that will be used to generate y
+    args: dict, extra arguments to pass to the function. Default None
+    
+    Returns
+    --------
+    y_poly: ndarray, The noiseless values of y given theta_true and x
+    """
+    assert len(true_model_coefficients) == 3, "true_model_coefficients must be length 3"
+    t1, t2, t3 = true_model_coefficients
+    y_model =  t1*(1- t2*x/(100*(1+t2*x/t3)))
+       
+    return y_model
+
+def calc_cs13_logit(true_model_coefficients, x, args = None):
     """
     Calculates the value of y for case study 1
     
@@ -97,6 +137,26 @@ def calc_cs5_isotherm(true_model_coefficients, x, args = None):
     """
     assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
     t1, t2, t3, t4 = true_model_coefficients
+    y_model =  t1 + (t2-t1)/(1+(x/t3)**t4)
+       
+    return y_model
+
+def calc_cs14_logit2D(true_model_coefficients, x, args = None):
+    """
+    Caclulates the Muller Potential
+    
+    Parameters
+    ----------
+        model_coefficients: ndarray, The array containing the values of Muller constants
+        x: ndarray, Values of X
+        args: dict, extra arguments to pass to the function.
+    
+    Returns:
+    --------
+        y_mul: float, value of Muller potential
+    """
+    assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
+    t1, t2, t3, t4 = true_model_coefficients
     
     #If array is not 2D, give it shape (len(array), 1)
     if not len(x.shape) > 1:
@@ -105,8 +165,9 @@ def calc_cs5_isotherm(true_model_coefficients, x, args = None):
     assert x.shape[0] == 2, "Isotherm x_data must be 2 dimensional"
     x1, x2 = x #Split x into 2 parts by splitting the rows
 
-    y_model =  (t1*x1)/(1 + t2*x2) + (t3*x2)/(1+ t4*x2)
-       
+    t1, t2, t3, t4 = true_model_coefficients
+    y_model =  x1*t1**2 + (t2-t1)/(1+(x2/t3)**t4)
+    
     return y_model
 
 def calc_muller(model_coefficients, x, args):
@@ -258,7 +319,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         calc_y_fxn_args = None
         
     #CS2_4 to CS2_24
-    elif 2 <= cs_name.value <= 7 or cs_name.value == 10:                          
+    elif 2 <= cs_name.value <= 7:                          
         theta_names = ['A_1', 'A_2', 'A_3', 'A_4', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4', 'c_1', 
                        'c_2', 'c_3', 'c_4', 'x0_1', 'x0_2', 'x0_3', 'x0_4', 'y0_1', 'y0_2', 'y0_3', 'y0_4']
         bounds_x_l = [-1.5, -0.5]
@@ -269,7 +330,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         calc_y_fxn = calc_muller
         calc_y_fxn_args = {"min muller": solve_pyomo_Muller_min(set_param_str(cs_name.value))}
        
-    #5 parameter Polynomial (CS3)
+    #5 parameter Polynomial
     elif cs_name.value == 8:
         theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4', 'theta_5']
         bounds_x_l = [-5, -5]
@@ -277,10 +338,10 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_l = [-300,-5.0,-20, -5.0, -20]
         bounds_theta_u = [   0, 5.0, 20,  5.0,  20]
         theta_ref = np.array([-100, -1.0, 10, -0.1, 10])      
-        calc_y_fxn = calc_cs3_polynomial
+        calc_y_fxn = calc_cs8_10_polynomial
         calc_y_fxn_args = None
     
-    #4 parameter Isotherm (CS4)
+    #4 parameter Isotherm
     elif cs_name.value == 9:
         theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
         bounds_x_l = [1, 1]
@@ -291,7 +352,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         calc_y_fxn = calc_cs4_isotherm
         calc_y_fxn_args = None
 
-    #5 parameter Polynomial (CS3B)
+    #5 parameter Polynomial (With scaled parameters)
     elif cs_name.value == 10:
         theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4', 'theta_5']
         bounds_x_l = [-5, -5]
@@ -299,18 +360,51 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_l = [-5,-5,-5, -10, -5]
         bounds_theta_u = [ 5, 5, 5,  10,  5]
         theta_ref = np.array([1, -2, 0.5, 7, -3])      
-        calc_y_fxn = calc_cs3_polynomial
+        calc_y_fxn = calc_cs8_10_polynomial
         calc_y_fxn_args = None
 
-    #4 parameter Isotherm (CS5)
+    #2 Parameter BOD Example (Bates and Watts)
     elif cs_name.value == 11:
+        theta_names = ['theta_1', 'theta_2']
+        bounds_x_l = [1]
+        bounds_x_u = [7]
+        bounds_theta_l = [10, 0]
+        bounds_theta_u = [30 , 1]
+        theta_ref =  np.array([19.143, 0.5311])
+        calc_y_fxn = calc_cs11_BOD
+        calc_y_fxn_args = None
+
+    #3 Parameter Yield
+    elif cs_name.value == 12:
+        theta_names = ['theta_1', 'theta_2', 'theta_3']
+        bounds_x_l = [0]
+        bounds_x_u = [100]
+        bounds_theta_l = [20, 5, 60]
+        bounds_theta_u = [ 40, 15, 80]
+        theta_ref = np.array([30.5, 8.25, 75.1]) 
+        calc_y_fxn = calc_cs12_yield
+        calc_y_fxn_args = None
+
+    #4 Parameter log logistic equation
+    elif cs_name.value == 13:
         theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
-        bounds_x_l = [1, 1]
-        bounds_x_u = [ 6,  6]
-        bounds_theta_l = [1e-1, 1e-1, 1e-1, 1e-1]
-        bounds_theta_u = [5, 5, 5,  5]
-        theta_ref =  np.array([2,4,3,1])
-        calc_y_fxn = calc_cs5_isotherm
+        bounds_x_l = [0]
+        bounds_x_u = [15]
+        bounds_theta_l = [0, 3, 0.01, 0]
+        bounds_theta_u = [ 1, 10, 5, 5]
+        theta_ref = np.array([0.35, 4.54, 2.47, 1.45]) 
+        calc_y_fxn = calc_cs13_logit
+        calc_y_fxn_args = None
+
+    #4 Parameter log logistic equation 2D
+    elif cs_name.value == 14:
+        theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        bounds_x_l = [-5, 0]
+        bounds_x_u = [ 5, 15]
+        bounds_theta_l = [0, 3, 0.01, 0]
+        bounds_theta_u = [ 1, 10, 5, 5]
+        theta_ref = np.array([0.35, 4.54, 2.47, 1.45]) 
+        calc_y_fxn = calc_cs14_logit2D
         calc_y_fxn_args = None
         
     else:
@@ -338,9 +432,9 @@ def set_param_str(cs_name_val):
     ----------
     cs_name_val: int, the string of the case study name
     """
-    assert 11 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 9 inclusive"
+    assert 14 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 9 inclusive"
     
-    if cs_name_val == 1:
+    if cs_name_val in [1, 11]:
         param_name_str = "t1t2"
     elif cs_name_val == 2:
         param_name_str = "x0"
@@ -356,12 +450,12 @@ def set_param_str(cs_name_val):
         param_name_str = "Ay0"
     elif cs_name_val == 8:
         param_name_str = "t1t2t3t4t5"
-    elif cs_name_val == 9:
+    elif cs_name_val in [9, 13, 14]:
         param_name_str = "t1t2t3t4"
-    elif cs_name_val == 10:
+    elif cs_name_val in [8, 10]:
         param_name_str = "t1t2t3t4t5"
-    elif cs_name_val == 11:
-        param_name_str = "t1t2t3t4"
+    elif cs_name_val == 12:
+        param_name_str = "t1t2t3"
         
     return param_name_str
         
@@ -379,7 +473,7 @@ def set_idcs_to_consider(cs_name_val, param_name_str):
     -------
     indecies_to_consider, list. List of indecies to consider
     """
-    assert 11 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 9 inclusive"
+    assert 14 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 14 inclusive"
     assert isinstance(param_name_str, str), "param_list must be str"
     
     if 7 >= cs_name_val > 1:
@@ -400,7 +494,7 @@ def set_idcs_to_consider(cs_name_val, param_name_str):
             indecies_to_consider += all_param_idx[20:]
         
             
-    elif 11 >= cs_name_val >= 8 or cs_name_val == 1:
+    elif 14 >= cs_name_val >= 8 or cs_name_val == 1:
         indecies_to_consider = []
         all_param_idx = [0,1,2,3,4]
         if "t1" in param_name_str:
