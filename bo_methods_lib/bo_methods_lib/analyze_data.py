@@ -395,12 +395,7 @@ class General_Analysis:
         else:
             raise ValueError("NOT a csv, json, npy, pkl, or gz file")
         return
-    
-    def preprocess_z_choice(z_choice_map_dict):
-        #Given z choice
-        return
-    
-    ##STOPPED HERE
+
     def __z_choice_helper(self, z_choices, theta_true_data, data_type):
         "creates column and data names based on data type"
 
@@ -491,8 +486,6 @@ class General_Analysis:
 
         return data, data_names, data_true, sp_data
         
-
-    
     def analyze_thetas(self, job, z_choice):
         "Gets parameter value data for a specific job"
         df_job, data, data_true, sp_data, tot_runs = self.__preprocess_analyze(self, job, z_choice, "params")
