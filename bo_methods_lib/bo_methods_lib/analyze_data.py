@@ -511,7 +511,45 @@ class General_Analysis:
         return data, data_names, data_true, sp_data
     
     def analyze_hypers(self):
-        return
+        data_true = None
+        #Check for prexisting data
+        hp_data_path = os.path.join(self.job.fn("analysis_data") , "hyperparam_data.npy")
+        hp_name_path = os.path.join(self.job.fn("analysis_data") , "hp_name_data.json")
+        # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
+        found_data1, data = self.__load_data(hp_data_path)
+        found_data2, data_names = self.__load_data(hp_name_path)
+
+        #Get statepoint info
+        with open(self.job.fn("signac_statepoint.json"), 'r') as json_file:
+            # Load the JSON data
+            sp_data = json.load(json_file)
+            tot_runs = sp_data["bo_run_tot"]
+            max_iters = sp_data["bo_iter_tot"]
+
+        if not found_data1 and found_data2:
+            loaded_results = open_file_helper(self.job.fn("BO_Results"))
+            dim_hps = len(loaded_results[0].list_gp_emulator_class[0].trained_hyperparams[0]) + 2
+            data = np.zeros((tot_runs, max_iters, dim_hps))
+            data_names = [f"\\ell_{i}" for i in range(1, dim_hps+1)]
+            data_names[-2] = "\sigma"
+            data_names[-1] = "\\tau"
+            
+
+            for j in range(tot_runs):
+                run = loaded_results[j]
+                for i in range(len(run.list_gp_emulator_class)):
+                # Extract the array and convert other elements to float
+                    array_part = run.list_gp_emulator_class[i].trained_hyperparams[0]
+                    rest_part = np.array(run.list_gp_emulator_class[i].trained_hyperparams[1:], dtype=float)
+                    hp = np.concatenate([array_part, rest_part])
+                    # Create the resulting array of shape (1, 10)
+                    data[j,i,:] = hp
+
+            if self.save_csv:
+                self.__save_data(self, data, hp_data_path)
+                self.__save_data(self, data_names, hp_name_path)
+
+        return data, data_names, data_true, sp_data
 
     def analyze_heat_maps(self):
         "Gets heat map data and analysis for a specific job"
