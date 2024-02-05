@@ -275,7 +275,8 @@ class CaseStudyParameters:
         """
         #Assert statements
         #Check for strings
-        assert isinstance(cs_name, (str, Enum)) == True, "cs_name must be a string or Enum" #Will figure this one out later
+        # if not isinstance(cs_name, (str, CS_name_enum)) == True:
+        #     warnings.warn("cs_name will be converted to string if it is not an instance of CS_name_enum")
         #Check for enum 
         assert isinstance(kernel, (Enum)) == True, "kernel must be type Enum" #Will figure this one out later
         #Check for float/int
@@ -316,7 +317,7 @@ class CaseStudyParameters:
         if isinstance(cs_name, Enum) == True:
             self.cs_name = cs_name.name
         else:
-            self.cs_name = cs_name
+            self.cs_name = str(cs_name)
         self.ep0 = ep0
         self.sep_fact = sep_fact
         self.normalize = normalize
