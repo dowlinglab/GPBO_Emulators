@@ -93,6 +93,15 @@ class General_Analysis:
         result_dir = "/".join(parts) if is_nested else os.path.join("Results", "/".join(parts))
         return result_dir
 
+    def get_jobs_from_criteria(self):
+        """
+        Gets a pointer of all jobs
+        """
+        #Find all jobs of a certain cs and method type for the criteria in order of job id
+        jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
+
+        return jobs
+
     def get_df_all_jobs(self):
         """
         Creates a dataframe of all information for a given experiment
@@ -462,7 +471,7 @@ class General_Analysis:
 
         return df_job, data, data_true, sp_data, tot_runs
 
-    def analyze_sse_min_sse_ei(self, job, z_choices):
+    def analyze_obj_vals(self, job, z_choices):
         """
         Gets the data into an array for any comination of sse, log_sse, and ei
         

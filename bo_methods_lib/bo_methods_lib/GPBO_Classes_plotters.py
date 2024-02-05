@@ -19,6 +19,312 @@ from.analyze_data import *
 import warnings
 np.warnings = warnings
 
+def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None, xbins=5, ybins=5, zbins=900, title_size=24, other_size=24, cmap = "autumn"):
+    """
+    Function to make dictionary for plotting specifics
+    
+    Parameters:
+    -----------
+        log_data: bool, plots data on natural log scale if True
+        title: str or None, Title of plot
+        xlabel: str or None, the x label of the plot
+        ylabel: str or None, the y label of the plot
+        line_levels: int, list of int or None, Number of zbins to skip when drawing contour lines
+        save_path: str or None, Path to save figure to. Default None (do not save figure).
+        xbins: int, Number of bins for x. Default 5
+        ybins: int, Number of bins for y. Default 5
+        zbins: int or None, Number of bins for z. Default 900
+        title_size: int, fontisize for title. Default 24
+        other_size: int, fontisize for other values. Default 20
+        cmap: str, colormap for matplotlib to use for heat map generation
+        
+    Returns:
+    --------
+        plot_dict: dict, a dictionary of the plot details 
+        
+    Notes:
+    -----
+        plot_dict has keys "title", "log_data", "title_size", "other_size", "xbins", "ybins", "zbins", "save_path", "cmap", "line_levels", "xlabel", and "ylabel"
+        
+    """
+    assert isinstance(cmap, str) and cmap in list(colormaps), "cmap must be a string in matplotlib.colormaps"
+    assert isinstance(log_data, bool), "log_data must be bool"
+    assert isinstance(save_path, str) or save_path is None, "save_path must be str or None"
+    none_str_vars = [title, xlabel, ylabel]
+    if save_path is not None:
+        none_str_vars += [path for path in save_path]
+    int_vars = [xbins, ybins, title_size, other_size]
+    assert isinstance(zbins, int) or zbins is None, "zbins must be int > 3 or None"
+    if isinstance(zbins, int):
+        assert zbins > 3, "zbins must be int > 3 or None"
+    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path must be string or None"
+    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
+    assert all(var > 0 or var is None for var in int_vars), "xbins, ybins, title_size, and other_size must be positive int" 
+    assert isinstance(line_levels, (list, int)) or line_levels is None, "line_levels must be list of int, int, or None"
+    if isinstance(line_levels, (list)) == True:
+        assert all(isinstance(var, int) for var in line_levels), "If a list, line_levels must be list of int"
+        
+    plot_dict = {"log_data":log_data, "title_size": title_size, "other_size":other_size, "xbins":xbins, "ybins":ybins, "zbins":zbins, 
+                 "save_path":save_path, "cmap":cmap, "line_levels":line_levels, "title": title, "xlabel":xlabel, 
+                 "ylabel":ylabel}
+    
+    return plot_dict
+
+class Plotting:
+    """
+    The base class for Gaussian Processes
+    Parameters
+    
+    Methods
+    --------------
+
+    """
+    # Class variables and attributes
+    
+    def __init__(self, analyzer, plt_options, save_figs):
+        """
+        Parameters
+        ----------
+        plt_options: dict, Generate with make_plot_dict()"
+        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
+        """
+        #Asserts
+        assert isinstance(plt_options, dict), "plt_options must be a dictionary"
+        assert isinstance(save_figs, bool), "save_figs must be boolean"
+
+        # Constructor method
+        self.plt_options = plt_options
+        self.analyzer = analyzer
+        self.save_figs = save_figs
+        self.colors = ["red", "blue", "green", "purple", "darkorange", "deeppink"]
+        self.method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", 
+                             "Sparse Grid", "Monte Carlo"]
+
+    def plot_one_obj_all_methods(self, analyzer, z_choices):
+        """
+        Plots SSE, Min SSE, or EI values vs BO iter for all BO Methods at the best runs
+        
+        Parameters
+        -----------
+            file_path_list: list of str, The file paths of data we want to make plots for
+            run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
+            z_choices:  str, one of "sse_sim", "sse_mean", "sse_var", or "ei". The value that will be plotted
+            plot_dict: dict, a dictionary of the plot details 
+            
+        """
+        keys_to_check = ["title","log_data","title_size","other_size","xbins","ybins","zbins","cmap","line_levels"]
+        assert all(key in self.plt_options for key in keys_to_check), "plot_dict must have all keys. Generate plot_dict with make_plot_dict()"
+        keys_not_none = ["xlabel", "ylabel"]
+        assert all(self.plt_options[key] is not None for key in keys_not_none), "x_label and y_label must not be None!"
+        
+        #Break down plot dict and check for correct things
+        title = self.plt_options["title"]
+        log_data = self.plt_options["log_data"]
+        title_fontsize = self.plt_options["title_size"]
+        other_fontsize = self.plt_options["other_size"]
+        xbins = self.plt_options["xbins"]
+        ybins = self.plt_options["ybins"]
+        save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
+        x_label = self.plt_options["xlabel"]
+        y_label = self.plt_options["ylabel"]
+        
+        #Assert Statements
+        assert isinstance(z_choices, str), "z_choices must be str"
+        assert z_choices in ['min_sse','sse','ei'], "z_choices must be one of 'min_sse', 'sse', or 'ei'"
+        #Get all jobs
+        job_pointer = analyzer.get_jobs_from_criteria()
+        #Get best data for each method
+        df_best, job_list_best = analyzer.get_best_data()
+        #Back out best runs from job_list_best
+        emph_runs = df_best["Run Number"]
+        #Initialize list of maximum bo iterations for each method
+        meth_bo_max_evals = np.zeros(len(job_list_best))
+        #Number of subplots is the length of the best jobs list
+        subplots_needed = len(job_list_best)
+        fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
+        
+        #Print the title and labels as appropriate
+        set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+
+        #Loop over different jobs
+        for i in range(len(job_pointer)):
+            #Get data
+            term_loop = False
+            data, data_names, data_true, sp_data = analyzer.analyze_obj_vals(job_pointer[i], z_choices)
+            GPBO_method_val = sp_data["meth_name_val"]
+
+            #Get run numer from statepoint if it exists otherwise, initialize it at 1  
+            run_num_count = 1
+            if "bo_run_num" in sp_data:
+                run_number = sp_data["bo_run_num"]
+            else:
+                run_number = run_num_count
+
+            #Set subplot index to the corresponding method value number
+            ax_idx = int(GPBO_method_val - 1)
+            ax_row, ax_col = plot_mapping[ax_idx]
+
+            #Loop over all runs
+            while not term_loop:
+                #Set j for convenience
+                j =  run_num_count - 1
+                #Create label based on run #
+                label = "Run: "+ str(run_num_count) 
+                #Get data until termination
+                data_df_j = self.__get_data_to_bo_iter_term(data[j])
+                #Define x axis
+                bo_len = len(data_df_j)
+                bo_space = np.linspace(1,bo_len,bo_len)
+                #Set appropriate notation
+                if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
+                    ax[ax_row, ax_col].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                #Plot data
+                if log_data == True:
+                    data_df_j = np.log(data_df_j)
+                #For result where run num list is the number of runs, print a solid line 
+                if emph_runs[ax_idx] == run_number:
+                    ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], label = label, drawstyle='steps')
+                else:
+                    ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 0.2, color = self.colors[ax_idx], linestyle='--', drawstyle='steps')
+                #Plot true value if applicable
+                if data_true is not None and j == data.shape[0] - 1:
+                    ax[ax_row, ax_col].axhline(y=data_true[i], color = "black", linestyle='-', label = "Least Squares")
+
+                #Set plot details 
+                title = self.method_names[ax_idx]
+                if bo_len > meth_bo_max_evals[ax_idx]:
+                    meth_bo_max_evals[ax_idx] = bo_len
+                    subplot_details(ax[ax_row, ax_col], bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
+
+                #Add 1 to run number and terminate if the total amount of runs is equal to the total amount
+                if run_num_count >= data.shape[0]:
+                    term_loop = True
+                run_num_count += 1
+
+        #Set handles and labels and scale axis if necessary
+        handles, labels = ax[0,0].get_legend_handles_labels()
+        for k, axs in enumerate(ax.flatten()):
+            if k+1 < subplots_needed:
+                h, l = axs.get_legend_handles_labels()
+                handles.extend(h)
+                labels.extend(l)
+            if log_data == False:
+                axs.set_yscale("log")
+
+        #Plots legend and title
+        plt.tight_layout()
+        
+        #save or show figure
+        if self.save_figs:
+            save_path_dir = os.path.join(save_path, "line_plots", "all_meth_1_obj")
+            save_path_to = os.path.join(save_path_dir, z_choices)
+            self.__save_fig(save_path_to)
+        else:
+            plt.show()
+            plt.close()
+            
+        return  
+
+    def __get_data_to_bo_iter_term(data_all_iters):
+        """
+        Gets data that is not zero for plotting from data array
+        """
+        #Remove elements that are numerically 0
+        data_df_run = pd.DataFrame(data = data_all_iters)
+        data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-14).any(axis=1),0]
+        data_df_i = data_df_run.loc[:,0] #Used to be data_df_i
+        #Ensure we have at least 2 elements to plot
+        if len(data_df_j) < 2:
+            data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
+            
+        return data_df_j
+
+    def __save_fig(self, save_path, ext='png', close=True):                
+        """Save a figure from pyplot.
+        Parameters
+        ----------
+        path : string
+            The path (and filename, without the extension) to save the
+            figure to.
+        ext : string (default='png')
+            The file extension. This must be supported by the active
+            matplotlib backend (see matplotlib.backends module).  Most
+            backends support 'png', 'pdf', 'ps', 'eps', and 'svg'.
+        close : boolean (default=True)
+            Whether to close the figure after saving.  If you want to save
+            the figure multiple times (e.g., to multiple formats), you
+            should NOT close it in between saves or you will have to
+            re-plot it.
+        verbose : boolean (default=True)
+            Whether to print information about when and where the image
+            has been saved.
+        """
+        
+        # Extract the directory and filename from the given path
+        directory = os.path.split(save_path)[0]
+        filename = "%s.%s" % (os.path.split(save_path)[1], ext)
+        if directory == '':
+            directory = '.'
+
+        # If the directory does not exist, create it
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # The final path to save to
+        savepath = os.path.join(directory, filename)
+
+        # Actually save the figure
+        plt.savefig(savepath, dpi=300, bbox_inches='tight')
+        
+        # Close it
+        if close:
+            plt.close()
+
+    def __create_subplots(self, num_subplots, sharex = "row", sharey = 'none'):
+        """
+        Creates Subplots based on the amount of data
+        
+        Parameters
+        ----------
+        num_subplots: int, total number of needed subplots
+        
+        Returns
+        -------
+        fig: matplotlib.figure, The figure you are plotting
+        ax: matplotlib.axes.Axes, 1D array of axes
+        len(ax): The number of axes generated total
+        """
+
+        assert num_subplots >= 1, "Number of subplots must be at least 1"
+        assert isinstance(num_subplots, int), "Num subplots must be int"
+        #Make figures and define number of subplots  
+        #If you are making more than one figure, sharex is always true
+        if num_subplots == 1:
+            sharex = True
+
+        #Make enough rows and columns and get close to equal number of each
+        row_num = int(np.floor(np.sqrt(num_subplots)))
+        col_num = int(np.ceil(num_subplots/row_num))
+        assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
+        total_ax_num = row_num * col_num
+
+        #Creat subplots
+        gridspec_kw = {'wspace': 0.4, 'hspace': 0.2}
+        fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = sharex, sharey = sharey)
+
+        #Turn off unused axes
+        for i, axs in enumerate(axes.flatten()):
+            if i >= num_subplots:
+                axs.axis('off')
+
+        #Make plot mapping to map an axes to an iterable value
+        plot_mapping = {}
+        for i in range(row_num):
+            for j in range(col_num):
+                plot_number = i * col_num + j
+                plot_mapping[plot_number] = (i, j)
+
+        return fig, axes, total_ax_num, plot_mapping
 
 def save_fig(path, ext='png', close=True, verbose=True):
     """Save a figure from pyplot.
@@ -189,57 +495,6 @@ def set_plot_titles(fig, title, x_label, y_label, title_fontsize = 24, other_fon
         
     return   
 
-def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None, xbins=5, ybins=5, zbins=900, title_size=24, other_size=24, cmap = "autumn"):
-    """
-    Function to make dictionary for plotting specifics
-    
-    Parameters:
-    -----------
-        log_data: bool, plots data on natural log scale if True
-        title: str or None, Title of plot
-        xlabel: str or None, the x label of the plot
-        ylabel: str or None, the y label of the plot
-        line_levels: int, list of int or None, Number of zbins to skip when drawing contour lines
-        save_path: str or None, Path to save figure to. Default None (do not save figure).
-        xbins: int, Number of bins for x. Default 5
-        ybins: int, Number of bins for y. Default 5
-        zbins: int or None, Number of bins for z. Default 900
-        title_size: int, fontisize for title. Default 24
-        other_size: int, fontisize for other values. Default 20
-        cmap: str, colormap for matplotlib to use for heat map generation
-        
-    Returns:
-    --------
-        plot_dict: dict, a dictionary of the plot details 
-        
-    Notes:
-    -----
-        plot_dict has keys "title", "log_data", "title_size", "other_size", "xbins", "ybins", "zbins", "save_path", "cmap", "line_levels", "xlabel", and "ylabel"
-        
-    """
-    assert isinstance(cmap, str) and cmap in list(colormaps), "cmap must be a string in matplotlib.colormaps"
-    assert isinstance(log_data, bool), "log_data must be bool"
-    assert isinstance(save_path, str) or save_path is None, "save_path must be str or None"
-    none_str_vars = [title, xlabel, ylabel]
-    if save_path is not None:
-        none_str_vars += [path for path in save_path]
-    int_vars = [xbins, ybins, title_size, other_size]
-    assert isinstance(zbins, int) or zbins is None, "zbins must be int > 3 or None"
-    if isinstance(zbins, int):
-        assert zbins > 3, "zbins must be int > 3 or None"
-    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path must be string or None"
-    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
-    assert all(var > 0 or var is None for var in int_vars), "xbins, ybins, title_size, and other_size must be positive int" 
-    assert isinstance(line_levels, (list, int)) or line_levels is None, "line_levels must be list of int, int, or None"
-    if isinstance(line_levels, (list)) == True:
-        assert all(isinstance(var, int) for var in line_levels), "If a list, line_levels must be list of int"
-        
-    plot_dict = {"log_data":log_data, "title_size": title_size, "other_size":other_size, "xbins":xbins, "ybins":ybins, "zbins":zbins, 
-                 "save_path":save_path, "cmap":cmap, "line_levels":line_levels, "title": title, "xlabel":xlabel, 
-                 "ylabel":ylabel}
-    
-    return plot_dict
-    
 def plot_2D_Data_w_BO_Iter(data, data_names, data_true, plot_dict):
     """
     Plots 2D values of the same data type (ei, sse, min sse) on multiple subplots
@@ -399,7 +654,7 @@ def plot_objs_all_methods(file_path_list, run_num_list, z_choices, plot_dict):
     for i in range(len(file_path_list)):     
         #Get data
         job_dir_name = os.path.dirname(file_path_list[i])
-        data, data_names, data_true, GPBO_method_val = analyze_sse_min_sse_ei(file_path_list[i], z_choices)
+        data, data_names, data_true, GPBO_method_val = analyze_obj_vals(file_path_list[i], z_choices)
         #Create label based on method #
         label = method_names[GPBO_method_val-1] 
         
@@ -551,7 +806,7 @@ def plot_one_obj_all_methods(file_path_list, run_num_list, z_choices, plot_dict)
     for i in range(len(file_path_list)):
         #Get data
         term_loop = False
-        data, data_names, data_true, GPBO_method_val = analyze_sse_min_sse_ei(file_path_list[i], z_choices)
+        data, data_names, data_true, GPBO_method_val = analyze_obj_vals(file_path_list[i], z_choices)
         #The index of the data is i, and one data type is in the last row of the data
         one_data_type = data
 
