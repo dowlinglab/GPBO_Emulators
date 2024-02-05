@@ -140,7 +140,7 @@ class Plotters:
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
         
         #Print the title and labels as appropriate
-        set_plot_titles(fig, title, x_label, y_label, self.title_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, x_label, y_label, self.title_fntsz, self.other_fntsz)
 
         #Loop over different jobs
         for i in range(len(job_pointer)):
@@ -269,9 +269,9 @@ class Plotters:
 
         #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
         subplots_needed = data.shape[-1]
-        fig, axes, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True)
         #Print the title and labels as appropriate
-        set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
         x_label = "BO Iterations"
 
         #Loop over different hyperparameters (number of subplots)
@@ -358,10 +358,10 @@ class Plotters:
         
         #Create figure and axes. Number of subplots is 1 for each ei, sse, sse_sim etc.
         subplots_needed = len(z_choices)
-        fig, axes, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True)
         
         #Print the title and labels as appropriate
-        set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
         bo_len_max = 1
 
         #Get all jobs
@@ -508,7 +508,7 @@ class Plotters:
 
         #Make figures and define number of subplots based on number of different methods
         subplots_needed = len(job_list_best)
-        fig, ax, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True, sharey = True)
+        fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True, sharey = True)
         
         #Define plot levels
         if levels is None:
@@ -665,7 +665,7 @@ class Plotters:
         for axs in ax[:, 0]:
             axs.set_ylabel(ylabel, fontsize = self.other_fntsz)
 
-        set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
         
         #Plots legend and title
         fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, 
@@ -737,7 +737,7 @@ class Plotters:
 
         #Make figures and define number of subplots based on number of files (different methods)  
         subplots_needed = len(z_choices)
-        fig, axes, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True, sharey = True)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True, sharey = True)
 
         #Find z based on z_choice
         all_z_data, all_z_titles = self.__get_z_plot_names_hms(z_choices, sim_sse_var_ei)
@@ -844,7 +844,7 @@ class Plotters:
         for axs in axes[:, 0]:
             axs.set_ylabel(ylabel, fontsize = self.other_fntsz)
 
-        set_plot_titles(fig, title, None, None, self.other_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, None, None, self.other_fntsz, self.other_fntsz)
         
         #Plots legend and title
         fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 
@@ -1057,175 +1057,21 @@ class Plotters:
 
         return ax
 
-def save_fig(path, ext='png', close=True, verbose=True):
-    """Save a figure from pyplot.
-    Parameters
-    ----------
-    path : string
-        The path (and filename, without the extension) to save the
-        figure to.
-    ext : string (default='png')
-        The file extension. This must be supported by the active
-        matplotlib backend (see matplotlib.backends module).  Most
-        backends support 'png', 'pdf', 'ps', 'eps', and 'svg'.
-    close : boolean (default=True)
-        Whether to close the figure after saving.  If you want to save
-        the figure multiple times (e.g., to multiple formats), you
-        should NOT close it in between saves or you will have to
-        re-plot it.
-    verbose : boolean (default=True)
-        Whether to print information about when and where the image
-        has been saved.
-    """
-    
-    # Extract the directory and filename from the given path
-    directory = os.path.split(path)[0]
-    filename = "%s.%s" % (os.path.split(path)[1], ext)
-    if directory == '':
-        directory = '.'
-
-    # If the directory does not exist, create it
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    # The final path to save to
-    savepath = os.path.join(directory, filename)
-
-    if verbose:
-        print("Saving figure to '%s'..." % savepath),
-
-    # Actually save the figure
-    plt.savefig(savepath, dpi=300, bbox_inches='tight')
-    
-    # Close it
-    if close:
-        plt.close()
-
-    if verbose:
-        print("Done")
+    def __set_plot_titles(self, fig, title, x_label, y_label):
+        """
+        Helper function to set plot titles and labels for figures with subplots
+        """
         
-
-def create_subplots(num_subplots, sharex = "row", sharey = 'none'):
-    """
-    Creates Subplots based on the amount of data
-    
-    Parameters
-    ----------
-    num_subplots: int, total number of needed subplots
-    
-    Returns
-    -------
-    fig: matplotlib.figure, The figure you are plotting
-    ax: matplotlib.axes.Axes, 1D array of axes
-    len(ax): The number of axes generated total
-    """
-
-    assert num_subplots >= 1, "Number of subplots must be at least 1"
-    assert isinstance(num_subplots, int), "Num subplots must be int"
-    #Make figures and define number of subplots  
-    #If you are making more than one figure, sharex is always true
-    if num_subplots == 1:
-        sharex = True
-
-    #Make enough rows and columns and get close to equal number of each
-    row_num = int(np.floor(np.sqrt(num_subplots)))
-    col_num = int(np.ceil(num_subplots/row_num))
-    assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
-    total_ax_num = row_num * col_num
-
-    #Creat subplots
-    gridspec_kw = {'wspace': 0.4, 'hspace': 0.2}
-    fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = sharex, sharey = sharey)
-
-    #Turn off unused axes
-    for i, axs in enumerate(axes.flatten()):
-        if i >= num_subplots:
-            axs.axis('off')
-
-    #Make plot mapping to map an axes to an iterable value
-    plot_mapping = {}
-    for i in range(row_num):
-        for j in range(col_num):
-            plot_number = i * col_num + j
-            plot_mapping[plot_number] = (i, j)
-
-    return fig, axes, total_ax_num, plot_mapping
-    
-def subplot_details(ax, plot_x, plot_y, xlabel, ylabel, title, xbins, ybins, fontsize):
-    """
-    Function for setting plot settings
-    
-    Parameters
-    ----------
-    plot_x: ndarray, The x data for plotting
-    plot_y: ndarray, The y data for plotting
-    xlabel: str or None, the label for the x axis
-    ylabel: str or None, the label for the y axis
-    title: str or None, The subplot title
-    xbins: int, Number of x bins
-    ybins: int, Number of y bins
-    fontsize: int, fontsize of letters in the subplot
-    """
-    #Group inputs by type
-    none_str_vars = [title, xlabel, ylabel]
-    int_vars = [xbins, ybins, fontsize]
-    arr_vars = [plot_x, plot_y]
-    
-    #Assert Statements
-    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, and ylabel must be string or None"
-    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, and fontsize must be int"
-    assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
-    assert all(isinstance(var, (np.ndarray,pd.core.series.Series)) or var is None for var in arr_vars), "plot_x, plot_y must be np.ndarray or pd.core.series.Series or None"
-    
-    #Set title, label, and axes
-    if title is not None:
-        pad = 6 + 4*title.count("_")
-        ax.set_title(title, fontsize=fontsize, fontweight='bold', pad = pad)   
-    if xlabel is not None:
-        pad = 6 + 4*xlabel.count("_")
-        ax.set_xlabel(xlabel,fontsize=fontsize,fontweight='bold', labelpad = pad)
-    if ylabel is not None:
-        pad = 6 + 2*ylabel.count("_")
-        ax.set_ylabel(ylabel,fontsize=fontsize,fontweight='bold', labelpad = pad)
-        
-    #Turn on tick parameters and bin number
-    ax.xaxis.set_tick_params(labelsize=fontsize, direction = "in")
-    ax.yaxis.set_tick_params(labelsize=fontsize, direction = "in")
-    ax.locator_params(axis='y', nbins=ybins)
-    ax.locator_params(axis='x', nbins=xbins)
-    ax.minorticks_on() # turn on minor ticks
-    ax.tick_params(which="minor",direction="in",top=True, right=True)
-    
-    #Set bounds and aspect ratio
-    
-    if plot_x is not None and not np.isclose(np.min(plot_x), np.max(plot_x), rtol = 1e-6):        
-        ax.set_xlim(left = np.min(plot_x), right = np.max(plot_x))
- 
-    ax.set_box_aspect(1)
-    
-    if plot_y is not None and np.min(plot_y) == 0:
-        ax.set_ylim(bottom = np.min(plot_y)-0.05, top = np.max(plot_y)+0.05)
-#     elif np.isclose(np.min(plot_y), np.max(plot_y), rtol =1e-6) == False:
-#         ax.set_ylim(bottom = np.min(plot_y)-abs(np.min(plot_y)*0.05), top = np.max(plot_y)+abs(np.min(plot_y)*0.05))
-#         print(np.min(plot_y)-abs(np.min(plot_y)*0.05), np.max(plot_y)+abs(np.min(plot_y)*0.05))
-#     else:
-#         ax.set_ylim(bottom = np.min(plot_y)/2, top = np.max(plot_y)*2)    
-    return ax
+        if self.title_fntz is not None:
+            fig.suptitle(title, weight='bold', fontsize=self.title_fntz)
+        if x_label is not None:
+            fig.supxlabel(x_label, fontsize=self.other_fntsz,fontweight='bold')
+        if y_label is not None:
+            fig.supylabel(y_label, fontsize=self.other_fntsz,fontweight='bold')
+            
+        return 
+     
          
-def set_plot_titles(fig, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20):
-    """
-    Helper function to set plot titles and labels for figures with subplots
-    """
-    
-    if title_fontsize is not None:
-        fig.suptitle(title, weight='bold', fontsize=title_fontsize)
-    if x_label is not None:
-        fig.supxlabel(x_label, fontsize=other_fontsize,fontweight='bold')
-    if y_label is not None:
-        fig.supylabel(y_label, fontsize=other_fontsize,fontweight='bold')
-        
-    return   
-
 def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
     """
     Plots x data vs y data for any given parameter set theta
