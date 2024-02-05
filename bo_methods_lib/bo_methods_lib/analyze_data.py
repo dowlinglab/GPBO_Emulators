@@ -595,7 +595,7 @@ class General_Analysis:
                                         bo_run_tot, save_data, DateTime, seed, obj_tol, ei_tol)
         
         return cs_params, method, gen_meth_theta, ep_enum
-
+    
     def analyze_heat_maps(self, job, run_num, bo_iter, pair_id, get_ei = False):
         "Gets heat map data and analysis for a specific job, run number, and bo_iter"
 
@@ -685,7 +685,9 @@ class General_Analysis:
                 theta_vals =  np.repeat(heat_map_data_org.theta_vals, repeat_theta , axis =0) #Create theta data repeated
                 heat_map_data = Data(theta_vals, x_vals, None, None, None, None, None, None, 
                                      simulator.bounds_theta_reg, simulator.bounds_x, cs_params.sep_fact, 
-                                     cs_params.seed)  
+                                     cs_params.seed) 
+            else:
+                heat_map_data = heat_map_data_org
                 
             #Generate heat map data and sse heat map data sim y values
             heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0 , 0)
@@ -724,9 +726,6 @@ class General_Analysis:
                                                                     best_error_metrics, method,sg_depth =10)[0]  
             #Shows where ei was added to the heat map data
             ei_added = True
-        #If ei not needed, ei stays none
-        elif not get_ei:
-            ei = None
 
         #Save data if necessary
         if self.save_csv:
@@ -750,9 +749,11 @@ class General_Analysis:
         reshape_list = [sse_sim, sse_mean, sse_var]     
         all_data = [var.reshape(theta_pts,theta_pts).T for var in reshape_list]
         if get_ei:
-            all_data += [ei.reshape(theta_pts,theta_pts).T]
+            all_data += [heat_map_sse_data.ei.reshape(theta_pts,theta_pts).T]
+        else:
+            all_data += [None]
         
-        return all_data, test_mesh, param_info_dict
+        return all_data, test_mesh, param_info_dict, sp_data
 
 
 def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = False, save_csv =False):
