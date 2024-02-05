@@ -70,7 +70,7 @@ def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None,
     
     return plot_dict
 
-class Plotting:
+class Plotters:
     """
     The base class for Gaussian Processes
     Parameters
@@ -81,7 +81,7 @@ class Plotting:
     """
     # Class variables and attributes
     
-    def __init__(self, analyzer, plt_options, save_figs):
+    def __init__(self, analyzer, save_figs):
         """
         Parameters
         ----------
@@ -89,18 +89,21 @@ class Plotting:
         criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
         """
         #Asserts
-        assert isinstance(plt_options, dict), "plt_options must be a dictionary"
         assert isinstance(save_figs, bool), "save_figs must be boolean"
 
         # Constructor method
-        self.plt_options = plt_options
         self.analyzer = analyzer
         self.save_figs = save_figs
+        self.cmap = "autumn"
+        self.xbins = 5
+        self.ybins = 5
+        self.title_fntsz = 24
+        self.other_fntsz = 24
         self.colors = ["red", "blue", "green", "purple", "darkorange", "deeppink"]
         self.method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", 
                              "Sparse Grid", "Monte Carlo"]
 
-    def plot_one_obj_all_methods(self, analyzer, z_choices):
+    def plot_one_obj_all_methods(self, z_choice, log_data = False, title = None):
         """
         Plots SSE, Min SSE, or EI values vs BO iter for all BO Methods at the best runs
         
@@ -112,31 +115,23 @@ class Plotting:
             plot_dict: dict, a dictionary of the plot details 
             
         """
-        keys_to_check = ["title","log_data","title_size","other_size","xbins","ybins","zbins","cmap","line_levels"]
-        assert all(key in self.plt_options for key in keys_to_check), "plot_dict must have all keys. Generate plot_dict with make_plot_dict()"
-        keys_not_none = ["xlabel", "ylabel"]
-        assert all(self.plt_options[key] is not None for key in keys_not_none), "x_label and y_label must not be None!"
-        
-        #Break down plot dict and check for correct things
-        title = self.plt_options["title"]
-        log_data = self.plt_options["log_data"]
-        title_fontsize = self.plt_options["title_size"]
-        other_fontsize = self.plt_options["other_size"]
-        xbins = self.plt_options["xbins"]
-        ybins = self.plt_options["ybins"]
-        save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
-        x_label = self.plt_options["xlabel"]
-        y_label = self.plt_options["ylabel"]
-        
         #Assert Statements
-        assert isinstance(z_choices, str), "z_choices must be str"
-        assert z_choices in ['min_sse','sse','ei'], "z_choices must be one of 'min_sse', 'sse', or 'ei'"
+        assert isinstance(z_choice, str), "z_choices must be str"
+        assert z_choice in ['min_sse','sse','ei'], "z_choices must be one of 'min_sse', 'sse', or 'ei'"
+        assert isinstance(title, str) or title is None, "title must be a string or None"
+        assert isinstance(log_data, bool), "log_data must be boolean:"
+        
+        #Set x and y labels and save path for figure
+        x_label = "BO Iterations"
+        y_label = self.__set_ylab_from_z(z_choice)
+        save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
+        
         #Get all jobs
-        job_pointer = analyzer.get_jobs_from_criteria()
+        job_pointer = self.analyzer.get_jobs_from_criteria()
         #Get best data for each method
-        df_best, job_list_best = analyzer.get_best_data()
+        df_best, job_list_best = self.analyzer.get_best_data()
         #Back out best runs from job_list_best
-        emph_runs = df_best["Run Number"]
+        emph_runs = df_best["Run Number"].values
         #Initialize list of maximum bo iterations for each method
         meth_bo_max_evals = np.zeros(len(job_list_best))
         #Number of subplots is the length of the best jobs list
@@ -144,13 +139,13 @@ class Plotting:
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
         
         #Print the title and labels as appropriate
-        set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
+        set_plot_titles(fig, title, x_label, y_label, self.title_fntsz, self.other_fntsz)
 
         #Loop over different jobs
         for i in range(len(job_pointer)):
             #Get data
             term_loop = False
-            data, data_names, data_true, sp_data = analyzer.analyze_obj_vals(job_pointer[i], z_choices)
+            data, data_names, data_true, sp_data = self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
             GPBO_method_val = sp_data["meth_name_val"]
 
             #Get run numer from statepoint if it exists otherwise, initialize it at 1  
@@ -178,23 +173,29 @@ class Plotting:
                 #Set appropriate notation
                 if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
                     ax[ax_row, ax_col].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                
                 #Plot data
                 if log_data == True:
                     data_df_j = np.log(data_df_j)
+
                 #For result where run num list is the number of runs, print a solid line 
+                print(ax_idx, emph_runs[ax_idx], run_number)
                 if emph_runs[ax_idx] == run_number:
-                    ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], label = label, drawstyle='steps')
+                    ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], 
+                                            label = label, drawstyle='steps')
                 else:
-                    ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 0.2, color = self.colors[ax_idx], linestyle='--', drawstyle='steps')
+                    ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 0.2, color = self.colors[ax_idx], 
+                                            linestyle='--', drawstyle='steps')
                 #Plot true value if applicable
                 if data_true is not None and j == data.shape[0] - 1:
-                    ax[ax_row, ax_col].axhline(y=data_true[i], color = "black", linestyle='-', label = "Least Squares")
+                    ax[ax_row, ax_col].axhline(y=data_true[i], color = "black", linestyle='-', 
+                                               label = "Least Squares")
 
                 #Set plot details 
                 title = self.method_names[ax_idx]
                 if bo_len > meth_bo_max_evals[ax_idx]:
                     meth_bo_max_evals[ax_idx] = bo_len
-                    subplot_details(ax[ax_row, ax_col], bo_space, data_df_j, None, None, title, xbins, ybins, other_fontsize)
+                    self.__set_subplot_details(ax[ax_row, ax_col], bo_space, data_df_j, None, None, title)
 
                 #Add 1 to run number and terminate if the total amount of runs is equal to the total amount
                 if run_num_count >= data.shape[0]:
@@ -217,15 +218,112 @@ class Plotting:
         #save or show figure
         if self.save_figs:
             save_path_dir = os.path.join(save_path, "line_plots", "all_meth_1_obj")
-            save_path_to = os.path.join(save_path_dir, z_choices)
+            save_path_to = os.path.join(save_path_dir, z_choice)
             self.__save_fig(save_path_to)
         else:
             plt.show()
             plt.close()
             
         return  
+    
+    def plot_hypers(self, job, title = None):
+        data, data_names, data_true, sp_data = self.analyzer.analyze_hypers(job)
+        y_label = "Value"
+        title = "Hyperparameter Values"
+        fig = self.__plot_2D_general(data, data_names, data_true, y_label, title, False)
+        #save or show figure
+        if self.save_figs:
+            save_path_to = os.path.join(job.fn(""), "line_plots", "hyperparams")
+            self.__save_fig(save_path_to)
+        else:
+            plt.show()
+            plt.close()
 
-    def __get_data_to_bo_iter_term(data_all_iters):
+    def __plot_2D_general(self, data, data_names, data_true, y_label, title, log_data):
+        """
+        Plots 2D values of the same data type (ei, sse, min sse) on multiple subplots
+        
+        Parameters
+        -----------
+            data: ndarray (n_runs x n_iters x n_params), Array of data from bo workflow runs
+            data_names: list of str, List of data names
+            data_true: list/ndarray of float/int or None, The true values of each parameter
+            plot_dict: dict, a dictionary of the plot details 
+        """
+
+        #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
+        subplots_needed = data.shape[-1]
+        fig, axes, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True)
+        #Print the title and labels as appropriate
+        set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
+        x_label = "BO Iterations"
+
+        #Loop over different hyperparameters (number of subplots)
+        for i, ax in enumerate(axes.flatten()):
+            #Only plot data if axis is visible
+            if i < subplots_needed:
+                #The index of the data is i, and one data type is in the last row of the data
+                #Grab the mapping from plot_mapping
+                ax_row, ax_col = plot_mapping[i]
+                one_data_type = data[:,:,i]
+                #Loop over all runs
+                for j in range(one_data_type.shape[0]):
+                    #Create label based on run #
+                    label = "Run: "+str(j+1) 
+                    data_df_j = self.__get_data_to_bo_iter_term(data[j])
+
+                    #Define x axis
+                    bo_len = len(data_df_j)
+                    bo_space = np.linspace(1,bo_len,bo_len)
+
+                    #Set appropriate notation
+                    if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
+                        ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+
+                    #Plot data
+                    if log_data == True:
+                        data_df_j = np.log(data_df_j)
+                    ax.step(bo_space, data_df_j, label = label)
+
+                    #Plot true value if applicable
+                    if data_true is not None and j == one_data_type.shape[0] - 1:
+                        ax.axhline(y=data_true[i], color = "red", linestyle='--', label = "True Value")
+                    
+                    #Set plot details 
+                    title = r'$'+ data_names[i]+ '$'
+                    self.__set_subplot_details(ax, bo_space, data_df_j, None, None, title)
+                    
+                if not log_data and data_true is None:
+                    ax.set_yscale("log")
+
+            #Add legends and handles from last subplot that is visible
+            if i == subplots_needed -1:
+                handles, labels = axes[0, -1].get_legend_handles_labels()
+                
+        
+        for axs in axes[-1]:
+            axs.set_xlabel(x_label, fontsize = self.other_fntsz)
+
+        for axs in axes[:, 0]:
+            axs.set_ylabel(y_label, fontsize = self.other_fntsz)
+
+        #Plots legend and title
+        plt.tight_layout()
+        fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.75), 
+                   borderaxespad=0)
+        
+        return fig
+
+    def __set_ylab_from_z(self, z_choice):
+        if "sse" == z_choice:
+            y_label = "\mathbf{e(\\theta)}"
+        if "min_sse" == z_choice:
+            y_label = "\mathbf{Min\,e(\\theta)}"   
+        if "ei" == z_choice:
+            y_label = "\mathbf{Max\,EI(\\theta)}"
+        return y_label
+    
+    def __get_data_to_bo_iter_term(self, data_all_iters):
         """
         Gets data that is not zero for plotting from data array
         """
@@ -325,6 +423,62 @@ class Plotting:
                 plot_mapping[plot_number] = (i, j)
 
         return fig, axes, total_ax_num, plot_mapping
+    
+    def __set_subplot_details(self, ax, plot_x, plot_y, xlabel, ylabel, title):
+        """
+        Function for setting plot settings
+        
+        Parameters
+        ----------
+        plot_x: ndarray, The x data for plotting
+        plot_y: ndarray, The y data for plotting
+        xlabel: str or None, the label for the x axis
+        ylabel: str or None, the label for the y axis
+        title: str or None, The subplot title
+        xbins: int, Number of x bins
+        ybins: int, Number of y bins
+        fontsize: int, fontsize of letters in the subplot
+        """
+        #Group inputs by type
+        none_str_vars = [title, xlabel, ylabel]
+        int_vars = [self.xbins, self.ybins, self.other_fntsz]
+        arr_vars = [plot_x, plot_y]
+        
+        #Assert Statements
+        assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, and ylabel must be string or None"
+        assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, and fontsize must be int"
+        assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
+        assert all(isinstance(var, (np.ndarray,pd.core.series.Series)) or var is None for var in arr_vars), "plot_x, plot_y must be np.ndarray or pd.core.series.Series or None"
+        
+        #Set title, label, and axes
+        if title is not None:
+            pad = 6 + 4*title.count("_")
+            ax.set_title(title, fontsize=self.other_fntsz, fontweight='bold', pad = pad)   
+        if xlabel is not None:
+            pad = 6 + 4*xlabel.count("_")
+            ax.set_xlabel(xlabel,fontsize=self.other_fntsz,fontweight='bold', labelpad = pad)
+        if ylabel is not None:
+            pad = 6 + 2*ylabel.count("_")
+            ax.set_ylabel(ylabel,fontsize=self.other_fntsz,fontweight='bold', labelpad = pad)
+            
+        #Turn on tick parameters and bin number
+        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
+        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
+        ax.locator_params(axis='y', nbins=self.ybins)
+        ax.locator_params(axis='x', nbins=self.xbins)
+        ax.minorticks_on() # turn on minor ticks
+        ax.tick_params(which="minor",direction="in",top=True, right=True)
+        
+        #Set a and y bounds and aspect ratio
+        if plot_x is not None and not np.isclose(np.min(plot_x), np.max(plot_x), rtol = 1e-6):        
+            ax.set_xlim(left = np.min(plot_x), right = np.max(plot_x))
+    
+        if plot_y is not None and np.min(plot_y) == 0:
+            ax.set_ylim(bottom = np.min(plot_y)-0.05, top = np.max(plot_y)+0.05) 
+
+        ax.set_box_aspect(1)
+
+        return ax
 
 def save_fig(path, ext='png', close=True, verbose=True):
     """Save a figure from pyplot.

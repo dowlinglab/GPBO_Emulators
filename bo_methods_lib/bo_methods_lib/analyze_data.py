@@ -485,16 +485,21 @@ class General_Analysis:
         data: np.ndarray, The data for plotting
         data_true: np.ndarray or None, the true values of the data
         """
+        if isinstance(z_choices, str):
+            z_choices = [z_choices]
+
         df_job, data, data_true, sp_data, tot_runs = self.__preprocess_analyze(job, z_choices, "objs")
         col_name, data_names = self.__z_choice_helper(z_choices, data_true, "objs")
         #Loop over each choice
         for z in range(len(z_choices)):
             #Loop over runs
             for run in range(0, tot_runs):
-                # print(run, run + 1)
                 #Make a df of only the data which meets that run criteria
                 df_run = df_job[df_job["Run Number"] == run + 1]  
                 z_data = df_run[col_name[z]]
+                #If the z_choice is sse and the method has a log objective function value, un logscale data
+                if "sse" in z_choices[z] and sp_data["meth_name_val"] in [2,4]:
+                    z_data = np.exp(z_data.values.astype(float))
                 #Set data to be where it needs to go in the above data matrix
                 data[run,:len(z_data),z] = z_data
 
