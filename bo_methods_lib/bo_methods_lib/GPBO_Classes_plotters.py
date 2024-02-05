@@ -535,6 +535,8 @@ class Plotters:
             analysis_list = self.analyzer.analyze_heat_maps(job_list_best[i], emph_runs[i], emph_iters[i], 
                                                             pair, get_ei = get_ei)
             sim_sse_var_ei, test_mesh, param_info_dict, sp_data = analysis_list
+            #Set correct values based on propagation of errors for gp
+            sim_sse_var_ei = self.__scale_z_data(sim_sse_var_ei, sp_data, log_data)
             
             theta_true = param_info_dict["true"]
             theta_opt = param_info_dict["min_sse"]
@@ -717,6 +719,10 @@ class Plotters:
         get_ei = True if "ei" in z_choices else False
         analysis_list = self.analyzer.analyze_heat_maps(job, run_num, bo_iter, pair, get_ei = get_ei)
         sim_sse_var_ei, test_mesh, param_info_dict, sp_data = analysis_list
+        #Get method value from json file
+        GPBO_method_val = sp_data["meth_name_val"]
+        #Set correct values based on propagation of errors for gp
+        sim_sse_var_ei = self.__scale_z_data(sim_sse_var_ei, sp_data, log_data)
         theta_true = param_info_dict["true"]
         theta_opt = param_info_dict["min_sse"]
         theta_next = param_info_dict["max_ei"]
@@ -729,15 +735,12 @@ class Plotters:
         xx , yy = test_mesh #NxN, NxN
         assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
 
-        #Find z based on z_choice
-        all_z_data, all_z_titles = self.__get_z_plot_names_hms(z_choices, sim_sse_var_ei)
-                
         #Make figures and define number of subplots based on number of files (different methods)  
         subplots_needed = len(z_choices)
         fig, axes, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True, sharey = True)
 
-        #Get method value from json file
-        GPBO_method_val = sp_data["meth_name_val"]
+        #Find z based on z_choice
+        all_z_data, all_z_titles = self.__get_z_plot_names_hms(z_choices, sim_sse_var_ei)
             
         #Loop over number of subplots
         for i, ax in enumerate(axes.flatten()):
@@ -864,6 +867,29 @@ class Plotters:
             plt.close()
         
         return plt.show()
+    
+    def __scale_z_data(self, sim_sse_var_ei, sp_data, log_data):
+        sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
+        #Get log or unlogged data values        
+        if log_data == False:
+            #Change sse sim, mean, and stdev to not log for 1B and 2B
+            if sp_data["meth_name_val"] in [2,4]:
+                #SSE variance is var*(e^((log(sse)))^2
+                sse_mean = np.exp(sse_mean)
+                sse_var = (sse_var*sse_mean**2)      
+                sse_sim = np.exp(sse_sim)
+
+        #If getting log values
+        else:
+            #Get log data from 1A, 2A, 2C, and 2D
+            if not sp_data["meth_name_val"] in [2,4]:            
+                #SSE Variance is var/sse**2
+                sse_var = sse_var/sse_mean**2
+                sse_mean = np.log(sse_mean)
+                sse_sim = np.log(sse_sim)
+
+        sim_sse_var_ei = [sse_sim, sse_mean, sse_var, ei]
+        return sim_sse_var_ei
 
     def __set_ylab_from_z(self, z_choice):
         if "sse" == z_choice:
