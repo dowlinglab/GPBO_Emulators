@@ -556,49 +556,50 @@ class General_Analysis:
         builds instance of CaseStudyParameters from saved file data
         """
         method = GPBO_Methods(Method_name_enum(sp_data["meth_name_val"]))
-        cs_name = sp_data["cs_name_val"]
+        cs_name = CS_name_enum(sp_data["cs_name_val"]) if "cs_name_val" in sp_data else "New_CS"
         ep0 = sp_data["ep0"]
         sep_fact = sp_data["sep_fact"]
         normalize = sp_data["normalize"]
-        kernel = sp_data["kernel_enum_val"]
+        kernel = Kernel_enum(sp_data["kernel_enum_val"])
         lenscl = sp_data["lenscl"]
         outputscl = sp_data["outputscl"]
         retrain_GP = sp_data["retrain_GP"]
         reoptimize_obj = sp_data["reoptimize_obj"]
         gen_heat_map_data = sp_data["gen_heat_map_data"]
-        bo_iter_tot = sp_data["Max BO Iters"]
-        bo_run_tot = sp_data["Number of Workflow Restarts"]
+        bo_iter_tot = sp_data["bo_iter_tot"]
+        bo_run_tot = sp_data["bo_run_tot"]
         save_data = False
         DateTime = None
         seed = sp_data["seed"]
         obj_tol = sp_data["obj_tol"]
         ei_tol = sp_data["ei_tol"]
         gen_meth_theta = Gen_meth_enum(sp_data["gen_meth_theta"])
+        ep_enum = Ep_enum(sp_data["ep_enum_val"])
         
         cs_params = CaseStudyParameters(cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, 
                                         retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, 
                                         bo_run_tot, save_data, DateTime, seed, obj_tol, ei_tol)
         
-        return cs_params, method, gen_meth_theta
+        return cs_params, method, gen_meth_theta, ep_enum
 
     def analyze_heat_maps(self, job, run_num, bo_iter, pair_id, get_ei = False):
         "Gets heat map data and analysis for a specific job, run number, and bo_iter"
 
         #Assert that heat map data does not aleady exist
-        dir_name = os.path.join(job.fn(), "analysis_data", "gp_evaluations", 
+        dir_name = os.path.join(job.fn(""), "analysis_data", "gp_evaluations", 
                                 "run_" + str(run_num), "iter_" + str(bo_iter),  "pair_" + str(pair_id))
         hm_path_name = os.path.join(dir_name, "hm_data.gz")
         hm_sse_path_name = os.path.join(dir_name, "hm_sse_data.gz")
         param_info_path = os.path.join(dir_name, "notable_param_info.npy")
-        found_data1, hm_data = self.__load_data(hm_path_name)
-        found_data2, hm_sse_data = self.__load_data(hm_sse_path_name)
+        found_data1, heat_map_data = self.__load_data(hm_path_name)
+        found_data2, heat_map_sse_data = self.__load_data(hm_sse_path_name)
         found_data3, param_info_dict = self.__load_data(param_info_path)
 
         #Get statepoint info
         with open(job.fn("signac_statepoint.json"), 'r') as json_file:
             # Load the JSON data
             sp_data = json.load(json_file)
-        cs_params, method, gen_meth_theta = self.__rebuild_cs(sp_data)
+        cs_params, method, gen_meth_theta, ep_method = self.__rebuild_cs(sp_data)
 
         #Generate data if you don't have it
         if not found_data1 or not found_data2 or not found_data3:
@@ -616,7 +617,7 @@ class General_Analysis:
             exp_data = loaded_results[run_num].exp_data_class
             simulator = loaded_results[run_num].simulator_class
             ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
-            ep_bias = Exploration_Bias(None, ep_at_iter, cs_params.enum_ep, None, None, None, None, None, None, None)
+            ep_bias = Exploration_Bias(None, ep_at_iter, ep_method, None, None, None, None, None, None, None)
             driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, 
                                      gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, 
                                      gp_emulator, ep_bias, gen_meth_theta)
@@ -626,8 +627,6 @@ class General_Analysis:
             theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
             theta_next = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
             train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
-            param_info_dict = {"true":theta_true, "min_sse":theta_opt, "max_ei":theta_next, "train":train_theta,
-                                "names":param_names, "idcs":idcs_to_plot}
             
             #Get specific heat map data or generate it
             if loaded_results[0].heat_map_data_dict is not None:
@@ -643,40 +642,50 @@ class General_Analysis:
                 param_names = list(loaded_results[0].heat_map_data_dict.keys())[pair_id]
             else:
                 raise Warning("Invalid pair_id!")
-                
+
             #Initialize heat map data class
-            heat_map_data = heat_map_data_dict[param_names] 
+            heat_map_data_org = heat_map_data_dict[param_names] 
 
             #Calculate GP mean and var for heat map data
-            featurized_hm_data = gp_emulator.featurize_data(heat_map_data)
-            heat_map_data.gp_mean, heat_map_data.gp_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data, 
-                                                                                            featurized_hm_data)
+            featurized_hm_data = gp_emulator.featurize_data(heat_map_data_org)
+            hm_org_mean, hm_org_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data_org, featurized_hm_data)
 
             #Get index of param set and best error
             idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for 
-                            name in param_names]   
-            best_error_metrics = driver._GPBO_Driver__get_best_error()
+                            name in param_names]  
+
+            #Set param info
+            param_info_dict = {"true":theta_true, "min_sse":theta_opt, "max_ei":theta_next, "train":train_theta,
+                                "names":param_names, "idcs":idcs_to_plot} 
             
-            #Ensure you have heat map data and heat map sse data
-            if method.emulator == True:
-                #Create sse data from regular y data
-                heat_map_sse_data = simulator.sim_data_to_sse_sim_data(method, heat_map_data, exp_data, 
-                                                                    cs_params.sep_fact, gen_val_data = False)
-            else:
-                #Heat map data is actually heat map data sse
-                heat_map_sse_data = heat_map_data.deepcopy()
+            #Get best error metrics
+            best_error_metrics = driver._GPBO_Driver__get_best_error()
+                
+            #If the emulator is a conventional method, create heat map data in emulator form to calculate y_vals
+            if not method.emulator:
                 #Make surrogate heat map data for full theta and x grid to calculate y_vals
-                n_points = int(np.sqrt(heat_map_sse_data.get_num_theta()))
+                n_points = int(np.sqrt(heat_map_data_org.get_num_theta()))
                 repeat_x = n_points**2 #Square because only 2 values at a time change
                 x_vals = np.vstack([exp_data.x_vals]*repeat_x) #Repeat x_vals n_points**2 number of times
                 repeat_theta = exp_data.get_num_x_vals() #Repeat theta len(x) number of times
-                theta_vals =  np.repeat(heat_map_sse_data.theta_vals, repeat_theta , axis =0) #Create theta data repeated
+                theta_vals =  np.repeat(heat_map_data_org.theta_vals, repeat_theta , axis =0) #Create theta data repeated
                 heat_map_data = Data(theta_vals, x_vals, None, None, None, None, None, None, 
                                      simulator.bounds_theta_reg, simulator.bounds_x, cs_params.sep_fact, 
-                                     cs_params.seed)
+                                     cs_params.seed)  
                 
-            #Generate heat map data sim y values
+            #Generate heat map data and sse heat map data sim y values
             heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0 , 0)
+
+            #Create sse data from regular y data
+            heat_map_sse_data = simulator.sim_data_to_sse_sim_data(method, heat_map_data, exp_data, 
+                                                                    cs_params.sep_fact, gen_val_data = False)
+            #Set the mean and variance to the correct heat map data object
+            if not method.emulator:
+                heat_map_sse_data.gp_mean = hm_org_mean
+                heat_map_sse_data.gp_var = hm_org_var
+            else:
+                heat_map_data.gp_mean = hm_org_mean
+                heat_map_data.gp_var = hm_org_var
 
             #Calculate SSE and SSE var
             if method.emulator == False:
@@ -684,7 +693,7 @@ class General_Analysis:
             else:
                 heat_map_sse_data.sse, heat_map_sse_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data, 
                                                                                                     method, exp_data)
-        
+
         #Get EI if needed. This operation can be expensive which is why it's optional
         if get_ei and heat_map_data.ei is None:
             if method.emulator == False:
@@ -705,27 +714,29 @@ class General_Analysis:
         elif not get_ei:
             ei = None
 
-        #Define original theta_vals (for restoration later)
-        org_theta = heat_map_sse_data.theta_vals
-        #Redefine the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
-        heat_map_sse_data.theta_vals = heat_map_sse_data.theta_vals[:,idcs_to_plot]
-        #Create a meshgrid with x and y values fron the uniwue theta values of that array
-        unique_theta = heat_map_sse_data.get_unique_theta()
-        theta_pts = int(np.sqrt(len(unique_theta)))
+        #Save data if necessary
+        if self.save_csv:
+            self.__save_data(heat_map_data, hm_path_name)
+            self.__save_data(heat_map_sse_data, hm_sse_path_name)
+            self.__save_data(param_info_dict, param_info_path)
+
+        #Find the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
+        theta_mesh_vals = heat_map_sse_data.theta_vals[:,idcs_to_plot]
+        #Back out the number of theta points from the hm_sse_data
+        theta_pts = int(np.sqrt(len(theta_mesh_vals)))
         #Create test mesh for that specific pair and set it as the new sse data theta vals.
-        test_mesh = unique_theta.reshape(theta_pts,theta_pts,-1).T
-        heat_map_sse_data.theta_vals = org_theta
+        test_mesh = theta_mesh_vals.reshape(theta_pts,theta_pts,-1).T
         
         #Define sse_sim, sse_gp_mean, and sse_gp_var, and ei based on whether to report log scaled data
         sse_sim = heat_map_sse_data.y_vals
         sse_var = heat_map_sse_data.sse_var
         sse_mean = heat_map_sse_data.sse
         
-        #STOPPED HERE: NEED TO FIX THIS
         #Reshape data to correct shape and add to list to return
         reshape_list = [sse_sim, sse_mean, sse_var]     
-    #     all_data = [var.reshape(theta_pts,theta_pts,-1).T for var in reshape_list] + [ei]
-        all_data = [var.reshape(theta_pts,theta_pts).T for var in reshape_list] + [ei]
+        all_data = [var.reshape(theta_pts,theta_pts).T for var in reshape_list]
+        if get_ei:
+            all_data += [ei.reshape(theta_pts,theta_pts).T]
         
         return all_data, test_mesh, param_info_dict
 
