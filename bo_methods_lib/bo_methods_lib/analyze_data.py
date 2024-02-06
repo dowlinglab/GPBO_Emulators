@@ -620,6 +620,93 @@ class General_Analysis:
         
         return cs_params, method, gen_meth_theta, ep_enum
     
+    # Create a function to optimize, in this case, least squares fitting
+    def __ls_scipy_func(self, theta_guess, x_exp, y_exp, calc_y_fxn, calc_y_fxn_args):
+        '''
+        Function to define regression function for least-squares fitting
+        Arguments:
+            a_guess: ndarray, guess value for a
+            Constants: ndarray, The array containing the true values of Muller constants
+            x: ndarray, experimental X data (Inependent Variable)
+            y: ndarray, experimental Y data (Dependent Variable)
+        Returns:
+            e: residual vector
+        '''
+        
+        error = y_exp.flatten() - calc_y_fxn(theta_guess, x_exp, calc_y_fxn_args).flatten();
+        
+        return error
+    
+    def least_squares_analysis(self, job):
+        """
+        Performs least squares regression on the problem equal to what was done with BO
+        """
+        ls_data_path = os.path.join(job.fn("analysis_data") , "least_squares.csv")
+        # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
+        found_data1, ls_results = self.__load_data(ls_data_path)
+
+        #Get statepoint info
+        with open(job.fn("signac_statepoint.json"), 'r') as json_file:
+            # Load the JSON data
+            sp_data = json.load(json_file)
+            tot_runs_cs = sp_data["bo_run_tot"]
+
+        if not found_data1:
+            #Open Job
+            results = open_file_helper(job.fn("BO_Results.gz"))
+            #Get Experimental data and Simulator used in problem
+            exp_data = results[0].exp_data_class
+            x_exp = exp_data.x_vals
+            y_exp = exp_data.y_vals
+            simulator = results[0].simulator_class
+
+            #Perform nonlinear least squares
+            ## specify bounds
+            bounds = simulator.bounds_theta_reg
+            theta_true = simulator.theta_true
+            idcs = simulator.indeces_to_consider
+            calc_y_fxn = simulator.calc_y_fxn
+            calc_y_fxn_args = simulator.calc_y_fxn_args
+
+            ## specify initial guesses
+            #Note: As of now, I can't use the same starting points without this taking a ridiculously long time.
+            #Points for optimization are saved in the driver, which is not saved in BO_Results.gz
+            theta_guess = np.random.uniform(low=bounds[0], high=bounds[1], size=(tot_runs_cs, len(bounds[0])) )
+
+            #Initialize results dataframe
+            column_names = ['Min Obj Act', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'MSE', 
+                            "func evals", "jac evals", "Total Run Time", "l2 norm theta"]
+            ls_results = pd.DataFrame(columns=column_names)
+
+            for i in range(tot_runs_cs):
+                time_start = time.time()
+                Solution = optimize.least_squares(self.__ls_scipy_func, theta_guess[i] ,bounds=bounds, method='trf',
+                                                args=(x_exp, y_exp, calc_y_fxn, calc_y_fxn_args))
+                time_end = time.time()
+                sse = self.__ls_scipy_func(Solution.x, x_exp, y_exp, calc_y_fxn, calc_y_fxn_args)
+                del_theta = Solution.x - theta_true
+                theta_l2_norm = np.linalg.norm(del_theta, ord = 2)
+                time_per_run = time_end-time_start
+                #Create df for each ls run
+                iter_df = pd.DataFrame(columns=column_names)
+                if i ==0:
+                    ls_iter_results = [Solution.x, sse, Solution.x, sse, sse/len(x_exp), Solution.nfev, 
+                                       Solution.njev, time_per_run, theta_l2_norm]
+                else:
+                    obj_cum = sse if ls_results["Min Obj Act"].iloc[i-1] <= sse else ls_results["Min Obj Act"].iloc[i-1]
+                    theta_obj_cum = Solution.x if ls_results["Min Obj Act"].iloc[i-1] <= sse else ls_results['Theta Min Obj'].iloc[i-1]
+                    ls_iter_results = [Solution.x, sse, theta_obj_cum, obj_cum, sse/len(x_exp), Solution.nfev, 
+                                       Solution.njev, time_per_run, theta_l2_norm]
+                    # Add the new row to the DataFrame
+                    iter_df.loc[0] = ls_iter_results
+                    pd.concat([ls_results.astype(iter_df.dtypes), iter_df], ignore_index=True)
+
+            if self.save_csv:
+                self.__save_data(ls_results, ls_data_path)
+
+        return ls_results
+        
+
     def analyze_heat_maps(self, job, run_num, bo_iter, pair_id, get_ei = False):
         "Gets heat map data and analysis for a specific job, run number, and bo_iter"
 
