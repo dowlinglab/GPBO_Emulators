@@ -65,7 +65,7 @@ class General_Analysis:
         # Constructor method
         self.criteria_dict = criteria_dict
         self.project = project
-        self.study_results_dir = os.path.join("Results", self.make_dir_name_from_criteria(self.criteria_dict))
+        self.study_results_dir = os.path.join(self.make_dir_name_from_criteria(self.criteria_dict))
         self.save_csv = save_csv
     
     def make_dir_name_from_criteria(self, dict_to_use, is_nested = False):
@@ -134,9 +134,11 @@ class General_Analysis:
         
             # # #See if result data exists, if so add it to df
             tab_data_path = os.path.join(job.fn("analysis_data") , "tabulated_data.csv")
-            found_data, df_job = self.__load_data(tab_data_path)
+            tab_param_path = os.path.join(job.fn("analysis_data") , "true_param_data.json")
+            found_data1, df_job = self.__load_data(tab_data_path)
+            found_data2, theta_true_data = self.__load_data(tab_param_path)
             #Otherwise, create them
-            if not found_data:
+            if not found_data1 or not found_data2:
                 df_job, theta_true_data = self.get_study_data_signac(job)
                 
             #Add job dataframe to dataframe of all jobs
@@ -145,10 +147,12 @@ class General_Analysis:
         #Reset index on df_all_jobs after adding all rows 
         df_all_jobs = df_all_jobs.reset_index(drop=True)     
         
-        #Open Datafile to get theta_true if necessary
-        if not found_data:
-            results = open_file_helper(data_file)
-            theta_true = results[0].simulator_class.theta_true
+        # #Open Datafile to get theta_true if necessary
+        # if not found_data1 or not found_data2:
+        #     results = open_file_helper(data_file)
+        #     theta_true = results[0].simulator_class.theta_true
+        #     theta_true_names = results[0].simulator_class.theta_true_names
+        #     theta_true_data = dict(zip(theta_true_names, theta_true))
             
         return df_all_jobs, job_list, theta_true_data
     
@@ -227,15 +231,15 @@ class General_Analysis:
         if self.save_csv:
             all_data_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
             theta_data_path = os.path.join(job.fn("analysis_data"), "true_param_data.json")
-            self.__save_data(self, df_job, all_data_path)
-            self.__save_data(self, theta_true_data, theta_data_path)
+            self.__save_data(df_job, all_data_path)
+            self.__save_data(theta_true_data, theta_data_path)
 
         return df_job, theta_true_data
 
     def get_best_data(self):
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
-        data_best_path = os.path.join(self.study_results_dir, "best_results")
+        data_best_path = os.path.join(self.study_results_dir, "best_results.csv")
         data_exists, df_best = self.__load_data(data_best_path)
         if not data_exists:
             #Start by sorting pd dataframe by lowest obj func value overall
@@ -250,12 +254,16 @@ class General_Analysis:
         #Get list of best jobs
         job_list_best = self.__get_job_list(df_best)
 
+        #Put in a csv file in a directory based on the job
+        if self.save_csv:
+            self.__save_data(df_best, data_best_path)
+
         return df_best, job_list_best
     
     def get_median_data(self):
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
-        data_path = os.path.join(self.study_results_dir, "median_results")
+        data_path = os.path.join(self.study_results_dir, "median_results.csv")
         data_exists, df_median = self.__load_data(data_path)
         if not data_exists:
             #Initialize df for median values
@@ -279,12 +287,16 @@ class General_Analysis:
         #Get list of best jobs
         job_list_med = self.__get_job_list(df_median)
 
+        #Put in a csv file in a directory based on the job
+        if self.save_csv:
+            self.__save_data(df_median, data_path)
+
         return df_median, job_list_med
     
     def get_mean_data(self):
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
-        data_path = os.path.join(self.study_results_dir, "mean_results")
+        data_path = os.path.join(self.study_results_dir, "mean_results.csv")
         data_exists, df_mean = self.__load_data(data_path)
         if not data_exists:
             #Initialize df for median values
@@ -309,6 +321,10 @@ class General_Analysis:
 
         #Get list of best jobs
         job_list_mean = self.__get_job_list(df_mean)
+
+        #Put in a csv file in a directory based on the job
+        if self.save_csv:
+            self.__save_data(df_mean, data_path)
 
         return df_mean, job_list_mean
     

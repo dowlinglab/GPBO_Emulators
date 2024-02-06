@@ -52,6 +52,7 @@ def calc_cs8_10_polynomial(true_model_coefficients, x, args = None):
     y_model =  t1*x1 + t2*x2 + t3*x1*x2 + t4*x1**2 + t5*x2**2
        
     return y_model
+calc_cs3_polynomial = calc_cs8_10_polynomial
 
 def calc_cs9_isotherm(true_model_coefficients, x, args = None):
     """
@@ -80,6 +81,7 @@ def calc_cs9_isotherm(true_model_coefficients, x, args = None):
     y_model =  (t1*t2*x1)/(1+t2*x1) + (t3*t4*x2)/(1+t4*x2)
        
     return y_model
+calc_cs4_isotherm = calc_cs8_10_polynomial
 
 def calc_cs11_BOD(true_model_coefficients, x, args = None):
     """
