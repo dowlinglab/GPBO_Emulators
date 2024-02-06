@@ -175,6 +175,7 @@ class General_Analysis:
 
         #Find number of workflow restarts in that job
         tot_runs = results[0].configuration["Number of Workflow Restarts"]
+        num_x_exp = results[0].exp_data_class.get_num_x_vals()
         #get theta_true from 1st run since it never changes within a case study
         theta_true = results[0].simulator_class.theta_true
         theta_true_names = results[0].simulator_class.theta_true_names
@@ -199,6 +200,13 @@ class General_Analysis:
                 #Otherwise it is (seed # of the run - 1 )/2 if tot_runs = 1 (Old job initialization system)
                 df_run["index"] = int((results[run].configuration["Seed"] - 1)/2 + 1 )
             #Add other important columns
+            #If using a log scaled sse objective function (2 or 4)
+            if job.sp.meth_name_val in [2,4]:
+                #MSE is calculated by taking exp(ln(sse)) first
+                df_run["MSE"] = np.exp(df_run["Min Obj Act"])/num_x_exp
+            else:
+                #Otherwise, sse is calculated as normal
+                df_run["MSE"] = df_run["Min Obj Act"]/num_x_exp
             df_run["BO Method"] = Method_name_enum(job.sp.meth_name_val).name
             df_run["Job ID"] = job.id
             df_run["Max Evals"] = len(df_run)
