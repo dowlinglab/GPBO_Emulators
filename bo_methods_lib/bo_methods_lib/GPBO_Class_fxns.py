@@ -53,7 +53,7 @@ def calc_cs8_10_polynomial(true_model_coefficients, x, args = None):
        
     return y_model
 
-def calc_cs4_isotherm(true_model_coefficients, x, args = None):
+def calc_cs9_isotherm(true_model_coefficients, x, args = None):
     """
     Calculates the value of y for case study 1
     
@@ -349,7 +349,7 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         bounds_theta_l = [1, 1e-2, 1, 1e-3]
         bounds_theta_u = [100, 1, 500,  1e-1]
         theta_ref =  np.array([20,0.2,200,0.02])
-        calc_y_fxn = calc_cs4_isotherm
+        calc_y_fxn = calc_cs9_isotherm
         calc_y_fxn_args = None
 
     #5 parameter Polynomial (With scaled parameters)

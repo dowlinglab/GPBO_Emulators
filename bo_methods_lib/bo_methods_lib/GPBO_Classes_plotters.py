@@ -81,7 +81,7 @@ class Plotters:
     """
     # Class variables and attributes
     
-    def __init__(self, analyzer, save_figs):
+    def __init__(self, analyzer, save_figs = False):
         """
         Parameters
         ----------
@@ -1062,8 +1062,8 @@ class Plotters:
         Helper function to set plot titles and labels for figures with subplots
         """
         
-        if self.title_fntz is not None:
-            fig.suptitle(title, weight='bold', fontsize=self.title_fntz)
+        if self.title_fntsz is not None:
+            fig.suptitle(title, weight='bold', fontsize=self.title_fntsz)
         if x_label is not None:
             fig.supxlabel(x_label, fontsize=self.other_fntsz,fontweight='bold')
         if y_label is not None:
@@ -1071,516 +1071,162 @@ class Plotters:
             
         return 
      
-         
-def plot_x_vs_y_given_theta(data, exp_data, train_data, test_data, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
-    """
-    Plots x data vs y data for any given parameter set theta
-    
-    Parameters
-    ----------
-    data: Instance of Data,
-    
-    """
-    subplots_needed = data.get_dim_x_vals()
-    fig, axes, ax, num_subplots = create_subplots(subplots_needed)
-    
-    #Print the title and labels as appropriate
-    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
-    
-    
-    #Loop over different hyperparameters (number of subplots)
-    for i in range(num_subplots):
-        #If you still have data to plot
-        if i < data.get_dim_x_vals():
-            #The index of the data is i, and one data type is in the last row of the data
-            X_space = data.x_vals[:,i]
-            ax[i].plot(X_space, data.gp_mean, lw=2, label="GP_mean", color = "blue")
-            ax[i].scatter(X_space, data.y_vals, label = "Y_sim", color = "black")
-            if train_data is not None:
-                ax[i].scatter(train_data.x_vals[:,i], train_data.y_vals, color = "green",  s=150, marker = "x", label = "Training")
-            if test_data is not None:
-                ax[i].scatter(test_data.x_vals[:,i], test_data.y_vals, color = "red", s=100, marker = "x", label = "Testing")
-            if exp_data is not None:
-                ax[i].scatter(exp_data.x_vals[:,i], exp_data.y_vals, color = "black", marker = "o", label = "Experiment")
-            ax[i].fill_between(
-                X_space,
-                data.gp_mean - 1.96 * np.sqrt(data.gp_var),
-                data.gp_mean + 1.96 * np.sqrt(data.gp_var),
-                alpha=0.3 )
-            subplot_details(ax[i], X_space, None, None, None, "X_exp dim " + str(i+1) , xbins, ybins, other_fontsize)
-        #Set axes off if it's an extra
+    def plot_nlr_heat_maps(self, test_mesh, all_z_data, z_titles, levels, param_info_dict, log_data, title = None):
+        '''
+        Plots comparison of y_sim, GP_mean, and GP_stdev
+        Parameters
+        ----------
+            test_mesh: list of ndarray of length 2, Containing all values of the parameters for the heat map x and y. Gen with np.meshgrid()
+            theta_true: ndarray or None, Containing the true input parameters in all dimensions
+            theta_obj_min: ndarray or None, Containing the optimal input parameters predicted by the GP
+            param_names: list of str, Parameter names. Length of 2
+            levels: int, list of int or None, Number of levels to skip when drawing contour lines
+            idcs_to_plot: list of int, Indecies of parameters to plot
+            all_z_data: list of np.ndarrays, The list of values that will be plotted. Ex. SSE, SSE_Var, EI
+            z_titles: list of str, The list of the names of the values in z
+            xbins: int, Number of bins for x
+            ybins: int, Number of bins for y
+            zbins: int, Number of bins for z
+            title: str or None, Title of graph
+            title_fontsize: int, fontisize for title. Default 24
+            other_fontsize: int, fontisize for other values. Default 20
+            save_path: str or None, Path to save figure to. Default None (do not save figure).    
+        Returns
+        -------
+            plt.show(), A heat map of test_mesh and z
+        '''
+        
+        #Assert Statements
+        list_vars = [test_mesh, all_z_data, z_titles]
+        assert all(isinstance(item, np.ndarray) for item in all_z_data), "all_z_data elements must be np.ndarray"
+        assert all(isinstance(item, np.ndarray) for item in test_mesh), "test_mesh elements must be np.ndarray"
+        
+        #Define plot levels
+        if levels is None:
+            tot_lev = None
+        elif len(levels) == 1:
+            tot_lev = levels*len(all_z_data) 
         else:
-            ax[i].set_axis_off()
-            
-        #Fetch handles and labels on last iteration
-        if i == num_subplots-1:
-            handles, labels = ax[i].get_legend_handles_labels()
-            
-    #Plots legend and title
-    plt.tight_layout()
-    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
-    
-    #save or show figure
-    if save_path is None:
-        plt.show()
-        plt.close()
-    else:
-        print(save_path)
-        # os.makedirs(os.path.dirname(save_path))
-        # save_fig(save_path, ext='png', close=True, verbose=False)  
-    
-    return
+            tot_lev = levels
 
-def plot_theta_vs_y_given_x(data, theta_idx, data_names, exp_data, train_data, test_data, xbins, ybins, title, x_label, y_label, title_fontsize = 24, other_fontsize = 20, save_path = None):
-    """
-    Plots theta data vs y data for any given parameter set theta
-    
-    Parameters
-    ----------
-    data: Instance of Data,
-    
-    """
-    subplots_needed = len(data)
-    fig, axes, ax, num_subplots = create_subplots(subplots_needed)
-    
-    #Print the title and labels as appropriate
-    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
-    
-    #Loop over different hyperparameters (number of subplots)
-    for i in range(num_subplots):
-        #If you still have data to plot
-        if i < subplots_needed:
-            data = data[i]
-            #The index of the data is i, and one data type is in the last row of the data
-            theta_space = data.theta_vals[:,theta_idx]
-            ax[i].plot(theta_space, data.gp_mean, lw=2, label="GP_mean", color = "blue")
-            ax[i].plot(theta_space, data.y_vals, label = "Y_sim", color = "black", linestyle = "--")
-            if train_data is not None:
-                ax[i].scatter(train_data.theta_vals[:,theta_idx], train_data.y_vals, color = "green", s=150, marker = "x", label = "Train")
-            if test_data is not None:
-                ax[i].scatter(test_data.theta_vals[:,theta_idx], test_data.y_vals, color = "red", s=100, marker = "x", label = "Test")
-            if exp_data is not None:
-                ax[i].scatter(exp_data.theta_vals[:,theta_idx], exp_data.y_vals, color = "black", marker = "o", label = "Exp")
-
-            ax[i].fill_between(
-               theta_space,
-               data.gp_mean - 1.96 * np.sqrt(data.gp_var),
-               data.gp_mean + 1.96 * np.sqrt(data.gp_var),
-               alpha=0.3 )
+        assert tot_lev is None or len(tot_lev) == len(all_z_data), "levels must be length 1, None, or len(all_z_data)"
             
-            subplot_details(ax[i], theta_space, None, None, None, data_names[i] , xbins, ybins, other_fontsize)
-        #Set axes off if it's an extra
+        #Get info from param dict
+        theta_true = param_info_dict["true"]
+        theta_opt = param_info_dict["min_sse"]
+        param_names = param_info_dict["names"]
+        idcs_to_plot = param_info_dict["idcs"]
+
+        #Assert sattements
+        #Get x and y data from test_mesh
+        xx , yy = test_mesh #NxN, NxN
+        assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
+        
+        #Make figures and define number of subplots  
+        subplots_needed = len(all_z_data)
+        fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True, sharey = True)
+        
+        # Find the maximum and minimum values in your data to normalize the color scale
+        vmin = min(np.min(arr) for arr in all_z_data)
+        vmax = max(np.max(arr) for arr in all_z_data)
+        mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
+
+        # Create a common color normalization for all subplots
+        if log_data == True or not mag_diff or vmin <0:
+            # print(vmin, vmax)
+            norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
+            cbar_ticks = np.linspace(vmin, vmax, self.zbins)
         else:
-            ax[i].set_axis_off()
-            
-        #Fetch handles and labels on last iteration
-        if i == num_subplots-1:
-            handles, labels = ax[i].get_legend_handles_labels()
-            
-    #Plots legend and title
-    plt.tight_layout()
-    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
-    
-    #save or show figure
-    if save_path is None:
-        plt.show()
-        plt.close()
-    else:
-        pass
-        # save_fig(save_path, ext='png', close=True, verbose=False)  
-    
-    return
-
-#These parameters may need to change
-def plot_train_test_val_data(train_data, test_data, val_data, param_names, idcs_to_plot, x_exp, xbins, ybins, zbins, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
-    '''
-    UPDATE ME LATER
-    Plots original training/testing data with the true value
-    Parameters
-    ----------
-    train_data: ndarray, The training parameter space data. Must be 3D Max
-    test_data: ndarray, The testing parameter space data
-    val_data: ndarray, The testing parameter space data
-    param_names: list of str, List of parameter names
-    true_params: tensor or ndarray, The true parameter space data
-    idcs_to_plot: ndarray, The list of indecies that will be plotted in ascending order
-    x_exp: The experimental x data used
-    xbins: int, Number of bins for x
-    ybins: int, Number of bins for y
-    zbins: int, Number of bins for z
-    title: str, Title of graph
-    title_fontsize: int, fontisize for title. Default 24
-    other_fontsize: int, fontisize for other values. Default 20
-    save_path: None or str, Path to save figure to. Default None (do not save figure).
-     
-    Returns
-    -------
-        plt.show(), A plot of the original training data points and the true value
-    '''
-    assert len(idcs_to_plot) in [2,3], "idcs_to_plot must be a length 2 or 3"
-    val_label = "EI Max"
-    #If there are less 2 parameters, plot in 2D
-    if len(idcs_to_plot) == 2:
-        i1, i2 = idcs_to_plot
-        #Set figure details. Set bins turn on ticks
-        plt.figure(figsize = (6,6))
-        plt.xticks(fontsize=other_fontsize)
-        plt.yticks(fontsize=other_fontsize)
-        plt.tick_params(direction="in",top=True, right=True)
-        plt.locator_params(axis='y', nbins=ybins)
-        plt.locator_params(axis='x', nbins=xbins)
-        plt.minorticks_on() # turn on minor ticks
-        plt.tick_params(which="minor",direction="in",top=True, right=True)
-        
-        #plot training data, testing data, and true values
-        plt.scatter(train_data[:,i1],train_data[:,i2], color="green",s=50, label = "Training", marker = "x", zorder = 1)        
-        plt.scatter(test_data[:,i1],test_data[:,i2], color="red",s=25, label = "Testing", marker = "x", zorder = 2)
-        if val_data is not None:
-            plt.scatter(val_data[:,i1],val_data[:,i2], color="blue",s=20, label = val_label, marker = "D", zorder = 3)
-        #How to plot theta true given that a combination of x and theta can be chosen?
-#         plt.scatter(true_params[i1],true_params[i2], color="blue", label = "True argmin"+r'$(e(\theta))$', s=100, marker=(5,1), zorder = 3)
-        #Set plot labels
-        plt.legend(loc= "upper left", bbox_to_anchor=(1.05, 0.95), borderaxespad=0)
-        x_label = r'$\mathbf{'+ param_names[i1] +'}$'
-        y_label = r'$\mathbf{'+ param_names[i2] +'}$'
-
-        plt.xlabel(x_label, fontsize=other_fontsize, fontweight='bold')
-        plt.ylabel(y_label, fontsize=other_fontsize, fontweight='bold')
-        
-        #Set axis limits based on the maximum and minimum of the parameter search space      
-        x_lim_l = np.amin(np.concatenate((train_data[:,i1], test_data[:,i1]), axis = None))
-        y_lim_l = np.amin(np.concatenate((train_data[:,i2], test_data[:,i2]), axis = None))
-        x_lim_u = np.amax(np.concatenate((train_data[:,i1], test_data[:,i1]), axis = None))
-        y_lim_u = np.amax(np.concatenate((train_data[:,i2], test_data[:,i2]), axis = None))
-        plt.xlim((x_lim_l,x_lim_u))
-        plt.ylim((y_lim_l,y_lim_u))
-        #Set plot title
-        plt.title(title, fontsize=title_fontsize, fontweight='bold')
- 
-    #Otherwise print in 3D
-    elif len(idcs_to_plot) == 3:
-        i1, i2, i3 = idcs_to_plot
-        #How should I go about plotting the true value?
-
-        # Create the figure
-        fig = plt.figure(figsize = (6,6))
-        #Add 3D axes, set ticks, and bins
-        ax = fig.add_subplot(111, projection='3d')
-        ax.zaxis.set_tick_params(labelsize=other_fontsize)
-        ax.yaxis.set_tick_params(labelsize=other_fontsize)
-        ax.xaxis.set_tick_params(labelsize=other_fontsize)
-        ax.tick_params(direction="in",top=True, right=True) 
-        ax.locator_params(axis='y', nbins=ybins)
-        ax.locator_params(axis='x', nbins=xbins)
-        ax.locator_params(axis='z', nbins=zbins)
-        ax.minorticks_on() # turn on minor ticks
-        ax.tick_params(which="minor",direction="in",top=True, right=True)
-
-    
-        # Plot the values
-        ax.scatter(train_data[:,i1], train_data[:,i2], train_data[:,i3], color = "green", s=100, label = "Training", marker='o',zorder = 1)
-        ax.scatter(test_data[:,i1],test_data[:,i2], test_data[:,i3], color="red", s=50, label = "Testing", marker = "x", zorder = 2)
-        if val_data is not None:
-            ax.scatter(val_data[:,i1],val_data[:,i2], val_data[:,i3], color="blue", s=40, label = val_label, marker = "D", zorder = 3)
-#         ax.scatter(p_true_3D_full[:,0], p_true_3D_full[:,1], p_true_3D_full[:,2], color="blue", label = "True argmin" + r'$(e(\theta))$', 
-#                     s=100, marker = (5,1), zorder = 3)
-        #Set Labels
-        x_label = r'$\mathbf{'+ param_names[i1] +'}$'
-        y_label = r'$\mathbf{'+ param_names[i2] +'}$'
-        z_label = r'$\mathbf{'+ param_names[i3] +'}$'
-#         plt.xlabel(r'$\mathbf{\theta_1}$', fontsize=16, fontweight='bold')
-        ax.set_xlabel(x_label, fontsize=other_fontsize, fontweight='bold', labelpad=int(other_fontsize))
-        ax.set_ylabel(y_label, fontsize=other_fontsize, fontweight='bold', labelpad=int(other_fontsize))
-        ax.set_zlabel(z_label, fontsize=other_fontsize, fontweight='bold', labelpad=int(other_fontsize))
-        
-        #How to set bounds given that you could plot any combination of theta and x dimensions on any axis?
-#         x_lim_l = np.amin(np.concatenate((train_p[:,0], test_p[:,0]), axis = None))
-#         y_lim_l = np.amin(np.concatenate((train_p[:,1], test_p[:,1]), axis = None))
-#         x_lim_u = np.amax(np.concatenate((train_p[:,0], test_p[:,0]), axis = None))
-#         y_lim_u = np.amax(np.concatenate((train_p[:,1], test_p[:,1]), axis = None))
-#         plt.xlim((x_lim_l,x_lim_u))
-#         plt.ylim((y_lim_l,y_lim_u))
-        #Remove grid, set title and get legend
-        ax.grid(False)
-        plt.title(title, weight='bold', fontsize=title_fontsize)
-        plt.tight_layout()
-        plt.legend(loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 1.05), borderaxespad=0)
-        
-    else:
-        print("Must be a 2D or 3D graph")
-     
-    #Save or show figure
-    if save_path is not None:
-        pass
-        # save_fig(save_path, ext='png', close=True, verbose=False)  
-    else:
-        plt.show()
-        plt.close()
-
-    return 
-
-def parity_plot(y_data, y_sse_data, sse_data, method, log_plot, xbins, ybins, x_label, y_label, title, title_fontsize = 24, other_fontsize = 20, save_path = None):
-    """
-    Creates parity plots of data
-    """      
-        
-    #Make figures and define number of subplots  
-    if method.emulator == True:
-        assert all(isinstance(var, Data) for var in [y_data, y_sse_data]), "y_data and y_sse_data must be type Data and not None!"
-        subplots_needed = 2
-        y_sim = y_data.y_vals
-        gp_mean = y_data.gp_mean
-        gp_stdev = np.sqrt(y_data.gp_var)
-        sse_sim = y_sse_data.y_vals
-        sse_mean = y_data.sse    
-        sse_var = y_data.sse_var
-    else:
-        subplots_needed = 1
-        assert isinstance(sse_data, Data), "sse_data must be type Data and not None!"
-        sse_sim = sse_data.y_vals
-        sse_mean = sse_data.sse  
-        sse_var = sse_data.sse_var
-        
-        
-    #If not getting log values    
-    if log_plot == False:
-        titles = ["sse", "y_sim"]
-        #Change sse sim, mean, and stdev to not log for 1B and 2B
-        if method.obj.value == 2:
-            #SSE variance is var*(e^((log(sse)))^2
-            sse_sim = np.exp(sse_sim)
-            sse_mean = np.exp(sse_mean)
-            sse_var = sse_var*sse_mean**2
-            
-    #If getting log values
-    else:
-        titles = ["log(sse)", "y_sim"]
-        #Get log data from 1A, 2A, and 2C
-        if method.obj.value == 1:            
-            #SSE Variance is var/sse**2
-            sse_var = sse_var/sse_mean**2
-            sse_mean = np.log(sse_mean)
-            sse_sim = np.log(sse_sim)
-                
-    sse_stdev = np.sqrt(sse_var)
-        
-    fig, axes, ax, num_subplots = create_subplots(subplots_needed, sharex = False, sharey = False)
-    
-    #Print the title and labels as appropriate
-    set_plot_titles(fig, title, x_label, y_label, title_fontsize, other_fontsize)
-    
-    #Set plot details
-    #Loop over number of subplots
-    for i in range(subplots_needed):
-        if i < subplots_needed:
-            #When we only want sse_data
-            if i == 0:
-                gp_upper = sse_mean + sse_stdev*1.96
-                gp_lower = sse_mean - sse_stdev*1.96
-                y_err = np.array([gp_lower, gp_upper])
-                ax[i].errorbar(sse_sim, sse_mean, fmt="o", yerr=y_err, label = "GP", ms=10, zorder=1, mec = "green", mew = 1)
-                ax[i].plot(sse_sim, sse_sim, label = "Sim" , zorder=2, color = "black")
-                #Set plot details
-                subplot_details(ax[i], sse_sim, sse_sim, None, None, titles[i], xbins, ybins, other_fontsize)
-            else:
-                #The index of the data is i, and one data type is in the last row of the data
-                ax[i].errorbar(y_sim, gp_mean, yerr=1.96*gp_stdev, fmt = "o", label ="GP", ms=5, mec = "green", mew = 1, zorder= 1 )
-                ax[i].plot(y_sim, y_sim, label = "Sim" , zorder=2, color = "black")
-                #Set plot details
-                subplot_details(ax[i], y_sim, y_sim, None, None, titles[i], xbins, ybins, other_fontsize)
-           
-            #Get legend information
-            if i == subplots_needed-1:
-                handles, labels = ax[i].get_legend_handles_labels()  
-        else:
-           #Set axes off if it's an extra
-            ax[i].set_axis_off() 
-              
-    #Plots legend and title
-    fig.legend(handles, labels, loc= "upper left", fontsize = other_fontsize, bbox_to_anchor=(1.0, 0.95), borderaxespad=0)
-    plt.tight_layout()
-
-    #Save or show figure
-    if save_path is not None:
-        pass
-        # save_fig(save_path, ext='png', close=True, verbose=False)  
-    else:
-        plt.show()
-        plt.close()
-    
-    return
-
-#Fix me
-def plot_nlr_heat_maps(test_mesh, all_z_data, theta_true, theta_opt, z_titles, param_names, idcs_to_plot, plot_dict):
-    '''
-    Plots comparison of y_sim, GP_mean, and GP_stdev
-    Parameters
-    ----------
-        test_mesh: list of ndarray of length 2, Containing all values of the parameters for the heat map x and y. Gen with np.meshgrid()
-        theta_true: ndarray or None, Containing the true input parameters in all dimensions
-        theta_obj_min: ndarray or None, Containing the optimal input parameters predicted by the GP
-        param_names: list of str, Parameter names. Length of 2
-        levels: int, list of int or None, Number of levels to skip when drawing contour lines
-        idcs_to_plot: list of int, Indecies of parameters to plot
-        all_z_data: list of np.ndarrays, The list of values that will be plotted. Ex. SSE, SSE_Var, EI
-        z_titles: list of str, The list of the names of the values in z
-        xbins: int, Number of bins for x
-        ybins: int, Number of bins for y
-        zbins: int, Number of bins for z
-        title: str or None, Title of graph
-        title_fontsize: int, fontisize for title. Default 24
-        other_fontsize: int, fontisize for other values. Default 20
-        save_path: str or None, Path to save figure to. Default None (do not save figure).    
-    Returns
-    -------
-        plt.show(), A heat map of test_mesh and z
-    '''
-    keys_to_check = ["title","log_data","title_size","other_size","xbins","ybins","zbins","save_path","cmap","line_levels"]
-    assert all(key in plot_dict for key in keys_to_check), "plot_dict must have all keys. Generate plot_dict with make_plot_dict()"
-    keys_not_none = ["zbins", "cmap"]
-    assert all(plot_dict[key] is not None for key in keys_not_none), "zbins, and cmap must not be None!"
-    
-    #Break down plot dict and check for correct things
-    title = plot_dict["title"]
-    log_data = plot_dict["log_data"]
-    title_fontsize = plot_dict["title_size"]
-    other_fontsize = plot_dict["other_size"]
-    xbins = plot_dict["xbins"]
-    ybins = plot_dict["ybins"]
-    zbins = plot_dict["zbins"]
-    save_path = plot_dict["save_path"]
-    cmap = plot_dict["cmap"]
-    levels = plot_dict["line_levels"]
-    
-    #Assert Statements
-    none_str_vars = [save_path]
-    none_ndarray_list = [theta_true, theta_opt]
-    int_vars = [xbins, ybins, zbins, title_fontsize, other_fontsize]
-    list_vars = [test_mesh, all_z_data, z_titles, param_names, idcs_to_plot]
-    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path  must be string or None"
-    assert all(isinstance(var, np.ndarray) or var is None for var in none_ndarray_list), "theta_true and theta_obj_min must be array or None"
-    assert all(isinstance(item, int) for item in idcs_to_plot), "idcs_to_plot elements must be int"
-    assert all(isinstance(item, np.ndarray) for item in all_z_data), "all_z_data elements must be np.ndarray"
-    assert all(isinstance(item, np.ndarray) for item in test_mesh), "test_mesh elements must be np.ndarray"
-    assert all(isinstance(item, str) for item in z_titles), "z_titles elements must be str"
-    assert all(isinstance(item, str) for item in param_names), "param_names elements must be str"
-    
-    #Define plot levels
-    if levels is None:
-        tot_lev = None
-    elif len(levels) == 1:
-        tot_lev = levels*len(all_z_data) 
-    else:
-        tot_lev = levels
-
-    assert tot_lev is None or len(tot_lev) == len(all_z_data), "levels must be length 1, None, or len(all_z_data)"
-        
-    #Assert sattements
-    #Get x and y data from test_mesh
-    xx , yy = test_mesh #NxN, NxN
-    assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
-    
-    #Make figures and define number of subplots  
-    subplots_needed = len(all_z_data)
-    fig, ax, num_subplots, plot_mapping = create_subplots(subplots_needed, sharex = True, sharey = True)
-    
-    # Find the maximum and minimum values in your data to normalize the color scale
-    vmin = min(np.min(arr) for arr in all_z_data)
-    vmax = max(np.max(arr) for arr in all_z_data)
-    mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
-
-    # Create a common color normalization for all subplots
-    if log_data == True or not mag_diff or vmin <0:
-        print(vmin, vmax)
-        norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
-        cbar_ticks = np.linspace(vmin, vmax, zbins)
-    else:
-        norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
-        cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), zbins)
-
-    #Set plot details
-    #Loop over number of subplots
-    for i in range(subplots_needed):
-        #Get method value from json file 
-        ax_row, ax_col = plot_mapping[i]
-        
-        z = all_z_data[i]
-
-        #Create a colormap and colorbar for each subplot
-        if log_data == True:
-            cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(cmap), norm = norm)
-        else:
-            cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(cmap), norm = norm)
-
-        #Create a line contour for each colormap
-        if levels is not None:  
-            cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', alpha=0.7, linestyles='dashed', linewidths=3, norm = norm)
-            # ax[ax_row, ax_col].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1)
-
-        #plot min obj, max ei, true and training param values as appropriate
-        if theta_true is not None:
-            ax[ax_row, ax_col].scatter(theta_true[idcs_to_plot[0]], theta_true[idcs_to_plot[1]], color="blue", label = "True", 
-                                       s=200, marker = (5,1), zorder = 2)
-        if theta_opt is not None:
-            ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", s=150, label = "Min Obj", 
-                                       marker = ".", edgecolor= "k", linewidth=0.3, zorder = 4)
+            norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
+            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
 
         #Set plot details
-        subplot_details(ax[ax_row, ax_col], xx, yy, None, None, z_titles[i], xbins, ybins, other_fontsize)
+        #Loop over number of subplots
+        for i in range(subplots_needed):
+            #Get method value from json file 
+            ax_row, ax_col = plot_mapping[i]
+            
+            z = all_z_data[i]
 
-    #Get legend information and make colorbar on last plot
-    handles, labels = ax[-1, -1].get_legend_handles_labels() 
+            #Create a colormap and colorbar for each subplot
+            if log_data == True:
+                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, 
+                                                     cmap = plt.cm.get_cmap(self.cmap), norm = norm)
+            else:
+                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, 
+                                                     cmap = plt.cm.get_cmap(self.cmap), norm = norm)
 
-    cb_ax = fig.add_axes([1.03,0,0.04,1])
-    if log_data is True or not mag_diff or vmin < 0:
-        new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 7 ticks
-    else:
-        new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+            #Create a line contour for each colormap
+            if levels is not None:  
+                cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', 
+                                                     alpha=0.7, linestyles='dashed', linewidths=3, norm = norm)
+                # ax[ax_row, ax_col].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1)
 
-    title2 = z_titles[i] 
+            #plot min obj, max ei, true and training param values as appropriate
+            if theta_true is not None:
+                ax[ax_row, ax_col].scatter(theta_true[idcs_to_plot[0]], theta_true[idcs_to_plot[1]], 
+                                           color="blue", label = "True", s=200, marker = (5,1), zorder = 2)
+            if theta_opt is not None:
+                ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], 
+                                           color="white", s=150, label = "Min Obj", marker = ".", 
+                                           edgecolor= "k", linewidth=0.3, zorder = 4)
+
+            #Set plot details
+            self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, z_titles[i])
+
+        #Get legend information and make colorbar on last plot
+        handles, labels = ax[-1, -1].get_legend_handles_labels() 
+
+        cb_ax = fig.add_axes([1.03,0,0.04,1])
+        if log_data is True or not mag_diff or vmin < 0:
+            new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 7 ticks
+        else:
+            new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+
+        title2 = z_titles[i] 
+            
+        if "theta" in param_names[0]:
+            xlabel = r'$\mathbf{'+ "\\" + param_names[0]+ '}$'
+            ylabel = r'$\mathbf{'+ "\\" + param_names[1]+ '}$'
+        else:
+            xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
+            ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
+            
+        for axs in ax[-1]:
+            axs.set_xlabel(xlabel, fontsize = self.other_fntsz)
+
+        for axs in ax[:, 0]:
+            axs.set_ylabel(ylabel, fontsize = self.other_fntsz)
+            
+        cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks)
+        cbar.ax.tick_params(labelsize=self.other_fntsz)
+        cbar.ax.set_ylabel("Function Value", fontsize=self.other_fntsz, fontweight='bold')
+                        
+        #Print the title
+        if title is not None:
+            title = title + " " + str(param_names)
+            
+        #Print the title and labels as appropriate
+        #Define x and y labels
+        self.__set_plot_titles(fig, title, None, None)
         
-    if "theta" in param_names[0]:
-        xlabel = r'$\mathbf{'+ "\\" + param_names[0]+ '}$'
-        ylabel = r'$\mathbf{'+ "\\" + param_names[1]+ '}$'
-    else:
-        xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
-        ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
+        #Plots legend
+        if labels:
+            fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 
+                       borderaxespad=0)
+
+        plt.tight_layout()
+
+        nlr_plot = "func_ls_compare" if theta_true is None else "sse_contour"
+
+        #Save or show figure
+        if self.save_figs:
+            save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
+            save_path_dir = os.path.join(save_path, "heat_maps", param_names[0] + "-" + param_names[1])
+            save_path_to = os.path.join(save_path_dir, "least_squares")
+            self.__save_fig(save_path_to)
+        else:
+            plt.show()
+            plt.close()
         
-    for axs in ax[-1]:
-        axs.set_xlabel(xlabel, fontsize = other_fontsize)
-
-    for axs in ax[:, 0]:
-        axs.set_ylabel(ylabel, fontsize = other_fontsize)
-        
-    cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks)
-    cbar.ax.tick_params(labelsize=other_fontsize)
-    cbar.ax.set_ylabel("Function Value", fontsize=other_fontsize, fontweight='bold')
-                      
-    #Print the title
-    if title is not None:
-        title = title + " " + str(param_names)
-        
-    #Print the title and labels as appropriate
-    #Define x and y labels
-    set_plot_titles(fig, title, None, None, title_fontsize, other_fontsize)
-    
-    #Plots legend
-    if labels:
-        fig.legend(handles, labels, loc= "upper right", fontsize = other_fontsize, bbox_to_anchor=(-0.02, 1), borderaxespad=0)
-
-    plt.tight_layout()
-
-    nlr_plot = "func_ls_compare" if theta_true is None else "sse_contour"
-
-    #Save or show figure
-    if save_path is not None:   
-        save_path_dir = os.path.join("Results", save_path, "heat_maps", param_names[0] + "-" + param_names[1])
-        save_path_to = os.path.join(save_path_dir, )
-        print(save_path_to)
-        # os.makedirs(save_path_dir, exist_ok=True)
-        # save_fig(save_path, ext='png', close=True, verbose=False)  
-    else:
-        plt.show()
-        plt.close()
-    
-    return plt.show()
+        return plt.show()
