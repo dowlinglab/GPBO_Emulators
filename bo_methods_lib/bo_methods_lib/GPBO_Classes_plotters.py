@@ -290,7 +290,6 @@ class Plotters:
                     #Create label based on run #
                     label = "Run: "+str(j+1) 
                     data_df_j = self.__get_data_to_bo_iter_term(one_data_type[j])
-                    # print(data_df_j)
 
                     #Define x axis
                     bo_len = len(data_df_j)
