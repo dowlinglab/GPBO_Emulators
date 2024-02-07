@@ -313,7 +313,7 @@ class Plotters:
 
         #Plots legend and title
         plt.tight_layout()
-        fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.75), 
+        fig.legend(handles, labels, loc= "center left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.60), 
                    borderaxespad=0)
         
         return fig
@@ -417,7 +417,6 @@ class Plotters:
         
         #Plots legend and title
         plt.tight_layout()
-        
         fig.legend(handles, labels, loc= "center left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.60), 
                    borderaxespad=0)
         
