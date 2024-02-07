@@ -65,6 +65,7 @@ for cs_name_val in cs_val_list:
         for ep_enum_val in ep_val_list:
             #Loop over number of runs
             for bo_run_num in range(1, bo_run_total+1, runs_per_job):
+                #Note: bo_run_num is the run number of the first run in the job
                 #Create job parameter dict
                 sp = {"cs_name_val": cs_name_val, 
                     "meth_name_val": meth_name_val,

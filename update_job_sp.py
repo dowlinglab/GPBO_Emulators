@@ -14,4 +14,4 @@ for job in project:
     else:
         job.sp.setdefault("bo_run_tot", job.sp.bo_runs_in_job)
         if "bo_run_num" not in job.sp:
-            job.sp.setdefault("bo_run_num", None)
+            job.sp.setdefault("bo_run_num", 1)
