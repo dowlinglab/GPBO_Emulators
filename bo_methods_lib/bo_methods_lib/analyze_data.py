@@ -480,7 +480,7 @@ class General_Analysis:
         with open(job.fn("signac_statepoint.json"), 'r') as json_file:
             # Load the JSON data
             sp_data = json.load(json_file)
-            tot_runs = sp_data["bo_run_tot"]
+            tot_runs = sp_data["bo_runs_in_job"]
             max_iters = sp_data["bo_iter_tot"]
 
         if data_type == "objs":
@@ -540,14 +540,13 @@ class General_Analysis:
         "Gets parameter value data for a specific job"
         df_job, data, data_true, sp_data, tot_runs = self.__preprocess_analyze(job, z_choice, "params")
         col_name, data_names = self.__z_choice_helper(z_choice, data_true, "params")
-
         #Loop over runs
         unique_run_nums = pd.unique(df_job["Run Number"])
         for i, run in enumerate(unique_run_nums):
             #Make a df of only the data which meets that run criteria
             df_run = df_job[df_job["Run Number"]==run]  
             df_run_arry = np.array([arr.tolist() for arr in df_run[col_name].to_numpy()])
-            for param in range(df_run_arry.shape[1]):
+            for param in range(data.shape[-1]):
                 z_data = df_run_arry[:,param]
                 #Set data to be where it needs to go in the above data matrix
                 data[i,:len(z_data),param] = z_data
@@ -569,7 +568,7 @@ class General_Analysis:
         with open(job.fn("signac_statepoint.json"), 'r') as json_file:
             # Load the JSON data
             sp_data = json.load(json_file)
-            tot_runs = sp_data["bo_run_tot"]
+            tot_runs = sp_data["bo_runs_in_job"]
             max_iters = sp_data["bo_iter_tot"]
 
         if not found_data1 and not found_data2:

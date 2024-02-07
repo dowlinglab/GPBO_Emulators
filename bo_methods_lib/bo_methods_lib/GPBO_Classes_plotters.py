@@ -273,7 +273,7 @@ class Plotters:
         subplots_needed = data.shape[-1]
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True)
         #Print the title and labels as appropriate
-        self.__set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, None, None)
         x_label = "BO Iterations"
 
         #Loop over different hyperparameters (number of subplots)
@@ -362,7 +362,7 @@ class Plotters:
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True)
         
         #Print the title and labels as appropriate
-        self.__set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, None, None)
         bo_len_max = 1
 
         #Get all jobs
@@ -602,6 +602,9 @@ class Plotters:
             #Set number format based on magnitude
             fmt = '%.2e' if np.amax(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000 else '%2.2f'
 
+            if np.all(z == z[0]):
+                z =  np.random.normal(scale=1e-14, size=z.shape)
+
             #Create a colormap and colorbar for each subplot
             if log_data == True:
                 cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, 
@@ -666,7 +669,7 @@ class Plotters:
         for axs in ax[:, 0]:
             axs.set_ylabel(ylabel, fontsize = self.other_fntsz)
 
-        self.__set_plot_titles(fig, title, None, None, self.title_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, None, None)
         
         #Plots legend and title
         fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, 
@@ -760,6 +763,11 @@ class Plotters:
                 #Create normalization
                 vmin = np.nanmin(z)
                 vmax = np.nanmax(z)
+                #If all z data are the same, add a small amount of noise to each to allow for plotting
+                if vmin == vmax:
+                    vmin -= 1e-14
+                    vmax += 1e-14
+                    
                 #Check if data scales 3 orders of magnitude
                 mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) > 2.0 if vmin > 0 else False
                 
@@ -784,7 +792,7 @@ class Plotters:
                     def custom_format(x, pos):
                         return f'{eval("10**" + str(int(np.log10(x))))}' if x != 0 else '0'
 
-                #Create a colormap and colorbar normalization for each subplot   
+                #Create a colormap and colorbar normalization for each subplot
                 cs_fig = ax.contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(self.cmap), norm = norm)
 
                 #Create a line contour for each colormap
@@ -845,7 +853,7 @@ class Plotters:
         for axs in axes[:, 0]:
             axs.set_ylabel(ylabel, fontsize = self.other_fntsz)
 
-        self.__set_plot_titles(fig, title, None, None, self.other_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, None, None)
         
         #Plots legend and title
         fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 

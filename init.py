@@ -3,13 +3,12 @@ import numpy as np
 import os
 import json
 import bo_methods_lib
-from bo_methods_lib.bo_methods_lib.analyze_data import get_study_data_signac, get_best_data
 from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_param_str
 
 project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
-cs_val_list  = [10]
+cs_val_list  = [13]
 meth_val_list = [1, 2, 3, 4, 5, 6] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
@@ -29,17 +28,17 @@ retrain_GP = 25
 reoptimize_obj = 25
 bo_iter_tot = 50
 bo_run_total = 5
+runs_per_job_max = 3
 save_data = False
 ei_tol = 1e-7
 obj_tol = 1e-7
-num_x_data = 5
+num_x_data = 10
 gen_meth_theta = 1 
 gen_meth_x = 2
 gen_meth_theta_val = 2
 num_val_pts = 20
 num_theta_multiplier = 10 #How many simulation data points to generate is equal to num_theta_multiplier*number of parameters
 initial_seed = 1
-runs_per_job_max = 3
 
 assert bo_run_total >= runs_per_job_max, "bo_run_total must be greater than or equal to runs_per_job_max"
 

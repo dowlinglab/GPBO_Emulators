@@ -108,20 +108,24 @@ class CS_name_enum(Enum):
     Notes: 
     -------
     1 = CS1 2 Param Polynomial
-    2 = CS2 4 Param (x0) Muller Potential
-    3 = CS3 4 Param (y0) Muller Potential
-    4 = CS4 8 Param (x0y0) Muller Potential
-    5 = CS5 12 Param (Ax0y0) Muller Potential
-    6 = CS6 8 Param (Ax0) Muller Potential
-    7 = CS7 8 Param (Ay0) Muller Potential
+    2 = CS2 4 Param 2 State Point (x0) Muller Potential
+    3 = CS3 4 Param 2 State Point (y0) Muller Potential
+    4 = CS4 8 Param 2 State Point (x0y0) Muller Potential
+    5 = CS5 12 Param 2 State Point (Ax0y0) Muller Potential
+    6 = CS6 8 Param 2 State Point (Ax0) Muller Potential
+    7 = CS7 8 Param 2 State Point (Ay0) Muller Potential
     8 = CS8 5 Param Polynomial with varying scale parameters
     9 = CS9 4 Param Isotherm
     10 = CS10 5 Param Polynomial with same scale parameters
-    11 = cs11 4 Param Isotherm (Different functional form from 9)
+    11 = CS11 2 Param BOD Example from Bates and Watts
+    Examples from: https://www.statforbiology.com/nonlinearregression/usefulequations
+    12 = CS12 3 Param Yield-Loss Model
+    13 = CS13 4 Param Log Logistic Model
+    14 = CS14 4 Param 2 State Point Log Logistic 2D Model
     """
     #Check that values are only 1 to 2
-    if Enum in range(1, 10) == False:
-        raise ValueError("There are 9 options for Enum: 1 to 9")
+    if Enum in range(1, 15) == False:
+        raise ValueError("There are 14 options for Enum: 1 to 14")
         
     CS1 = 1
     CS2_x0 = 2
@@ -134,6 +138,9 @@ class CS_name_enum(Enum):
     CS9 = 9
     CS10 = 10
     CS11 = 11
+    CS12 = 12
+    CS13 = 13
+    CS14 = 14
     
     
 class Ep_enum(Enum):
