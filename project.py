@@ -100,7 +100,7 @@ def run_ep_or_sf_exp(job):
     cs_name = "BO_Results"
     cs_params = CaseStudyParameters(cs_name, job.sp.ep0, job.sp.sep_fact, job.sp.normalize, kernel, lenscl, job.sp.outputscl,
                                     job.sp.retrain_GP, job.sp.reoptimize_obj, job.sp.gen_heat_map_data, job.sp.bo_iter_tot,
-                                    job.sp.bo_run_tot, job.sp.save_data, None, job.sp.seed, job.sp.ei_tol, job.sp.obj_tol)
+                                    job.sp.bo_runs_in_job, job.sp.save_data, None, job.sp.seed, job.sp.ei_tol, job.sp.obj_tol)
     #Initialize driver class
     driver = GPBO_Driver(cs_params, method, simulator, exp_data, sim_data, sim_sse_data, val_data, val_sse_data, None, ep_bias, gen_meth_theta)
     #Get results
