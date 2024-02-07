@@ -516,12 +516,14 @@ class General_Analysis:
         df_job, data, data_true_val, sp_data, tot_runs = self.__preprocess_analyze(job, z_choices, "objs")
         data_true = {}
         col_name, data_names = self.__z_choice_helper(z_choices, data_true, "objs")
+
+        unique_run_nums = pd.unique(df_job["Run Number"])
         #Loop over each choice
         for z in range(len(z_choices)):
-            #Loop over runs
-            for run in range(0, tot_runs):
+            #Loop over runs 
+            for i, run in enumerate(unique_run_nums):
                 #Make a df of only the data which meets that run criteria
-                df_run = df_job[df_job["Run Number"] == run + 1]  
+                df_run = df_job[df_job["Run Number"] == run]  
                 z_data = df_run[col_name[z]]
                 #If sse in log choices, the "true data" is sse data from least squares
                 if "sse" in z_choices[z]:
@@ -530,7 +532,7 @@ class General_Analysis:
                     if sp_data["meth_name_val"] in [2,4]:
                         z_data = np.exp(z_data.values.astype(float))
                 #Set data to be where it needs to go in the above data matrix
-                data[run,:len(z_data),z] = z_data
+                data[i,:len(z_data),z] = z_data
 
         return data, data_names, data_true, sp_data
         
@@ -540,14 +542,15 @@ class General_Analysis:
         col_name, data_names = self.__z_choice_helper(z_choice, data_true, "params")
 
         #Loop over runs
-        for run in range(0, tot_runs):
+        unique_run_nums = pd.unique(df_job["Run Number"])
+        for i, run in enumerate(unique_run_nums):
             #Make a df of only the data which meets that run criteria
-            df_run = df_job[df_job["Run Number"]==run + 1]  
+            df_run = df_job[df_job["Run Number"]==run]  
             df_run_arry = np.array([arr.tolist() for arr in df_run[col_name].to_numpy()])
             for param in range(df_run_arry.shape[1]):
                 z_data = df_run_arry[:,param]
                 #Set data to be where it needs to go in the above data matrix
-                data[run,:len(z_data),param] = z_data
+                data[i,:len(z_data),param] = z_data
                 
         data_names = [element.replace('theta', '\\theta') for element in data_names]
 

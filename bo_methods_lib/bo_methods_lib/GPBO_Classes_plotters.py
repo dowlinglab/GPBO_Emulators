@@ -140,7 +140,7 @@ class Plotters:
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
         
         #Print the title and labels as appropriate
-        self.__set_plot_titles(fig, title, x_label, y_label, self.title_fntsz, self.other_fntsz)
+        self.__set_plot_titles(fig, title, x_label, y_label)
 
         #Loop over different jobs
         for i in range(len(job_pointer)):
@@ -189,7 +189,9 @@ class Plotters:
                                             linestyle='--', drawstyle='steps')
                 #Plot true value if applicable
                 if data_true is not None and j == data.shape[0] - 1:
-                    ax[ax_row, ax_col].axhline(y=data_true[i], color = "black", linestyle='-', 
+                    x = [1, bo_len]
+                    y = [list(data_true.values())[0], list(data_true.values())[0]]
+                    ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='dashdot', 
                                                label = "Least Squares")
 
                 #Set plot details 
