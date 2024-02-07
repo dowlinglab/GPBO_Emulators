@@ -9,7 +9,7 @@ from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_param_str
 project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
-cs_val_list  = [10, 11, 12, 13, 14]
+cs_val_list  = [10]
 meth_val_list = [1, 2, 3, 4, 5, 6] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
@@ -19,7 +19,7 @@ sep_fact = 1.0
 gen_heat_map_data = True
 normalize = True
 noise_mean = 0
-noise_std = 0.01
+noise_std = None
 kernel_enum_val = 1
 lenscl = None #list([0.136113749, 221.573761, 830.968019, 1.67917241, 0.3, 0.2])
 if isinstance(lenscl, list):
@@ -39,8 +39,9 @@ gen_meth_theta_val = 2
 num_val_pts = 20
 num_theta_multiplier = 10 #How many simulation data points to generate is equal to num_theta_multiplier*number of parameters
 initial_seed = 1
-runs_per_job = 1
+runs_per_job_max = 3
 
+assert bo_run_total >= runs_per_job_max, "bo_run_total must be greater than or equal to runs_per_job_max"
 
 #Note: Add loop for idc to consider for lo and hi for CS2 based on something
 #Loop over Case Studies
@@ -64,8 +65,14 @@ for cs_name_val in cs_val_list:
         #Loop over exploration parameter methods
         for ep_enum_val in ep_val_list:
             #Loop over number of runs
-            for bo_run_num in range(1, bo_run_total+1, runs_per_job):
+            for bo_run_num in range(1, bo_run_total+1, runs_per_job_max):
                 #Note: bo_run_num is the run number of the first run in the job
+                #If adding the max number of runs to the run number does not exceed the max range, use it
+                if bo_run_num + runs_per_job_max <= bo_run_total+1:
+                    runs_per_job = runs_per_job_max
+                #Otherwise, the number of runs in the job is the difference between the range max and the run number
+                else:
+                    runs_per_job = bo_run_total + 1 - bo_run_num
                 #Create job parameter dict
                 sp = {"cs_name_val": cs_name_val, 
                     "meth_name_val": meth_name_val,

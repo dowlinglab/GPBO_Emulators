@@ -369,13 +369,14 @@ class Simulator:
         bounds_theta_u: list, upper bounds of theta
         bounds_x_u: list, upper bounds of x
         noise_mean:float, int: The mean of the noise
-        noise_std: float, int: The standard deviation of the noise
+        noise_std: float, int: The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
         seed: int or None, Determines seed for randomizations. None if seed is random
         calc_y_fxn: function, The function to calculate ysim data with
         calc_y_fxn_args: dict, dictionary of arguments other than parameters and x to pass to calc_y_fxn
         """
         #Check for float/int
-        assert all(isinstance(var,(float,int)) for var in [noise_std, noise_mean]) == True, "noise_mean and noise_std must be int or float"
+        assert isinstance(noise_mean,(float,int)), "noise_mean must be int or float"
+        assert isinstance(noise_std,(float,int)) or noise_std is None, "noise_std must be int, float, or None"
         assert isinstance(seed, int) or seed is None, "Seed must be int or None"
         #Check for list or ndarray
         list_vars = [indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
@@ -535,7 +536,7 @@ class Simulator:
         ----------
         data, Instance of Data: Data to generate y data for
         noise_mean: float, int: The mean of the noise
-        noise_std: float, int: The standard deviation of the noise
+        noise_std: float, int, None: The standard deviation of the noise
 
         Returns
         -------
@@ -562,6 +563,9 @@ class Simulator:
         y_data = np.array(y_data).flatten()
 
         #Creates noise values with a certain stdev and mean from a normal distribution
+        if noise_std is None:
+            noise_std = np.mean(y_data)*0.05
+            self.noise_std = noise_std
         noise = np.random.normal(size=len(y_data), loc = noise_mean, scale = noise_std)
         
         #Add noise to data
@@ -1038,7 +1042,7 @@ class GP_Emulator:
         #Check for instance of Data class or None
         assert isinstance(gp_sim_data, (Data)) == True or gp_sim_data == None, "gp_sim_data must be an instance of the Data class or None"
         assert isinstance(gp_val_data, (Data)) == True or gp_val_data == None, "gp_sim_data must be an instance of the Data class or None"
-        
+
         # Constructor method
         self.gp_sim_data = gp_sim_data
         self.gp_val_data = gp_val_data
@@ -1083,7 +1087,13 @@ class GP_Emulator:
         
         """ 
         #Set noise kernel
-        noise_kern = WhiteKernel(noise_level=self.noise_std**2, noise_level_bounds= "fixed") #bounds = "fixed"
+        if self.noise_std is not None:
+            noise_kern = WhiteKernel(noise_level=self.noise_std**2, noise_level_bounds= "fixed")
+        else:
+            noise_min = np.mean(self.gp_sim_data.y_vals)*0.01
+            noise_max = np.mean(self.gp_sim_data.y_vals)*0.1
+            noise_guess = np.mean(self.gp_sim_data.y_vals)*0.05
+            noise_kern = WhiteKernel(noise_level= noise_guess**2, noise_level_bounds= (noise_min**2, noise_max**2)) 
         #Set Constant Kernel
         cont_kern = ConstantKernel(constant_value = 1, constant_value_bounds = (1e-3,1e4))
         #Set the rest of the kernel

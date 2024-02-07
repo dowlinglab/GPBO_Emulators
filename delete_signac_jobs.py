@@ -2,5 +2,5 @@ import signac
 
 project = signac.get_project()
 
-for job in project.find_jobs({"cs_name_val":11}):
+for job in project.find_jobs({"cs_name_val":10}):
     job.remove() 

@@ -81,7 +81,7 @@ def calc_cs9_isotherm(true_model_coefficients, x, args = None):
     y_model =  (t1*t2*x1)/(1+t2*x1) + (t3*t4*x2)/(1+t4*x2)
        
     return y_model
-calc_cs4_isotherm = calc_cs8_10_polynomial
+calc_cs4_isotherm = calc_cs9_isotherm
 
 def calc_cs11_BOD(true_model_coefficients, x, args = None):
     """
@@ -168,7 +168,7 @@ def calc_cs14_logit2D(true_model_coefficients, x, args = None):
     x1, x2 = x #Split x into 2 parts by splitting the rows
 
     t1, t2, t3, t4 = true_model_coefficients
-    y_model =  x1*t1**2 + (t2-t1)/(1+(x2/t3)**t4)
+    y_model =  x1*t1**2 + (t2-t1*x1)/(1+(x2/t3)**t4)
     
     return y_model
 
@@ -359,8 +359,8 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4', 'theta_5']
         bounds_x_l = [-5, -5]
         bounds_x_u = [ 5,  5]
-        bounds_theta_l = [-5,-5,-5, -10, -5]
-        bounds_theta_u = [ 5, 5, 5,  10,  5]
+        bounds_theta_l = [-5,-5,-1, 5, -5]
+        bounds_theta_u = [ 5, 5, 1, 10,  5]
         theta_ref = np.array([1, -2, 0.5, 7, -3])      
         calc_y_fxn = calc_cs8_10_polynomial
         calc_y_fxn_args = None
