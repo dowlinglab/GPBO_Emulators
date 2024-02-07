@@ -145,27 +145,22 @@ class Plotters:
         #Loop over different jobs
         for i in range(len(job_pointer)):
             #Get data
-            term_loop = False
             data, data_names, data_true, sp_data = self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
             GPBO_method_val = sp_data["meth_name_val"]
 
-            #Get run numer from statepoint if it exists otherwise, initialize it at 1  
-            run_num_count = 1
-            if "bo_run_num" in sp_data:
-                run_number = sp_data["bo_run_num"]
-            else:
-                run_number = run_num_count
+            #Get Number of runs in the job
+            runs_in_job = sp_data["bo_runs_in_job"]
 
             #Set subplot index to the corresponding method value number
             ax_idx = int(GPBO_method_val - 1)
             ax_row, ax_col = plot_mapping[ax_idx]
 
             #Loop over all runs
-            while not term_loop:
-                #Set j for convenience
-                j =  run_num_count - 1
+            for j in range(runs_in_job):
+                #Find job Number
+                run_number = sp_data["bo_run_num"] + j
                 #Create label based on run #
-                label = "Run: "+ str(run_num_count) 
+                label = "Run: "+ str() 
                 #Get data until termination
                 data_df_j = self.__get_data_to_bo_iter_term(data[j])
                 #Define x axis
@@ -189,7 +184,7 @@ class Plotters:
                                             linestyle='--', drawstyle='steps')
                 #Plot true value if applicable
                 if data_true is not None and j == data.shape[0] - 1:
-                    x = [1, bo_len]
+                    x = [1, data.shape[1]]
                     y = [list(data_true.values())[0], list(data_true.values())[0]]
                     ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='dashdot', 
                                                label = "Least Squares")
@@ -199,13 +194,6 @@ class Plotters:
                 if bo_len > meth_bo_max_evals[ax_idx]:
                     meth_bo_max_evals[ax_idx] = bo_len
                     self.__set_subplot_details(ax[ax_row, ax_col], bo_space, data_df_j, None, None, title)
-
-                #Add 1 to run number and terminate if the total amount of runs is equal to the total amount
-                if run_num_count >= data.shape[0]:
-                    term_loop = True
-                if not "bo_run_num" in sp_data:
-                    run_number += 1
-                run_num_count += 1
 
         #Set handles and labels and scale axis if necessary
         handles, labels = ax[0,0].get_legend_handles_labels()
@@ -281,8 +269,6 @@ class Plotters:
             #Only plot data if axis is visible
             if i < subplots_needed:
                 #The index of the data is i, and one data type is in the last row of the data
-                #Grab the mapping from plot_mapping
-                ax_row, ax_col = plot_mapping[i]
                 one_data_type = data[:,:,i]
 
                 #Loop over all runs
@@ -388,18 +374,13 @@ class Plotters:
                     #The index of the data type is k, and one data type is in the last row of the data
                     one_data_type = data[:,:,k]
 
-                    #Get run numer from statepoint if it exists otherwise, initialize it at 1  
-                    run_num_count = 1
-                    term_loop = False
-                    if "bo_run_num" in sp_data:
-                        run_number = sp_data["bo_run_num"]
-                    else:
-                        run_number = run_num_count
+                    #Get Number of runs in the job
+                    runs_in_job = sp_data["bo_runs_in_job"]
 
                     #loop as long as there are runs in the file
-                    while not term_loop:
-                        j = run_num_count-1 #Iterable
-
+                    for j in range(runs_in_job):
+                        #Set run number of run in job
+                        run_number = sp_data["bo_run_num"] + j
                         #Remove elements that are numerically 0            
                         data_df_j = self.__get_data_to_bo_iter_term(one_data_type[j])
                         #Define x axis
@@ -423,13 +404,6 @@ class Plotters:
                         else:
                             ax.step(bo_space, data_df_j, alpha = 0.2, color = self.colors[GPBO_method_val-1], 
                                     linestyle='--', drawstyle='steps')
-
-                        #Add 1 to run number and terminate if the total amount of runs is equal to the total amount
-                        if run_num_count == one_data_type.shape[0]:
-                            term_loop = True
-                        if not "bo_run_num" in sp_data:
-                            run_number += 1
-                        run_num_count += 1
 
                     #Set plot details
                     bo_space_org = np.linspace(1,bo_len_max,100)
@@ -767,7 +741,7 @@ class Plotters:
                 if vmin == vmax:
                     vmin -= 1e-14
                     vmax += 1e-14
-                    
+
                 #Check if data scales 3 orders of magnitude
                 mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) > 2.0 if vmin > 0 else False
                 

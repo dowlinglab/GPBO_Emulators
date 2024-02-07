@@ -192,17 +192,8 @@ class General_Analysis:
             #Add the EP enum value as a column
             col_vals = job.sp.ep_enum_val
             df_run['EP Method Val'] = Ep_enum(int(col_vals)).name
-            #Set index as the job's run number if it has one (cases where there is only 1 run per job)
-            if "bo_run_num" in job.statepoint():
-                df_run["index"] = job.sp.bo_run_num
-            #Or use the run number from tot_run when tot_runs > 0
-            elif tot_runs > 1:
-                #Number of runs is the (seed # of the run - initial seed )/2 if tot_runs > 1 
-                df_run["index"] = int(run + 1)
-            #May delete this else when bo_run_num is added to all jobs
-            else:
-                #Otherwise it is (seed # of the run - 1 )/2 if tot_runs = 1 (Old job initialization system)
-                df_run["index"] = int((results[run].configuration["Seed"] - 1)/2 + 1 )
+            #Set index as the first run in the job's run number + the run we're at in the job
+            df_run["index"] = int(job.sp.bo_run_num + run)
             #Add other important columns
             #If using a log scaled sse objective function (2 or 4)
             if job.sp.meth_name_val in [2,4]:

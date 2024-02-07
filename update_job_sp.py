@@ -1,7 +1,7 @@
 import signac
 project = signac.get_project()
 
-for job in project:
+for job in project.find_jobs({"cs_name_val": {"$lte": 9} }):
     assert "bo_runs_in_job" not in job.sp
     job.sp.bo_runs_in_job = job.statepoint.pop("bo_run_tot")
     if job.sp.bo_runs_in_job == 1:
