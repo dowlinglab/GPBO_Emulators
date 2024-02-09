@@ -571,7 +571,7 @@ class Simulator:
 
         #Creates noise values with a certain stdev and mean from a normal distribution
         if noise_std is None:
-            noise_std = np.mean(y_data)*0.05
+            noise_std = np.abs(np.mean(y_data))*0.05
             self.noise_std = noise_std
         noise = np.random.normal(size=len(y_data), loc = noise_mean, scale = noise_std)
         
