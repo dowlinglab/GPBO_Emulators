@@ -11,6 +11,7 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
     Sets the model for calculating y based off of the case study identifier.
     Parameters
     ----------
+    cs_num: The number associated with the case study value.
     noise_mean:float, int: The mean of the noise
     noise_std: float, int: The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
     seed: int or None, Determines seed for randomizations. None if seed is random
