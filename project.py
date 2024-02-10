@@ -10,9 +10,9 @@ from flow import FlowProject, directives
 import numpy as np
 import bo_methods_lib
 import templates.ndcrc
-from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import Method_name_enum, Ep_enum, CS_name_enum, Kernel_enum, Gen_meth_enum
+from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import Method_name_enum, Ep_enum, Kernel_enum, Gen_meth_enum
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import GPBO_Methods, Exploration_Bias, CaseStudyParameters, GPBO_Driver
-from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_param_str, simulator_helper_test_fxns, calc_muller, solve_pyomo_Muller_min, calc_cs1_polynomial, set_idcs_to_consider, calc_cs3_polynomial, calc_cs4_isotherm
+from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns
 import pickle
 import gzip
 
@@ -43,8 +43,6 @@ def run_ep_or_sf_exp(job):
     meth_name = Method_name_enum(job.sp.meth_name_val)
     method = GPBO_Methods(meth_name)
     ep_enum = Ep_enum(job.sp.ep_enum_val)
-    cs_name_enum = CS_name_enum(job.sp.cs_name_val)
-    indecies_to_consider = set_idcs_to_consider(job.sp.cs_name_val, job.sp.param_name_str)
     kernel = Kernel_enum(job.sp.kernel_enum_val)
     lenscl = job.sp.lenscl
     try:
@@ -52,10 +50,10 @@ def run_ep_or_sf_exp(job):
     except:
         lenscl = job.sp.lenscl
     
-    #Define Simulator Class
-    simulator = simulator_helper_test_fxns(cs_name_enum, indecies_to_consider, job.sp.noise_mean, job.sp.noise_std, job.sp.seed)
+    #Define Simulator Class (Export your Simulator Object Here)
+    simulator = simulator_helper_test_fxns(job.sp.cs_name_val, job.sp.noise_mean, job.sp.noise_std, job.sp.seed)
 
-    #Generate Exp Data
+    #Generate Exp Data (OR Add your own experimental data as a Data class object)
     gen_meth_x = Gen_meth_enum(job.sp.gen_meth_x)
     exp_data = simulator.gen_exp_data(job.sp.num_x_data, gen_meth_x)
     
@@ -76,7 +74,7 @@ def run_ep_or_sf_exp(job):
         raise Warning("Ep_enum value must be between 1 and 4!")
         
     #Generate Sim Data
-    num_theta_data = len(indecies_to_consider)*job.sp.num_theta_multiplier
+    num_theta_data = len(simulator.indeces_to_consider)*job.sp.num_theta_multiplier
     gen_meth_theta = Gen_meth_enum(job.sp.gen_meth_theta)
     sim_data = simulator.gen_sim_data(num_theta_data, job.sp.num_x_data, gen_meth_theta, gen_meth_x, job.sp.sep_fact, False)
     
