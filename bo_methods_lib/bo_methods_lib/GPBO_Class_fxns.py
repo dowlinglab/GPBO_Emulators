@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import qmc
 import pandas as pd
+import math
 import bo_methods_lib
 from .GPBO_Classes_New import Simulator
 from pyomo.environ import *
@@ -169,6 +170,75 @@ def calc_cs14_logit2D(true_model_coefficients, x, args = None):
 
     t1, t2, t3, t4 = true_model_coefficients
     y_model =  x1*t1**2 + (t2-t1*x1)/(1+(x2/t3)**t4)
+    
+    return y_model
+
+def calc_cs15_model(true_model_coefficients, x, args = None):
+    """
+    Calculates the value of y for case study 1
+    
+    Parameters
+    ----------
+    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
+    x: ndarray, The list of xs that will be used to generate y
+    args: dict, extra arguments to pass to the function. Default None
+    
+    Returns
+    --------
+    y_poly: ndarray, The noiseless values of y given theta_true and x
+    """
+    t1, t2, t3, t4, t5 = true_model_coefficients
+    y1 = 1 - (1- t2)*np.exp(-t1*(x-t3)**2)
+    y2 = 1 - (1- t4)*np.exp(-t1*(x-t5)**2)
+    y_model =  y1*y2
+    
+    return y_model
+
+def calc_cs16_trig(true_model_coefficients, x, args = None):
+    """
+    Calculates the value of y for case study 1
+    
+    Parameters
+    ----------
+    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
+    x: ndarray, The list of xs that will be used to generate y
+    args: dict, extra arguments to pass to the function. Default None
+    
+    Returns
+    --------
+    y_poly: ndarray, The noiseless values of y given theta_true and x
+    """
+    assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
+    t1, t2, t3, t4 = true_model_coefficients
+    
+    #If array is not 2D, give it shape (len(array), 1)
+    if not len(x.shape) > 1:
+        x = x.reshape(-1,1)
+
+    assert x.shape[0] == 2, "Isotherm x_data must be 2 dimensional"
+    x1, x2 = x #Split x into 2 parts by splitting the rows
+
+    t1, t2, t3, t4 = true_model_coefficients
+    y_model =  np.sin(t1 + t2*x1) + np.cos(t3 + t4*x2)
+    
+    return y_model
+
+def calc_cs17_expcos(true_model_coefficients, x, args = None):
+    """
+    Calculates the value of y for case study 1
+    
+    Parameters
+    ----------
+    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
+    x: ndarray, The list of xs that will be used to generate y
+    args: dict, extra arguments to pass to the function. Default None
+    
+    Returns
+    --------
+    y_poly: ndarray, The noiseless values of y given theta_true and x
+    """
+    t1, t2, t3, t4 = true_model_coefficients
+    y_model =  t1*np.exp(t2*x)*np.cos(t3*x+t4)
     
     return y_model
 
@@ -408,7 +478,40 @@ def simulator_helper_test_fxns(cs_name, indecies_to_consider, noise_mean, noise_
         theta_ref = np.array([0.35, 4.54, 2.47, 1.45]) 
         calc_y_fxn = calc_cs14_logit2D
         calc_y_fxn_args = None
-        
+
+    #5 Parameter exp model
+    elif cs_name.value == 15:
+        theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4', 'theta_5']
+        bounds_x_l = [-5]
+        bounds_x_u = [ 2]
+        bounds_theta_l = [1e-1, 1e-4, -5,  1e-4, -5]
+        bounds_theta_u = [3,  1, 5, 1, 5]
+        theta_ref = np.array([2, 0.4, 0.5, 0.3, -3])  
+        calc_y_fxn = calc_cs15_model
+        calc_y_fxn_args = None
+
+    #4 Parameter 2 SP sin cos model
+    elif cs_name.value == 16:
+        theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        bounds_x_l = [-2*math.pi, -2*math.pi]
+        bounds_x_u = [ 3*math.pi, 3*math.pi]
+        bounds_theta_l = [-2, -2, -2, -2]
+        bounds_theta_u = [ 2, 2, 2, 2]
+        theta_ref = np.array([0.75, -1, 1.5, -1.0]) 
+        calc_y_fxn = calc_cs16_trig
+        calc_y_fxn_args = None
+
+    #4 Parameter 1 SP exp cos model
+    elif cs_name.value == 17:
+        bounds_x_l = [0]
+        bounds_x_u = [6*math.pi]
+        bounds_theta_l = [0, -2, 0, -10]
+        bounds_theta_u = [5,  1e-1, 5,  0]
+        theta_ref = np.array([3,-0.2,1,-1]) 
+        theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        calc_y_fxn = calc_cs17_expcos
+        calc_y_fxn_args = None
+
     else:
         raise ValueError("self.CaseStudyParameters.cs_name.value must exist!")
 
@@ -434,7 +537,7 @@ def set_param_str(cs_name_val):
     ----------
     cs_name_val: int, the string of the case study name
     """
-    assert 14 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 9 inclusive"
+    assert 17 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 15 inclusive"
     
     if cs_name_val in [1, 11]:
         param_name_str = "t1t2"
@@ -454,7 +557,7 @@ def set_param_str(cs_name_val):
         param_name_str = "t1t2t3t4t5"
     elif cs_name_val in [9, 13, 14]:
         param_name_str = "t1t2t3t4"
-    elif cs_name_val in [8, 10]:
+    elif cs_name_val in [8, 10, 15, 16, 17]:
         param_name_str = "t1t2t3t4t5"
     elif cs_name_val == 12:
         param_name_str = "t1t2t3"
@@ -475,7 +578,7 @@ def set_idcs_to_consider(cs_name_val, param_name_str):
     -------
     indecies_to_consider, list. List of indecies to consider
     """
-    assert 14 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 14 inclusive"
+    assert 17 >= cs_name_val >= 1 and isinstance(cs_name_val, int), "cs_name_val must be an integer between 1 and 17 inclusive"
     assert isinstance(param_name_str, str), "param_list must be str"
     
     if 7 >= cs_name_val > 1:
@@ -496,7 +599,7 @@ def set_idcs_to_consider(cs_name_val, param_name_str):
             indecies_to_consider += all_param_idx[20:]
         
             
-    elif 14 >= cs_name_val >= 8 or cs_name_val == 1:
+    elif 17 >= cs_name_val >= 8 or cs_name_val == 1:
         indecies_to_consider = []
         all_param_idx = [0,1,2,3,4]
         if "t1" in param_name_str:

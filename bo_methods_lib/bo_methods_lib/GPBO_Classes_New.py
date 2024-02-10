@@ -122,10 +122,13 @@ class CS_name_enum(Enum):
     12 = CS12 3 Param Yield-Loss Model
     13 = CS13 4 Param Log Logistic Model
     14 = CS14 4 Param 2 State Point Log Logistic 2D Model
+    15 = CS15 5 Param 1 State Point exp() hybrid with many local minima
+    16 = CS16 4 Param 2 State Point sin/cos model with many local minima
+    17 = CS17 4 Param 1 State Point exp/cos model with many local minima
     """
     #Check that values are only 1 to 2
-    if Enum in range(1, 15) == False:
-        raise ValueError("There are 14 options for Enum: 1 to 14")
+    if Enum in range(1, 18) == False:
+        raise ValueError("There are 16 options for Enum: 1 to 17")
         
     CS1 = 1
     CS2_x0 = 2
@@ -141,6 +144,9 @@ class CS_name_enum(Enum):
     CS12 = 12
     CS13 = 13
     CS14 = 14
+    CS15 = 15
+    CS16 = 16
+    CS17 = 17
     
     
 class Ep_enum(Enum):
