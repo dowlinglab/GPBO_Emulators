@@ -135,8 +135,8 @@ class General_Analysis:
             # # #See if result data exists, if so add it to df
             tab_data_path = os.path.join(job.fn("analysis_data") , "tabulated_data.csv")
             tab_param_path = os.path.join(job.fn("analysis_data") , "true_param_data.json")
-            found_data1, df_job = self.__load_data(tab_data_path)
-            found_data2, theta_true_data = self.__load_data(tab_param_path)
+            found_data1, df_job = self.load_data(tab_data_path)
+            found_data2, theta_true_data = self.load_data(tab_param_path)
             #Otherwise, create them
             if not found_data1 or not found_data2:
                 df_job, theta_true_data = self.get_study_data_signac(job)
@@ -222,8 +222,8 @@ class General_Analysis:
         if self.save_csv:
             all_data_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
             theta_data_path = os.path.join(job.fn("analysis_data"), "true_param_data.json")
-            self.__save_data(df_job, all_data_path)
-            self.__save_data(theta_true_data, theta_data_path)
+            self.save_data(df_job, all_data_path)
+            self.save_data(theta_true_data, theta_data_path)
 
         return df_job, theta_true_data
 
@@ -231,7 +231,7 @@ class General_Analysis:
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_best_path = os.path.join(self.study_results_dir, "best_results.csv")
-        data_exists, df_best = self.__load_data(data_best_path)
+        data_exists, df_best = self.load_data(data_best_path)
         if not data_exists:
             #Start by sorting pd dataframe by lowest obj func value overall
             df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
@@ -247,7 +247,7 @@ class General_Analysis:
 
         #Put in a csv file in a directory based on the job
         if self.save_csv:
-            self.__save_data(df_best, data_best_path)
+            self.save_data(df_best, data_best_path)
 
         return df_best, job_list_best
     
@@ -255,7 +255,7 @@ class General_Analysis:
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "median_results.csv")
-        data_exists, df_median = self.__load_data(data_path)
+        data_exists, df_median = self.load_data(data_path)
         if not data_exists:
             #Initialize df for median values
             df_median = pd.DataFrame()
@@ -280,7 +280,7 @@ class General_Analysis:
 
         #Put in a csv file in a directory based on the job
         if self.save_csv:
-            self.__save_data(df_median, data_path)
+            self.save_data(df_median, data_path)
 
         return df_median, job_list_med
     
@@ -288,7 +288,7 @@ class General_Analysis:
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "mean_results.csv")
-        data_exists, df_mean = self.__load_data(data_path)
+        data_exists, df_mean = self.load_data(data_path)
         if not data_exists:
             #Initialize df for median values
             df_mean = pd.DataFrame()
@@ -315,7 +315,7 @@ class General_Analysis:
 
         #Put in a csv file in a directory based on the job
         if self.save_csv:
-            self.__save_data(df_mean, data_path)
+            self.save_data(df_mean, data_path)
 
         return df_mean, job_list_mean
     
@@ -367,7 +367,7 @@ class General_Analysis:
 
         return df_data
     
-    def __load_data(self, path):
+    def load_data(self, path):
         assert isinstance(path, str), "path_end must be str"
         #Split path into parts
         ext = os.path.splitext(path)[-1]
@@ -395,7 +395,7 @@ class General_Analysis:
             return False, None
 
     
-    def __save_data(self, data, save_path):
+    def save_data(self, data, save_path):
         #Split path into parts
         ext = os.path.splitext(save_path)[-1]
         #Extract directory name
@@ -461,8 +461,8 @@ class General_Analysis:
         tab_data_path = os.path.join(job.fn("analysis_data") , "tabulated_data.csv")
         true_param_data_path = os.path.join(job.fn("analysis_data") , "true_param_data.json")
         # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
-        found_data1, df_job = self.__load_data(tab_data_path)
-        found_data2, theta_true_data = self.__load_data(true_param_data_path)
+        found_data1, df_job = self.load_data(tab_data_path)
+        found_data2, theta_true_data = self.load_data(true_param_data_path)
 
         if not found_data1 or not found_data2:
             df_job, theta_true_data = self.get_study_data_signac(job)
@@ -476,7 +476,13 @@ class General_Analysis:
 
         if data_type == "objs":
             #Get SSE data from least squares. This is the "True" value
-            data_true = min(self.least_squares_analysis()["Min Obj Cum."])
+            ls_analyzer = LS_Analysis(self.criteria_dict, self.project, self.save_csv)
+            ls_results = ls_analyzer.least_squares_analysis()
+            #Make a df that is only the iters of the best run
+            df_sorted = ls_results.sort_values(by=['Min Obj Cum.', 'Iter'], ascending=True)
+            best_run = df_sorted["Run"].iloc[0]
+            data_true = ls_results[ls_results['Run'] == best_run].copy()
+            # data_true = min(ls_results["Min Obj Cum."])
             data = np.zeros((tot_runs, max_iters, len(z_choice)))
         elif data_type == "params":
             data_true = theta_true_data
@@ -552,8 +558,8 @@ class General_Analysis:
         hp_data_path = os.path.join(job.fn("analysis_data") , "hyperparam_data.npy")
         hp_name_path = os.path.join(job.fn("analysis_data") , "hp_name_data.json")
         # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
-        found_data1, data = self.__load_data(hp_data_path)
-        found_data2, data_names = self.__load_data(hp_name_path)
+        found_data1, data = self.load_data(hp_data_path)
+        found_data2, data_names = self.load_data(hp_name_path)
 
         #Get statepoint info
         with open(job.fn("signac_statepoint.json"), 'r') as json_file:
@@ -582,8 +588,8 @@ class General_Analysis:
                     data[j,i,:] = hp
 
             if self.save_csv:
-                self.__save_data(data, hp_data_path)
-                self.__save_data(data_names, hp_name_path)
+                self.save_data(data, hp_data_path)
+                self.save_data(data_names, hp_name_path)
 
         return data, data_names, data_true, sp_data
     
@@ -616,249 +622,7 @@ class General_Analysis:
                                         retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, 
                                         bo_run_tot, save_data, DateTime, seed, obj_tol, ei_tol)
         
-        return cs_params, method, gen_meth_theta, ep_enum
-    
-    # Create a function to optimize, in this case, least squares fitting
-    def __ls_scipy_func(self, theta_guess, exp_data, simulator):
-        '''
-        Function to define regression function for least-squares fitting
-        Arguments:
-            a_guess: ndarray, guess value for a
-            Constants: ndarray, The array containing the true values of Muller constants
-            x: ndarray, experimental X data (Inependent Variable)
-            y: ndarray, experimental Y data (Dependent Variable)
-        Returns:
-            e: residual vector
-        '''
-        #Repeat the theta best array once for each x value
-        #Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
-        t_guess_repeat = np.repeat(theta_guess.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
-        #Add instance of Data class to theta_best
-        theta_guess_data = Data(t_guess_repeat, exp_data.x_vals, None, None, None, None, None, None, 
-                              simulator.bounds_theta_reg,  simulator.bounds_x, 1, simulator.seed)
-        #Calculate y values and sse for theta_best with noise
-        theta_guess_data.y_vals = simulator.gen_y_data(theta_guess_data, 0, 0)  
-        
-        error = exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten()
-        
-        return error
-
-    def __ls_min_func(self, theta_guess, exp_data, simulator):
-        '''
-        Function to define regression function for least-squares fitting
-        Arguments:
-            a_guess: ndarray, guess value for a
-            Constants: ndarray, The array containing the true values of Muller constants
-            x: ndarray, experimental X data (Inependent Variable)
-            y: ndarray, experimental Y data (Dependent Variable)
-        Returns:
-            e: residual vector
-        '''
-        #Repeat the theta best array once for each x value
-        #Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
-        t_guess_repeat = np.repeat(theta_guess.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
-        #Add instance of Data class to theta_best
-        theta_guess_data = Data(t_guess_repeat, exp_data.x_vals, None, None, None, None, None, None, 
-                              simulator.bounds_theta_reg,  simulator.bounds_x, 1, simulator.seed)
-        #Calculate y values and sse for theta_best with noise
-        theta_guess_data.y_vals = simulator.gen_y_data(theta_guess_data, 0, 0)  
-        
-        error = exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten()
-        sse = np.sum(error**2)
-
-        return sse
-    
-    def least_squares_min_analysis(self):
-        """
-        Performs least squares regression on the problem equal to what was done with BO
-        """
-        cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
-        ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "least_squares.csv")
-        # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
-        found_data1, ls_results = self.__load_data(ls_data_path)
-
-        if not found_data1:
-            #Find the job with the smallest file size corresponding to the criteria dict
-            jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
-            valid_files = [job.fn("BO_Results.gz") for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
-            smallest_file = min(valid_files, key=lambda x: os.path.getsize(x))
-            # Find the job corresponding to the smallest file size
-            smallest_file_index = valid_files.index(smallest_file)
-            job = jobs[smallest_file_index]
-
-            #Open the statepoint of the job
-            with open(job.fn("signac_statepoint.json"), 'r') as json_file:
-                # Load the JSON data
-                sp_data = json.load(json_file)
-            #get number of total runs from statepoint
-            tot_runs_cs = sp_data["bo_run_tot"]
-            if tot_runs_cs == 1:
-                if sp_data["cs_name_val"] in [2,3] and sp_data["bo_iter_tot"] == 75:
-                    tot_runs_cs = 10
-                else:
-                    tot_runs_cs = 5
-            #Initialize seed for for loops at 1
-            seed = 1
-            #Open smallest job file
-            results = open_file_helper(job.fn("BO_Results.gz"))
-            #Get Experimental data and Simulator objects used in problem
-            exp_data = results[0].exp_data_class
-            x_exp = exp_data.x_vals
-            simulator = results[0].simulator_class
-            # bounds = simulator.bounds_theta_reg
-            bounds = simulator.bounds_theta_reg.T
-            theta_true = simulator.theta_true
-            
-            #Set seed
-            np.random.seed(seed)
-            ## specify initial guesses
-            #Note: As of now, I am not necessarily using the same starting points as with GPBO. 
-            #MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
-            #Note: Starting points for optimization are saved in the driver, which is not saved in BO_Results.gz
-            theta_guess = simulator.gen_theta_vals(tot_runs_cs)
-
-            #Initialize results dataframe
-            column_names = ['Theta Guess', 'Min Obj Act', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'MSE', 
-                            "func evals", "jac evals", "Termination", "Total Run Time", "l2 norm theta"]
-            ls_results = pd.DataFrame(columns=column_names)
-
-            #Loop over number of runs
-            for i in range(tot_runs_cs):
-                #Start timer
-                time_start = time.time()
-
-                # print(theta_guess[i], bounds)
-                #Find least squares solution
-                Solution = optimize.minimize(self.__ls_min_func, theta_guess[i] ,bounds=bounds, method='L-BFGS-B', tol = 1e-7,
-                                                args=(exp_data, simulator))
-                #End timer and calculate total run time
-                time_end = time.time()
-                time_per_run = time_end-time_start
-                #Calculate sse
-                sse = Solution.fun
-                #Calculate l2
-                del_theta = Solution.x - theta_true
-                theta_l2_norm = np.linalg.norm(del_theta, ord = 2)
-                #Create df for each least squares run
-                iter_df = pd.DataFrame(columns=column_names)
-                #On 1st iteration, min obj cum and theta min obj cum are the same as sse and sse min obj
-                if i == 0:
-                    ls_iter_res = [theta_guess[i], sse, Solution.x, sse, Solution.x, sse/len(x_exp), Solution.nfev, 
-                                       Solution.njev, Solution.status, time_per_run, theta_l2_norm]
-                #Otherwise compare to the iteration before before setting
-                else:
-                    obj_cum = sse if sse < ls_results["Min Obj Cum."].iloc[i-1] else ls_results["Min Obj Cum."].iloc[i-1]
-                    theta_obj_cum = Solution.x if sse < ls_results["Min Obj Cum."].iloc[i-1] else ls_results['Theta Min Obj Cum.'].iloc[i-1]
-                    ls_iter_res = [theta_guess[i], sse, Solution.x, obj_cum, theta_obj_cum, sse/len(x_exp), Solution.nfev, 
-                                       Solution.njev, Solution.status, time_per_run, theta_l2_norm]
-
-                # Add the new row to the DataFrame
-                iter_df.loc[0] = ls_iter_res
-                ls_results = pd.concat([ls_results.astype(iter_df.dtypes), iter_df], ignore_index=True)
-                seed += 2
-
-            #Reset the index of the pandas df
-            ls_results = ls_results.reset_index(drop=True)
-
-            if self.save_csv:
-                self.__save_data(ls_results, ls_data_path)
-
-        return ls_results
-    
-    def least_squares_analysis(self):
-        """
-        Performs least squares regression on the problem equal to what was done with BO
-        """
-        cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
-        ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "least_squares.csv")
-        # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
-        found_data1, ls_results = self.__load_data(ls_data_path)
-
-        if not found_data1:
-            #Find the job with the smallest file size corresponding to the criteria dict
-            jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
-            valid_files = [job.fn("BO_Results.gz") for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
-            smallest_file = min(valid_files, key=lambda x: os.path.getsize(x))
-            # Find the job corresponding to the smallest file size
-            smallest_file_index = valid_files.index(smallest_file)
-            job = jobs[smallest_file_index]
-
-            #Open the statepoint of the job
-            with open(job.fn("signac_statepoint.json"), 'r') as json_file:
-                # Load the JSON data
-                sp_data = json.load(json_file)
-            #get number of total runs from statepoint
-            tot_runs_cs = sp_data["bo_run_tot"]
-            if tot_runs_cs == 1:
-                if sp_data["cs_name_val"] in [2,3] and sp_data["bo_iter_tot"] == 75:
-                    tot_runs_cs = 10
-                else:
-                    tot_runs_cs = 5
-            #Initialize seed for for loops at 1
-            seed = 1
-            #Open smallest job file
-            results = open_file_helper(job.fn("BO_Results.gz"))
-            #Get Experimental data and Simulator objects used in problem
-            exp_data = results[0].exp_data_class
-            x_exp = exp_data.x_vals
-            simulator = results[0].simulator_class
-            bounds = simulator.bounds_theta_reg
-            theta_true = simulator.theta_true
-            
-            #Set seed
-            np.random.seed(seed)
-            ## specify initial guesses
-            #Note: As of now, I am not necessarily using the same starting points as with GPBO. 
-            #MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
-            #Note: Starting points for optimization are saved in the driver, which is not saved in BO_Results.gz
-            theta_guess = simulator.gen_theta_vals(tot_runs_cs)
-
-            #Initialize results dataframe
-            column_names = ['Theta Guess', 'Min Obj Act', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'MSE', 
-                            "func evals", "jac evals", "Termination", "Total Run Time", "l2 norm theta"]
-            ls_results = pd.DataFrame(columns=column_names)
-
-            #Loop over number of runs
-            for i in range(tot_runs_cs):
-                #Start timer
-                time_start = time.time()
-                #Find least squares solution
-                Solution = optimize.least_squares(self.__ls_scipy_func, theta_guess[i] ,bounds=bounds, method='trf',
-                                                args=(exp_data, simulator), verbose = 0)
-                #End timer and calculate total run time
-                time_end = time.time()
-                time_per_run = time_end-time_start
-                #Calculate sse
-                sse = np.sum(self.__ls_scipy_func(Solution.x, exp_data, simulator)**2)
-                #Calculate l2
-                del_theta = Solution.x - theta_true
-                theta_l2_norm = np.linalg.norm(del_theta, ord = 2)
-                #Create df for each least squares run
-                iter_df = pd.DataFrame(columns=column_names)
-                #On 1st iteration, min obj cum and theta min obj cum are the same as sse and sse min obj
-                if i == 0:
-                    ls_iter_res = [theta_guess[i], sse, Solution.x, sse, Solution.x, sse/len(x_exp), Solution.nfev, 
-                                       Solution.njev, Solution.status, time_per_run, theta_l2_norm]
-                #Otherwise compare to the iteration before before setting
-                else:
-                    obj_cum = sse if sse < ls_results["Min Obj Cum."].iloc[i-1] else ls_results["Min Obj Cum."].iloc[i-1]
-                    theta_obj_cum = Solution.x if sse < ls_results["Min Obj Cum."].iloc[i-1] else ls_results['Theta Min Obj Cum.'].iloc[i-1]
-                    ls_iter_res = [theta_guess[i], sse, Solution.x, obj_cum, theta_obj_cum, sse/len(x_exp), Solution.nfev, 
-                                       Solution.njev, Solution.status, time_per_run, theta_l2_norm]
-
-                # Add the new row to the DataFrame
-                iter_df.loc[0] = ls_iter_res
-                ls_results = pd.concat([ls_results.astype(iter_df.dtypes), iter_df], ignore_index=True)
-                seed += 2
-
-            #Reset the index of the pandas df
-            ls_results = ls_results.reset_index(drop=True)
-
-            if self.save_csv:
-                self.__save_data(ls_results, ls_data_path)
-
-        return ls_results
-        
+        return cs_params, method, gen_meth_theta, ep_enum        
 
     def analyze_heat_maps(self, job, run_num, bo_iter, pair_id, get_ei = False):
         "Gets heat map data and analysis for a specific job, run number, and bo_iter"
@@ -869,9 +633,9 @@ class General_Analysis:
         hm_path_name = os.path.join(dir_name, "hm_data.gz")
         hm_sse_path_name = os.path.join(dir_name, "hm_sse_data.gz")
         param_info_path = os.path.join(dir_name, "notable_param_info.npy")
-        found_data1, heat_map_data = self.__load_data(hm_path_name)
-        found_data2, heat_map_sse_data = self.__load_data(hm_sse_path_name)
-        found_data3, param_info_dict = self.__load_data(param_info_path)
+        found_data1, heat_map_data = self.load_data(hm_path_name)
+        found_data2, heat_map_sse_data = self.load_data(hm_sse_path_name)
+        found_data3, param_info_dict = self.load_data(param_info_path)
 
         #Get statepoint info
         with open(job.fn("signac_statepoint.json"), 'r') as json_file:
@@ -993,9 +757,9 @@ class General_Analysis:
 
         #Save data if necessary
         if self.save_csv:
-            self.__save_data(heat_map_data, hm_path_name)
-            self.__save_data(heat_map_sse_data, hm_sse_path_name)
-            self.__save_data(param_info_dict, param_info_path)
+            self.save_data(heat_map_data, hm_path_name)
+            self.save_data(heat_map_sse_data, hm_sse_path_name)
+            self.save_data(param_info_dict, param_info_path)
 
         #Find the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
         theta_mesh_vals = heat_map_sse_data.theta_vals[:,idcs_to_plot]
@@ -1019,6 +783,187 @@ class General_Analysis:
         
         return all_data, test_mesh, param_info_dict, sp_data
 
+class LS_Analysis(General_Analysis):
+    """
+    The class for Least Squares regression analysis. Child class of General_Analysis
+    """
+    #Inherit objects from General_Analysis
+    def __init__(self, criteria_dict, project, save_csv, exp_data=None, simulator=None):
+        super().__init__(criteria_dict, project, save_csv)
+        self.iter_param_data = []
+        self.iter_sse_data = []
+        self.iter_l2_norm = []
+        self.iter_count = 0
+        self.seed = 1
+        #Placeholder that will be overwritten if None
+        self.simulator = simulator
+        self.exp_data = exp_data
+
+    # Create a function to optimize, in this case, least squares fitting
+    def __ls_scipy_func(self, theta_guess, exp_data, simulator):
+        '''
+        Function to define regression function for least-squares fitting
+        Arguments:
+            a_guess: ndarray, guess value for a
+            Constants: ndarray, The array containing the true values of Muller constants
+            x: ndarray, experimental X data (Inependent Variable)
+            y: ndarray, experimental Y data (Dependent Variable)
+        Returns:
+            e: residual vector
+        '''
+        #Repeat the theta best array once for each x value
+        #Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
+        t_guess_repeat = np.repeat(theta_guess.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
+        #Add instance of Data class to theta_best
+        theta_guess_data = Data(t_guess_repeat, exp_data.x_vals, None, None, None, None, None, None, 
+                              simulator.bounds_theta_reg,  simulator.bounds_x, 1, simulator.seed)
+        #Calculate y values and sse for theta_best with noise
+        theta_guess_data.y_vals = simulator.gen_y_data(theta_guess_data, 0, 0)  
+        
+        error = exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten()
+
+        #Append intermediate values to list
+        self.iter_param_data.append(theta_guess)
+        self.iter_sse_data.append(np.sum(error**2))
+        #Calculate l2
+        del_theta = theta_guess - self.simulator.theta_true
+        theta_l2_norm = np.linalg.norm(del_theta, ord = 2)
+        self.iter_l2_norm.append(theta_l2_norm)
+        self.iter_count += 1
+
+        return error
+    
+    def __get_simulator_exp_data(self, num_x = 10):
+        jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
+        valid_files = [job.fn("BO_Results.gz") for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
+        if len(valid_files) > 0:
+            smallest_file = min(valid_files, key=lambda x: os.path.getsize(x))
+            # Find the job corresponding to the smallest file size
+            smallest_file_index = valid_files.index(smallest_file)
+            job = jobs[smallest_file_index]
+
+            #Open the statepoint of the job
+            with open(job.fn("signac_statepoint.json"), 'r') as json_file:
+                # Load the JSON data
+                sp_data = json.load(json_file)
+            #get number of total runs from statepoint
+            tot_runs_cs = sp_data["bo_run_tot"]
+            if tot_runs_cs == 1:
+                if sp_data["cs_name_val"] in [2,3] and sp_data["bo_iter_tot"] == 75:
+                    tot_runs_cs = 10
+                else:
+                    tot_runs_cs = 5
+            
+            #Open smallest job file
+            results = open_file_helper(job.fn("BO_Results.gz"))
+            #Get Experimental data and Simulator objects used in problem
+            exp_data = results[0].exp_data_class
+            simulator = results[0].simulator_class
+            
+        else:
+            #Set tot_runs cs as 5 as a default
+            tot_runs_cs = 5
+            #Create simulator and exp Data class objects
+            simulator = simulator_helper_test_fxns(self.criteria_dict["cs_name_val"], 
+                                                        0, None, self.seed)
+            exp_data = simulator.gen_exp_data(num_x, Gen_meth_enum(2), self.seed)
+
+        if self.simulator is None:
+            self.simulator = simulator
+        if self.exp_data is None:
+            self.exp_data = exp_data
+            
+        return simulator, exp_data, tot_runs_cs
+    
+    def least_squares_analysis(self):
+        """
+        Performs least squares regression on the problem equal to what was done with BO
+        """
+        cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
+        ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "least_squares.csv")
+        # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
+        found_data1, ls_results = self.load_data(ls_data_path)
+
+        if not found_data1:
+            #Get simulator and exp_data Data class objects
+            simulator, exp_data, tot_runs_cs = self.__get_simulator_exp_data()
+            len_x = exp_data.get_num_x_vals()
+
+            #Set seed
+            np.random.seed(self.seed)
+            ## specify initial guesses
+            #Note: As of now, I am not necessarily using the same starting points as with GPBO. 
+            #MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
+            #Note: Starting points for optimization are saved in the driver, which is not saved in BO_Results.gz
+            theta_guess = self.simulator.gen_theta_vals(tot_runs_cs)
+
+            #Initialize results dataframe
+            column_names = ["Run", "Iter", 'Min Obj Act', 'Theta Min Obj', "Min Obj Cum.", 
+                            "Theta Min Obj Cum.",'MSE', 'l2 norm', "jac evals", "Termination", 
+                            "Run Time"]
+            column_names_iter = ["Run", "Iter", 'Min Obj Act', 'Theta Min Obj', "Min Obj Cum.", 
+                                 "Theta Min Obj Cum.",'MSE', 'l2 norm']
+            ls_results = pd.DataFrame(columns=column_names)
+
+            #Loop over number of runs
+            for i in range(tot_runs_cs):
+                #Start timer
+                time_start = time.time()
+                #Find least squares solution
+                Solution = optimize.least_squares(self.__ls_scipy_func, theta_guess[i] ,
+                                                  bounds = simulator.bounds_theta_reg, method='trf',
+                                                  args=(self.exp_data, self.simulator), verbose = 0)
+                #End timer and calculate total run time
+                time_end = time.time()
+                time_per_run = time_end-time_start
+                #Get sse_min from cost
+                sse_min = 2*Solution.cost
+                
+                #Get list of iteration, sse, and parameter data
+                iter_list = np.array(range(self.iter_count)) + 1
+                sse_list = np.array(self.iter_sse_data)
+                l2_norm_list = self.iter_l2_norm
+                param_list = self.iter_param_data
+
+                #Create a pd dataframe of all iteration information. Initialize cumulative columns as zero
+                ls_iter_res = [i + 1, iter_list, sse_list, param_list, None , None, sse_list/len_x, l2_norm_list]
+                iter_df = pd.DataFrame([ls_iter_res], columns = column_names_iter)
+                iter_df = iter_df.apply(lambda col: col.explode(), axis=0).reset_index(drop=True).copy(deep =True)
+
+                #Add Theta min obj and theta_sse obj
+                #Loop over each iteration to create the min obj columns
+                for j in range(len(iter_df)):
+                    min_sse = iter_df.loc[j, "Min Obj Act"].copy()
+                    if j == 0 or min_sse < iter_df["Min Obj Act"].iloc[j-1]:
+                        min_param = iter_df["Theta Min Obj"].iloc[j].copy()
+                    else:
+                        min_sse = iter_df["Min Obj Cum."].iloc[j-1].copy()
+                        min_param = iter_df["Theta Min Obj Cum."].iloc[j-1].copy()
+
+                    iter_df.loc[j, "Min Obj Cum."] = min_sse
+                    iter_df.at[j, "Theta Min Obj Cum."] = min_param
+                    
+                iter_df["Run Time"] = time_per_run
+                iter_df["jac evals"] = Solution.njev
+                iter_df["Termination"] = Solution.status
+                
+                #Append to results_df
+                ls_results = pd.concat([ls_results.astype(iter_df.dtypes), iter_df], ignore_index=True)
+
+                self.seed += 2
+                #Reset iter lists
+                self.iter_param_data = []
+                self.iter_sse_data = []
+                self.iter_l2_norm = []
+                self.iter_count = 0
+
+            #Reset the index of the pandas df
+            ls_results = ls_results.reset_index(drop=True)
+
+            if self.save_csv:
+                self.save_data(ls_results, ls_data_path)
+
+        return ls_results
 
 def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = False, save_csv =False):
     """

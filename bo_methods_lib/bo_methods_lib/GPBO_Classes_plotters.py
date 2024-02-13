@@ -184,8 +184,16 @@ class Plotters:
                                             linestyle='--', drawstyle='steps')
                 #Plot true value if applicable
                 if data_true is not None and j == data.shape[0] - 1:
-                    x = [1, data.shape[1]]
-                    y = [list(data_true.values())[0], list(data_true.values())[0]]
+                    data_ls = data_true[z_choice]
+                    if isinstance(data_ls, pd.DataFrame):
+                        x = data_ls["Iter"].to_numpy()
+                        if z_choice == "min_sse":
+                            y = data_ls["Min Obj Cum."].to_numpy()
+                        else:
+                            y = data_ls["Min Obj Act"].to_numpy()
+                    else:
+                        x = [1, data.shape[1]]
+                        y = [list(data_true.values())[0], list(data_true.values())[0]]
                     ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='dashdot', 
                                                label = "Least Squares")
 
