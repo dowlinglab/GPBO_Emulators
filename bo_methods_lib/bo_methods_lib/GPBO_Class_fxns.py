@@ -555,7 +555,7 @@ class CS17:
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
         self.bounds_x_l = [0]
         self.bounds_x_u = [6*math.pi]
-        self.bounds_theta_l = [0, -2, 0, -10]
+        self.bounds_theta_l = [0, -1, 0, -10]
         self.bounds_theta_u = [5,  1e-1, 5,  0]
         self.theta_ref = np.array([3,-0.2,1,-1]) 
         self.calc_y_fxn = calc_cs17_expcos

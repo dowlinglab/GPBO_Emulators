@@ -3,12 +3,11 @@ import numpy as np
 import os
 import json
 import bo_methods_lib
-from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import set_param_str
 
 project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
-cs_val_list  = [13]
+cs_val_list  = [3]
 meth_val_list = [1, 2, 3, 4, 5, 6] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
@@ -26,13 +25,13 @@ if isinstance(lenscl, list):
 outputscl = None
 retrain_GP = 25
 reoptimize_obj = 25
-bo_iter_tot = 50
-bo_run_total = 5
-runs_per_job_max = 3
+bo_iter_tot = 75
+bo_run_total = 10
+runs_per_job_max = 1
 save_data = False
 ei_tol = 1e-7
 obj_tol = 1e-7
-num_x_data = 10
+num_x_data = 5
 gen_meth_theta = 1 
 gen_meth_x = 2
 gen_meth_theta_val = 2
@@ -44,11 +43,8 @@ assert bo_run_total >= runs_per_job_max, "bo_run_total must be greater than or e
 
 #Note: Add loop for idc to consider for lo and hi for CS2 based on something
 #Loop over Case Studies
-for cs_name_val in cs_val_list:
-    #Set idcs to consider
-    param_name_str = set_param_str(cs_name_val)
-    
-    #If CS1, Run the full exploration parameter study and/or the sf study, otherwise, just use the constant method
+for cs_name_val in cs_val_list:   
+    #If CS1, Run the full exploration parameter study, otherwise, just use the constant method
     #If cs > 1, do not generate validation data
     if cs_name_val > 1:
         ep_val_list = [1]
@@ -75,7 +71,6 @@ for cs_name_val in cs_val_list:
                 #Create job parameter dict
                 sp = {"cs_name_val": cs_name_val, 
                     "meth_name_val": meth_name_val,
-                    "param_name_str": param_name_str,
                     "ep0": ep0, 
                     "ep_enum_val": ep_enum_val,
                     "sep_fact" : sep_fact,

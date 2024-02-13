@@ -56,7 +56,7 @@ class General_Analysis:
         """
         Parameters
         ----------
-        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
+        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val
         """
         #Asserts
         assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
