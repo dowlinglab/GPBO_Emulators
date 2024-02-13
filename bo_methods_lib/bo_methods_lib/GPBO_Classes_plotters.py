@@ -182,11 +182,13 @@ class Plotters:
                 else:
                     ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 0.2, color = self.colors[ax_idx], 
                                             linestyle='--', drawstyle='steps')
+                ls_xset  = False
                 #Plot true value if applicable
                 if data_true is not None and j == data.shape[0] - 1:
                     data_ls = data_true[z_choice]
                     if isinstance(data_ls, pd.DataFrame):
                         x = data_ls["Iter"].to_numpy()
+                        ls_xset = True
                         if z_choice == "min_sse":
                             y = data_ls["Min Obj Cum."].to_numpy()
                         else:
@@ -201,7 +203,11 @@ class Plotters:
                 title = self.method_names[ax_idx]
                 if bo_len > meth_bo_max_evals[ax_idx]:
                     meth_bo_max_evals[ax_idx] = bo_len
-                    self.__set_subplot_details(ax[ax_row, ax_col], bo_space, data_df_j, None, None, title)
+                    x_space = bo_space
+                elif ls_xset and max(x) > meth_bo_max_evals[ax_idx]:
+                    meth_bo_max_evals[ax_idx] = max(x)
+                    x_space = np.linspace(1, max(x), max(x))
+                self.__set_subplot_details(ax[ax_row, ax_col], x_space, data_df_j, None, None, title)
 
         #Set handles and labels and scale axis if necessary
         handles, labels = ax[0,0].get_legend_handles_labels()
