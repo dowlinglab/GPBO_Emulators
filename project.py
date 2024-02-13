@@ -78,14 +78,12 @@ def run_ep_or_sf_exp(job):
     num_theta_data = len(simulator.indeces_to_consider)*job.sp.num_theta_multiplier
     gen_meth_theta = Gen_meth_enum(job.sp.gen_meth_theta)
     #Note at present, training data is always the same between jobs since we set the data generation seed to 1
-    set_seed = 1
     sim_data = simulator.gen_sim_data(num_theta_data, job.sp.num_x_data, gen_meth_theta, gen_meth_x, job.sp.sep_fact, set_seed, False)
     
     #Gen sse_sim_data and sse_sim_val_data
     sim_sse_data = simulator.sim_data_to_sse_sim_data(method, sim_data, exp_data, job.sp.sep_fact, False)
     
     #Generate validation data if applicable. This is only useful for small (<5 Params + State Points). Otherwise this takes up too much memory
-    
     if job.sp.num_val_pts > 0:
         gen_meth_theta_val = Gen_meth_enum(job.sp.gen_meth_theta_val) #input is an integer (1 or 2)
         val_data = simulator.gen_sim_data(job.sp.num_val_pts, job.sp.num_x_data, gen_meth_theta_val, gen_meth_x, job.sp.sep_fact, set_seed, True)
