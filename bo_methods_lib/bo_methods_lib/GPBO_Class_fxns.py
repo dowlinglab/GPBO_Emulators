@@ -49,7 +49,7 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
     else:
         raise(ValueError, "cs_num must be from 1 to 17")
     
-    return Simulator(cs_class.indecies_to_consider, 
+    return Simulator(cs_class.idcs_to_consider, 
                     cs_class.theta_ref,
                     cs_class.theta_names,
                     cs_class.bounds_theta_l, 
@@ -140,7 +140,7 @@ class CSMuller:
         if "y0" in self.param_name_str:
             indecies_to_consider += all_param_idx[20:]
 
-        self.indecies_to_consider = indecies_to_consider
+        self.idcs_to_consider = indecies_to_consider
     
     def __solve_pyomo_Muller_min(self, verbose = False):
         """
@@ -307,6 +307,7 @@ calc_cs3_polynomial = calc_cs8_10_polynomial
 class CS9:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        self.idcs_to_consider = [0,1,2,3]
         self.bounds_x_l = [1, 1]
         self.bounds_x_u = [ 11,  11]
         self.bounds_theta_l = [1, 1e-2, 1, 1e-3]
@@ -347,6 +348,7 @@ calc_cs4_isotherm = calc_cs9_isotherm
 class CS11:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2']
+        self.idcs_to_consider = [0,1]
         self.bounds_x_l = [1]
         self.bounds_x_u = [7]
         self.bounds_theta_l = [10, 0]
@@ -378,6 +380,7 @@ def calc_cs11_BOD(true_model_coefficients, x, args = None):
 class CS12:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3']
+        self.idcs_to_consider = [0,1,2]
         self.bounds_x_l = [0]
         self.bounds_x_u = [100]
         self.bounds_theta_l = [20, 5, 60]
@@ -409,6 +412,7 @@ def calc_cs12_yield(true_model_coefficients, x, args = None):
 class CS13:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        self.idcs_to_consider = [0,1,2,3]
         self.bounds_x_l = [0]
         self.bounds_x_u = [15]
         self.bounds_theta_l = [0, 3, 0.01, 0]
@@ -440,6 +444,7 @@ def calc_cs13_logit(true_model_coefficients, x, args = None):
 class CS14:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        self.idcs_to_consider = [0,1,2,3]
         self.bounds_x_l = [-5, 0]
         self.bounds_x_u = [ 5, 15]
         self.bounds_theta_l = [0, 3, 0.01, 0]
@@ -480,6 +485,7 @@ def calc_cs14_logit2D(true_model_coefficients, x, args = None):
 class CS15:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4', 'theta_5']
+        self.idcs_to_consider = [0,1,2,3,4]
         self.bounds_x_l = [-5]
         self.bounds_x_u = [ 2]
         self.bounds_theta_l = [1e-1, 1e-4, -5,  1e-4, -5]
@@ -512,6 +518,7 @@ def calc_cs15_model(true_model_coefficients, x, args = None):
 class CS16:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        self.idcs_to_consider = [0,1,2,3]
         self.bounds_x_l = [-2*math.pi, -2*math.pi]
         self.bounds_x_u = [ 3*math.pi, 3*math.pi]
         self.bounds_theta_l = [-2, -2, -2, -2]
@@ -553,6 +560,7 @@ def calc_cs16_trig(true_model_coefficients, x, args = None):
 class CS17:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        self.idcs_to_consider = [0,1,2,3]
         self.bounds_x_l = [0]
         self.bounds_x_u = [6*math.pi]
         self.bounds_theta_l = [0, -1, 0, -10]
