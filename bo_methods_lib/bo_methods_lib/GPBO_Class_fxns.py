@@ -99,6 +99,7 @@ class CSMuller:
     
     def __init__(self, cs_number):
         assert 2 <= cs_number <=7 
+        self.cs_number = cs_number
         self.__set_param_str()
         self.__set_idcs_to_consider()
         self.theta_names = ['x0_1', 'x0_2', 'x0_3', 'x0_4']
