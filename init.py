@@ -7,7 +7,7 @@ import bo_methods_lib
 project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
-cs_val_list  = [3]
+cs_val_list  = [13]
 meth_val_list = [1, 2, 3, 4, 5, 6] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
@@ -25,13 +25,13 @@ if isinstance(lenscl, list):
 outputscl = None
 retrain_GP = 25
 reoptimize_obj = 25
-bo_iter_tot = 75
-bo_run_total = 10
-runs_per_job_max = 1
+bo_iter_tot = 50
+bo_run_total = 5
+runs_per_job_max = 2
 save_data = False
 ei_tol = 1e-7
 obj_tol = 1e-7
-num_x_data = 5
+num_x_data = 10
 gen_meth_theta = 1 
 gen_meth_x = 2
 gen_meth_theta_val = 2
