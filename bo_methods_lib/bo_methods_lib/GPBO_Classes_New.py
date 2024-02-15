@@ -3385,12 +3385,17 @@ class GPBO_Driver:
         if self.method.emulator == False:
             all_gp_data = self.sim_sse_data
             all_val_data = self.val_sse_data
-            gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, self.simulator.noise_std, self.cs_params.outputscl, 
+            #Scaling factor is sqrt(2) times num x samples -1 (1 if x_sampes is 0)
+            #This comes from the fact that the SSE of a random variable follows a chi-square distirbution w/ variance 2k
+            noise_scl_fact = np.sqrt(2)*np.max(self.exp_data.get_num_x_vals-1,1)
+            noise_std = self.simulator.noise_std*noise_scl_fact #SSE noise std is approximated as Yexp_std*len(x_exp)
+            gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, noise_std, self.cs_params.outputscl, 
                                              self.cs_params.retrain_GP, self.cs_params.seed, self.cs_params.normalize, None, None, None, None)
         else:
             all_gp_data = self.sim_data
             all_val_data = self.val_data
-            gp_emulator = Type_2_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, self.simulator.noise_std, self.cs_params.outputscl, 
+            noise_std = self.simulator.noise_std #Yexp_std is exactly the noise_std of the GP Kernel
+            gp_emulator = Type_2_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, noise_std, self.cs_params.outputscl, 
                                              self.cs_params.retrain_GP, self.cs_params.seed, self.cs_params.normalize, None, None, None, None)
             
         return gp_emulator
