@@ -266,10 +266,10 @@ class CS10:
         self.param_name_str = "t1t2t3t4t5" 
         self.idcs_to_consider = [0,1,2,3,4]
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4','theta_5']
-        self.bounds_x_l = [-5, -5]
-        self.bounds_x_u = [ 5,  5]
-        self.bounds_theta_l = [-5,-5,-1, 5, -5]
-        self.bounds_theta_u = [ 5, 5, 1, 10,  5]
+        self.bounds_x_l = [-2, -3]
+        self.bounds_x_u = [ 2,  3]
+        self.bounds_theta_l = [-5,-5,0, 5, -5]
+        self.bounds_theta_u = [ 5, 5, 1, 10,  -1]
         self.theta_ref = np.array([1, -2, 0.5, 7, -3])
         self.calc_y_fxn = calc_cs8_10_polynomial
         self.calc_y_fxn_args = None
