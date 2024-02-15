@@ -577,8 +577,9 @@ class Simulator:
 
         #Creates noise values with a certain stdev and mean from a normal distribution
         if noise_std is None:
+            #If noise is none, set the noise as 5% of the mean value
             noise_std = np.abs(np.mean(y_data))*0.05
-            self.noise_std = noise_std
+
         noise = np.random.normal(size=len(y_data), loc = noise_mean, scale = noise_std)
         
         #Add noise to data
@@ -695,7 +696,8 @@ class Simulator:
         
         #Add y_vals for sim_data only
         if gen_val_data == False:
-            sim_data.y_vals = self.gen_y_data(sim_data, 0, 0)
+            #Training data should be generated with the same mean and variance as the experimental data
+            sim_data.y_vals = self.gen_y_data(sim_data, self.noise_mean, self.noise_std)
         
         return sim_data
     
@@ -1158,15 +1160,22 @@ class GP_Emulator:
 
         #Set the noise guess or allow gp to tune the noise parameter
         if self.noise_std is not None:
+            #If we know the noise, use it
             noise_guess = (sclr*self.noise_std)**2
             noise_kern = WhiteKernel(noise_level=noise_guess, noise_level_bounds= "fixed")
         else:
-            noise_min = np.mean(self.gp_sim_data.y_vals)*sclr*0.01
-            noise_max = np.mean(self.gp_sim_data.y_vals)*sclr*0.1
+            #Otherwise, set the guess as 5% the taining data mean
             noise_guess = np.mean(self.gp_sim_data.y_vals)*sclr*0.05
+            #Set the min noise as 1% of the data mean or 1e-2 (minimum)
+            noise_min = max(np.mean(self.gp_sim_data.y_vals)*sclr*0.01, 1e-2)
+            noise_max = np.mean(self.gp_sim_data.y_vals)*sclr*0.1
+            #Ensure the guess is in the bounds, if not, use the mean of the max and min
+            if not noise_min <= noise_guess <= noise_max:
+                noise_guess = (noise_min+noise_max)/2
             noise_kern = WhiteKernel(noise_level= noise_guess**2, noise_level_bounds= (noise_min**2, noise_max**2)) 
-        #Set Constant Kernel
-        cont_kern = ConstantKernel(constant_value = 1, constant_value_bounds = (1e-3,1e4))
+        #Set constant kernel guess as 1
+        c_guess = 1
+        cont_kern = ConstantKernel(constant_value = c_guess, constant_value_bounds = (1e-3,1e4))
         #Set lengthscale bounds and set the type of kernel
         lenscl_bnds = self.__set_lenscl_bnds()
         if self.kernel.value == 3: #RBF
