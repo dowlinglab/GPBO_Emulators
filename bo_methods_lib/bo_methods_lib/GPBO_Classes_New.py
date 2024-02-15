@@ -1104,6 +1104,14 @@ class GP_Emulator:
         return num_gp_data
     
     def __set_lenscl_bnds(self):
+        """
+        Gets an upper and lower bound for the lengthscales
+
+        Returns:
+        --------
+        min_lenscl: float, the lower bound of the lengthscale parameters
+        max_lenscl: float, the upper bound of the lengthscale parameters
+        """
         if self.normalize:
             points = self.scalerX.transform(self.feature_train_data)
         else:
@@ -1141,12 +1149,14 @@ class GP_Emulator:
         """ 
         #Set noise kernel
         # noise_kern = WhiteKernel(noise_level=0.01**2, noise_level_bounds= "fixed")
+        #Set scaler for noise based on if we are scaling the training data
         if self.normalize:
             self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
             sclr = float(self.scalerY.lambdas_)
         else:
             sclr = 1.0
 
+        #Set the noise guess or allow gp to tune the noise parameter
         if self.noise_std is not None:
             noise_guess = (sclr*self.noise_std)**2
             noise_kern = WhiteKernel(noise_level=noise_guess, noise_level_bounds= "fixed")
