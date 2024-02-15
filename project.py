@@ -59,7 +59,7 @@ def run_ep_or_sf_exp(job):
     exp_data = simulator.gen_exp_data(job.sp.num_x_data, gen_meth_x, set_seed)
 
     #Set simulator noise_std artifically as 5% of y_exp mean (So that noise for gp will be set rather than trained)
-    simulator.noise_std = np.mean(exp_data.y_vals)*0.05
+    simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
     
     #Create Exploration Bias Class
     if ep_enum.value == 1:

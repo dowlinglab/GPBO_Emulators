@@ -579,8 +579,10 @@ class Simulator:
         if noise_std is None:
             #If noise is none, set the noise as 5% of the mean value
             noise_std = np.abs(np.mean(y_data))*0.05
+        else:
+            noise_std = self.noise_std
 
-        noise = np.random.normal(size=len(y_data), loc = noise_mean, scale = noise_std)
+        noise = np.random.normal(size=len(y_data), loc = self.noise_mean, scale = noise_std)
         
         #Add noise to data
         y_data = y_data + noise
@@ -1115,6 +1117,7 @@ class GP_Emulator:
         max_lenscl: float, the upper bound of the lengthscale parameters
         """
         if self.normalize:
+            self.scalerX = self.scalerX.fit(self.feature_train_data)
             points = self.scalerX.transform(self.feature_train_data)
         else:
             points = self.feature_train_data
@@ -1165,10 +1168,10 @@ class GP_Emulator:
             noise_kern = WhiteKernel(noise_level=noise_guess, noise_level_bounds= "fixed")
         else:
             #Otherwise, set the guess as 5% the taining data mean
-            noise_guess = np.mean(self.gp_sim_data.y_vals)*sclr*0.05
+            noise_guess = np.abs(np.mean(self.gp_sim_data.y_vals)*sclr)*0.05
             #Set the min noise as 1% of the data mean or 1e-2 (minimum)
-            noise_min = max(np.mean(self.gp_sim_data.y_vals)*sclr*0.01, 1e-2)
-            noise_max = np.mean(self.gp_sim_data.y_vals)*sclr*0.1
+            noise_min = max(np.abs(np.mean(self.gp_sim_data.y_vals)*sclr)*0.01, 1e-2)
+            noise_max = np.abs(np.mean(self.gp_sim_data.y_vals)*sclr)*0.1
             #Ensure the guess is in the bounds, if not, use the mean of the max and min
             if not noise_min <= noise_guess <= noise_max:
                 noise_guess = (noise_min+noise_max)/2
