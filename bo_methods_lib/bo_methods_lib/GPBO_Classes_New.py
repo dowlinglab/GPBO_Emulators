@@ -1103,6 +1103,33 @@ class GP_Emulator:
         
         return num_gp_data
     
+    def __set_lenscl_bnds(self):
+        if self.normalize:
+            points = self.scalerX.transform(self.feature_train_data)
+        else:
+            points = self.feature_train_data
+
+        # Compute pairwise Euclidean distances between all points
+        pairwise_distances = np.sqrt(np.sum((points[:, None] - points) ** 2, axis=-1))
+
+        # Set the diagonal elements (self-distances) to infinity
+        np.fill_diagonal(pairwise_distances, np.inf)
+        # Mask out infinite values so that np.max will ignore them
+        pairwise_distances = np.ma.masked_invalid(pairwise_distances)
+
+        # Find the maximum and minimum distances between pointd
+        max_distance = np.max(pairwise_distances)
+        min_distance = np.min(pairwise_distances)
+
+        #Set max lenscl as the smaller of the max distance or 100
+        max_lenscl = min(max_distance, 100)
+        #Set min lenscl as the larger of the min distance or 0.01
+        min_lenscl = max(min_distance, 1e-2)
+        #Ensure min lenscl < max lenscl
+        if min_lenscl > max_lenscl:
+            min_lenscl = max_lenscl*0.01
+        return min_lenscl, max_lenscl
+    
     def __set_kernel(self):
         """
         Sets kernel of the model
@@ -1113,22 +1140,31 @@ class GP_Emulator:
         
         """ 
         #Set noise kernel
-        if self.noise_std is not None:
-            noise_kern = WhiteKernel(noise_level=self.noise_std**2, noise_level_bounds= "fixed")
+        # noise_kern = WhiteKernel(noise_level=0.01**2, noise_level_bounds= "fixed")
+        if self.normalize:
+            self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
+            sclr = float(self.scalerY.lambdas_)
         else:
-            noise_min = np.mean(self.gp_sim_data.y_vals)*0.01
-            noise_max = np.mean(self.gp_sim_data.y_vals)*0.1
-            noise_guess = np.mean(self.gp_sim_data.y_vals)*0.05
+            sclr = 1.0
+
+        if self.noise_std is not None:
+            noise_guess = (sclr*self.noise_std)**2
+            noise_kern = WhiteKernel(noise_level=noise_guess, noise_level_bounds= "fixed")
+        else:
+            noise_min = np.mean(self.gp_sim_data.y_vals)*sclr*0.01
+            noise_max = np.mean(self.gp_sim_data.y_vals)*sclr*0.1
+            noise_guess = np.mean(self.gp_sim_data.y_vals)*sclr*0.05
             noise_kern = WhiteKernel(noise_level= noise_guess**2, noise_level_bounds= (noise_min**2, noise_max**2)) 
         #Set Constant Kernel
         cont_kern = ConstantKernel(constant_value = 1, constant_value_bounds = (1e-3,1e4))
-        #Set the rest of the kernel
+        #Set lengthscale bounds and set the type of kernel
+        lenscl_bnds = self.__set_lenscl_bnds()
         if self.kernel.value == 3: #RBF
-            kernel = cont_kern*RBF(length_scale_bounds=(1e-03, 1e3)) + noise_kern
+            kernel = cont_kern*RBF(length_scale_bounds=(lenscl_bnds)) + noise_kern
         elif self.kernel.value == 2: #Matern 3/2
-            kernel = cont_kern*Matern(length_scale_bounds=(1e-03, 1e3), nu=1.5) + noise_kern 
+            kernel = cont_kern*Matern(length_scale_bounds=(lenscl_bnds), nu=1.5) + noise_kern 
         else: #Matern 5/2
-            kernel = cont_kern*Matern(length_scale_bounds=(1e-03, 1e3), nu=2.5) + noise_kern 
+            kernel = cont_kern*Matern(length_scale_bounds=(lenscl_bnds), nu=2.5) + noise_kern 
             
         return kernel
     
