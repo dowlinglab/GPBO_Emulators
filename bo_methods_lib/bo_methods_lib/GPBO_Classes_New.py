@@ -3389,6 +3389,9 @@ class GPBO_Driver:
             #This comes from the fact that the SSE of a random variable follows a chi-square distirbution w/ variance 2k
             noise_scl_fact = np.sqrt(2)*np.max(self.exp_data.get_num_x_vals-1,1)
             noise_std = self.simulator.noise_std*noise_scl_fact #SSE noise std is approximated as Yexp_std*len(x_exp)
+            if self.method.obj == 2:
+                #If using objective ln(sse), propogate the error using the mean of a chi^2 distribution
+                noise_std = noise_std/np.max(self.exp_data.get_num_x_vals-1,1)
             gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, noise_std, self.cs_params.outputscl, 
                                              self.cs_params.retrain_GP, self.cs_params.seed, self.cs_params.normalize, None, None, None, None)
         else:
