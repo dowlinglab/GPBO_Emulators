@@ -633,8 +633,8 @@ class General_Analysis:
         #Assert that heat map data does not aleady exist
         dir_name = os.path.join(job.fn(""), "analysis_data", "gp_evaluations", 
                                 "run_" + str(run_num), "iter_" + str(bo_iter))
-        parity_name = os.path.join(dir_name, "parity_data.npy")
-        found_data1, parity_data = self.load_data(parity_name)
+        data_name = os.path.join(dir_name, "test_data.pkl")
+        found_data1, test_data = self.load_data(data_name)
 
         #Get statepoint_info
         #Get statepoint info
@@ -643,27 +643,37 @@ class General_Analysis:
             sp_data = json.load(json_file)
         bo_runs_in_job = sp_data["bo_runs_in_job"]
         bo_run_num_int = sp_data["bo_run_num"]
-        #Otherwise Generate it
         run_idx = run_num - bo_run_num_int
+        meth_name_val = sp_data["meth_name_val"]
+        meth_name = Method_name_enum(meth_name_val)
+        method = GPBO_Methods(meth_name)
+        
+        #Otherwise Generate it
+        if not found_data1:
+            #Open file
+            results = open_file_helper(job.fn("BO_Results.gz"))
+            gp_object = copy.copy(results[run_idx].list_gp_emulator_class[bo_iter-1])
+            simulator = copy.copy(results[run_idx].simulator_class)
+            exp_data = copy.copy(results[0].exp_data_class) #Experimental data won't change
 
-        #Open file
-        results = open_file_helper(job.fn("BO_Results.gz"))
-        gp_object = copy.copy(results[run_idx].list_gp_emulator_class[bo_iter-1])
-        simulator = copy.copy(results[run_idx].simulator_class)
+            #Get testing data if it doesn't exist
+            if gp_object.test_data is None or len(gp_object.test_data.theta_vals) == 0:
+                #Generate testing data if it doesn't exist
+                #Get 10 num_theta and 5 num_x
+                test_data_sim = simulator.gen_sim_data(10, 5, Gen_meth_enum(1), Gen_meth_enum(2), 1.0, simulator.seed, False)
+                if method.emulator == False:
+                    test_data_sim = simulator.sim_data_to_sse_sim_data(method, test_data_sim, exp_data, 1.0, False)
+                gp_object.test_data = test_data_sim
+                gp_object.feature_test_data = gp_object.featurize_data(gp_object.test_data)
+                gp_object.test_data.gp_mean, gp_object.test_data.gp_var = gp_object.eval_gp_mean_var_test()   
 
-        #Get testing data if it exists
-        if gp_object.test_data is not None and len(gp_object.test_data.theta_vals)>0:
             test_data = gp_object.test_data
-        else:
-            #Generate testing data if it doesn't exist
-            #Get 10 num_theta and 5 num_x
-            test_data = simulator.gen_sim_data(10, 5, Gen_meth_enum(1), Gen_meth_enum(2), 1.0, simulator.seed, False)
-            #If method is not em, sim to sse
-            gp_object.test_data = test_data
-            gp_object.feature_test_data = gp_object.featurize_data(test_data)
-            mean, var = gp_object.eval_gp_mean_var_test()                       
-                    
-        return test_data, test_data_sse_data, sse_data, method
+            
+            if self.save_csv:
+                self.save_data(test_data, data_name)
+        
+        return test_data
+    
     def analyze_heat_maps(self, job, run_num, bo_iter, pair_id, get_ei = False):
         "Gets heat map data and analysis for a specific job, run number, and bo_iter"
 

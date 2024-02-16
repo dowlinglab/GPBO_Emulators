@@ -1231,6 +1231,64 @@ class Plotters:
         """
         Makes Parity plots of validation and true data for selected methods in best
         """
+        #Get Best Data Runs and iters
+        df_best, job_list_best = self.analyzer.get_best_data()
+        runs = df_best["Run Number"].to_list()
+        iters = df_best["BO Iter"].to_list()
+        #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
+        subplots_needed = len(runs)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False, sharey=False)
+        #Print the title and labels as appropriate
+        self.__set_plot_titles(fig, None, "True Values", "Predicted Values")
+
+        #Loop over different hyperparameters (number of subplots)
+        for i, ax in enumerate(axes.flatten()):
+            #Only plot data if axis is visible
+            if i < subplots_needed:
+                #Get the test data associated with the best job
+                test_data = self.analyzer.analyze_parity_plot_data(job_list_best[i], runs[i], iters[i])
+                
+                #Create label based on run #
+                sim_data = np.sort(test_data.y_vals)
+                # Step 1: Create a list of tuples containing mean and standard deviation
+                data = list(zip(test_data.gp_mean, np.sqrt(abs(test_data.gp_var))))
+                # Step 2: Sort the list based on means
+                sorted_data = sorted(data, key=lambda x: x[0])
+                # Step 3: Separate the sorted means and standard deviations
+                gp_mean = np.array([x[0] for x in sorted_data])
+                gp_stdev = np.array([x[1] for x in sorted_data])
+
+                #Plot x and y data
+                ax.plot(sim_data, sim_data, color = "k")
+                ax.scatter(sim_data, gp_mean, color = "blue", label = "GP Mean")
+                ax.fill_between(sim_data, gp_mean-1.96*gp_stdev, gp_mean+1.96*gp_stdev, alpha=0.3, color = "blue")
+                
+                #Set plot details
+                self.__set_subplot_details(ax, sim_data, gp_mean, None, None, self.method_names[i])
+
+
+            #Add legends and handles from last subplot that is visible
+            if i == subplots_needed -1:
+                handles, labels = axes[0, -1].get_legend_handles_labels()  
+                
+        #Plots legend
+        if labels:
+            fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 
+                       borderaxespad=0)
+
+        plt.tight_layout()
+            
+        #Save or show figure
+        if self.save_figs:
+            save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
+            save_path_dir = os.path.join(save_path)
+            save_path_to = os.path.join(save_path_dir, "parity_plots")
+            self.__save_fig(save_path_to)
+        else:
+            plt.show()
+            plt.close()
+            
+        return 
 
         
 
