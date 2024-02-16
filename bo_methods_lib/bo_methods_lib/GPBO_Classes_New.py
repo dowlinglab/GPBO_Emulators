@@ -1158,8 +1158,12 @@ class GP_Emulator:
         if self.normalize:
             self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
             sclr = float(self.scalerY.lambdas_)
+            #Scaled bounds. Even poorly behaved data is within 5 or 1/2 of a std
+            c_bnds = (0.5,5)
         else:
             sclr = 1.0
+            #For unscaled data, this distance on the mean is dependent of the data
+            c_bnds = (1e-3,1e4)
 
         #Set the noise guess or allow gp to tune the noise parameter
         if self.noise_std is not None:
@@ -1178,7 +1182,7 @@ class GP_Emulator:
             noise_kern = WhiteKernel(noise_level= noise_guess**2, noise_level_bounds= (noise_min**2, noise_max**2)) 
         #Set constant kernel guess as 1
         c_guess = 1
-        cont_kern = ConstantKernel(constant_value = c_guess, constant_value_bounds = (1e-3,1e4))
+        cont_kern = ConstantKernel(constant_value = c_guess, constant_value_bounds=c_bnds)
         #Set lengthscale bounds and set the type of kernel
         lenscl_bnds = self.__set_lenscl_bnds()
         if self.kernel.value == 3: #RBF
@@ -3387,15 +3391,16 @@ class GPBO_Driver:
             all_val_data = self.val_sse_data
             k = np.maximum(self.exp_data.get_num_x_vals()-1,1)
             #If using objective sse use var of a chi^2 distribution (2k)
-            if not self.method.obj == 2:
+            if not self.method.obj.value == 2:
                 noise_scl_fact = np.sqrt(2*k)
                 noise_std = self.simulator.noise_std*noise_scl_fact 
-            #If using objective ln(sse) use var of a log(chi^2) distribution diagamma' 
+            #If using objective ln(sse) guess the noise std
             else:
-                noise_std = float(scipy.special.polygamma(1, (k*self.simulator.noise_std**2)/2))
+                noise_std = None #np.sqrt(float(scipy.special.polygamma(1, (k*self.simulator.noise_std**2)/2)))
 
-            gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, noise_std, self.cs_params.outputscl, 
-                                             self.cs_params.retrain_GP, self.cs_params.seed, self.cs_params.normalize, None, None, None, None)
+            gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl,
+                                             noise_std, self.cs_params.outputscl, self.cs_params.retrain_GP, self.cs_params.seed, 
+                                             self.cs_params.normalize, None, None, None, None)
         else:
             all_gp_data = self.sim_data
             all_val_data = self.val_data

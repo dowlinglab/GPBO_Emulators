@@ -1249,14 +1249,15 @@ class Plotters:
                 test_data = self.analyzer.analyze_parity_plot_data(job_list_best[i], runs[i], iters[i])
                 
                 #Create label based on run #
-                sim_data = np.sort(test_data.y_vals)
+                sim_data = test_data.y_vals 
                 # Step 1: Create a list of tuples containing mean and standard deviation
-                data = list(zip(test_data.gp_mean, np.sqrt(abs(test_data.gp_var))))
+                data = list(zip(test_data.y_vals, test_data.gp_mean, np.sqrt(abs(test_data.gp_var))))
                 # Step 2: Sort the list based on means
                 sorted_data = sorted(data, key=lambda x: x[0])
                 # Step 3: Separate the sorted means and standard deviations
-                gp_mean = np.array([x[0] for x in sorted_data])
-                gp_stdev = np.array([x[1] for x in sorted_data])
+                sim_data = np.array([x[0] for x in sorted_data])
+                gp_mean = np.array([x[1] for x in sorted_data])
+                gp_stdev = np.array([x[2] for x in sorted_data])
 
                 #Plot x and y data
                 ax.plot(sim_data, sim_data, color = "k")
