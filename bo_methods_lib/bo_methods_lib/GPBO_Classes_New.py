@@ -3385,13 +3385,15 @@ class GPBO_Driver:
         if self.method.emulator == False:
             all_gp_data = self.sim_sse_data
             all_val_data = self.val_sse_data
-            #Scaling factor is sqrt(2) times num x samples -1 (1 if x_sampes is 0)
-            #This comes from the fact that the SSE of a random variable follows a chi-square distirbution w/ variance 2k
-            noise_scl_fact = np.sqrt(2)*np.max(self.exp_data.get_num_x_vals-1,1)
-            noise_std = self.simulator.noise_std*noise_scl_fact #SSE noise std is approximated as Yexp_std*len(x_exp)
-            if self.method.obj == 2:
-                #If using objective ln(sse), propogate the error using the mean of a chi^2 distribution
-                noise_std = noise_std/np.max(self.exp_data.get_num_x_vals-1,1)
+            k = np.max(self.exp_data.get_num_x_vals-1,1)
+            #If using objective sse use var of a chi^2 distribution (2k)
+            if not self.method.obj == 2:
+                noise_scl_fact = np.sqrt(2*k)
+                noise_std = self.simulator.noise_std*noise_scl_fact 
+            #If using objective ln(sse) use var of a log(chi^2) distribution diagamma' 
+            else:
+                noise_std = float(scipy.special.polygamma(1, (k*self.simulator.noise_std**2)/2))
+
             gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl, noise_std, self.cs_params.outputscl, 
                                              self.cs_params.retrain_GP, self.cs_params.seed, self.cs_params.normalize, None, None, None, None)
         else:
