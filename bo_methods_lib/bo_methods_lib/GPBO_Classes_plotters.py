@@ -1226,3 +1226,11 @@ class Plotters:
             plt.close()
         
         return plt.show()
+    
+    def make_parity_plots(self):
+        """
+        Makes Parity plots of validation and true data for selected methods in best
+        """
+
+        
+

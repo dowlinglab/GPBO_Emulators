@@ -492,7 +492,7 @@ class General_Analysis:
         df_job = df_job.sort_values(by=['Run Number', 'BO Iter'], ascending=True)
 
         return df_job, data, data_true, sp_data, tot_runs
-
+    
     def analyze_obj_vals(self, job, z_choices):
         """
         Gets the data into an array for any comination of sse, log_sse, and ei
@@ -624,6 +624,46 @@ class General_Analysis:
         
         return cs_params, method, gen_meth_theta, ep_enum        
 
+    def analyze_parity_plot_data(self, job, run_num, bo_iter):
+        """
+        Generates parity plot for testing data
+        """
+        #Get Best Data
+        #Check if data exists, if so, load it
+        #Assert that heat map data does not aleady exist
+        dir_name = os.path.join(job.fn(""), "analysis_data", "gp_evaluations", 
+                                "run_" + str(run_num), "iter_" + str(bo_iter))
+        parity_name = os.path.join(dir_name, "parity_data.npy")
+        found_data1, parity_data = self.load_data(parity_name)
+
+        #Get statepoint_info
+        #Get statepoint info
+        with open(job.fn("signac_statepoint.json"), 'r') as json_file:
+            # Load the JSON data
+            sp_data = json.load(json_file)
+        bo_runs_in_job = sp_data["bo_runs_in_job"]
+        bo_run_num_int = sp_data["bo_run_num"]
+        #Otherwise Generate it
+        run_idx = run_num - bo_run_num_int
+
+        #Open file
+        results = open_file_helper(job.fn("BO_Results.gz"))
+        gp_object = copy.copy(results[run_idx].list_gp_emulator_class[bo_iter-1])
+        simulator = copy.copy(results[run_idx].simulator_class)
+
+        #Get testing data if it exists
+        if gp_object.test_data is not None and len(gp_object.test_data.theta_vals)>0:
+            test_data = gp_object.test_data
+        else:
+            #Generate testing data if it doesn't exist
+            #Get 10 num_theta and 5 num_x
+            test_data = simulator.gen_sim_data(10, 5, Gen_meth_enum(1), Gen_meth_enum(2), 1.0, simulator.seed, False)
+            #If method is not em, sim to sse
+            gp_object.test_data = test_data
+            gp_object.feature_test_data = gp_object.featurize_data(test_data)
+            mean, var = gp_object.eval_gp_mean_var_test()                       
+                    
+        return test_data, test_data_sse_data, sse_data, method
     def analyze_heat_maps(self, job, run_num, bo_iter, pair_id, get_ei = False):
         "Gets heat map data and analysis for a specific job, run number, and bo_iter"
 
@@ -1367,38 +1407,6 @@ def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice
         gp_var  =  np.exp(sim_data_x.gp_var.reshape(x_val_num, x_val_num).T)
     
     return test_mesh, y_sim, gp_mean, gp_var, theta_value, exp_data.x_vals, idcs_to_plot
-
-def analyze_parity_plot_data(file_path, run_num, bo_iter):
-    """
-    Generates parity plot for testing data
-    """
-    run_num -= 1
-    bo_iter -= 1
-    loaded_results = open_file_helper(file_path)
-    
-    #get exp_data and theta_opt
-    exp_data = loaded_results[run_num].exp_data_class
-    gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
-    simulator = loaded_results[run_num].simulator_class
-    train_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data
-    test_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].test_data
-    enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
-    meth_name = Method_name_enum(enum_method)
-    method = GPBO_Methods(meth_name)
-    sep_fact = loaded_results[run_num].configuration["Separation Factor"]
-
-    test_data.gp_mean, test_data.gp_var = gp_emulator.eval_gp_mean_var_test()
-
-    if method.emulator == False:
-        test_data.sse, test_data.sse_var = gp_emulator.eval_gp_sse_var_test()
-        sse_data = copy.copy(test_data) 
-        test_data_sse_data = None
-    else:
-        test_data.sse, test_data.sse_var = gp_emulator.eval_gp_sse_var_test(method, exp_data)
-        test_data_sse_data = simulator.sim_data_to_sse_sim_data(method, test_data, exp_data, sep_fact, False)
-        sse_data = None                           
-                   
-    return test_data, test_data_sse_data, sse_data, method
 
 #NOTE: DO NOT USE THIS FXN UNTIL THE NORMALIZATION ISSUE IS FIXED IN IT
 def analyze_param_sens(file_path, run_num, bo_iter, param_id, n_points):
