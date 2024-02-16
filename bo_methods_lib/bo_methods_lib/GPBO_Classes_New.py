@@ -3385,7 +3385,7 @@ class GPBO_Driver:
         if self.method.emulator == False:
             all_gp_data = self.sim_sse_data
             all_val_data = self.val_sse_data
-            k = np.max(self.exp_data.get_num_x_vals-1,1)
+            k = np.max(self.exp_data.get_num_x_vals()-1,1)
             #If using objective sse use var of a chi^2 distribution (2k)
             if not self.method.obj == 2:
                 noise_scl_fact = np.sqrt(2*k)

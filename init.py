@@ -7,12 +7,12 @@ import bo_methods_lib
 project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
-cs_val_list  = [13]
+cs_val_list  = [1]
 meth_val_list = [1, 2, 3, 4, 5, 6] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
 ep0 = 1 #Set initial ep as an even mix between exploration and exploitation
-ep_val_list = [1, 2, 3, 4]
+ep_val_list = [1]
 sep_fact = 1.0
 gen_heat_map_data = True
 normalize = True
@@ -27,11 +27,11 @@ retrain_GP = 25
 reoptimize_obj = 25
 bo_iter_tot = 50
 bo_run_total = 5
-runs_per_job_max = 2
+runs_per_job_max = 5
 save_data = False
 ei_tol = 1e-7
 obj_tol = 1e-7
-num_x_data = 10
+num_x_data = 5
 gen_meth_theta = 1 
 gen_meth_x = 2
 gen_meth_theta_val = 2
