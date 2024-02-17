@@ -869,7 +869,7 @@ class LS_Analysis(General_Analysis):
         theta_guess_data = Data(t_guess_repeat, exp_data.x_vals, None, None, None, None, None, None, 
                               simulator.bounds_theta_reg,  simulator.bounds_x, 1, simulator.seed)
         #Calculate y values and sse for theta_best with noise
-        theta_guess_data.y_vals = simulator.gen_y_data(theta_guess_data, 0, 0)  
+        theta_guess_data.y_vals = simulator.gen_y_data(theta_guess_data, simulator.noise_mean, simulator.noise_std)  
         
         error = exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten()
 
@@ -915,8 +915,7 @@ class LS_Analysis(General_Analysis):
             #Set tot_runs cs as 5 as a default
             tot_runs_cs = 5
             #Create simulator and exp Data class objects
-            simulator = simulator_helper_test_fxns(self.criteria_dict["cs_name_val"], 
-                                                        0, None, self.seed)
+            simulator = simulator_helper_test_fxns(self.criteria_dict["cs_name_val"], 0, None, self.seed)
             exp_data = simulator.gen_exp_data(num_x, Gen_meth_enum(2), self.seed)
 
         if self.simulator is None:
