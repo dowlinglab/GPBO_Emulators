@@ -918,10 +918,8 @@ class LS_Analysis(General_Analysis):
             simulator = simulator_helper_test_fxns(self.criteria_dict["cs_name_val"], 0, None, self.seed)
             exp_data = simulator.gen_exp_data(num_x, Gen_meth_enum(2), self.seed)
 
-        if self.simulator is None:
-            self.simulator = simulator
-        if self.exp_data is None:
-            self.exp_data = exp_data
+        self.simulator = simulator
+        self.exp_data = exp_data
             
         return simulator, exp_data, tot_runs_cs
     
@@ -1000,7 +998,7 @@ class LS_Analysis(General_Analysis):
                 #Append to results_df
                 ls_results = pd.concat([ls_results.astype(iter_df.dtypes), iter_df], ignore_index=True)
 
-                self.seed += 2
+                self.seed += 1
                 #Reset iter lists
                 self.iter_param_data = []
                 self.iter_sse_data = []
