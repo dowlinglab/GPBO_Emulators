@@ -1141,6 +1141,7 @@ class GP_Emulator:
         #Ensure min lenscl < max lenscl
         min_lenscl = np.minimum(lenscl_1, lenscl_2)
         max_lenscl = np.maximum(lenscl_1, lenscl_2)
+        # print(min_lenscl, max_lenscl)
         return min_lenscl, max_lenscl
     
     def __set_kernel(self):
