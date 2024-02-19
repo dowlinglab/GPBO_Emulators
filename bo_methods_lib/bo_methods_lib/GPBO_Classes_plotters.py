@@ -1248,21 +1248,15 @@ class Plotters:
                 #Get the test data associated with the best job
                 test_data = self.analyzer.analyze_parity_plot_data(job_list_best[i], runs[i], iters[i])
                 
-                #Create label based on run #
+                #Get data from test_data
                 sim_data = test_data.y_vals 
-                # Step 1: Create a list of tuples containing mean and standard deviation
-                data = list(zip(test_data.y_vals, test_data.gp_mean, np.sqrt(abs(test_data.gp_var))))
-                # Step 2: Sort the list based on means
-                sorted_data = sorted(data, key=lambda x: x[0])
-                # Step 3: Separate the sorted means and standard deviations
-                sim_data = np.array([x[0] for x in sorted_data])
-                gp_mean = np.array([x[1] for x in sorted_data])
-                gp_stdev = np.array([x[2] for x in sorted_data])
+                gp_mean = test_data.gp_mean
+                gp_stdev = np.sqrt(abs(test_data.gp_var))
 
                 #Plot x and y data
                 ax.plot(sim_data, sim_data, color = "k")
                 ax.scatter(sim_data, gp_mean, color = "blue", label = "GP Mean")
-                ax.fill_between(sim_data, gp_mean-1.96*gp_stdev, gp_mean+1.96*gp_stdev, alpha=0.3, color = "blue")
+                ax.errorbar(sim_data, gp_mean, yerr = 1.96*gp_stdev, alpha=0.3, fmt = 'o', color = "blue")
                 
                 #Set plot details
                 self.__set_subplot_details(ax, sim_data, gp_mean, None, None, self.method_names[i])
