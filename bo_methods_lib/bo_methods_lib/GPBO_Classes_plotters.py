@@ -134,9 +134,9 @@ class Plotters:
         #Back out best runs from job_list_best
         emph_runs = df_best["Run Number"].values
         #Initialize list of maximum bo iterations for each method
-        meth_bo_max_evals = np.zeros(len(job_list_best))
+        meth_bo_max_evals = np.zeros(len(self.method_names))
         #Number of subplots is the length of the best jobs list
-        subplots_needed = len(job_list_best)
+        subplots_needed = len(self.method_names)
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
         
         #Print the title and labels as appropriate
@@ -144,15 +144,19 @@ class Plotters:
 
         #Loop over different jobs
         for i in range(len(job_pointer)):
+            #Assert job exists, if it does, great,
             #Get data
             data, data_names, data_true, sp_data = self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
             GPBO_method_val = sp_data["meth_name_val"]
+            shrt_name = Method_name_enum(GPBO_method_val).name
 
             #Get Number of runs in the job
             runs_in_job = sp_data["bo_runs_in_job"]
 
             #Set subplot index to the corresponding method value number
             ax_idx = int(GPBO_method_val - 1)
+            #Find the run corresponding to the best row for that job
+            emph_run = df_best.loc[df_best['BO Method'] == shrt_name, 'Run Number'].iloc[0]
             ax_row, ax_col = plot_mapping[ax_idx]
 
             #Loop over all runs
@@ -176,7 +180,7 @@ class Plotters:
 
                 #For result where run num list is the number of runs, print a solid line 
                 # print(ax_idx, emph_runs[ax_idx], run_number)
-                if emph_runs[ax_idx] == run_number:
+                if emph_run == run_number:
                     ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], 
                                             label = label, drawstyle='steps')
                 else:
