@@ -1130,7 +1130,7 @@ class GP_Emulator:
         # Mask out infinite values so that np.max will ignore them
         pairwise_distances = np.ma.masked_invalid(pairwise_distances)
 
-        # Find the maximum and minimum distances between pointd
+        # Find the maximum and minimum distances between points
         max_distance = np.max(pairwise_distances)
         min_distance = np.min(pairwise_distances)
 
@@ -1138,9 +1138,9 @@ class GP_Emulator:
         lenscl_1 = min(max_distance, 100)
         #Set min lenscl as the larger of the min distance or 0.01
         lenscl_2 = max(min_distance, 1e-2)
-        #Ensure min lenscl < max lenscl
-        min_lenscl = np.minimum(lenscl_1, lenscl_2)
-        max_lenscl = np.maximum(lenscl_1, lenscl_2)
+        #Ensure min lenscl < max lenscl and that bounds are floats
+        min_lenscl = float(np.minimum(lenscl_1, lenscl_2))
+        max_lenscl = float(np.maximum(lenscl_1, lenscl_2))
         # print(min_lenscl, max_lenscl)
         return min_lenscl, max_lenscl
     
@@ -1177,8 +1177,8 @@ class GP_Emulator:
             #Set the min noise as 1% of the data mean or 1e-2 (minimum)
             noise_b1 = max(np.abs(np.mean(self.gp_sim_data.y_vals)*sclr)*0.01, 1e-2)
             noise_b2 = np.abs(np.mean(self.gp_sim_data.y_vals)*sclr)*0.1
-            noise_min = np.minimum(noise_b1, noise_b2)
-            noise_max = np.maximum(noise_b1, noise_b2)
+            noise_min = float(np.minimum(noise_b1, noise_b2))
+            noise_max = float(np.maximum(noise_b1, noise_b2))
             #Ensure the guess is in the bounds, if not, use the mean of the max and min
             if not noise_min <= noise_guess <= noise_max:
                 noise_guess = (noise_min+noise_max)/2
