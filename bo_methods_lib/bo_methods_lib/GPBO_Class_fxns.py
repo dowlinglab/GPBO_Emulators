@@ -520,11 +520,11 @@ class CS16:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
         self.idcs_to_consider = [0,1,2,3]
-        self.bounds_x_l = [-2*math.pi, -2*math.pi]
-        self.bounds_x_u = [ 3*math.pi, 3*math.pi]
+        self.bounds_x_l = [0, 0]
+        self.bounds_x_u = [ 2*math.pi, 2*math.pi]
         self.bounds_theta_l = [-2, -2, -2, -2]
         self.bounds_theta_u = [ 2, 2, 2, 2]
-        self.theta_ref = np.array([0.75, -1, 1.5, -1.0]) 
+        self.theta_ref = np.array([0.75, -1.0, 1.5, -1.0]) 
         self.calc_y_fxn = calc_cs16_trig
         self.calc_y_fxn_args = None
 
@@ -562,11 +562,11 @@ class CS17:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
         self.idcs_to_consider = [0,1,2,3]
-        self.bounds_x_l = [0]
-        self.bounds_x_u = [6*math.pi]
-        self.bounds_theta_l = [0, -1, 0, -10]
+        self.bounds_x_l = [-math.pi]
+        self.bounds_x_u = [2*math.pi]
+        self.bounds_theta_l = [0, -1, 0, -5]
         self.bounds_theta_u = [5,  1e-1, 5,  0]
-        self.theta_ref = np.array([3,-0.2,1,-1]) 
+        self.theta_ref = np.array([3.0,-0.2,1.0,-1.0]) 
         self.calc_y_fxn = calc_cs17_expcos
         self.calc_y_fxn_args = None
 
