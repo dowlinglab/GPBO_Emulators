@@ -849,6 +849,7 @@ class LS_Analysis(General_Analysis):
         #Placeholder that will be overwritten if None
         self.simulator = simulator
         self.exp_data = exp_data
+        self.num_x = 10 #Default number of x to generate
 
     # Create a function to optimize, in this case, least squares fitting
     def __ls_scipy_func(self, theta_guess, exp_data, simulator):
@@ -884,7 +885,7 @@ class LS_Analysis(General_Analysis):
 
         return error
     
-    def __get_simulator_exp_data(self, num_x = 10):
+    def __get_simulator_exp_data(self):
         jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
         valid_files = [job.fn("BO_Results.gz") for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
         if len(valid_files) > 0:
@@ -916,7 +917,7 @@ class LS_Analysis(General_Analysis):
             tot_runs_cs = 5
             #Create simulator and exp Data class objects
             simulator = simulator_helper_test_fxns(self.criteria_dict["cs_name_val"], 0, None, self.seed)
-            exp_data = simulator.gen_exp_data(num_x, Gen_meth_enum(2), self.seed)
+            exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
 
         self.simulator = simulator
         self.exp_data = exp_data
