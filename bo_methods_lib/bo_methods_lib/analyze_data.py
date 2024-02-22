@@ -1013,6 +1013,58 @@ class LS_Analysis(General_Analysis):
                 self.save_data(ls_results, ls_data_path)
 
         return ls_results
+    
+    def categ_min(self):
+        """
+        categorize the minima found by least squares
+        """
+        cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
+        ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "ls_local_min.csv")
+        found_data1, local_min_sets = self.load_data(ls_data_path)
+
+        if not found_data1:
+            #Run Least Squares 500 times using
+            ls_results = 1
+            #TO DO: Write a function that can do this effectively in the class framework
+
+            #Get samples to filter through and drop true duplicates of parameter sets
+            all_sets = ls_results[["Theta Min Obj", "Min Obj Act"]].copy(deep=True)
+            all_sets = all_sets.drop_duplicates(subset="Theta Min Obj", keep='first')
+
+            #make a dataframe to store the discarded and not discarded points
+            local_min_sets = pd.DataFrame(columns = all_sets.columns)
+            discarded_points = pd.DataFrame(columns=all_sets.columns)
+
+            if self.seed != None:
+                np.random.seed(self.seed)
+
+            #While you have samples
+            while len(all_sets > 0):
+                # Shuffle the points
+                all_sets = all_sets.sample(frac=1)
+                #Add the 1st object in the shuffled list to your local min sets
+                new_points = pd.DataFrame(all_sets.iloc[[0]], columns = local_min_sets.columns)
+                local_min_sets = pd.concat([local_min_sets.astype(new_points.dtypes), new_points] , ignore_index = True)
+                #Set distance to be 1% of the sum of the abs values of the parameters in the set
+                distance = np.sum(all_sets["Theta Min Obj Cum."].values)*0.01
+                # calculate l1 norm
+                dist = np.abs(all_sets["Theta Min Obj Cum."].values
+                        - new_points["Param Set"].iloc[[-1]].values)
+                l1_norm = np.sum(dist, axis=1)
+                # Remove any points where l2_norm <= distance
+                points_to_remove = np.where(l1_norm <= distance)[0]
+                discarded_points = discarded_points.append(
+                    all_sets.iloc[points_to_remove])
+                all_sets.drop(
+                    index=all_sets.index[points_to_remove], inplace=True)
+                
+            #Reset the index of the pandas df
+            local_min_sets = local_min_sets.reset_index(drop=True)
+
+            if self.save_csv:
+                self.save_data(local_min_sets, ls_data_path)
+
+        return local_min_sets
 
 def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = False, save_csv =False):
     """
