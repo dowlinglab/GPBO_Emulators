@@ -923,19 +923,25 @@ class LS_Analysis(General_Analysis):
         self.exp_data = exp_data
             
         return simulator, exp_data, tot_runs_cs
-    
-    def least_squares_analysis(self):
+
+    def least_squares_analysis(self, tot_runs = None):
         """
         Performs least squares regression on the problem equal to what was done with BO
         """
+        assert isinstance(tot_runs, int) or tot_runs is None, "tot_runs must be int or None"
+        if isinstance(tot_runs, int):
+            assert tot_runs > 0, "tot_runs must be > 0 if int"
+        tot_runs_str = str(tot_runs) if tot_runs is not None else "cs_runs"
         cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
-        ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "least_squares.csv")
+        ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "ls_" + tot_runs_str + ".csv")
         # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
         found_data1, ls_results = self.load_data(ls_data_path)
 
         if not found_data1:
             #Get simulator and exp_data Data class objects
             simulator, exp_data, tot_runs_cs = self.__get_simulator_exp_data()
+
+            num_restarts = tot_runs_cs if tot_runs is None else tot_runs
             len_x = exp_data.get_num_x_vals()
 
             #Set seed
@@ -944,7 +950,7 @@ class LS_Analysis(General_Analysis):
             #Note: As of now, I am not necessarily using the same starting points as with GPBO. 
             #MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
             #Note: Starting points for optimization are saved in the driver, which is not saved in BO_Results.gz
-            theta_guess = self.simulator.gen_theta_vals(tot_runs_cs)
+            theta_guess = self.simulator.gen_theta_vals(num_restarts)
 
             #Initialize results dataframe
             column_names = ["Run", "Iter", 'Min Obj Act', 'Theta Min Obj', "Min Obj Cum.", 
@@ -955,7 +961,7 @@ class LS_Analysis(General_Analysis):
             ls_results = pd.DataFrame(columns=column_names)
 
             #Loop over number of runs
-            for i in range(tot_runs_cs):
+            for i in range(num_restarts):
                 #Start timer
                 time_start = time.time()
                 #Find least squares solution
@@ -1014,18 +1020,25 @@ class LS_Analysis(General_Analysis):
 
         return ls_results
     
-    def categ_min(self):
+    def categ_min(self, tot_runs = None):
         """
         categorize the minima found by least squares
         """
+        assert isinstance(tot_runs, int) or tot_runs is None, "tot_runs must be int or None"
+        if isinstance(tot_runs, int):
+            assert tot_runs > 0, "tot_runs must be > 0 if int"
+        tot_runs_str = str(tot_runs) if tot_runs is not None else "cs_runs"
         cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
-        ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "ls_local_min.csv")
+        ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "ls_local_min_" + tot_runs_str + ".csv")
         found_data1, local_min_sets = self.load_data(ls_data_path)
+        #Set save csv to false so that 500 restarts csv data is not saved
+        self.save_csv = False
 
         if not found_data1:
-            #Run Least Squares 500 times using
-            ls_results = 1
-            #TO DO: Write a function that can do this effectively in the class framework
+            #Run Least Squares 500 times
+            ls_results = self.least_squares_analysis(tot_runs)
+            #Set save csv to True so that best restarts csv data is saved
+            self.save_csv = True
 
             #Get samples to filter through and drop true duplicates of parameter sets
             all_sets = ls_results[["Theta Min Obj", "Min Obj Act"]].copy(deep=True)
