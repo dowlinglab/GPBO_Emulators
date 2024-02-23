@@ -917,6 +917,8 @@ class LS_Analysis(General_Analysis):
             tot_runs_cs = 5
             #Create simulator and exp Data class objects
             simulator = simulator_helper_test_fxns(self.criteria_dict["cs_name_val"], 0, None, self.seed)
+            #Set num_x based off cs number
+            #DO THIS
             exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
 
         self.simulator = simulator
@@ -1039,24 +1041,30 @@ class LS_Analysis(General_Analysis):
         if not found_data1:
             #Run Least Squares 500 times
             ls_results = self.least_squares_analysis(tot_runs)
+            #Drop all except best iteration for each run
+            ls_results_sort = ls_results.sort_values(by=['Min Obj Cum.', 'Iter'], ascending=True)
+            ls_results = ls_results_sort.drop_duplicates(subset="Run", keep='first')
+            # ls_results = ls_results[ls_results['Iter'] != 1] #Can go through all and not just best
+
             #Set save csv to True so that best restarts csv data is saved
             self.save_csv = save_csv_org
 
             #Get samples to filter through and drop true duplicates of parameter sets
-            all_sets = ls_results[["Theta Min Obj", "Min Obj Act"]].copy(deep=True)
+            all_sets = ls_results[["Theta Min Obj Cum.", "Min Obj Cum."]].copy(deep=True)
             
             #Make all arrays tuples
-            all_sets["Theta Min Obj"] = tuple(map(tuple, all_sets["Theta Min Obj"]))
-            all_sets = all_sets.drop_duplicates(subset="Theta Min Obj", keep='first')
-            print(len(all_sets))
+            all_sets["Theta Min Obj Cum."] = tuple(map(tuple, all_sets["Theta Min Obj Cum."]))
+            
+            #Drop duplicate minima
+            all_sets = all_sets.drop_duplicates(subset="Theta Min Obj Cum.", keep='first')
             #make a dataframe to store the discarded and not discarded points
             local_min_sets = pd.DataFrame(columns = all_sets.columns)
             discarded_points = pd.DataFrame(columns=all_sets.columns)
-
+            #Set seed
             if self.seed != None:
                 np.random.seed(self.seed)
 
-            #While you have samples
+            #While you have samples to analyze
             while len(local_min_sets) + len(discarded_points) < len(all_sets):
                 # Shuffle the points
                 all_sets = all_sets.sample(frac=1)
@@ -1065,10 +1073,10 @@ class LS_Analysis(General_Analysis):
                 local_min_sets = pd.concat([local_min_sets.astype(new_points.dtypes), new_points] , ignore_index = True)
                 
                 #Set distance to be 1% of the sum of the abs values of the parameters in the new set
-                distance = np.sum(list(map(np.array, all_sets["Theta Min Obj"].iloc[[0]].values))[0])*0.01
+                distance = np.sum(abs(list(map(np.array, all_sets["Theta Min Obj Cum."].iloc[[0]].values))[0]))*1e-4
                 # calculate l1 norm
-                array_sets = np.array(list(map(np.array, all_sets["Theta Min Obj"].values)))
-                array_new = np.array(list(map(np.array, new_points["Theta Min Obj"].iloc[[-1]].values)))
+                array_sets = np.array(list(map(np.array, all_sets["Theta Min Obj Cum."].values)))
+                array_new = np.array(list(map(np.array, new_points["Theta Min Obj Cum."].iloc[[-1]].values)))
                 dist = np.abs(array_sets - array_new)
                 l1_norm = np.sum(dist, axis=1)
                 # Remove any points where l2_norm <= distance
@@ -1078,9 +1086,10 @@ class LS_Analysis(General_Analysis):
                 all_sets.drop(
                     index=all_sets.index[points_to_remove], inplace=True)
                 
-                print(len(local_min_sets) + len(discarded_points))
-                
-            #Reset the index of the pandas df
+            #Change tuples to arrays
+            local_min_sets["Theta Min Obj Cum."] = local_min_sets["Theta Min Obj Cum."].apply(np.array)
+            #Put in order of lowest sse and reset index
+            local_min_sets = local_min_sets.sort_values(by=['Min Obj Cum.'], ascending=True)
             local_min_sets = local_min_sets.reset_index(drop=True)
 
             if self.save_csv:
