@@ -1032,18 +1032,23 @@ class LS_Analysis(General_Analysis):
         ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "ls_local_min_" + tot_runs_str + ".csv")
         found_data1, local_min_sets = self.load_data(ls_data_path)
         #Set save csv to false so that 500 restarts csv data is not saved
+        save_csv_org = self.save_csv
         self.save_csv = False
+        
 
         if not found_data1:
             #Run Least Squares 500 times
             ls_results = self.least_squares_analysis(tot_runs)
             #Set save csv to True so that best restarts csv data is saved
-            self.save_csv = True
+            self.save_csv = save_csv_org
 
             #Get samples to filter through and drop true duplicates of parameter sets
             all_sets = ls_results[["Theta Min Obj", "Min Obj Act"]].copy(deep=True)
+            
+            #Make all arrays tuples
+            all_sets["Theta Min Obj"] = tuple(map(tuple, all_sets["Theta Min Obj"]))
             all_sets = all_sets.drop_duplicates(subset="Theta Min Obj", keep='first')
-
+            print(len(all_sets))
             #make a dataframe to store the discarded and not discarded points
             local_min_sets = pd.DataFrame(columns = all_sets.columns)
             discarded_points = pd.DataFrame(columns=all_sets.columns)
@@ -1052,24 +1057,28 @@ class LS_Analysis(General_Analysis):
                 np.random.seed(self.seed)
 
             #While you have samples
-            while len(all_sets > 0):
+            while len(local_min_sets) + len(discarded_points) < len(all_sets):
                 # Shuffle the points
                 all_sets = all_sets.sample(frac=1)
                 #Add the 1st object in the shuffled list to your local min sets
                 new_points = pd.DataFrame(all_sets.iloc[[0]], columns = local_min_sets.columns)
                 local_min_sets = pd.concat([local_min_sets.astype(new_points.dtypes), new_points] , ignore_index = True)
-                #Set distance to be 1% of the sum of the abs values of the parameters in the set
-                distance = np.sum(all_sets["Theta Min Obj Cum."].values)*0.01
+                
+                #Set distance to be 1% of the sum of the abs values of the parameters in the new set
+                distance = np.sum(list(map(np.array, all_sets["Theta Min Obj"].iloc[[0]].values))[0])*0.01
                 # calculate l1 norm
-                dist = np.abs(all_sets["Theta Min Obj Cum."].values
-                        - new_points["Param Set"].iloc[[-1]].values)
+                array_sets = np.array(list(map(np.array, all_sets["Theta Min Obj"].values)))
+                array_new = np.array(list(map(np.array, new_points["Theta Min Obj"].iloc[[-1]].values)))
+                dist = np.abs(array_sets - array_new)
                 l1_norm = np.sum(dist, axis=1)
                 # Remove any points where l2_norm <= distance
                 points_to_remove = np.where(l1_norm <= distance)[0]
-                discarded_points = discarded_points.append(
-                    all_sets.iloc[points_to_remove])
+                disc_point_df = pd.DataFrame(all_sets.iloc[points_to_remove], columns = local_min_sets.columns)
+                discarded_points = pd.concat([discarded_points.astype(disc_point_df.dtypes), disc_point_df] , ignore_index = True)
                 all_sets.drop(
                     index=all_sets.index[points_to_remove], inplace=True)
+                
+                print(len(local_min_sets) + len(discarded_points))
                 
             #Reset the index of the pandas df
             local_min_sets = local_min_sets.reset_index(drop=True)
