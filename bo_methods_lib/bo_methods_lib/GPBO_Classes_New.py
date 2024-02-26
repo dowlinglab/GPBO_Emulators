@@ -1352,16 +1352,18 @@ class GP_Emulator:
         
         #Evaluate GP given parameter set theta and state point value
         gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict(eval_points, return_cov=True)  
+        gp_var_scl = np.diag(gp_covar_scl)
 
         #Unscale gp_mean and gp_covariance
         if self.normalize == True:
             gp_mean = self.scalerY.inverse_transform(gp_mean_scl.reshape(-1,1)).flatten()
+            #How to unscale this transformation?
             gp_covar = float(self.scalerY.lambdas_**2) * gp_covar_scl  
+            gp_var = self.scalerY.inverse_transform(gp_var_scl.reshape(-1,1))
         else:
             gp_mean = gp_mean_scl
             gp_covar = gp_covar_scl
-        
-        gp_var = np.diag(gp_covar)
+            gp_var = gp_var_scl
 
         return gp_mean, gp_var, gp_covar
     
