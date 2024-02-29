@@ -956,7 +956,7 @@ class LS_Analysis(General_Analysis):
 
             #Initialize results dataframe
             column_names = ["Run", "Iter", 'Min Obj Act', 'Theta Min Obj', "Min Obj Cum.", 
-                            "Theta Min Obj Cum.",'MSE', 'l2 norm', "jac evals", "Termination", 
+                            "Theta Min Obj Cum.",'MSE', 'l2 norm', "jac evals", "Optimality", "Termination", 
                             "Run Time"]
             column_names_iter = ["Run", "Iter", 'Min Obj Act', 'Theta Min Obj', "Min Obj Cum.", 
                                  "Theta Min Obj Cum.",'MSE', 'l2 norm']
@@ -1003,6 +1003,7 @@ class LS_Analysis(General_Analysis):
                 iter_df["Run Time"] = time_per_run
                 iter_df["jac evals"] = Solution.njev
                 iter_df["Termination"] = Solution.status
+                iter_df["Optimality"] = Solution.optimality
                 
                 #Append to results_df
                 ls_results = pd.concat([ls_results.astype(iter_df.dtypes), iter_df], ignore_index=True)
@@ -1050,13 +1051,16 @@ class LS_Analysis(General_Analysis):
             self.save_csv = save_csv_org
 
             #Get samples to filter through and drop true duplicates of parameter sets
-            all_sets = ls_results[["Theta Min Obj Cum.", "Min Obj Cum."]].copy(deep=True)
+            all_sets = ls_results[["Theta Min Obj Cum.", "Min Obj Cum.", "Optimality", "Termination"]].copy(deep=True)
             
             #Make all arrays tuples
             all_sets["Theta Min Obj Cum."] = tuple(map(tuple, all_sets["Theta Min Obj Cum."]))
             
             #Drop duplicate minima
             all_sets = all_sets.drop_duplicates(subset="Theta Min Obj Cum.", keep='first')
+            #Drop minima with optimality > 1e-4
+            all_sets = all_sets[all_sets['Optimality'] < 1e-4]
+            
             #make a dataframe to store the discarded and not discarded points
             local_min_sets = pd.DataFrame(columns = all_sets.columns)
             discarded_points = pd.DataFrame(columns=all_sets.columns)
@@ -1091,6 +1095,8 @@ class LS_Analysis(General_Analysis):
             #Put in order of lowest sse and reset index
             local_min_sets = local_min_sets.sort_values(by=['Min Obj Cum.'], ascending=True)
             local_min_sets = local_min_sets.reset_index(drop=True)
+            
+            
 
             if self.save_csv:
                 self.save_data(local_min_sets, ls_data_path)
