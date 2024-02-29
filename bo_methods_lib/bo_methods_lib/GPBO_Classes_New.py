@@ -12,7 +12,7 @@ import time
 import Tasmanian
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel, DotProduct
-from sklearn.preprocessing import StandardScaler, PowerTransformer
+from sklearn.preprocessing import StandardScaler, PowerTransformer, RobustScaler
 from scipy.stats import qmc
 import pandas as pd
 from enum import Enum
@@ -1086,8 +1086,9 @@ class GP_Emulator:
         self.normalize = normalize
         #If normalize, create the scalers
         if normalize == True:
-            self.scalerX = PowerTransformer(method = 'yeo-johnson', standardize = True)
-            self.scalerY = PowerTransformer(method = 'yeo-johnson', standardize = True)
+            # self.scalerX = PowerTransformer(method = 'yeo-johnson', standardize = True)
+            self.scalerX = RobustScaler(unit_variance = True)
+            self.scalerY = RobustScaler(unit_variance = True)
         self.__feature_train_data = None #Added using child class
         self.__feature_test_data = None #Added using child class
         self.__feature_val_data = None #Added using child class
@@ -1158,7 +1159,7 @@ class GP_Emulator:
         #Set scaler for noise based on if we are scaling the training data
         if self.normalize:
             self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
-            sclr = float(self.scalerY.lambdas_)
+            sclr = float(self.scalerY.scale_)
             #Scaled bounds. Even poorly behaved data is within 5 or 1/2 of a std
             c_bnds = (0.5,5)
         else:
@@ -1169,14 +1170,14 @@ class GP_Emulator:
         #Set the noise guess or allow gp to tune the noise parameter
         if self.noise_std is not None:
             #If we know the noise, use it
-            noise_guess = (sclr*self.noise_std)**2
+            noise_guess = (self.noise_std/sclr)**2
             noise_kern = WhiteKernel(noise_level=noise_guess, noise_level_bounds= "fixed")
         else:
             #Otherwise, set the guess as 5% the taining data mean
-            noise_guess = np.abs(np.mean(self.gp_sim_data.y_vals)*sclr)*0.05
+            noise_guess = np.abs(np.mean(self.gp_sim_data.y_vals)/sclr)*0.05
             #Set the min noise as 1% of the data mean or 1e-2 (minimum)
-            noise_b1 = max(np.abs(np.mean(self.gp_sim_data.y_vals)*sclr)*0.01, 1e-2)
-            noise_b2 = np.abs(np.mean(self.gp_sim_data.y_vals)*sclr)*0.1
+            noise_b1 = max(np.abs(np.mean(self.gp_sim_data.y_vals)/sclr)*0.01, 1e-2)
+            noise_b2 = np.abs(np.mean(self.gp_sim_data.y_vals)/sclr)*0.1
             noise_min = float(np.minimum(noise_b1, noise_b2))
             noise_max = float(np.maximum(noise_b1, noise_b2))
             #Ensure the guess is in the bounds, if not, use the mean of the max and min
@@ -1352,18 +1353,16 @@ class GP_Emulator:
         
         #Evaluate GP given parameter set theta and state point value
         gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict(eval_points, return_cov=True)  
-        gp_var_scl = np.diag(gp_covar_scl)
 
         #Unscale gp_mean and gp_covariance
         if self.normalize == True:
             gp_mean = self.scalerY.inverse_transform(gp_mean_scl.reshape(-1,1)).flatten()
-            #How to unscale this transformation?
-            gp_covar = float(self.scalerY.lambdas_**2) * gp_covar_scl  
-            gp_var = self.scalerY.inverse_transform(gp_var_scl.reshape(-1,1))
+            gp_covar = float(self.scalerY.scale_**2) * gp_covar_scl  
         else:
             gp_mean = gp_mean_scl
             gp_covar = gp_covar_scl
-            gp_var = gp_var_scl
+        
+        gp_var = np.diag(gp_covar)
 
         return gp_mean, gp_var, gp_covar
     
