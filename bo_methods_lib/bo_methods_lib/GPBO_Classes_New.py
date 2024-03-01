@@ -1160,12 +1160,16 @@ class GP_Emulator:
         if self.normalize:
             self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
             sclr = float(self.scalerY.scale_)
-            #Scaled bounds. Even poorly behaved data is within 5 or 1/2 of a std
-            c_bnds = (0.5,5)
+            #Scaled bounds on C
+            avg_mse = sum(self.train_data.y_vals**2)/len(self.train_data.y_vals)
+            max_c = np.maximum(3, avg_mse)
+            c_bnds = (0.1,max_c)
+            c_guess = avg_mse
         else:
             sclr = 1.0
             #For unscaled data, this distance on the mean is dependent of the data
-            c_bnds = (1e-3,1e4)
+            c_bnds = (1e-2,1e2)
+            c_guess = 1
 
         #Set the noise guess or allow gp to tune the noise parameter
         if self.noise_std is not None:
@@ -1185,7 +1189,6 @@ class GP_Emulator:
                 noise_guess = (noise_min+noise_max)/2
             noise_kern = WhiteKernel(noise_level= noise_guess**2, noise_level_bounds= (noise_min**2, noise_max**2)) 
         #Set constant kernel guess as 1
-        c_guess = 1
         cont_kern = ConstantKernel(constant_value = c_guess, constant_value_bounds=c_bnds)
         #Set lengthscale bounds and set the type of kernel
         lenscl_bnds = self.__set_lenscl_bnds()
