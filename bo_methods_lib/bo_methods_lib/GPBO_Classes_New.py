@@ -1140,8 +1140,8 @@ class GP_Emulator:
         #Set min lenscl as the larger of the min distance or 0.01
         lenscl_2 = max(min_distance, 1e-2)
         #Ensure min lenscl < max lenscl and that bounds are floats
-        min_lenscl = 1e-2 #float(np.minimum(lenscl_1, lenscl_2))
-        max_lenscl = 100 #float(np.maximum(lenscl_1, lenscl_2))
+        min_lenscl = float(np.minimum(lenscl_1, lenscl_2))
+        max_lenscl = float(np.maximum(lenscl_1, lenscl_2))
         # print(min_lenscl, max_lenscl)
         return min_lenscl, max_lenscl
     
@@ -1163,7 +1163,7 @@ class GP_Emulator:
             sclr = float(self.scalerY.scale_)
             #Scaled bounds on C
             avg_mse = sum(train_y_scl.flatten()**2)/len(train_y_scl.flatten())
-            max_c = np.maximum(100, avg_mse)
+            max_c = np.maximum(3, avg_mse)
             c_bnds = (0.1,max_c)
             c_guess = avg_mse
         else:
