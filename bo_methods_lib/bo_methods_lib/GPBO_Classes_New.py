@@ -1159,9 +1159,10 @@ class GP_Emulator:
         #Set scaler for noise based on if we are scaling the training data
         if self.normalize:
             self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
+            train_y_scl = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
             sclr = float(self.scalerY.scale_)
             #Scaled bounds on C
-            avg_mse = sum(self.train_data.y_vals**2)/len(self.train_data.y_vals)
+            avg_mse = sum(train_y_scl.flatten()**2)/len(train_y_scl.flatten())
             max_c = np.maximum(3, avg_mse)
             c_bnds = (0.1,max_c)
             c_guess = avg_mse
