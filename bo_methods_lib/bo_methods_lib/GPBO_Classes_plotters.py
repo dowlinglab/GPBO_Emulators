@@ -1239,6 +1239,8 @@ class Plotters:
         df_best, job_list_best = self.analyzer.get_best_data()
         runs = df_best["Run Number"].to_list()
         iters = df_best["BO Iter"].to_list()
+        GPBO_methods = df_best["BO Method"].to_list()
+        ax_idxs = [int(Method_name_enum[str].value-1) for str in GPBO_methods]
         #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
         subplots_needed = len(runs)
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False, sharey=False)
@@ -1263,7 +1265,7 @@ class Plotters:
                 ax.errorbar(sim_data, gp_mean, yerr = 1.96*gp_stdev, alpha=0.3, fmt = 'o', color = "blue")
                 
                 #Set plot details
-                self.__set_subplot_details(ax, sim_data, gp_mean, None, None, self.method_names[i])
+                self.__set_subplot_details(ax, sim_data, gp_mean, None, None, self.method_names[ax_idxs[i]])
 
 
             #Add legends and handles from last subplot that is visible
