@@ -1145,6 +1145,46 @@ class GP_Emulator:
         # print(min_lenscl, max_lenscl)
         return min_lenscl, max_lenscl
     
+    def __set_noise(self, sclr):
+        #Set the noise guess or allow gp to tune the noise parameter
+        if self.noise_std is not None:
+            #If we know the noise, use it
+            noise_guess_org = (self.noise_std/sclr)**2
+            #Set the noise as the higher of noise_guess and 1e-10
+            noise_guess = np.maximum(1e-10, noise_guess_org)
+            noise_kern = WhiteKernel(noise_level=noise_guess, noise_level_bounds= "fixed")
+        else:
+            #Otherwise, set the guess as 5% the taining data mean
+            data_mean = np.abs(np.mean(self.gp_sim_data.y_vals))
+            noise_guess = data_mean*0.05/sclr
+            #Set the min noise as 1% of the data mean or 1e-3 (minimum) and max as 10% or (1e-2 maximum)
+            noise_min = max(data_mean*0.01/sclr, 1e-3)
+            noise_max = noise_min*10 
+            #Ensure the guess is in the bounds, if not, use the mean of the max and min
+            if not noise_min <= noise_guess <= noise_max:
+                noise_guess = (noise_min+noise_max)/2
+            noise_kern = WhiteKernel(noise_level= noise_guess**2, noise_level_bounds= (noise_min**2, noise_max**2))
+        return noise_kern
+        
+    def __set_tau(self, sclr):
+        #If normalizing data
+        if self.normalize:
+            #Scale will be the average 
+            train_y_scl = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
+            #Scaled bounds on C
+            mse = sum(train_y_scl.flatten()**2)/len(train_y_scl.flatten())
+            c_max = np.maximum(3, mse)
+            c_min = np.minimum(1e-2, mse)
+            c_bnds = (c_min,c_max)
+            c_guess = mse
+        else:
+            #For unscaled data, this distance on the mean is dependent of the data
+            c_bnds = (1e-2,1e2)
+            c_guess = 1
+
+        cont_kern = ConstantKernel(constant_value = c_guess, constant_value_bounds=c_bnds)
+        return cont_kern
+
     def __set_kernel(self):
         """
         Sets kernel of the model
@@ -1159,38 +1199,14 @@ class GP_Emulator:
         #Set scaler for noise based on if we are scaling the training data
         if self.normalize:
             self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
-            train_y_scl = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
             sclr = float(self.scalerY.scale_)
-            #Scaled bounds on C
-            avg_mse = sum(train_y_scl.flatten()**2)/len(train_y_scl.flatten())
-            max_c = np.maximum(3, avg_mse)
-            c_bnds = (0.1,max_c)
-            c_guess = avg_mse
         else:
             sclr = 1.0
-            #For unscaled data, this distance on the mean is dependent of the data
-            c_bnds = (1e-2,1e2)
-            c_guess = 1
 
-        #Set the noise guess or allow gp to tune the noise parameter
-        if self.noise_std is not None:
-            #If we know the noise, use it
-            noise_guess = (self.noise_std/sclr)**2
-            noise_kern = WhiteKernel(noise_level=noise_guess, noise_level_bounds= "fixed")
-        else:
-            #Otherwise, set the guess as 5% the taining data mean
-            noise_guess = np.abs(np.mean(self.gp_sim_data.y_vals)/sclr)*0.05
-            #Set the min noise as 1% of the data mean or 1e-2 (minimum)
-            noise_b1 = max(np.abs(np.mean(self.gp_sim_data.y_vals)/sclr)*0.01, 1e-2)
-            noise_b2 = np.abs(np.mean(self.gp_sim_data.y_vals)/sclr)*0.1
-            noise_min = float(np.minimum(noise_b1, noise_b2))
-            noise_max = float(np.maximum(noise_b1, noise_b2))
-            #Ensure the guess is in the bounds, if not, use the mean of the max and min
-            if not noise_min <= noise_guess <= noise_max:
-                noise_guess = (noise_min+noise_max)/2
-            noise_kern = WhiteKernel(noise_level= noise_guess**2, noise_level_bounds= (noise_min**2, noise_max**2)) 
+        #Set Noise kern
+        noise_kern = self.__set_noise(sclr)
         #Set constant kernel guess as 1
-        cont_kern = ConstantKernel(constant_value = c_guess, constant_value_bounds=c_bnds)
+        cont_kern = self.__set_tau(sclr)
         #Set lengthscale bounds and set the type of kernel
         lenscl_bnds = self.__set_lenscl_bnds()
         if self.kernel.value == 3: #RBF
@@ -1285,8 +1301,8 @@ class GP_Emulator:
         kernel = self.__set_outputscl(kernel)
 
         #Define model
-        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=1e-5, n_restarts_optimizer=self.retrain_GP, 
-                                            random_state = self.seed, optimizer = optimizer, normalize_y = self.normalize)
+        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, n_restarts_optimizer=self.retrain_GP, 
+                                            random_state = self.seed, optimizer = optimizer, normalize_y = not self.normalize)
         
         return gp_model
         
@@ -1331,6 +1347,7 @@ class GP_Emulator:
         self.trained_hyperparams = trained_hyperparams
         self.fit_gp_model = fit_gp_model
         
+        
     def __eval_gp_mean_var(self, data):
         """
         Calculates the GP mean and variance given each point and adds it to the instance of the data class
@@ -1356,7 +1373,8 @@ class GP_Emulator:
             eval_points = data
         
         #Evaluate GP given parameter set theta and state point value
-        gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict(eval_points, return_cov=True)  
+        # print(self.fit_gp_model.kernel_)
+        gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict(eval_points, return_cov=True)
 
         #Unscale gp_mean and gp_covariance
         if self.normalize == True:
