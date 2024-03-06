@@ -1117,11 +1117,14 @@ class GP_Emulator:
         min_lenscl: float, the lower bound of the lengthscale parameters
         max_lenscl: float, the upper bound of the lengthscale parameters
         """
+        #Set lenscl bounds using the original training data to ensure distance
+        #Between min and max lengthscales does not collapse as iterations progress
+        assert isinstance(self.train_data_init, np.ndarray), "self.train_data_init must be an array"
         if self.normalize:
-            self.scalerX = self.scalerX.fit(self.feature_train_data)
-            points = self.scalerX.transform(self.feature_train_data)
+            self.scalerX = self.scalerX.fit(self.train_data_init)
+            points = self.scalerX.transform(self.train_data_init)
         else:
-            points = self.feature_train_data
+            points = self.train_data_init
 
         # Compute pairwise Euclidean distances between all points
         pairwise_distances = np.sqrt(np.sum((points[:, None] - points) ** 2, axis=-1))
@@ -1176,11 +1179,14 @@ class GP_Emulator:
             c_max = np.maximum(3, mse)
             c_min = np.minimum(1e-2, mse)
             c_bnds = (c_min,c_max)
-            c_guess = mse
+            if c_bnds[0] < 1.0 < c_bnds[1]:
+                c_guess = 1.0
+            else:
+                c_guess = (c_max + c_min) /2
         else:
             #For unscaled data, this distance on the mean is dependent of the data
             c_bnds = (1e-2,1e2)
-            c_guess = 1
+            c_guess = 1.0
 
         cont_kern = ConstantKernel(constant_value = c_guess, constant_value_bounds=c_bnds)
         return cont_kern
@@ -1591,6 +1597,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         #Add training and testing data as child features
         self.train_data = train_data
         self.test_data = test_data 
+        self.train_data_init = None #Will be populated with the 1st instance of train data
         
     def get_dim_gp_data(self):
         """
@@ -1683,6 +1690,10 @@ class Type_1_GP_Emulator(GP_Emulator):
         if self.gp_val_data is not None:
             feature_val_data = self.featurize_data(self.gp_val_data)
             self.feature_val_data = feature_val_data
+
+        #Set the initial training data for the GP Emulator upon creation
+        if self.train_data_init is None:
+            self.train_data_init = feature_train_data
             
         return train_data, test_data
        
@@ -2021,6 +2032,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Set training and testing data as child class specific objects
         self.train_data = train_data
         self.test_data = test_data
+        self.train_data_init = None #This will be populated with the first set of training thetas
                   
     def get_dim_gp_data(self):
         """
@@ -2128,6 +2140,10 @@ class Type_2_GP_Emulator(GP_Emulator):
         if self.gp_val_data is not None:
             feature_val_data = self.featurize_data(self.gp_val_data)
             self.feature_val_data = feature_val_data
+            
+        #Set the initial training data for the GP Emulator upon creation
+        if self.train_data_init is None:
+            self.train_data_init = feature_train_data
             
         return train_data, test_data
     

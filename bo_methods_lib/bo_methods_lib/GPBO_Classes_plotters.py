@@ -123,7 +123,7 @@ class Plotters:
         assert isinstance(log_data, bool), "log_data must be boolean:"
         
         #Set x and y labels and save path for figure
-        x_label = "BO Iterations"
+        x_label = "Function Evaluations"
         y_label = self.__set_ylab_from_z(z_choice)
         save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
         
