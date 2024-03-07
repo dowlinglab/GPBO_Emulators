@@ -67,8 +67,8 @@ for i in range(len(cs_list)):
     misc_gp_mean, misc_var_return = gp_object.eval_gp_mean_var_val(covar = False)
 
     #For Each Point, calculate the std multiplier that puts us in the prediction interval
-    #Calculate num_stds = y/(mu*sigma)
-    num_stds = sorted(abs(all_val_data.y_vals/(misc_gp_mean*np.sqrt(misc_var_return))).tolist(), reverse = True)
+    #Calculate num_stds = (y-mu)/sigma
+    num_stds = sorted(abs((all_val_data.y_vals-misc_gp_mean)/np.sqrt(abs(misc_var_return))).tolist(), reverse = True)
     
     #Calculate % in side prediction interval at each point
     pct_ins = np.array([np.sum(num_stds < num_std) for num_std in num_stds_ax])/len(num_stds)*100
@@ -81,5 +81,5 @@ plt.xlabel('Number of Std. Deviations')
 plt.ylabel('% Inside Prediction Interval')
 plt.title('PIPI With ' + str(retrain_GP) + " GP Retrains")
 plt.grid(True)
-plt.show()
 plt.savefig("Results/PIPI_Retrain_"+str(retrain_GP) +".png")
+plt.close()
