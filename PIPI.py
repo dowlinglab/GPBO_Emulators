@@ -15,7 +15,7 @@ simplefilter("ignore", category=ConvergenceWarning)
 
 noise_mean = 0
 seed = 1
-retrain_GP = 5
+retrain_GP = 25
 normalize = True
 
 cs_list = [1,2,3,10,11,12,13,14,15,16,17]
@@ -81,5 +81,6 @@ plt.xlabel('Number of Std. Deviations')
 plt.ylabel('% Inside Prediction Interval')
 plt.title('PIPI With ' + str(retrain_GP) + " GP Retrains")
 plt.grid(True)
-plt.savefig("Results/PIPI_Retrain_"+str(retrain_GP) +".png")
+plt.tight_layout()
+plt.savefig("Results/PIPI_Retrain_"+str(retrain_GP) +".png",  bbox_inches='tight')
 plt.close()
