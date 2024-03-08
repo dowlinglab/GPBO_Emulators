@@ -23,6 +23,8 @@ from itertools import combinations
 import copy
 import scipy
 import matplotlib.pyplot as plt
+import gpflow
+import tensorflow_probability as tfp
 
 
 class Method_name_enum(Enum):
@@ -1108,7 +1110,7 @@ class GP_Emulator:
         
         return num_gp_data
     
-    def __set_lenscl_bnds(self):
+    def __set_lenscl_guess(self):
         """
         Gets an upper and lower bound for the lengthscales
 
@@ -1126,72 +1128,41 @@ class GP_Emulator:
         else:
             points = self.train_data_init
 
-        # Compute pairwise Euclidean distances between all points
-        pairwise_distances = np.sqrt(np.sum((points[:, None] - points) ** 2, axis=-1))
-
-        # Set the diagonal elements (self-distances) to infinity
-        np.fill_diagonal(pairwise_distances, np.inf)
-        # Mask out infinite values so that np.max will ignore them
-        pairwise_distances = np.ma.masked_invalid(pairwise_distances)
-
-        # Find the maximum and minimum distances between points
-        max_distance = np.max(pairwise_distances)
-        min_distance = np.min(pairwise_distances)
-
-        #Set max lenscl as the smaller of the max distance or 100
-        lenscl_1 = min(max_distance, 100)
-        #Set min lenscl as the larger of the min distance or 0.01
-        lenscl_2 = max(min_distance, 1e-2)
-        #Ensure min lenscl < max lenscl and that bounds are floats
-        min_lenscl = float(np.minimum(lenscl_1, lenscl_2))
-        max_lenscl = float(np.maximum(lenscl_1, lenscl_2))
+        # Compute pairwise differences for each column
+        pairwise_diffs = np.abs(points[:, :, None] - points[:, :, None].transpose(0, 2, 1))
+        # Compute Euclidean distances
+        euclidean_distances = np.sqrt(np.sum(pairwise_diffs ** 2, axis=1))
+        # Set diagonal elements (distance between the same point) to infinity
+        np.fill_diagonal(euclidean_distances, np.inf)
+        euclidean_distances = np.ma.masked_invalid(euclidean_distances)
+        # Find the smallest/largest distance for each column
+        min_distance = np.min(euclidean_distances, axis=0)
+        max_distance = np.max(euclidean_distances, axis=0)
+        lenscl_guess = np.average((min_distance, max_distance), axis = 0)
         # print(min_lenscl, max_lenscl)
-        return min_lenscl, max_lenscl
+        return lenscl_guess
     
-    def __set_noise(self, sclr):
+    def __set_white_kern(self):
         #Set the noise guess or allow gp to tune the noise parameter
+        if self.normalize:
+            self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
+            sclr = float(self.scalerY.scale_)
+        else:
+            sclr = 1.0
+
+        noise_kern = gpflow.kernels.White()
         if self.noise_std is not None:
             #If we know the noise, use it
-            noise_guess_org = (self.noise_std/sclr)**2
-            #Set the noise as the higher of noise_guess and 1e-10
-            noise_guess = np.maximum(1e-10, noise_guess_org)
-            noise_kern = WhiteKernel(noise_level=noise_guess, noise_level_bounds= "fixed")
+            noise_kern.variance = float((self.noise_std/sclr)**2)
+            
         else:
             #Otherwise, set the guess as 5% the taining data mean
             data_mean = np.abs(np.mean(self.gp_sim_data.y_vals))
-            noise_guess = data_mean*0.05/sclr
-            #Set the min noise as 1% of the data mean or 1e-3 (minimum) and max as 10% or (1e-2 maximum)
-            noise_min = max(data_mean*0.01/sclr, 1e-3)
-            noise_max = noise_min*10 
-            #Ensure the guess is in the bounds, if not, use the mean of the max and min
-            if not noise_min <= noise_guess <= noise_max:
-                noise_guess = (noise_min+noise_max)/2
-            noise_kern = WhiteKernel(noise_level= noise_guess**2, noise_level_bounds= (noise_min**2, noise_max**2))
+            noise_kern.variance = float(data_mean*0.05/sclr)**2
+
         return noise_kern
-        
-    def __set_tau(self, sclr):
-        #If normalizing data
-        if self.normalize:
-            #Scale will be the average 
-            train_y_scl = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
-            #Scaled bounds on C
-            mse = sum(train_y_scl.flatten()**2)/len(train_y_scl.flatten())
-            c_max = np.maximum(3, mse)
-            c_min = np.minimum(1e-2, mse)
-            c_bnds = (c_min,c_max)
-            if c_bnds[0] < 1.0 < c_bnds[1]:
-                c_guess = 1.0
-            else:
-                c_guess = (c_max + c_min) /2
-        else:
-            #For unscaled data, this distance on the mean is dependent of the data
-            c_bnds = (1e-2,1e2)
-            c_guess = 1.0
 
-        cont_kern = ConstantKernel(constant_value = c_guess, constant_value_bounds=c_bnds)
-        return cont_kern
-
-    def __set_kernel(self):
+    def __set_base_kernel(self):
         """
         Sets kernel of the model
         
@@ -1200,29 +1171,19 @@ class GP_Emulator:
         kernel: The original kernel of the model
         
         """ 
-        #Set noise kernel
-        # noise_kern = WhiteKernel(noise_level=0.01**2, noise_level_bounds= "fixed")
-        #Set scaler for noise based on if we are scaling the training data
-        if self.normalize:
-            self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
-            sclr = float(self.scalerY.scale_)
-        else:
-            sclr = 1.0
 
-        #Set Noise kern
-        noise_kern = self.__set_noise(sclr)
-        #Set constant kernel guess as 1
-        cont_kern = self.__set_tau(sclr)
-        #Set lengthscale bounds and set the type of kernel
-        lenscl_bnds = self.__set_lenscl_bnds()
+        #Set the type of kernel
         if self.kernel.value == 3: #RBF
-            kernel = cont_kern*RBF(length_scale_bounds=(lenscl_bnds)) + noise_kern
+            kernel_base = gpflow.kernels.RBF()
         elif self.kernel.value == 2: #Matern 3/2
-            kernel = cont_kern*Matern(length_scale_bounds=(lenscl_bnds), nu=1.5) + noise_kern 
+            kernel_base = gpflow.kernels.Matern32() 
         else: #Matern 5/2
-            kernel = cont_kern*Matern(length_scale_bounds=(lenscl_bnds), nu=2.5) + noise_kern 
-            
-        return kernel
+            kernel_base = gpflow.kernels.Matern52() 
+
+        #Set scale parameter on base kernel w/ a Half Cauchy Prior w/ mean 1
+        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(1.0), np.float64(5.0))
+
+        return kernel_base
     
     def __set_lenscl(self, kernel):
         """
@@ -1242,23 +1203,21 @@ class GP_Emulator:
             if len(self.lenscl) > self.get_dim_gp_data():
                 self.lenscl =  self.lenscl[:self.get_dim_gp_data()]
         
-            #Anisotropic but different
-            lengthscale_val = self.lenscl
-            kernel.k1.k2.length_scale_bounds = "fixed"
+            #Anisotropic but different and set
+            kernel.kernels[0].lengthscales = self.lenscl
+            gpflow.set_trainable(kernel.kernels[0].lengthscales, False)
             
         #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim,\
         elif isinstance(self.lenscl, (float, int)):            
             #Anisotropic but the same
-            lengthscale_val = np.ones(self.get_dim_gp_data())*self.lenscl
-            kernel.k1.k2.length_scale_bounds = "fixed"
+            kernel.kernels[0].lengthscales = self.lenscl
+            gpflow.set_trainable(kernel.kernels[0].lengthscales, False)
             
         #Otherwise initialize them at 1 (lenscl is trained) 
         else:
             #Anisotropic but initialized to 1
-            lengthscale_val = np.ones(self.get_dim_gp_data())
-
-        #Set initial model lengthscale
-        kernel.k1.k2.length_scale = lengthscale_val
+            lenscl_guess = self.__set_lenscl_guess()
+            kernel.kernels[0].lengthscales = lenscl_guess
         
         return kernel
     
@@ -1274,13 +1233,24 @@ class GP_Emulator:
         -------
         kernel: The kernel of the model defined by __set_kernel with the outputscale bounds set
         """
-        #Set outputscl kernel to be optimized if necessary or set it to the default of 1 to be optimized
+        #Initialize scale on kernel as 1
+        kernel.kernels[0].variance = 1.0
+
+        #Set outputscl kernel to be optimized based on guess if desired
         if self.outputscl != None:
             assert self.outputscl> 0, "outputscl must be positive"
-            kernel.k1.k1.constant_value = self.outputscl
-            kernel.k1.k1.constant_value_bounds = "fixed"
-        else:
-            kernel.k1.k1.constant_value = 1.0
+
+            train_y = self.train_data.y_vals.reshape(-1,1)
+            if self.normalize:
+                scl_y = self.scalerY.transform(train_y)
+            else:
+                scl_y = train_y
+
+            c_guess= sum(scl_y.flatten()**2)/len(scl_y)
+            kernel.kernels[0].variance = c_guess
+
+        elif self.outputscl == False:           
+            gpflow.set_trainable(kernel.kernels[0].variance, False)
             
         return kernel
     
@@ -1291,24 +1261,31 @@ class GP_Emulator:
         Returns
         --------
         gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor containing kernel, optimizer, etc.
-        """
-        
-        #Don't optimize anything if lengthscale and outputscale are being fixed
-        if isinstance(self.lenscl, np.ndarray) and all(var is not None for var in self.lenscl) and self.outputscl != None:
-            optimizer = None
-        elif isinstance(self.lenscl, (float, int)) and self.lenscl != None and self.outputscl != None:
-            optimizer = None
+        """    
+        #Preprocess Training data
+        if self.normalize == True:
+            #Update scaler to be the fitted scaler. This scaler will change as the training data is updated
+            self.scalerX = self.scalerX.fit(self.feature_train_data)
+            self.scalerY = self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
+            #Scale training data if necessary
+            ft_td_scl = self.scalerX.transform(self.feature_train_data)
+            y_td_scl = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
         else:
-            optimizer = "fmin_l_bfgs_b"
-        
+            ft_td_scl = self.feature_train_data
+            y_td_scl = self.train_data.y_vals.reshape(-1,1)
+
         #Set kernel
-        kernel = self.__set_kernel()
+        kernel_base = self.__set_base_kernel()
+        #Set Noise kern
+        noise_kern = self.__set_white_kern()
+        kernel = kernel_base + noise_kern
         kernel = self.__set_lenscl(kernel)
         kernel = self.__set_outputscl(kernel)
 
+        
         #Define model
-        gp_model = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, n_restarts_optimizer=self.retrain_GP, 
-                                            random_state = self.seed, optimizer = optimizer, normalize_y = not self.normalize)
+        data = (ft_td_scl, y_td_scl)
+        gp_model =gpflow.models.GPR(data, kernel=kernel, noise_variance = noise_kern.variance)
         
         return gp_model
         
@@ -1321,37 +1298,38 @@ class GP_Emulator:
         gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor, The untrained, fully defined gp model
             
         """  
-        assert isinstance(gp_model, GaussianProcessRegressor), "gp_model must be GaussianProcessRegressor"
+        assert isinstance(gp_model, gpflow.models.GPR), "gp_model must be GaussianProcessRegressor"
         assert isinstance(self.feature_train_data, np.ndarray), "self.feature_train_data must be np.ndarray"
         assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
-        #Train GP
-        #Preprocess Training data
-        if self.normalize == True:
-            #Update scaler to be the fitted scaler. This scaler will change as the training data is updated
-            self.scalerX = self.scalerX.fit(self.feature_train_data)
-            self.scalerY = self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
-            #Scale training data if necessary
-            feature_train_data_scaled = self.scalerX.transform(self.feature_train_data)
-            y_train_data_scaled = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
-        else:
-            feature_train_data_scaled = self.feature_train_data
-            y_train_data_scaled = self.train_data.y_vals.reshape(-1,1)
 
-        #Fit GP Model
-        fit_gp_model = gp_model.fit(feature_train_data_scaled, y_train_data_scaled)
+        # Train the model multiple times and keep track of the model with the lowest minimum training loss
+        best_minimum_loss = float('inf')
+        optimizer = gpflow.optimizers.Scipy()
+        best_model = None
+
+        for _ in range(self.retrain_GP):
+            # Define and train the GP model
+            optimizer.minimize(gp_model.training_loss, gp_model.trainable_variables)
+
+            # Compute the training loss of the model
+            training_loss = gp_model.training_loss().numpy()
+
+            # Check if this model has the best minimum training loss
+            if training_loss < best_minimum_loss:
+                best_minimum_loss = training_loss
+                best_model = gp_model
 
         #Pull out kernel parameters after GP training
-        opt_kern_params = fit_gp_model.kernel_
-        outputscl_final = opt_kern_params.k1.k1.constant_value
-        lenscl_final = opt_kern_params.k1.k2.length_scale
-        noise_final = opt_kern_params.k2.noise_level
+        outputscl_final = best_model.kernel.kernels[0].variance
+        lenscl_final = best_model.kernel.kernels[0].lengthscales
+        noise_final = best_model.kernel.kernels[1].variance
         
         #Put hyperparameters in a list
         trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
         
         #Assign self parameters
         self.trained_hyperparams = trained_hyperparams
-        self.fit_gp_model = fit_gp_model
+        self.fit_gp_model = best_model
         
         
     def __eval_gp_mean_var(self, data):
@@ -1379,8 +1357,9 @@ class GP_Emulator:
             eval_points = data
         
         #Evaluate GP given parameter set theta and state point value
-        # print(self.fit_gp_model.kernel_)
-        gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict(eval_points, return_cov=True)
+        gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict_f(eval_points, full_cov=True)
+        #Remove dimensions of 1
+        gp_covar_scl = np.squeeze(gp_covar_scl)
 
         #Unscale gp_mean and gp_covariance
         if self.normalize == True:
