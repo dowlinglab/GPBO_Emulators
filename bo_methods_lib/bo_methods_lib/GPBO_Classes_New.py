@@ -3940,7 +3940,7 @@ class GPBO_Driver:
         else:
             sse_sim = max_ei_theta_data.y_vals           
         Dkl_3 = (1/2)*(self.best_theta_last.sse_var)*(sse_sim - self.best_theta_last.sse)**2/(self.best_theta_last.sse_var + (1/gamma))**2
-        Dkl = Dkl_1 + Dkl_2 + Dkl_3
+        Dkl = abs(Dkl_1 + Dkl_2 + Dkl_3)
 
         #Calculate regret and convergence speed
         regret = float(del_mu + v*norm.pdf(g) +v*g*norm.cdf(g) + kappa*np.sqrt((1/2)*Dkl))
@@ -4028,6 +4028,7 @@ class GPBO_Driver:
 
         #Call optimize objective function
         min_sse, min_sse_theta = self.__opt_with_scipy("sse")
+        print("Min SSE theta:", min_sse_theta)
 
         #Find min sse using the true function value
         #Turn min_sse_theta into a data instance (including generating y_data)
