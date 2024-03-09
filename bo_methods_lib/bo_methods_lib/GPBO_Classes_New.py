@@ -2365,14 +2365,6 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Find length of theta and x in data arrays
         len_theta = self.train_data.get_num_theta()
         len_x = len(self.train_data.get_unique_x())
-     
-        #Make sse array as an empty list. Will add one value for each training point
-        # sse_train_vals = []
-        
-        # #Evaluate SSE by looping over the x values for each combination of theta and calculating SSE
-        # for i in range(0, len_theta, len_x):
-        #     ind_errors = np.array((self.train_data.y_vals[i:i+len_x] - exp_data.y_vals)**2)
-        #     sse_train_vals.append( np.sum(ind_errors) )#Array
 
         # #Reshape y_sim into n_theta rows x n_x columns
         indices = np.arange(0, len_theta, len_x)
@@ -2380,6 +2372,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         # Slice y_sim into blocks of size len_x and calculate squared errors for each block
         train_y_resh = self.train_data.y_vals.reshape(n_blocks, len_x)
         ind_errors = (train_y_resh - exp_data.y_vals[np.newaxis,:])**2
+
         # Sum squared errors for each block
         sse_train_vals = np.sum(ind_errors, axis=1).flatten()
 
@@ -2705,22 +2698,22 @@ class Expected_Improvement():
         n = self.exp_data.get_num_x_vals()
         #Initialize array of eis for eacch theta
         ei = np.zeros(num_thetas)
+        
         #Loop over number of thetas in theta_val_set
         for i in range(num_thetas): #1 ei per theta and also 1 sse per theta   
             #Get gp mean and var for each set of x values
             #for ei, ensure that a gp mean and gp_var corresponding to a certain theta are sent
             gp_mean_i = self.gp_mean[i*n:(i+1)*n]
             gp_var_i = self.gp_var[i*n:(i+1)*n]
-            be_x_i = self.best_error_x[i]
             
             #Calculate ei for a given theta (ei for all x over each theta)
             
             if method.method_name.value == 3: #2A
                 #Calculate ei for a given theta (ei for all x over each theta)
-                ei[i], row_data = self.__calc_ei_emulator(gp_mean_i, gp_var_i, be_x_i, self.exp_data.y_vals)
+                ei[i], row_data = self.__calc_ei_emulator(gp_mean_i, gp_var_i, self.best_error_x[i], self.exp_data.y_vals)
                 
             elif method.method_name.value == 4: #2B
-                ei[i], row_data = self.__calc_ei_log_emulator(gp_mean_i, gp_var_i, be_x_i, self.exp_data.y_vals)
+                ei[i], row_data = self.__calc_ei_log_emulator(gp_mean_i, gp_var_i, self.best_error_x[i], self.exp_data.y_vals)
                 
             elif method.method_name.value == 5: #2C
                 ei[i], row_data = self.__calc_ei_sparse(gp_mean_i, gp_var_i, self.exp_data.y_vals)
@@ -3507,12 +3500,12 @@ class GPBO_Driver:
         --------
         starting_pts: np.ndarray, array of parameter set initializations for self.__opt_with_scipy
         """
-        #Generate 1000 LHS Theta vals
-        theta_vals = self.simulator.gen_theta_vals(1000)
+        #Generate 300 LHS Theta vals
+        theta_vals = self.simulator.gen_theta_vals(300)
         
         #Add repeated theta_vals and experimental x values
         rep_theta_vals = np.repeat(theta_vals, len(self.exp_data.x_vals) , axis = 0)
-        rep_x_vals = np.vstack([self.exp_data.x_vals]*1000)
+        rep_x_vals = np.vstack([self.exp_data.x_vals]*300)
         
         #Create instance of Data Class
         sp_data = Data(rep_theta_vals, rep_x_vals, None, None, None, None, None, None, self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
@@ -3524,11 +3517,10 @@ class GPBO_Driver:
         #Evaluate GP SSE and SSE_Var (This is the 2nd slowest step)
         sp_data_sse_mean, sp_data_sse_var = self.gp_emulator.eval_gp_sse_var_misc(sp_data, self.method, self.exp_data)
         
-        #Note - Idea here could be to evaluate the independence approximation EI and sort by that
-        #Evaluate EI using unscaled independence approximation (This is relatively quick)
-        method_to_calc_ei = GPBO_Methods(Method_name_enum(3))
+        #Note - Can't use EI for independence approx b/c you don't have e' for all the MCMC points
+        #Evaluate EI using Sparse Grid or EI (This is relatively quick)
         sp_data_ei, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(sp_data, self.exp_data, self.ep_bias, best_error_metrics, 
-                                                                  method_to_calc_ei, self.sg_depth)
+                                                                  self.method, self.sg_depth)
         
         ##Sort by min(-ei)
         # Create a list of tuples containing indices and values
@@ -4025,6 +4017,7 @@ class GPBO_Driver:
 
         #Call optimize objective function
         min_sse, min_sse_theta = self.__opt_with_scipy("sse")
+        # print("min SSE Theta: ", min_sse_theta)
 
         #Find min sse using the true function value
         #Turn min_sse_theta into a data instance (including generating y_data)
