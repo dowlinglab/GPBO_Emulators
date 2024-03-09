@@ -770,17 +770,17 @@ class Simulator:
         sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None, None, self.bounds_theta, self.bounds_x, sep_fact, self.seed)
         
         if gen_val_data == False:
-            #Make sse array equal length to the number of total unique thetas
-            sum_error_sq = []
             #Define all y_sims
             y_sim = sim_data.y_vals
-            #Iterates over evey combination of theta to find the SSE for each combination
-            #Note to do this Xexp and X **must** use the same values
-            for i in range(0, len_theta, len_x):
-                sum_error_sq.append(sum((y_sim[i:i+len_x] - exp_data.y_vals)**2))#Scaler
 
-            sum_error_sq = np.array(sum_error_sq)
-
+            #Reshape y_sim into n_theta rows x n_x columns
+            indices = np.arange(0, len_theta, len_x)
+            n_blocks = len(indices)
+            # Slice y_sim into blocks of size len_x and calculate squared errors for each block
+            y_sim_resh = y_sim.reshape(n_blocks, len_x)
+            block_errors = (y_sim_resh - exp_data.y_vals[np.newaxis,:])**2
+            # Sum squared errors for each block
+            sum_error_sq = np.sum(block_errors, axis=1)
             #objective function only log if using 1B or 2B
             if method.obj.value == 2:
                 sum_error_sq = np.log(sum_error_sq) #Scaler
@@ -1904,7 +1904,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "Error metric must be a tuple of length 3"
-        ei, ei_terms_df = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics)
+        ei, ei_terms_df = self.eval_ei_misc(self.test_data, exp_data, ep_bias, best_error_metrics)
         return ei, ei_terms_df
     
     def eval_ei_val(self, exp_data, ep_bias, best_error_metrics):
@@ -2169,36 +2169,30 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Find length of theta and number of unique x in data arrays
         len_theta = data.get_num_theta()
         len_x = len(data.get_unique_x())
-     
-        #Make sse arrays as an empty lists. Will add one value for each training point
-        sse_mean = []
-        grad_sse = []
-        
-        #Iterates over evey combination of theta to find the sse for each combination
-        #Note to do this Xexp and X **must** use the same values
-        if len_theta > 0: #Only do this if you actually have data
-            for i in range(0, len_theta, len_x):
-                sse_mean.append( sum((data.gp_mean[i:i+len_x] - exp_data.y_vals)**2) ) #Vector
-                grad_sse.append(2*(data.gp_mean[i:i+len_x] - exp_data.y_vals)) #Vector
 
-        #Lists to arrays
-        sse_mean = np.array(sse_mean).reshape(-1, 1)
-        grad_sse = np.concatenate([arr.ravel() for arr in grad_sse])
+        #Reshape y_sim into n_theta rows x n_x columns
+        indices = np.arange(0, len_theta, len_x)
+        n_blocks = len(indices)
+        # Slice y_sim into blocks of size len_x and calculate squared errors for each block
+        gp_mean_resh = data.gp_mean.reshape(n_blocks, len_x)
+        block_errors = gp_mean_resh - exp_data.y_vals[np.newaxis,:]
+        # Sum squared errors for each block
+        sse_mean = np.sum((block_errors)**2, axis=1).reshape(-1, 1)
+        grad_sse = 2 * block_errors
         
         #Infer number of thetas
         num_uniq_theta = int(len_theta/len_x)
         
         if num_uniq_theta == 1:
-            #If only one theta, covar is what it is
-            grad_sse = np.array(grad_sse)
+            #If only one theta, covar is just a number
             jacobian = grad_sse.reshape(-1, 1)
         else:
             ##Otherwise reshape it to be the shape of the covariance matrix x num_uniq theta
-            grad_sse = np.array(grad_sse).reshape(num_uniq_theta, -1)
             jacobian = np.zeros((num_uniq_theta*len_x, num_uniq_theta))
 
             for i in range(num_uniq_theta):
                 jacobian[i * len_x : (i + 1) * len_x, i] = grad_sse[i, :]
+            
             
         sse_covar =  jacobian.T@data.gp_covar@jacobian #This SSE_variance CAN'T be negative
 
@@ -2370,15 +2364,23 @@ class Type_2_GP_Emulator(GP_Emulator):
         len_x = len(self.train_data.get_unique_x())
      
         #Make sse array as an empty list. Will add one value for each training point
-        sse_train_vals = []
+        # sse_train_vals = []
         
-        #Evaluate SSE by looping over the x values for each combination of theta and calculating SSE
-        for i in range(0, len_theta, len_x):
-            ind_errors = np.array((self.train_data.y_vals[i:i+len_x] - exp_data.y_vals)**2)
-            sse_train_vals.append( np.sum(ind_errors) )#Array
+        # #Evaluate SSE by looping over the x values for each combination of theta and calculating SSE
+        # for i in range(0, len_theta, len_x):
+        #     ind_errors = np.array((self.train_data.y_vals[i:i+len_x] - exp_data.y_vals)**2)
+        #     sse_train_vals.append( np.sum(ind_errors) )#Array
+
+        # #Reshape y_sim into n_theta rows x n_x columns
+        indices = np.arange(0, len_theta, len_x)
+        n_blocks = len(indices)
+        # Slice y_sim into blocks of size len_x and calculate squared errors for each block
+        train_y_resh = self.train_data.y_vals.reshape(n_blocks, len_x)
+        ind_errors = (train_y_resh - exp_data.y_vals[np.newaxis,:])**2
+        # Sum squared errors for each block
+        sse_train_vals = np.sum(ind_errors, axis=1).flatten()
 
         #List to array
-        sse_train_vals = np.array(sse_train_vals) 
         be_theta = self.train_data.theta_vals[int(np.argmin(sse_train_vals)*len_x)]
         
         #Best error is the minimum of these values
@@ -2706,15 +2708,16 @@ class Expected_Improvement():
             #for ei, ensure that a gp mean and gp_var corresponding to a certain theta are sent
             gp_mean_i = self.gp_mean[i*n:(i+1)*n]
             gp_var_i = self.gp_var[i*n:(i+1)*n]
+            be_x_i = self.best_error_x[i]
             
             #Calculate ei for a given theta (ei for all x over each theta)
             
             if method.method_name.value == 3: #2A
                 #Calculate ei for a given theta (ei for all x over each theta)
-                ei[i], row_data = self.__calc_ei_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
+                ei[i], row_data = self.__calc_ei_emulator(gp_mean_i, gp_var_i, be_x_i, self.exp_data.y_vals)
                 
             elif method.method_name.value == 4: #2B
-                ei[i], row_data = self.__calc_ei_log_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
+                ei[i], row_data = self.__calc_ei_log_emulator(gp_mean_i, gp_var_i, be_x_i, self.exp_data.y_vals)
                 
             elif method.method_name.value == 5: #2C
                 ei[i], row_data = self.__calc_ei_sparse(gp_mean_i, gp_var_i, self.exp_data.y_vals)
@@ -2731,7 +2734,7 @@ class Expected_Improvement():
         
         return ei, ei_term_df 
         
-    def __calc_ei_emulator(self, gp_mean, gp_var, y_target): #Will need obj toggle soon
+    def __calc_ei_emulator(self, gp_mean, gp_var, be_x, y_target): #Will need obj toggle soon
         """ 
         Calculates the expected improvement of the emulator approach without log scaling (2A)
         
@@ -2763,7 +2766,7 @@ class Expected_Improvement():
             gp_var_val = gp_var[valid_indices]
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
-            best_errors_x = self.best_error_x[valid_indices]
+            best_errors_x = be_x[valid_indices]
 
             #If variance is close to zero this is important
             with np.errstate(divide = 'warn'):
@@ -2813,7 +2816,7 @@ class Expected_Improvement():
         
         return ei_temp, row_data
 
-    def __calc_ei_log_emulator(self, gp_mean, gp_var, y_target):
+    def __calc_ei_log_emulator(self, gp_mean, gp_var, be_x, y_target):
         """ 
         Calculates the expected improvement of the emulator approach with log scaling (2B)
         
@@ -2843,7 +2846,7 @@ class Expected_Improvement():
             pred_stdev_val = np.sqrt(gp_var[valid_indices])
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
-            best_errors_x = self.best_error_x[valid_indices]
+            best_errors_x = be_x[valid_indices]
         
             #Important when stdev is close to 0
             with np.errstate(divide = 'warn'):
