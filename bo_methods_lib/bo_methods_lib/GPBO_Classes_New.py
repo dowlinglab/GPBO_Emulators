@@ -1126,8 +1126,8 @@ class GP_Emulator:
         #Between min and max lengthscales does not collapse as iterations progress
         assert isinstance(self.train_data_init, np.ndarray), "self.train_data_init must be an array"
         if self.normalize:
-            self.scalerX = self.scalerX.fit(self.train_data_init)
-            points = self.scalerX.transform(self.train_data_init)
+            org_scalerX = RobustScaler(unit_variance = True)
+            points = org_scalerX.fit_transform(self.train_data_init)
         else:
             points = self.train_data_init
 
@@ -1270,14 +1270,7 @@ class GP_Emulator:
             
         return tau, set_c_trainable
     
-    def set_gp_model(self):
-        """
-        Generates the GP model for the process in sklearn
-            
-        Returns
-        --------
-        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor containing kernel, optimizer, etc.
-        """    
+    def set_gp_model_data(self):
         #Preprocess Training data
         if self.normalize == True:
             #Update scaler to be the fitted scaler. This scaler will change as the training data is updated
@@ -1289,15 +1282,25 @@ class GP_Emulator:
         else:
             ft_td_scl = self.feature_train_data
             y_td_scl = self.train_data.y_vals.reshape(-1,1)
-        
+        data = (ft_td_scl, y_td_scl)
+        return data
+    def set_gp_model(self):
+        """
+        Generates the GP model for the process in sklearn
+            
+        Returns
+        --------
+        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor containing kernel, optimizer, etc.
+        """  
+        #Get Data
+        data = self.set_gp_model_data()  
         #Set base kernel
         kernel_base = self.__set_base_kernel()
         #Set Noise kern
         noise_kern = self.__set_white_kern()
         #Set whole kernel
         kernel = kernel_base + noise_kern
-        #Define model
-        data = (ft_td_scl, y_td_scl)
+        #Define model  
         gp_model = gpflow.models.GPR(data, kernel=kernel, noise_variance = float(noise_kern.variance.numpy()))
         
         return gp_model
@@ -3968,6 +3971,8 @@ class GPBO_Driver:
         iter_max_ei_terms = None
         time_start = time.time()
         
+        #Set new model data
+        gp_model.data = self.gp_emulator.set_gp_model_data()
         #Train GP model (this step updates the model to a trained model)
         self.gp_emulator.train_gp(gp_model)
 
@@ -4010,7 +4015,7 @@ class GPBO_Driver:
 
         #Call optimize acquistion fxn
         max_ei, max_ei_theta = self.__opt_with_scipy("neg_ei")
-        
+        print("max EI theta:", max_ei_theta)
         #Create data class instance for max_ei_theta
         max_ei_theta_data = self.create_data_instance_from_theta(max_ei_theta)
         #Evaluate GP mean/ stdev at max_ei_theta
@@ -4103,7 +4108,7 @@ class GPBO_Driver:
         bo_iter_results = [best_error, float(self.ep_bias.ep_curr), max_ei, max_ei_theta, min_sse, min_sse_sim, min_sse_theta, regret, speed, time_per_iter]
         # Add the new row to the DataFrame
         iter_df.loc[0] = bo_iter_results
-        
+        print(self.gp_emulator.train_data.theta_vals)
         return iter_df, iter_max_ei_terms, gp_emulator_curr, r_stop
     
     def __run_bo_to_term(self, gp_model):
@@ -4249,7 +4254,7 @@ class GPBO_Driver:
         #Choose training data
         train_data, test_data = self.gp_emulator.set_train_test_data(self.cs_params.sep_fact, self.cs_params.seed)
         
-        #Initilize gp model
+        # #Initilize gp model
         gp_model = self.gp_emulator.set_gp_model()
         
         #Reset ep_bias to None for each workflow restart
