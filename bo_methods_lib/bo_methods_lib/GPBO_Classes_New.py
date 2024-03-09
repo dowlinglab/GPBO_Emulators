@@ -346,11 +346,11 @@ class CaseStudyParameters:
         self.bo_run_tot = bo_run_tot
         self.save_data = save_data
         self.DateTime = DateTime
-        self.set_seed = set_seed
+        self.seed = set_seed
         #Set seed
-        if  self.set_seed != None:
-            assert isinstance(self.set_seed, int) == True, "Seed number must be an integer or None"
-            np.random.seed(self.set_seed)
+        if  self.seed != None:
+            assert isinstance(self.seed, int) == True, "Seed number must be an integer or None"
+            np.random.seed(self.seed)
         self.ei_tol = ei_tol
         self.obj_tol = obj_tol
 
@@ -421,7 +421,7 @@ class Simulator:
         self.noise_std = noise_std
         self.calc_y_fxn = calc_y_fxn
         self.calc_y_fxn_args = calc_y_fxn_args
-        self.set_seed = set_seed
+        self.seed = set_seed
     
     def __set_true_params(self):
         """
@@ -558,8 +558,8 @@ class Simulator:
         y_data: ndarray, The simulated y training data
         """   
         #Set seed
-        if self.set_seed is not None:
-            np.random.seed(self.set_seed)
+        if self.seed is not None:
+            np.random.seed(self.seed)
                 
         #Define an array to store y values in
         y_data = []
@@ -609,7 +609,7 @@ class Simulator:
         if set_seed is not None:
             new_seed = set_seed
         else:
-            new_seed = self.set_seed
+            new_seed = self.seed
         #check that num_data > 0 
         if num_x_data <= 0 or isinstance(num_x_data, int) == False:
             raise ValueError('num_x_data must be a positive integer')
@@ -651,7 +651,7 @@ class Simulator:
         if set_seed is not None:
             sim_seed = set_seed
         else:
-            sim_seed = self.set_seed
+            sim_seed = self.seed
         
         if isinstance(gen_val_data, bool) == False:
             raise ValueError('gen_val_data must be bool')
@@ -730,7 +730,7 @@ class Simulator:
             warnings.warn("More than 5000 points will be generated!")
             
         #Generate simulation data theta_vals and create instance of data class   
-        theta_vals = self.__vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta, self.set_seed))
+        theta_vals = self.__vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta, self.seed))
         
         return theta_vals
    
@@ -767,7 +767,7 @@ class Simulator:
         unique_indexes = np.unique(sim_data.theta_vals, axis = 0, return_index=True)[1]
         unique_theta_vals = np.array([sim_data.theta_vals[index] for index in sorted(unique_indexes)])
         #Add the unique theta_vals and exp_data x values to the new data class instance
-        sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None, None, self.bounds_theta, self.bounds_x, sep_fact, self.set_seed)
+        sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None, None, self.bounds_theta, self.bounds_x, sep_fact, self.seed)
         
         if gen_val_data == False:
             #Make sse array equal length to the number of total unique thetas
@@ -848,7 +848,7 @@ class Data:
         self.bounds_theta = bounds_theta
         self.bounds_x = bounds_x
         self.sep_fact = sep_fact
-        self.set_seed = set_seed
+        self.seed = set_seed
     
     def __get_unique(self, all_vals):
         """
@@ -994,9 +994,9 @@ class Data:
         all_idx = np.arange(0,len_theta)
 
         #Shuffles Random Data. Will calling this once in case study parameters mean I don't need this? (No. It doesn't)
-        if self.set_seed is not None:
+        if self.seed is not None:
             #Set seed to number specified by shuffle seed
-            np.random.seed(self.set_seed)
+            np.random.seed(self.seed)
             
         #Shuffle all_idx data in such a way that theta values will be randomized
         random.shuffle(all_idx)
@@ -1084,7 +1084,7 @@ class GP_Emulator:
         self.noise_std = noise_std
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
-        self.set_seed = set_seed
+        self.seed = set_seed
         self.normalize = normalize
         #If normalize, create the scalers
         if normalize == True:
@@ -1119,8 +1119,8 @@ class GP_Emulator:
         min_lenscl: float, the lower bound of the lengthscale parameters
         max_lenscl: float, the upper bound of the lengthscale parameters
         """
-        if self.set_seed is not None:
-            np.random.seed(self.set_seed)
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
         #Set lenscl bounds using the original training data to ensure distance
         #Between min and max lengthscales does not collapse as iterations progress
@@ -1854,7 +1854,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
         """
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.set_seed, None)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed, None)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_1()
         #Add ei data to validation data class
@@ -2418,7 +2418,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         else:
             depth = None
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.set_seed, depth)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed, depth)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_2(method)
         #Add ei data to validation data class
@@ -2610,7 +2610,7 @@ class Expected_Improvement():
         self.best_error = best_error_metrics[0]
         self.be_theta = best_error_metrics[1]
         self.best_error_x = best_error_metrics[2]
-        self.set_seed = set_seed
+        self.seed = set_seed
         self.sg_depth = sg_depth
         self.random_vars = self.__set_rand_vars()
         
@@ -2627,8 +2627,8 @@ class Expected_Improvement():
         dim = len(self.exp_data.y_vals)
         mc_samples = 2000 #Set 2000 MC samples
         #Use set seed for integration 
-        if self.set_seed is not None:
-            np.random.seed(self.set_seed)
+        if self.seed is not None:
+            np.random.seed(self.seed)
         else:
         #Always use the same seed if one is not set
             np.random.seed(1)
@@ -3049,7 +3049,7 @@ class Expected_Improvement():
         #Note: Domain for random variable is 0-1, so V for MC is 1
 
         #Perform bootstrapping
-        ci_interval = self.__bootstrap(ei_temp, ns=100, alpha=0.05, set_seed = self.set_seed)
+        ci_interval = self.__bootstrap(ei_temp, ns=100, alpha=0.05, set_seed = self.seed)
         
         ci_l = ci_interval[0]
         ci_u = ci_interval[1]
@@ -3079,8 +3079,8 @@ class Expected_Improvement():
         quantiles = np.array([alpha*0.5, 1.0-alpha*0.5])
 
         #Set seed
-        if self.set_seed is not None:
-            np.random.seed(self.set_seed)
+        if self.seed is not None:
+            np.random.seed(self.seed)
         else:
             np.random.seed(1)
 
