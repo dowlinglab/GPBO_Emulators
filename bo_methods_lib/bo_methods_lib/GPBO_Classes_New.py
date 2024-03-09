@@ -266,7 +266,7 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, seed, obj_tol, ei_tol):
+    def __init__(self, cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, set_seed, obj_tol, ei_tol):
         """
         Parameters
         ----------
@@ -299,7 +299,7 @@ class CaseStudyParameters:
         #Check for bool
         assert all(isinstance(var, (bool)) for var in [normalize, gen_heat_map_data, save_data]) == True, "normalize, gen_heat_map_data, save_fig, and save_data must be bool"
         #Check for int
-        assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, seed, retrain_GP, reoptimize_obj]) == True, "bo_iter_tot, bo_run_tot, seed, retrain_GP, and reoptimize_obj must be int"
+        assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, set_seed, retrain_GP, reoptimize_obj]) == True, "bo_iter_tot, bo_run_tot, seed, retrain_GP, and reoptimize_obj must be int"
         assert isinstance(outputscl, (float, int)) or outputscl is None, "outputscl must be float, int, or None"
         #Outputscl must be >0 if not None
         if outputscl is not None:
@@ -319,7 +319,7 @@ class CaseStudyParameters:
         #Check for sep fact number between 0 and 1        
         assert 0 < sep_fact <= 1, "Separation factor must be between 0 and 1. Not including zero"
         #Check for > 0
-        assert all(var > 0 for var in [bo_iter_tot, bo_run_tot, seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be > 0"        
+        assert all(var > 0 for var in [bo_iter_tot, bo_run_tot, set_seed]) == True, "bo_iter_tot, bo_run_tot, and seed must be > 0"        
         #Check for >=0
         assert all(var >= 0 for var in [retrain_GP, reoptimize_obj]) == True, "retrain_GP and reoptimize_obj must be >= 0"
         #Check for str or None
@@ -346,11 +346,11 @@ class CaseStudyParameters:
         self.bo_run_tot = bo_run_tot
         self.save_data = save_data
         self.DateTime = DateTime
-        self.seed = seed
+        self.set_seed = set_seed
         #Set seed
-        if  self.seed != None:
-            assert isinstance(self.seed, int) == True, "Seed number must be an integer or None"
-            random.seed(self.seed)
+        if  self.set_seed != None:
+            assert isinstance(self.set_seed, int) == True, "Seed number must be an integer or None"
+            np.random.seed(self.set_seed)
         self.ei_tol = ei_tol
         self.obj_tol = obj_tol
 
@@ -372,7 +372,7 @@ class Simulator:
     gen_theta_vals(num_theta_data)
     sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, gen_val_data)
     """
-    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, seed, calc_y_fxn, calc_y_fxn_args):
+    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, set_seed, calc_y_fxn, calc_y_fxn_args):
         """
         Parameters
         ----------
@@ -392,7 +392,7 @@ class Simulator:
         #Check for float/int
         assert isinstance(noise_mean,(float,int)), "noise_mean must be int or float"
         assert isinstance(noise_std,(float,int)) or noise_std is None, "noise_std must be int, float, or None"
-        assert isinstance(seed, int) or seed is None, "Seed must be int or None"
+        assert isinstance(set_seed, int) or set_seed is None, "Seed must be int or None"
         #Check for list or ndarray
         list_vars = [indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
         assert all(isinstance(var,(list,np.ndarray)) for var in list_vars) == True, "indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
@@ -421,7 +421,7 @@ class Simulator:
         self.noise_std = noise_std
         self.calc_y_fxn = calc_y_fxn
         self.calc_y_fxn_args = calc_y_fxn_args
-        self.seed = seed
+        self.set_seed = set_seed
     
     def __set_true_params(self):
         """
@@ -467,7 +467,7 @@ class Simulator:
         grid_data = scaled_data*(upper_bound - lower_bound) + lower_bound 
         return grid_data
     
-    def __lhs_sampling(self, num_points, bounds, seed):
+    def __lhs_sampling(self, num_points, bounds, set_seed):
         """
         Design LHS Samples
 
@@ -484,7 +484,7 @@ class Simulator:
         #Define number of dimensions
         dimensions = bounds.shape[1]
         #Define sampler
-        sampler = qmc.LatinHypercube(d=dimensions, seed = seed)
+        sampler = qmc.LatinHypercube(d=dimensions, seed = set_seed)
         lhs_data = sampler.random(n=num_points)
 
         #Generate LHS data given bounds
@@ -492,7 +492,7 @@ class Simulator:
 
         return lhs_data
     
-    def __create_param_data(self, num_points, bounds, gen_meth, seed):
+    def __create_param_data(self, num_points, bounds, gen_meth, set_seed):
         """
         Generates data based off of bounds, and an LHS generation number
         
@@ -501,7 +501,7 @@ class Simulator:
         num_points: int, number of data to generate
         bounds: array, array of parameter bounds
         gen_meth: class (Gen_meth_enum), ("LHS", "Meshgrid"). Determines whether data will be generated with an LHS or meshgrid
-        seed: int, seed of random generation
+        set_seed: int, seed of random generation
         
         Returns:
         --------
@@ -518,7 +518,7 @@ class Simulator:
             
         elif gen_meth.value == 1:
             #Generate LHS sample
-            data =  self.__lhs_sampling(num_points, bounds, seed)
+            data =  self.__lhs_sampling(num_points, bounds, set_seed)
         
         else:
             raise ValueError("gen_meth.value must be 1 or 2!")
@@ -558,8 +558,8 @@ class Simulator:
         y_data: ndarray, The simulated y training data
         """   
         #Set seed
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        if self.set_seed is not None:
+            np.random.seed(self.set_seed)
                 
         #Define an array to store y values in
         y_data = []
@@ -607,20 +607,20 @@ class Simulator:
         assert isinstance(set_seed, int) or set_seed is None, "set_seed must be int or None"
         #Set generation data seed
         if set_seed is not None:
-            seed = set_seed
+            new_seed = set_seed
         else:
-            seed = self.seed
+            new_seed = self.set_seed
         #check that num_data > 0 
         if num_x_data <= 0 or isinstance(num_x_data, int) == False:
             raise ValueError('num_x_data must be a positive integer')
             
         #Create x vals based on bounds and num_x_data
-        x_vals = self.__vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, seed))
+        x_vals = self.__vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, new_seed))
         #Reshape theta_true to correct dimensions and stack it once for each xexp value
         theta_true = self.theta_true.reshape(1,-1)
         theta_true_repeated = np.vstack([theta_true]*len(x_vals))
         #Create exp_data class and add values
-        exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None, None, self.bounds_theta_reg, self.bounds_x, None, self.seed)
+        exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None, None, self.bounds_theta_reg, self.bounds_x, None, new_seed)
         #Generate y data for exp_data calss instance
         exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std)
         
@@ -649,9 +649,9 @@ class Simulator:
         assert isinstance(set_seed, int) or set_seed is None, "set_seed must be int or None!"
 
         if set_seed is not None:
-            seed = set_seed
+            sim_seed = set_seed
         else:
-            seed = self.seed
+            sim_seed = self.set_seed
         
         if isinstance(gen_val_data, bool) == False:
             raise ValueError('gen_val_data must be bool')
@@ -665,7 +665,7 @@ class Simulator:
         
         #Set bounds on theta which we are regressing given bounds_theta and indeces to consider
         #X data we always want the same between simulation and validation data
-        x_data = self.__vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, seed))
+        x_data = self.__vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, sim_seed))
             
         #Infer how many times to repeat theta and x values given whether they were generated by LHS or a meshgrid
         #X and theta repeated at least once per time the other is generated
@@ -683,16 +683,16 @@ class Simulator:
             warnings.warn("More than 5000 points will be generated!")
      
         #Generate all rows of simulation data
-        sim_data = Data(None, None, None, None, None, None, None, None, self.bounds_theta_reg, self.bounds_x, sep_fact, self.seed)
+        sim_data = Data(None, None, None, None, None, None, None, None, self.bounds_theta_reg, self.bounds_x, sep_fact, sim_seed)
        
         #For validation theta, change the seed by 1 to ensure validation and sim data are never the same
         if gen_val_data == False:
-            seed = seed
+            val_seed = sim_seed
         else:
-            seed = int(seed + 1)
+            val_seed = int(sim_seed + 1)
             
         #Generate simulation data theta_vals and create instance of data class   
-        sim_theta_vals = self.__vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta, seed))
+        sim_theta_vals = self.__vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta, val_seed))
         
         #Add repeated theta_vals and x_data to sim_data
         sim_data.theta_vals = np.repeat(sim_theta_vals, repeat_theta , axis = 0)
@@ -730,7 +730,7 @@ class Simulator:
             warnings.warn("More than 5000 points will be generated!")
             
         #Generate simulation data theta_vals and create instance of data class   
-        theta_vals = self.__vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta, self.seed))
+        theta_vals = self.__vector_to_1D_array(self.__create_param_data(num_theta_data, self.bounds_theta_reg, gen_meth_theta, self.set_seed))
         
         return theta_vals
    
@@ -767,7 +767,7 @@ class Simulator:
         unique_indexes = np.unique(sim_data.theta_vals, axis = 0, return_index=True)[1]
         unique_theta_vals = np.array([sim_data.theta_vals[index] for index in sorted(unique_indexes)])
         #Add the unique theta_vals and exp_data x values to the new data class instance
-        sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None, None, self.bounds_theta, self.bounds_x, sep_fact, self.seed)
+        sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None, None, self.bounds_theta, self.bounds_x, sep_fact, self.set_seed)
         
         if gen_val_data == False:
             #Make sse array equal length to the number of total unique thetas
@@ -811,7 +811,7 @@ class Data:
     """
     # Class variables and attributes
     
-    def __init__(self, theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, sse_var, ei, bounds_theta, bounds_x, sep_fact, seed):
+    def __init__(self, theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, sse_var, ei, bounds_theta, bounds_x, sep_fact, set_seed):
         """
         Parameters
         ----------
@@ -826,11 +826,11 @@ class Data:
         bounds_theta: ndarray, bounds of theta
         bounds_x: ndarray, bounds of x
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        seed: int or None, Determines seed for randomizations. None if seed is random
+        set_seed: int or None, Determines seed for randomizations. None if seed is random
         """
         list_vars = [theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, ei]
         assert all(isinstance(var, np.ndarray) or var is None for var in list_vars), "theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, and ei must be np.ndarray, or None"
-        assert isinstance(seed, int) or seed is None, "Seed must be int or None"
+        assert isinstance(set_seed, int) or set_seed is None, "Seed must be int or None"
         assert isinstance(sep_fact, (float,int)) or sep_fact is None, "Separation factor must be float or int > 0 or None (exp_data)"
         if sep_fact is not None:
             assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
@@ -848,7 +848,7 @@ class Data:
         self.bounds_theta = bounds_theta
         self.bounds_x = bounds_x
         self.sep_fact = sep_fact
-        self.seed = seed
+        self.set_seed = set_seed
     
     def __get_unique(self, all_vals):
         """
@@ -994,9 +994,9 @@ class Data:
         all_idx = np.arange(0,len_theta)
 
         #Shuffles Random Data. Will calling this once in case study parameters mean I don't need this? (No. It doesn't)
-        if self.seed is not None:
+        if self.set_seed is not None:
             #Set seed to number specified by shuffle seed
-            random.seed(self.seed)
+            np.random.seed(self.set_seed)
             
         #Shuffle all_idx data in such a way that theta values will be randomized
         random.shuffle(all_idx)
@@ -1028,7 +1028,7 @@ class GP_Emulator:
     """
     # Class variables and attributes
     
-    def __init__(self, gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, __feature_train_data, __feature_test_data, __feature_val_data, __feature_cand_data):
+    def __init__(self, gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, set_seed, normalize, __feature_train_data, __feature_test_data, __feature_val_data, __feature_cand_data):
         """
         Parameters
         ----------
@@ -1040,7 +1040,7 @@ class GP_Emulator:
         noise_std: float, int: The standard deviation of the noise - None if hyperparameters will be updated during training
         outputscl: float or None, Determines value of outputscale
         retrain_GP: int, number of times to restart GP training
-        seed: int or None, random seed
+        set_seed: int or None, random seed
         normalize: bool, determines whether data is normalized w/ Yeo-Johnson transformation + zero-mean, unit-variance normalization
         __feature_train_data: ndarray, the feature data for the training data in ndarray form
         __feature_test_data: ndarray, the feature data for the testing data in ndarray form
@@ -1084,7 +1084,7 @@ class GP_Emulator:
         self.noise_std = noise_std
         self.outputscl = outputscl
         self.retrain_GP = retrain_GP
-        self.seed = seed
+        self.set_seed = set_seed
         self.normalize = normalize
         #If normalize, create the scalers
         if normalize == True:
@@ -1119,6 +1119,9 @@ class GP_Emulator:
         min_lenscl: float, the lower bound of the lengthscale parameters
         max_lenscl: float, the upper bound of the lengthscale parameters
         """
+        if self.set_seed is not None:
+            np.random.seed(self.set_seed)
+
         #Set lenscl bounds using the original training data to ensure distance
         #Between min and max lengthscales does not collapse as iterations progress
         assert isinstance(self.train_data_init, np.ndarray), "self.train_data_init must be an array"
@@ -1138,7 +1141,8 @@ class GP_Emulator:
         # Find the smallest/largest distance for each column
         min_distance = np.min(euclidean_distances, axis=0)
         max_distance = np.max(euclidean_distances, axis=0)
-        lenscl_guess = np.average((min_distance, max_distance), axis = 0)
+        lenscl_guess = np.random.uniform(min_distance, max_distance, size=len(max_distance))
+        # lenscl_guess = np.average((min_distance, max_distance), axis = 0)
         # print(min_lenscl, max_lenscl)
         return lenscl_guess
     
@@ -1146,19 +1150,23 @@ class GP_Emulator:
         #Set the noise guess or allow gp to tune the noise parameter
         if self.normalize:
             self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
-            sclr = float(self.scalerY.scale_)
+            sclr = np.float64(self.scalerY.scale_)
         else:
             sclr = 1.0
 
-        noise_kern = gpflow.kernels.White()
         if self.noise_std is not None:
             #If we know the noise, use it
-            noise_kern.variance = float((self.noise_std/sclr)**2)
+            noise_guess = float((self.noise_std/sclr)**2)
             
         else:
             #Otherwise, set the guess as 5% the taining data mean
             data_mean = np.abs(np.mean(self.gp_sim_data.y_vals))
-            noise_kern.variance = float(data_mean*0.05/sclr)**2
+            noise_guess = np.float64(data_mean*0.05/sclr)**2
+
+        noise_kern = gpflow.kernels.White(variance = noise_guess)
+
+        if self.noise_std is not None:
+            gpflow.set_trainable(noise_kern.variance, False)
 
         return noise_kern
 
@@ -1171,21 +1179,30 @@ class GP_Emulator:
         kernel: The original kernel of the model
         
         """ 
-
+        #Get tau val
+        c_guess, set_c_trainable = self.__set_outputscl()
+        #Get lescale values
+        lenscls, set_lenscl_trainable = self.__set_lenscl()
         #Set the type of kernel
         if self.kernel.value == 3: #RBF
-            kernel_base = gpflow.kernels.RBF()
+            kernel_base = gpflow.kernels.RBF(variance=c_guess, lengthscales = lenscls)
         elif self.kernel.value == 2: #Matern 3/2
-            kernel_base = gpflow.kernels.Matern32() 
+            kernel_base = gpflow.kernels.Matern32(variance=c_guess, lengthscales = lenscls) 
         else: #Matern 5/2
-            kernel_base = gpflow.kernels.Matern52() 
+            kernel_base = gpflow.kernels.Matern52(variance=c_guess, lengthscales = lenscls) 
 
         #Set scale parameter on base kernel w/ a Half Cauchy Prior w/ mean 1
         kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(1.0), np.float64(5.0))
 
+        #Set scale values
+        if not set_c_trainable:
+            gpflow.set_trainable(kernel_base.variance, False)
+        if not set_lenscl_trainable:
+            gpflow.set_trainable(kernel_base.lengthscales, False)
+
         return kernel_base
     
-    def __set_lenscl(self, kernel):
+    def __set_lenscl(self):
         """
         Set the lengthscale of the model. Need to have training data before 
         
@@ -1197,6 +1214,7 @@ class GP_Emulator:
         -------
         kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
         """
+        set_lenscl_trainable = True
         if isinstance(self.lenscl, np.ndarray):
             assert len(self.lenscl) >= self.get_dim_gp_data(), "Length of self.lenscl must be at least self.get_gim_gp_data()!"
             #Cut the lengthscale to correct length if too long, by cutting the ends
@@ -1204,24 +1222,23 @@ class GP_Emulator:
                 self.lenscl =  self.lenscl[:self.get_dim_gp_data()]
         
             #Anisotropic but different and set
-            kernel.kernels[0].lengthscales = self.lenscl
-            gpflow.set_trainable(kernel.kernels[0].lengthscales, False)
+            lenscl_guess = self.lenscl
+            set_lenscl_trainable = False
             
         #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim,\
         elif isinstance(self.lenscl, (float, int)):            
             #Anisotropic but the same
-            kernel.kernels[0].lengthscales = self.lenscl
-            gpflow.set_trainable(kernel.kernels[0].lengthscales, False)
+            lenscl_guess = self.lenscl
+            set_lenscl_trainable = False
             
         #Otherwise initialize them at 1 (lenscl is trained) 
         else:
             #Anisotropic but initialized to 1
             lenscl_guess = self.__set_lenscl_guess()
-            kernel.kernels[0].lengthscales = lenscl_guess
         
-        return kernel
+        return lenscl_guess, set_lenscl_trainable
     
-    def __set_outputscl(self, kernel):
+    def __set_outputscl(self):
         """
         Set the outputscale of the model
         
@@ -1233,13 +1250,10 @@ class GP_Emulator:
         -------
         kernel: The kernel of the model defined by __set_kernel with the outputscale bounds set
         """
-        #Initialize scale on kernel as 1
-        kernel.kernels[0].variance = 1.0
-
+        set_c_trainable = True
+        
         #Set outputscl kernel to be optimized based on guess if desired
-        if self.outputscl != None:
-            assert self.outputscl> 0, "outputscl must be positive"
-
+        if self.outputscl == None:
             train_y = self.train_data.y_vals.reshape(-1,1)
             if self.normalize:
                 scl_y = self.scalerY.transform(train_y)
@@ -1247,12 +1261,14 @@ class GP_Emulator:
                 scl_y = train_y
 
             c_guess= sum(scl_y.flatten()**2)/len(scl_y)
-            kernel.kernels[0].variance = c_guess
-
-        elif self.outputscl == False:           
-            gpflow.set_trainable(kernel.kernels[0].variance, False)
+            tau = c_guess
+        else:
+            assert self.outputscl> 0, "outputscl must be positive"
+            tau = self.outputscl
+            if self.outputscl == False:
+                set_c_trainable = False
             
-        return kernel
+        return tau, set_c_trainable
     
     def set_gp_model(self):
         """
@@ -1273,19 +1289,16 @@ class GP_Emulator:
         else:
             ft_td_scl = self.feature_train_data
             y_td_scl = self.train_data.y_vals.reshape(-1,1)
-
-        #Set kernel
+        
+        #Set base kernel
         kernel_base = self.__set_base_kernel()
         #Set Noise kern
         noise_kern = self.__set_white_kern()
+        #Set whole kernel
         kernel = kernel_base + noise_kern
-        kernel = self.__set_lenscl(kernel)
-        kernel = self.__set_outputscl(kernel)
-
-        
         #Define model
         data = (ft_td_scl, y_td_scl)
-        gp_model =gpflow.models.GPR(data, kernel=kernel, noise_variance = noise_kern.variance)
+        gp_model = gpflow.models.GPR(data, kernel=kernel, noise_variance = float(noise_kern.variance.numpy()))
         
         return gp_model
         
@@ -1320,9 +1333,9 @@ class GP_Emulator:
                 best_model = gp_model
 
         #Pull out kernel parameters after GP training
-        outputscl_final = best_model.kernel.kernels[0].variance
-        lenscl_final = best_model.kernel.kernels[0].lengthscales
-        noise_final = best_model.kernel.kernels[1].variance
+        outputscl_final = float(best_model.kernel.kernels[0].variance.numpy())
+        lenscl_final = best_model.kernel.kernels[0].lengthscales.numpy()
+        noise_final = float(best_model.kernel.kernels[1].variance.numpy())
         
         #Put hyperparameters in a list
         trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
@@ -1359,7 +1372,9 @@ class GP_Emulator:
         #Evaluate GP given parameter set theta and state point value
         gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict_f(eval_points, full_cov=True)
         #Remove dimensions of 1
-        gp_covar_scl = np.squeeze(gp_covar_scl)
+        gp_mean_scl = gp_mean_scl.numpy()
+        # print(gp_covar_scl.shape)
+        gp_covar_scl = np.squeeze(gp_covar_scl, axis = 0)
 
         #Unscale gp_mean and gp_covariance
         if self.normalize == True:
@@ -1549,7 +1564,7 @@ class Type_1_GP_Emulator(GP_Emulator):
     """
     # Class variables and attributes
     
-    def __init__(self, gp_sim_data, gp_val_data, cand_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data):
+    def __init__(self, gp_sim_data, gp_val_data, cand_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, set_seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data):
         """
         Parameters
         ----------
@@ -1563,7 +1578,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         noise_std: float, int: The standard deviation of the noise
         outputscl: float or None, Determines value of outputscale
         retrain_GP: int, number of times to restart GP training
-        seed: int or None, random seed
+        set_seed: int or None, random seed
         normalize: bool, determines whether data is normalized w/ Yeo-Johnson transformation + zero-mean, unit-variance normalization
         feature_train_data: ndarray, the feature data for the training data in ndarray form
         feature_test_data: ndarray, the feature data for the testing data in ndarray form
@@ -1572,7 +1587,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         """
         # Constructor method
         # Inherit objects from GP_Emulator Base Class
-        super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
+        super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, set_seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
         #Add training and testing data as child features
         self.train_data = train_data
         self.test_data = test_data 
@@ -1614,14 +1629,14 @@ class Type_1_GP_Emulator(GP_Emulator):
         
         return feature_eval_data
     
-    def set_train_test_data(self, sep_fact, seed):
+    def set_train_test_data(self, sep_fact, set_seed):
         """
         Finds the simulation data to use as training/testing data.
         
         Parameters
         ----------
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        seed: int or None, Determines seed for randomizations. None if seed is random
+        set_seed: int or None, Determines seed for randomizations. None if seed is random
         
         Returns
         -------
@@ -1634,7 +1649,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         """
         assert isinstance(sep_fact, (float,int)), "Separation factor must be float or int > 0"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
-        assert isinstance(seed, int), "seed must be int!"
+        assert isinstance(set_seed, int), "seed must be int!"
         assert isinstance(self.gp_sim_data, Data), "self.gp_sim_data must be instance of Data"
         assert np.all(self.gp_sim_data.x_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
         assert np.all(self.gp_sim_data.theta_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
@@ -1649,14 +1664,14 @@ class Type_1_GP_Emulator(GP_Emulator):
         theta_train = self.gp_sim_data.theta_vals[train_idx]
         x_train = self.gp_sim_data.x_vals #x_vals for Type 1 is the same as exp_data. No need to index x
         y_train = self.gp_sim_data.y_vals[train_idx]
-        train_data = Data(theta_train, x_train, y_train, None, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x, sep_fact, seed)
+        train_data = Data(theta_train, x_train, y_train, None, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x, sep_fact, set_seed)
         self.train_data = train_data
         
         #Get test data and set it as an instance of the data class
         theta_test = self.gp_sim_data.theta_vals[test_idx]
         x_test = self.gp_sim_data.x_vals #x_vals for Type 1 is the same as exp_data. No need to index x
         y_test = self.gp_sim_data.y_vals[test_idx]
-        test_data = Data(theta_test, x_test, y_test, None, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x, sep_fact, seed)
+        test_data = Data(theta_test, x_test, y_test, None, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x, sep_fact, set_seed)
         self.test_data = test_data
         
         #Set training and validation data features in GP_Emulator base class
@@ -1839,7 +1854,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
         """
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed, None)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.set_seed, None)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_1()
         #Add ei data to validation data class
@@ -1984,7 +1999,7 @@ class Type_2_GP_Emulator(GP_Emulator):
     add_next_theta_to_train_data(theta_best_data)
     """
     # Class variables and attributes
-    def __init__(self, gp_sim_data, gp_val_data, cand_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data):
+    def __init__(self, gp_sim_data, gp_val_data, cand_data, train_data, test_data, kernel, lenscl, noise_std, outputscl, retrain_GP, set_seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data):
         """
         Parameters
         ----------
@@ -1998,7 +2013,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         noise_std: float, int: The standard deviation of the noise
         outputscl: float or None, Determines value of outputscale
         retrain_GP: int, number of times to restart GP training
-        seed: int or None, random seed
+        set_seed: int or None, random seed
         normalize: bool, determines whether data is normalized w/ Yeo-Johnson transformation + zero-mean, unit-variance normalization
         feature_train_data: ndarray, the feature data for the training data in ndarray form
         feature_test_data: ndarray, the feature data for the testing data in ndarray form
@@ -2007,7 +2022,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         """
         # Constructor method
         #Inherit objects from GP_Emulator Base Class
-        super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
+        super().__init__(gp_sim_data, gp_val_data, cand_data, kernel, lenscl, noise_std, outputscl, retrain_GP, set_seed, normalize, feature_train_data, feature_test_data, feature_val_data, feature_cand_data)
         #Set training and testing data as child class specific objects
         self.train_data = train_data
         self.test_data = test_data
@@ -2052,14 +2067,14 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return feature_eval_data
     
-    def set_train_test_data(self, sep_fact, seed):
+    def set_train_test_data(self, sep_fact, set_seed):
         """
         Finds the simulation data to use as training/testing data
         
         Parameters
         ----------
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        seed: int or None, Determines seed for randomizations. None if seed is random
+        set_seed: int or None, Determines seed for randomizations. None if seed is random
         
         Returns
         -------
@@ -2072,7 +2087,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         """
         assert isinstance(sep_fact, (float,int)), "Separation factor must be float or int > 0"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
-        assert isinstance(seed, int), "seed must be int!"
+        assert isinstance(set_seed, int), "seed must be int!"
         assert isinstance(self.gp_sim_data, Data), "self.gp_sim_data must be instance of Data"
         assert np.all(self.gp_sim_data.x_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
         assert np.all(self.gp_sim_data.theta_vals is not None), "Must have simulation x, theta, and y data to create train/test data"
@@ -2099,14 +2114,14 @@ class Type_2_GP_Emulator(GP_Emulator):
         theta_train = self.gp_sim_data.theta_vals[train_rows_idx]
         x_train = self.gp_sim_data.x_vals[train_rows_idx]
         y_train = self.gp_sim_data.y_vals[train_rows_idx]
-        train_data = Data(theta_train, x_train, y_train, None, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x, sep_fact, seed)
+        train_data = Data(theta_train, x_train, y_train, None, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x, sep_fact, set_seed)
         self.train_data = train_data
         
         #Get test data and set it as an instance of the data class
         theta_test = self.gp_sim_data.theta_vals[test_rows_idx]
         x_test = self.gp_sim_data.x_vals[test_rows_idx]
         y_test = self.gp_sim_data.y_vals[test_rows_idx]
-        test_data = Data(theta_test, x_test, y_test, None, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x, sep_fact, seed)
+        test_data = Data(theta_test, x_test, y_test, None, None, None, None, None, self.gp_sim_data.bounds_theta, self.gp_sim_data.bounds_x, sep_fact, set_seed)
         self.test_data = test_data
         
         #Set training and validation data features in GP_Emulator base class
@@ -2403,7 +2418,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         else:
             depth = None
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed, depth)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.set_seed, depth)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_2(method)
         #Add ei data to validation data class
@@ -2565,7 +2580,7 @@ class Expected_Improvement():
     __calc_ei_mc(gp_mean, gp_var, y_target)
     __bootstrap(self, pilot_sample, ns=100, alpha=0.05, seed = None)
     """
-    def __init__(self, ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, seed, sg_depth = None):
+    def __init__(self, ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, set_seed, sg_depth = None):
         """
         Parameters
         ----------       
@@ -2574,7 +2589,7 @@ class Expected_Improvement():
         gp_var: tensor, The GP model's variance evaluated over param_set
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
-        seed: int or None, Determines seed for randomizations. None if seed is random
+        set_seed: int or None, Determines seed for randomizations. None if seed is random
         sg_depth: int or None, the depth to use for the Tasmanian sparse grid. Only necessary for Sparse Grid method
         """
         assert len(gp_mean) == len(gp_var), "gp_mean and gp_var must be arrays of the same length"
@@ -2595,7 +2610,7 @@ class Expected_Improvement():
         self.best_error = best_error_metrics[0]
         self.be_theta = best_error_metrics[1]
         self.best_error_x = best_error_metrics[2]
-        self.seed = seed
+        self.set_seed = set_seed
         self.sg_depth = sg_depth
         self.random_vars = self.__set_rand_vars()
         
@@ -2612,8 +2627,8 @@ class Expected_Improvement():
         dim = len(self.exp_data.y_vals)
         mc_samples = 2000 #Set 2000 MC samples
         #Use set seed for integration 
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        if self.set_seed is not None:
+            np.random.seed(self.set_seed)
         else:
         #Always use the same seed if one is not set
             np.random.seed(1)
@@ -3034,7 +3049,7 @@ class Expected_Improvement():
         #Note: Domain for random variable is 0-1, so V for MC is 1
 
         #Perform bootstrapping
-        ci_interval = self.__bootstrap(ei_temp, ns=100, alpha=0.05, seed = self.seed)
+        ci_interval = self.__bootstrap(ei_temp, ns=100, alpha=0.05, set_seed = self.set_seed)
         
         ci_l = ci_interval[0]
         ci_u = ci_interval[1]
@@ -3044,7 +3059,7 @@ class Expected_Improvement():
   
         return ei_mean, row_data
 
-    def __bootstrap(self, pilot_sample, ns=100, alpha=0.05, seed = None):
+    def __bootstrap(self, pilot_sample, ns=100, alpha=0.05, set_seed = None):
         """
         Bootstrapping code for Monte Carlo method. Generously provided by Ryan Smith.
         
@@ -3053,7 +3068,7 @@ class Expected_Improvement():
         pilot_sample: np.ndarray (n_samples x dim param set), the samples to perform bootstrapping on
         ns: int, number of bootstrapping samples. Default 100
         alpha: float, On interval (0,1). The level of significance associated with the bootstrapping. Default 0.05
-        seed: int or None, seed associated with bootstrapping. Default None
+        set_seed: int or None, seed associated with bootstrapping. Default None
         
         Returns:
         --------
@@ -3064,8 +3079,8 @@ class Expected_Improvement():
         quantiles = np.array([alpha*0.5, 1.0-alpha*0.5])
 
         #Set seed
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        if self.set_seed is not None:
+            np.random.seed(self.set_seed)
         else:
             np.random.seed(1)
 

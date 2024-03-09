@@ -14,7 +14,7 @@ from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
 
 noise_mean = 0
-seed = 1
+set_seed = 1
 retrain_GP = 25
 normalize = True
 
@@ -40,7 +40,7 @@ for i in range(len(cs_list)):
     num_x_data = num_x[i]
 
     #Define Simulator Class (Export your Simulator Object Here)
-    simulator = simulator_helper_test_fxns(cs_name_val, noise_mean, None, seed)
+    simulator = simulator_helper_test_fxns(cs_name_val, noise_mean, None, set_seed)
     num_theta_data = len(simulator.indeces_to_consider)*10
     #Generate Exp Data (OR Add your own experimental data as a Data class object)
     set_seed = 1 #Set set_seed to 1 for data generation
@@ -49,8 +49,8 @@ for i in range(len(cs_list)):
     #Set simulator noise_std artifically as 5% of y_exp mean (So that noise will be set rather than trained)
     simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
     #Note at present, training data is always the same between jobs since we set the data generation seed to 1
-    sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, 1.0, seed, False)
-    val_data = simulator.gen_sim_data(15, 15, Gen_meth_enum(1), Gen_meth_enum(1), 1.0, seed + 1, False)
+    sim_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, 1.0, set_seed, False)
+    val_data = simulator.gen_sim_data(15, 15, Gen_meth_enum(1), Gen_meth_enum(1), 1.0, set_seed + 1, False)
     
     all_gp_data = sim_data
     all_val_data = val_data
@@ -58,9 +58,9 @@ for i in range(len(cs_list)):
     #Make Emulator
     noise_std = simulator.noise_std #Yexp_std is exactly the noise_std of the GP Kernel
     gp_object = Type_2_GP_Emulator(all_gp_data, all_val_data, None, None, None, Kernel_enum(1), None, noise_std, None, 
-                                    retrain_GP, seed, normalize, None, None, None, None)
+                                    retrain_GP, set_seed, normalize, None, None, None, None)
     #Choose training data
-    train_data, test_data = gp_object.set_train_test_data(1.0, seed)
+    train_data, test_data = gp_object.set_train_test_data(1.0, set_seed)
     #Train GP
     new_gp_model = gp_object.set_gp_model()
     gp_object.train_gp(new_gp_model)
