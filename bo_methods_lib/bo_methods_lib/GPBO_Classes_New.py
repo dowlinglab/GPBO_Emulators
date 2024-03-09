@@ -1348,8 +1348,6 @@ class GP_Emulator:
         self.fit_gp_model = best_model
         self.posterior = self.fit_gp_model.posterior()
         
-        print(self.trained_hyperparams)
-        
     def __eval_gp_mean_var(self, data):
         """
         Calculates the GP mean and variance given each point and adds it to the instance of the data class
@@ -4017,7 +4015,6 @@ class GPBO_Driver:
 
         #Call optimize acquistion fxn
         max_ei, max_ei_theta = self.__opt_with_scipy("neg_ei")
-        print("max EI theta:", max_ei_theta)
         #Create data class instance for max_ei_theta
         max_ei_theta_data = self.create_data_instance_from_theta(max_ei_theta)
         #Evaluate GP mean/ stdev at max_ei_theta
@@ -4028,7 +4025,6 @@ class GPBO_Driver:
 
         #Call optimize objective function
         min_sse, min_sse_theta = self.__opt_with_scipy("sse")
-        print("Min SSE theta:", min_sse_theta)
 
         #Find min sse using the true function value
         #Turn min_sse_theta into a data instance (including generating y_data)
