@@ -3923,8 +3923,10 @@ class GPBO_Driver:
         #Get the covariance between the old and new minimum sse parameter sets
         covar_best = covar_thetas_sse[0,1]
         
-        #Set gamma
+        #Set gamma and normalize it if necessary
         gamma = self.gp_emulator.fit_gp_model.kernel.kernels[1].variance
+        if self.gp_emulator.normalize:
+            gamma = gamma*(self.gp_emulator.scalerY.scale_**2)
         
         #Caclulate the Kullback–Leibler (KL) divergence (Kullback and Leibler, 1951)
         #Use max to ensure that we don't take the sqrt of a negative number
@@ -3932,12 +3934,12 @@ class GPBO_Driver:
         g = (min_sse_theta_data.sse - self.opt_theta_last.sse)/v
         kappa = self.best_theta_last.kappa
         Dkl_1 = (1/2)*np.log(1+gamma*self.best_theta_last.sse_var)
-        Dkl_2 = -1*(1/2)*(self.best_theta_last.sse_var/(self.best_theta_last.sse_var+1/gamma))
+        Dkl_2 = -1*(1/2)*(self.best_theta_last.sse_var/(self.best_theta_last.sse_var+(1/gamma)))
         if self.method.emulator == True:
             sse_sim = sum((self.exp_data.y_vals - max_ei_theta_data.y_vals)**2)
         else:
             sse_sim = max_ei_theta_data.y_vals           
-        Dkl_3 = (1/2)*(self.best_theta_last.sse_var)*(sse_sim - self.best_theta_last.sse)**2/(self.best_theta_last.sse_var + 1/gamma)**2
+        Dkl_3 = (1/2)*(self.best_theta_last.sse_var)*(sse_sim - self.best_theta_last.sse)**2/(self.best_theta_last.sse_var + (1/gamma))**2
         Dkl = Dkl_1 + Dkl_2 + Dkl_3
 
         #Calculate regret and convergence speed
@@ -4108,7 +4110,7 @@ class GPBO_Driver:
         bo_iter_results = [best_error, float(self.ep_bias.ep_curr), max_ei, max_ei_theta, min_sse, min_sse_sim, min_sse_theta, regret, speed, time_per_iter]
         # Add the new row to the DataFrame
         iter_df.loc[0] = bo_iter_results
-        print(self.gp_emulator.train_data.theta_vals)
+
         return iter_df, iter_max_ei_terms, gp_emulator_curr, r_stop
     
     def __run_bo_to_term(self, gp_model):
