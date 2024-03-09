@@ -3916,7 +3916,7 @@ class GPBO_Driver:
         covar_best = covar_thetas_sse[0,1]
         
         #Set gamma
-        gamma = self.gp_emulator.fit_gp_model.kernel_.k2.noise_level
+        gamma = self.gp_emulator.fit_gp_model.kernel.kernels[1].variance
         
         #Caclulate the Kullback–Leibler (KL) divergence (Kullback and Leibler, 1951)
         #Use max to ensure that we don't take the sqrt of a negative number
