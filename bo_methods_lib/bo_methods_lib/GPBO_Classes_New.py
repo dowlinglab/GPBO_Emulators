@@ -1343,7 +1343,9 @@ class GP_Emulator:
         #Assign self parameters
         self.trained_hyperparams = trained_hyperparams
         self.fit_gp_model = best_model
+        self.posterior = self.fit_gp_model.posterior()
         
+        print(self.trained_hyperparams)
         
     def __eval_gp_mean_var(self, data):
         """
@@ -1359,7 +1361,7 @@ class GP_Emulator:
         gp_var: ndarray, array of gp variance for the data set
         gp_covar: ndarray, array of gp covariance for the data set
         
-        """       
+        """     
         #Get data in vector form into array form
         if len(data.shape) < 2:
             data.reshape(1,-1)
@@ -1370,7 +1372,7 @@ class GP_Emulator:
             eval_points = data
         
         #Evaluate GP given parameter set theta and state point value
-        gp_mean_scl, gp_covar_scl = self.fit_gp_model.predict_f(eval_points, full_cov=True)
+        gp_mean_scl, gp_covar_scl = self.posterior.predict_f(eval_points, full_cov=True)
         #Remove dimensions of 1
         gp_mean_scl = gp_mean_scl.numpy()
         # print(gp_covar_scl.shape)
