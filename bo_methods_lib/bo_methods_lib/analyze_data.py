@@ -900,6 +900,7 @@ class LS_Analysis(General_Analysis):
                 sp_data = json.load(json_file)
             #get number of total runs from statepoint
             tot_runs_cs = sp_data["bo_run_tot"]
+            ftol = sp_data["obj_tol"]
             if tot_runs_cs == 1:
                 if sp_data["cs_name_val"] in [2,3] and sp_data["bo_iter_tot"] == 75:
                     tot_runs_cs = 10
@@ -920,11 +921,12 @@ class LS_Analysis(General_Analysis):
             #Set num_x based off cs number
             #DO THIS
             exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
+            ftol = 1e-7
 
         self.simulator = simulator
         self.exp_data = exp_data
             
-        return simulator, exp_data, tot_runs_cs
+        return simulator, exp_data, tot_runs_cs, ftol
 
     def least_squares_analysis(self, tot_runs = None):
         """
@@ -941,8 +943,8 @@ class LS_Analysis(General_Analysis):
 
         if not found_data1:
             #Get simulator and exp_data Data class objects
-            simulator, exp_data, tot_runs_cs = self.__get_simulator_exp_data()
-
+            simulator, exp_data, tot_runs_cs, ftol = self.__get_simulator_exp_data()
+            
             num_restarts = tot_runs_cs if tot_runs is None else tot_runs
             len_x = exp_data.get_num_x_vals()
 
@@ -969,7 +971,8 @@ class LS_Analysis(General_Analysis):
                 #Find least squares solution
                 Solution = optimize.least_squares(self.__ls_scipy_func, theta_guess[i] ,
                                                   bounds = simulator.bounds_theta_reg, method='trf',
-                                                  args=(self.exp_data, self.simulator), verbose = 0)
+                                                  args=(self.exp_data, self.simulator), verbose = 0, 
+                                                  ftol = ftol)
                 #End timer and calculate total run time
                 time_end = time.time()
                 time_per_run = time_end-time_start
