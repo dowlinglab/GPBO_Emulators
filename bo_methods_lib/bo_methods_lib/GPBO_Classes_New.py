@@ -1162,8 +1162,10 @@ class GP_Emulator:
             #Otherwise, set the guess as 5% the taining data mean
             data_mean = np.abs(np.mean(self.gp_sim_data.y_vals))
             noise_guess = np.float64(data_mean*0.05/sclr)**2
+        
+        noise_guess_f = np.maximum(1.01e-6, noise_guess)
 
-        noise_kern = gpflow.kernels.White(variance = noise_guess)
+        noise_kern = gpflow.kernels.White(variance = noise_guess_f)
 
         if self.noise_std is not None:
             gpflow.set_trainable(noise_kern.variance, False)
@@ -1267,8 +1269,8 @@ class GP_Emulator:
             tau = self.outputscl
             if self.outputscl == False:
                 set_c_trainable = False
-            
-        return tau, set_c_trainable
+        tau_guess = np.maximum(1.01e-6, tau)
+        return tau_guess, set_c_trainable
     
     def set_gp_model_data(self):
         #Preprocess Training data
