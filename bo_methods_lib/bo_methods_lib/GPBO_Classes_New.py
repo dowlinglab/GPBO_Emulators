@@ -2376,21 +2376,23 @@ class Type_2_GP_Emulator(GP_Emulator):
         ind_errors = (train_y_resh - exp_data.y_vals[np.newaxis,:])**2
 
         # Sum squared errors for each block
-        sse_train_vals = np.sum(ind_errors, axis=1).flatten()
+        sse_vals = np.sum(ind_errors, axis=1)
+        sse_train_vals = sse_vals.flatten()
 
         #List to array
         be_theta = self.train_data.theta_vals[int(np.argmin(sse_train_vals)*len_x)]
         
         #Best error is the minimum of these values
         best_error = np.amin(sse_train_vals)
+        best_sq_error =  ind_errors[np.argmin(sse_vals)]
 
         #For method 2B, use a log scaled best error
         if method.obj.value == 2:
             best_error = np.log(best_error)
-            ind_errors[ind_errors == 0] += 1e-15 #Add a small value to any zero value to avoid problems in ei calculations
-            ind_errors = np.log(ind_errors) 
+            best_sq_error[best_sq_error == 0] += 1e-15 #Add a small value to any zero value to avoid problems in ei calculations
+            best_sq_error = np.log(best_sq_error) 
             
-        return best_error, be_theta, ind_errors
+        return best_error, be_theta, best_sq_error
     
     def __eval_gp_ei(self, sim_data, exp_data, ep_bias, best_error_metrics, method, sg_depth = None):
         """
@@ -2712,10 +2714,10 @@ class Expected_Improvement():
             
             if method.method_name.value == 3: #2A
                 #Calculate ei for a given theta (ei for all x over each theta)
-                ei[i], row_data = self.__calc_ei_emulator(gp_mean_i, gp_var_i, self.best_error_x[i], self.exp_data.y_vals)
+                ei[i], row_data = self.__calc_ei_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
                 
             elif method.method_name.value == 4: #2B
-                ei[i], row_data = self.__calc_ei_log_emulator(gp_mean_i, gp_var_i, self.best_error_x[i], self.exp_data.y_vals)
+                ei[i], row_data = self.__calc_ei_log_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
                 
             elif method.method_name.value == 5: #2C
                 ei[i], row_data = self.__calc_ei_sparse(gp_mean_i, gp_var_i, self.exp_data.y_vals)
@@ -2732,7 +2734,7 @@ class Expected_Improvement():
         
         return ei, ei_term_df 
         
-    def __calc_ei_emulator(self, gp_mean, gp_var, be_x, y_target): #Will need obj toggle soon
+    def __calc_ei_emulator(self, gp_mean, gp_var, y_target): #Will need obj toggle soon
         """ 
         Calculates the expected improvement of the emulator approach without log scaling (2A)
         
@@ -2764,7 +2766,7 @@ class Expected_Improvement():
             gp_var_val = gp_var[valid_indices]
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
-            best_errors_x = be_x[valid_indices]
+            best_errors_x = self.best_error_x[valid_indices]
 
             #If variance is close to zero this is important
             with np.errstate(divide = 'warn'):
@@ -2814,7 +2816,7 @@ class Expected_Improvement():
         
         return ei_temp, row_data
 
-    def __calc_ei_log_emulator(self, gp_mean, gp_var, be_x, y_target):
+    def __calc_ei_log_emulator(self, gp_mean, gp_var, y_target):
         """ 
         Calculates the expected improvement of the emulator approach with log scaling (2B)
         
@@ -2844,7 +2846,7 @@ class Expected_Improvement():
             pred_stdev_val = np.sqrt(gp_var[valid_indices])
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
-            best_errors_x = be_x[valid_indices]
+            best_errors_x = self.best_error_x[valid_indices]
         
             #Important when stdev is close to 0
             with np.errstate(divide = 'warn'):
@@ -3502,12 +3504,13 @@ class GPBO_Driver:
         --------
         starting_pts: np.ndarray, array of parameter set initializations for self.__opt_with_scipy
         """
-        #Generate 300 LHS Theta vals
-        theta_vals = self.simulator.gen_theta_vals(300)
+        #Generate n LHS Theta vals
+        num_mc_theta = 500
+        theta_vals = self.simulator.gen_theta_vals(num_mc_theta)
         
         #Add repeated theta_vals and experimental x values
         rep_theta_vals = np.repeat(theta_vals, len(self.exp_data.x_vals) , axis = 0)
-        rep_x_vals = np.vstack([self.exp_data.x_vals]*300)
+        rep_x_vals = np.vstack([self.exp_data.x_vals]*num_mc_theta)
         
         #Create instance of Data Class
         sp_data = Data(rep_theta_vals, rep_x_vals, None, None, None, None, None, None, self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
@@ -3519,10 +3522,11 @@ class GPBO_Driver:
         #Evaluate GP SSE and SSE_Var (This is the 2nd slowest step)
         sp_data_sse_mean, sp_data_sse_var = self.gp_emulator.eval_gp_sse_var_misc(sp_data, self.method, self.exp_data)
         
-        #Note - Can't use EI for independence approx b/c you don't have e' for all the MCMC points
+        #Note - Use Sparse grid EI for approximations
         #Evaluate EI using Sparse Grid or EI (This is relatively quick)
+        method_3 = GPBO_Methods(Method_name_enum(3))
         sp_data_ei, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(sp_data, self.exp_data, self.ep_bias, best_error_metrics, 
-                                                                  self.method, self.sg_depth)
+                                                                  method_3, self.sg_depth)
         
         ##Sort by min(-ei)
         # Create a list of tuples containing indices and values
