@@ -99,6 +99,7 @@ class General_Analysis:
         """
         #Find all jobs of a certain cs and method type for the criteria in order of job id
         jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
+        jobs = [job for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
 
         return jobs
 
@@ -123,7 +124,8 @@ class General_Analysis:
         job_list = []
         
         #Find all jobs of a certain cs and method type for the criteria in order of job id
-        jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
+        jobs = self.get_jobs_from_criteria()
+        theta_true_data = None
         
         #Loop over each job
         for job in jobs:
@@ -148,11 +150,11 @@ class General_Analysis:
         df_all_jobs = df_all_jobs.reset_index(drop=True)     
         
         # #Open Datafile to get theta_true if necessary
-        # if not found_data1 or not found_data2:
-        #     results = open_file_helper(data_file)
-        #     theta_true = results[0].simulator_class.theta_true
-        #     theta_true_names = results[0].simulator_class.theta_true_names
-        #     theta_true_data = dict(zip(theta_true_names, theta_true))
+        if theta_true_data is not None:
+            results = open_file_helper(data_file)
+            theta_true = results[0].simulator_class.theta_true
+            theta_true_names = results[0].simulator_class.theta_true_names
+            theta_true_data = dict(zip(theta_true_names, theta_true))
             
         return df_all_jobs, job_list, theta_true_data
     
