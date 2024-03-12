@@ -25,6 +25,7 @@ import scipy
 import matplotlib.pyplot as plt
 import gpflow
 import tensorflow_probability as tfp
+import tensorflow as tf
 
 
 class Method_name_enum(Enum):
@@ -1119,8 +1120,8 @@ class GP_Emulator:
         min_lenscl: float, the lower bound of the lengthscale parameters
         max_lenscl: float, the upper bound of the lengthscale parameters
         """
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        # if self.seed is not None:
+        #     np.random.seed(self.seed)
 
         #Set lenscl bounds using the original training data to ensure distance
         #Between min and max lengthscales does not collapse as iterations progress
@@ -1142,6 +1143,7 @@ class GP_Emulator:
         min_distance = np.min(euclidean_distances, axis=0)
         max_distance = np.max(euclidean_distances, axis=0)
         lenscl_guess = np.random.uniform(min_distance, max_distance, size=len(max_distance))
+        print(lenscl_guess)
         # lenscl_guess = np.average((min_distance, max_distance), axis = 0)
         # print(min_lenscl, max_lenscl)
         return lenscl_guess
@@ -1164,6 +1166,8 @@ class GP_Emulator:
             noise_guess = np.float64(data_mean*0.05/sclr)**2
         
         noise_guess_f = np.maximum(1.01e-6, noise_guess)
+        print("noise", self.noise_std)
+        print("sclr", sclr)
 
         noise_kern = gpflow.kernels.White(variance = noise_guess_f)
 
@@ -1195,7 +1199,7 @@ class GP_Emulator:
             kernel_base = gpflow.kernels.Matern52(variance=c_guess, lengthscales = lenscls) 
 
         #Set scale parameter on base kernel w/ a Half Cauchy Prior w/ mean 1
-        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(0.1), np.float64(5.0))
+        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(1.0), np.float64(5.0))
 
         #Set scale values
         if not set_c_trainable:
@@ -1270,7 +1274,14 @@ class GP_Emulator:
             tau = self.outputscl
             if self.outputscl == False:
                 set_c_trainable = False
-        tau_guess = np.maximum(1.01e-6, tau)
+            
+        # tau_guess_min = 0.1
+        # tau_guess_max = 50
+        # if tau_guess_min < tau < tau_guess_max:
+        #     tau_guess_min = tau  
+        # tau_guess = np.random.uniform(tau_guess_min, tau_guess_max)
+
+        tau_guess = np.maximum(1.0, tau)
         return tau_guess, set_c_trainable
     
     def set_gp_model_data(self):
@@ -1305,6 +1316,64 @@ class GP_Emulator:
         gp_model = gpflow.models.GPR(data, kernel=kernel, noise_variance = float(noise_kern.variance.numpy()))
         # gpflow.utilities.print_summary(gp_model)
         return gp_model
+    
+    # fit a GP and fix Cholesky decomposition failure,optimization failure and bad solution 
+    # by random initialization if detected
+    def fit_GP(self, count_fix):
+        if self.seed != None:
+            np.random.seed(self.seed + count_fix)
+
+        fit_successed = True   
+        try:
+            model = self.set_gp_model()
+            
+            o = gpflow.optimizers.Scipy()
+            res = o.minimize(model.training_loss, variables=model.trainable_variables)
+            
+            if not(res.success):
+                if count_fix < self.retrain_GP:
+                    print('Optimization fail, fix it by random initialization.')
+                    count_fix = count_fix +1 
+                    fit_successed,model,count_fix = self.fit_GP(count_fix)
+                else:
+                    print('Can not fit a Gaussian process, Optimization fail.')
+                    fit_successed = False
+        except tf.errors.InvalidArgumentError as e:
+            if count_fix < self.retrain_GP:
+                print('Cholesky decomposition was not successful, fix it by random initialization.')
+                count_fix = count_fix +1 
+                fit_successed,model,count_fix = self.fit_GP(count_fix)
+            else:
+                print('Can not fit a Gaussian process, Cholesky decomposition was not successful.')
+                fit_successed = False
+                
+        # check bad solution when the  mean and variance of a new data points
+        # are above or blew data points with certian percentage
+        if fit_successed:
+            X = self.feature_train_data
+            y = self.train_data.y_vals
+            minX = np.amin(X, axis=0)
+            maxX = np.amax(X, axis=0)
+            xtest = np.linspace(minX,maxX,100)
+            mean, var = model.predict_y(xtest)
+            mean = mean.numpy()
+            var = var.numpy()         
+            
+            if count_fix < self.retrain_GP: # limit number of trial to fix bad solution 
+                y_mean = np.mean(y)
+                mean_mean = np.mean(mean)
+                y_max = np.max(y)
+                mean_max = np.max(mean)
+                y_min = np.abs(np.min(y))
+                mean_min = np.abs(np.min(mean))
+                
+                if y_mean > 0.0 and (mean_max > y_max or mean_min < y_min):
+                    if abs(round((mean_mean-y_mean)/y_mean)) > 0 or mean_mean == 0.0:
+                        print('bad solution, fix it by random initialization.')
+                        count_fix = count_fix + 1 
+                        fit_successed,model, count_fix = self.fit_GP(count_fix)
+
+        return fit_successed,model, count_fix
         
     def train_gp(self, gp_model):
         """
@@ -1324,10 +1393,10 @@ class GP_Emulator:
         optimizer = gpflow.optimizers.Scipy()
         best_model = None
 
-        for _ in range(self.retrain_GP):
-            # Define and train the GP model
-            optimizer.minimize(gp_model.training_loss, gp_model.trainable_variables)
-
+        fit_count = 0
+        while fit_count < self.retrain_GP:
+            fit_successed,model, count_fix = self.fit_GP(fit_count)
+            fit_count += (count_fix +1)
             # Compute the training loss of the model
             training_loss = gp_model.training_loss().numpy()
 
@@ -1335,6 +1404,18 @@ class GP_Emulator:
             if training_loss < best_minimum_loss:
                 best_minimum_loss = training_loss
                 best_model = gp_model
+
+        # for _ in range(self.retrain_GP):
+        #     # Define and train the GP model
+        #     optimizer.minimize(gp_model.training_loss, gp_model.trainable_variables)
+
+        #     # Compute the training loss of the model
+        #     training_loss = gp_model.training_loss().numpy()
+
+        #     # Check if this model has the best minimum training loss
+        #     if training_loss < best_minimum_loss:
+        #         best_minimum_loss = training_loss
+        #         best_model = gp_model
 
         #Pull out kernel parameters after GP training
         outputscl_final = float(best_model.kernel.kernels[0].variance.numpy())
