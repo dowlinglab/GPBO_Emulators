@@ -1359,13 +1359,17 @@ class GP_Emulator:
         gpflow.config.set_default_float(np.float64)
         
         return kernel
+    
     # fit a GP and fix Cholesky decomposition failure,optimization failure and bad solution 
     # by random initialization if detected
-    def fit_GP(self, count_fix):
+    def fit_GP(self, model, count_fix):
+        #Randomize Seed
         np.random.seed(count_fix)
+        #Initialize fit_sucess as true
         fit_successed = True   
         #Get hyperparam guess list
         kernel = self.init_hyper_parameters(count_fix)
+        gpflow.utilities.print_summary(kernel)
         try:
             model = self.set_gp_model(kernel)
             
@@ -1374,47 +1378,40 @@ class GP_Emulator:
             
             if not(res.success):
                 if count_fix < self.retrain_GP:
-                    count_fix = count_fix +1 
+                    count_fix += 1 
                     fit_successed,model,count_fix = self.fit_GP(count_fix)
                 else:
                     fit_successed = False
         except tf.errors.InvalidArgumentError as e:
             if count_fix < self.retrain_GP:
-                count_fix = count_fix +1 
+                count_fix += 1
                 fit_successed,model,count_fix = self.fit_GP(count_fix)
             else:
                 fit_successed = False
 
-        #Check for good fit
         if fit_successed:
-            x = self.feature_train_data
-            y = self.train_data.y_vals.reshape(-1,1)
-            if self.normalize:
-                X_real = self.scalerX.transform(x)
-                y_real = self.scalerY.transform(y)
-            else:
-                X_real = x
-                y_real = y
+            #Check for good fit 
+            X_scl = model.data[0]
+            y_scl = model.data[1]
 
-            minX = np.amin(X_real, axis = 0)
-            maxX = np.amax(X_real, axis = 0)
+            minX = np.amin(X_scl, axis = 0)
+            maxX = np.amax(X_scl, axis = 0)
             xtest = np.linspace(minX, maxX, 100)
             posterior = model.posterior()
             mean, var = posterior.predict_f(xtest)
-            mean = mean.numpy()
-            var = var.numpy()       
+            mean = mean.numpy()      
             
             if count_fix < self.retrain_GP: # limit number of trial to fix bad solution 
-                y_mean = np.mean(y)
+                y_mean = np.mean(y_scl)
                 mean_mean = np.mean(mean)
-                y_max = np.max(y)
+                y_max = np.max(y_scl)
                 mean_max = np.max(mean)
-                y_min = np.abs(np.min(y))
+                y_min = np.abs(np.min(y_scl))
                 mean_min = np.abs(np.min(mean))
                 
                 if y_mean > 0.0 and (mean_max > y_max or mean_min < y_min):
                     if abs(round((mean_mean-y_mean)/y_mean)) > 0 or mean_mean == 0.0:
-                        count_fix = count_fix + 1 
+                        count_fix += 1 
                         fit_successed,model,count_fix = self.fit_GP(count_fix)
 
         return fit_successed,model, count_fix
@@ -1434,39 +1431,24 @@ class GP_Emulator:
 
         # Train the model multiple times and keep track of the model with the lowest minimum training loss
         best_minimum_loss = float('inf')
-        optimizer = gpflow.optimizers.Scipy()
         best_model = None
 
-        total_retrain = 0
-        while total_retrain < self.retrain_GP:
-            fit_successed,model, count_fix = self.fit_GP(total_retrain)
-            total_retrain += (count_fix + 1)
-            if fit_successed or total_retrain >= self.retrain_GP:
-                gp_model = model
-            
+        #Initialize number of counters
+        count_fix_tot = 0
+        #While you still have retrains left
+        while count_fix_tot < self.retrain_GP:
+            #Create and fit the model
+            fit_successed, gp_model, count_fix = self.fit_GP(count_fix_tot)
+            #The new counter total is the number of counters used + 1
+            count_fix_tot = count_fix + 1
+            #If the fit succeeded or we have no good models
+            if fit_successed or (count_fix_tot >= count_fix and best_model is None):
                 # Compute the training loss of the model
                 training_loss = gp_model.training_loss().numpy()
-
                 # Check if this model has the best minimum training loss
                 if training_loss < best_minimum_loss:
                     best_minimum_loss = training_loss
-                    best_model = gp_model
-            else:
-                pass
-
-            
-
-        # for _ in range(self.retrain_GP):
-        #     # Define and train the GP model
-        #     optimizer.minimize(gp_model.training_loss, gp_model.trainable_variables)
-
-        #     # Compute the training loss of the model
-        #     training_loss = gp_model.training_loss().numpy()
-
-        #     # Check if this model has the best minimum training loss
-        #     if training_loss < best_minimum_loss:
-        #         best_minimum_loss = training_loss
-        #         best_model = gp_model
+                    best_model = gp_model            
 
         #Pull out kernel parameters after GP training
         outputscl_final = float(best_model.kernel.kernels[0].variance.numpy())
