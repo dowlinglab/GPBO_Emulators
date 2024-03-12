@@ -1185,6 +1185,7 @@ class GP_Emulator:
         c_guess, set_c_trainable = self.__set_outputscl()
         #Get lescale values
         lenscls, set_lenscl_trainable = self.__set_lenscl()
+        # print(c_guess, lenscls)
         #Set the type of kernel
         if self.kernel.value == 3: #RBF
             kernel_base = gpflow.kernels.RBF(variance=c_guess, lengthscales = lenscls)
@@ -1194,7 +1195,7 @@ class GP_Emulator:
             kernel_base = gpflow.kernels.Matern52(variance=c_guess, lengthscales = lenscls) 
 
         #Set scale parameter on base kernel w/ a Half Cauchy Prior w/ mean 1
-        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(1e-1), np.float64(5.0))
+        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(0.1), np.float64(5.0))
 
         #Set scale values
         if not set_c_trainable:
@@ -1276,11 +1277,9 @@ class GP_Emulator:
         #Preprocess Training data
         if self.normalize == True:
             #Update scaler to be the fitted scaler. This scaler will change as the training data is updated
-            self.scalerX = self.scalerX.fit(self.feature_train_data)
-            self.scalerY = self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
             #Scale training data if necessary
-            ft_td_scl = self.scalerX.transform(self.feature_train_data)
-            y_td_scl = self.scalerY.transform(self.train_data.y_vals.reshape(-1,1))
+            ft_td_scl = self.scalerX.fit_transform(self.feature_train_data)
+            y_td_scl = self.scalerY.fit_transform(self.train_data.y_vals.reshape(-1,1))
         else:
             ft_td_scl = self.feature_train_data
             y_td_scl = self.train_data.y_vals.reshape(-1,1)
@@ -1304,7 +1303,7 @@ class GP_Emulator:
         kernel = kernel_base + noise_kern
         #Define model  
         gp_model = gpflow.models.GPR(data, kernel=kernel, noise_variance = float(noise_kern.variance.numpy()))
-        
+        # gpflow.utilities.print_summary(gp_model)
         return gp_model
         
     def train_gp(self, gp_model):
