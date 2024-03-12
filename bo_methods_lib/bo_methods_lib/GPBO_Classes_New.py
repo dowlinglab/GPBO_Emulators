@@ -1194,7 +1194,7 @@ class GP_Emulator:
             kernel_base = gpflow.kernels.Matern52(variance=c_guess, lengthscales = lenscls) 
 
         #Set scale parameter on base kernel w/ a Half Cauchy Prior w/ mean 1
-        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(1.0), np.float64(5.0))
+        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(1e-1), np.float64(5.0))
 
         #Set scale values
         if not set_c_trainable:
