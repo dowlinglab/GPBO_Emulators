@@ -2927,7 +2927,7 @@ class Expected_Improvement():
                                   "N/A", "N/A", "N/A", "N/A",
                                   "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
      
-        row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
+        row_data = row_data_lists.apply(lambda col: col.explode(ignore_index = True), axis=0).reset_index(drop=True)
         
         return ei_temp, row_data
 
@@ -2990,7 +2990,7 @@ class Expected_Improvement():
             ei_temp = 0
             row_data_lists = pd.DataFrame([[self.best_error_x, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
         
-        row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
+        row_data = row_data_lists.apply(lambda col: col.explode(ignore_index = True), axis=0).reset_index(drop=True)
   
         return ei_temp, row_data
 
@@ -3071,7 +3071,7 @@ class Expected_Improvement():
             improvement = "N/A"
 
         row_data_lists = pd.DataFrame([[self.best_error, sse_temp, improvement, ei_temp]], columns=columns)
-        row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
+        row_data = row_data_lists.apply(lambda col: col.explode(ignore_index = True), axis=0).reset_index(drop=True)
             
         return ei_temp, row_data
 
@@ -3173,7 +3173,7 @@ class Expected_Improvement():
         ci_u = ci_interval[1]
         
         row_data_lists = pd.DataFrame([[self.best_error, sse_temp, improvement, ci_l, ci_u, ei_temp]], columns=columns)
-        row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
+        row_data = row_data_lists.apply(lambda col: col.explode(ignore_index = True), axis=0).reset_index(drop=True)
   
         return ei_mean, row_data
 
@@ -3832,7 +3832,7 @@ class GPBO_Driver:
             elif opt_obj == "lcb":
                 assert isinstance(beta, (int, float, np.float64)), "beta must be float or int"
                 #Objective to minimize is gp_mean - beta_gp_var if using 1B or 2B, and sse for all other methods
-                obj = cand_sse_mean + np.sqrt(beta*cand_sse_var)
+                obj = cand_sse_mean + np.sqrt(abs(beta*cand_sse_var))
             else:
                 #Otherwise objective is ei
                 if self.method.emulator == False:

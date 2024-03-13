@@ -1,0 +1,117 @@
+2024-03-13 11:10:44.582567: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2024-03-13 11:10:44.583083: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2024-03-13 11:10:44.583971: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2024-03-13 11:10:44.588652: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2024-03-13 11:10:45.342417: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Using environment configuration: NotreDameCRC
+2024-03-13 11:10:55.660057: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:10:55.725836: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:26:44.944765: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:26:54.993702: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:35:33.232413: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:35:37.074576: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:41:47.450595: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:47:12.850728: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:47:12.887053: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:52:25.160961: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:52:27.372906: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:58:56.545529: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:59:05.678657: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:59:05.720716: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 11:59:05.804592: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:11:26.017943: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:11:34.272668: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:11:41.789007: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:11:43.626472: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:26:04.507191: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:26:04.714149: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:26:14.770718: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:44:07.933543: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:44:10.128764: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:52:01.726009: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:52:10.524318: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:52:21.654072: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 12:52:30.595649: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 13:01:00.546455: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 13:06:26.852389: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+2024-03-13 13:19:43.833784: W tensorflow/core/kernels/linalg/cholesky_op.cc:56] Cholesky decomposition was not successful. Eigen::LLT failed with error code 1. Filling lower-triangular output with NaNs.
+/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py:2930: FutureWarning: reindexing with a non-unique Index is deprecated and will raise in a future version.
+  row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
+Traceback (most recent call last):
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/flow/project.py", line 3475, in _execute_operation
+    self._operations[operation.name](*operation._jobs)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/flow/project.py", line 625, in __call__
+    return self._op_func(*jobs)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/flow/project.py", line 1565, in decorated
+    return func(job)
+  File "/scratch365/mcarlozo/Toy_Problem/project.py", line 109, in run_ep_or_sf_exp
+    restart_bo_results = driver.run_bo_restarts()
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 4413, in run_bo_restarts
+    bo_results = self.__run_bo_workflow()
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 4372, in __run_bo_workflow
+    results_df, max_ei_details_df, list_gp_emulator_class, why_term = self.__run_bo_to_term()
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 4265, in __run_bo_to_term
+    iter_df, iter_max_ei_terms, gp_emulator_class, r_stop = self.__run_bo_iter(i) #Change me later
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 4125, in __run_bo_iter
+    self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics)
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 3604, in __make_starting_opt_pts
+    starting_pts = self.__gen_start_pts_mc_sparse(best_error_metrics)
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 3643, in __gen_start_pts_mc_sparse
+    sp_data_ei, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(sp_data, self.exp_data, self.ep_bias, best_error_metrics, 
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 2570, in eval_ei_misc
+    ei = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 2540, in __eval_gp_ei
+    ei, ei_terms_df = ei_class.type_2(method)
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 2832, in type_2
+    ei[i], row_data = self.__calc_ei_emulator(gp_mean_i, gp_var_i, self.exp_data.y_vals)
+  File "/scratch365/mcarlozo/Toy_Problem/bo_methods_lib/bo_methods_lib/GPBO_Classes_New.py", line 2930, in __calc_ei_emulator
+    row_data = row_data_lists.apply(lambda col: col.explode(), axis=0).reset_index(drop=True)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/frame.py", line 8839, in apply
+    return op.apply().__finalize__(self, method="apply")
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/apply.py", line 727, in apply
+    return self.apply_standard()
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/apply.py", line 854, in apply_standard
+    return self.wrap_results(results, res_index)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/apply.py", line 880, in wrap_results
+    return self.wrap_results_for_axis(results, res_index)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/apply.py", line 948, in wrap_results_for_axis
+    result = self.obj._constructor(data=results)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/frame.py", line 636, in __init__
+    mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/internals/construction.py", line 502, in dict_to_mgr
+    return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/internals/construction.py", line 125, in arrays_to_mgr
+    arrays = _homogenize(arrays, index, dtype)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/internals/construction.py", line 607, in _homogenize
+    val = val.reindex(index, copy=False)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/series.py", line 4672, in reindex
+    return super().reindex(**kwargs)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/generic.py", line 4966, in reindex
+    return self._reindex_axes(
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/generic.py", line 4986, in _reindex_axes
+    obj = obj._reindex_with_indexers(
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/generic.py", line 5032, in _reindex_with_indexers
+    new_data = new_data.reindex_indexer(
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/internals/managers.py", line 679, in reindex_indexer
+    self.axes[axis]._validate_can_reindex(indexer)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/pandas/core/indexes/base.py", line 4107, in _validate_can_reindex
+    raise ValueError("cannot reindex on an axis with duplicate labels")
+ValueError: cannot reindex on an axis with duplicate labels
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/scratch365/mcarlozo/Toy_Problem/project.py", line 122, in <module>
+    Project().main()
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/flow/project.py", line 5120, in main
+    args.func(args)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/flow/project.py", line 4837, in _main_run
+    run()
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/flow/project.py", line 3720, in run
+    self._run_operations(
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/flow/project.py", line 3305, in _run_operations
+    self._execute_operation(operation, timeout, pretend)
+  File "/afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env/lib/python3.9/site-packages/flow/project.py", line 3477, in _execute_operation
+    raise UserOperationError(execution_error_message) from error
+flow.errors.UserOperationError: An exception was raised during operation run_ep_or_sf_exp for job or aggregate with id baa7d60ed0f514f83116e28a9b07e8cd.
