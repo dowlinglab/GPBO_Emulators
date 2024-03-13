@@ -1450,7 +1450,7 @@ class GP_Emulator:
                 if best_model is None:
                     best_model = gp_model
 
-        # gpflow.utilities.print_summary(gp_model)
+        # gpflow.utilities.print_summary(best_model)
         
         #Pull out kernel parameters after GP training
         outputscl_final = float(best_model.kernel.kernels[0].variance.numpy())
