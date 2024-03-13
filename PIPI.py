@@ -25,6 +25,9 @@ num_stds_ax = np.linspace(0,10,101)
 norm_vals = (norm.cdf(num_stds_ax) - norm.cdf(-num_stds_ax))*100
 
 fig = plt.figure()
+plt.axes([0.6, 0.25, 0.3, 0.3])  # left, bottom, width, height
+idx_3 = np.argmin(np.abs(num_stds_ax - 3.0))+1
+sub_yn = norm_vals[:idx_3]
 cmap = plt.get_cmap('rainbow', len(cs_list))
 #Make Pd df for hyperparameters and pct_ins
 
@@ -62,8 +65,7 @@ for i in range(len(cs_list)):
     #Choose training data
     train_data, test_data = gp_object.set_train_test_data(1.0, set_seed)
     #Train GP
-    new_gp_model = gp_object.set_gp_model()
-    gp_object.train_gp(new_gp_model)
+    gp_object.train_gp()
     misc_gp_mean, misc_var_return = gp_object.eval_gp_mean_var_val(covar = False)
 
     #For Each Point, calculate the std multiplier that puts us in the prediction interval
@@ -73,14 +75,23 @@ for i in range(len(cs_list)):
     #Calculate % in side prediction interval at each point
     pct_ins = np.array([np.sum(num_stds < num_std) for num_std in num_stds_ax])/len(num_stds)*100
     plt.plot(num_stds_ax, pct_ins, color = cmap(i), alpha=0.7, label = "CS" + str(cs_name_val))
+
+    #Find the index closest to 3
+    sub_x = num_stds_ax[:idx_3]
+    sub_y = pct_ins[:idx_3]
+
+    # Create a subplot for the subsection
+    plt.plot(sub_x, sub_y, color = cmap(i))
     
 plt.plot(num_stds_ax, norm_vals, color='black', alpha=0.7, label = "Std Norm")
+plt.plot(sub_x, sub_yn, color = "k")
 fig.legend(loc= "upper right", bbox_to_anchor=(-0.02, 1), 
                        borderaxespad=0)
 plt.xlabel('Number of Std. Deviations')
 plt.ylabel('% Inside Prediction Interval')
 plt.title('PIPI With ' + str(retrain_GP) + " GP Retrains")
 plt.grid(True)
+
 plt.tight_layout()
 plt.savefig("Results/PIPI_Retrain_"+str(retrain_GP) +".png",  bbox_inches='tight')
 plt.close()
