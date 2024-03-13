@@ -1112,7 +1112,7 @@ class GP_Emulator:
         
         return num_gp_data
     
-    def __set_lenscl_bnds(self):
+    def __set_lenscl_guess(self):
         """
         Gets an upper and lower bound for the lengthscales
 
@@ -1143,21 +1143,10 @@ class GP_Emulator:
         # Find the smallest/largest distance for each column
         min_distance = np.min(euclidean_distances, axis=0)
         max_distance = np.max(euclidean_distances, axis=0)
-        
-        return min_distance, max_distance
 
-    def __set_lenscl_guess(self):
-        """
-        Gets an upper and lower bound for the lengthscales
-
-        Returns:
-        --------
-        min_lenscl: float, the lower bound of the lengthscale parameters
-        max_lenscl: float, the upper bound of the lengthscale parameters
-        """
-        min_distance, max_distance = self.__set_lenscl_bnds()
         lenscl_guess = np.random.uniform(min_distance, max_distance, size=len(max_distance))
         return lenscl_guess
+        
     
     def __set_white_kern(self):
         #Set the noise guess or allow gp to tune the noise parameter
