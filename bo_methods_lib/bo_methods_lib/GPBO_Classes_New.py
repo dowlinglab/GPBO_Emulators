@@ -1305,8 +1305,8 @@ class GP_Emulator:
 
         if not edu_guess:
             ls_guess = np.exp(np.random.uniform(0 , 3, size = len(ls_guess)))
-            c_guess = scipy.stats.halfcauchy.rvs(loc = 1.0, scale = 5.0)
-            # c_guess = np.exp(np.random.uniform(0. , 5.) )
+            # c_guess = scipy.stats.halfcauchy.rvs(loc = 1.0, scale = 5.0)
+            c_guess = np.exp(np.random.uniform(0. , 5.) )
 
         #Set base kernel
         kernel_base = self.__set_base_kernel(c_guess, set_c_trainable, ls_guess, set_ls_trainable)
@@ -1364,10 +1364,9 @@ class GP_Emulator:
         try:
             #Make model and optimizer and get results
             model = self.set_gp_model(kernel)
-            # gpflow.utilities.print_summary(model)
             o = gpflow.optimizers.Scipy()
             res = o.minimize(model.training_loss, variables=model.trainable_variables)
-            gpflow.utilities.print_summary(model)
+            # gpflow.utilities.print_summary(model)
             #If result isn't successful, remake and retrain model w/ different hyperparameters
             if not(res.success):
                 if count_fix < self.retrain_GP:
@@ -1383,35 +1382,35 @@ class GP_Emulator:
             else:
                 fit_successed = False
 
-        #If the fit is successful, check whether the fit is good
-        if fit_successed:
-            #Get scaled model data
-            X_scl = model.data[0]
-            y_scl = model.data[1]
+        #If the fit is successful, check whether the fit is good (This is BROKEN DO NOT USE FOR NOW)
+        # if fit_successed:
+        #     #Get scaled model data
+        #     X_scl = model.data[0]
+        #     y_scl = model.data[1]
 
-            #Make testing data from min and max + linspace
-            minX = np.amin(X_scl, axis = 0)
-            maxX = np.amax(X_scl, axis = 0)
-            xtest = np.linspace(minX, maxX, 100)
+        #     #Make testing data from min and max + linspace
+        #     minX = np.amin(X_scl, axis = 0)
+        #     maxX = np.amax(X_scl, axis = 0)
+        #     xtest = np.linspace(minX, maxX, 100)
 
-            #Evaluate GP
-            posterior = model.posterior()
-            mean, var = posterior.predict_f(xtest)
-            mean = mean.numpy()      
+        #     #Evaluate GP
+        #     posterior = model.posterior()
+        #     mean, var = posterior.predict_f(xtest)
+        #     mean = mean.numpy()      
             
-            #Check for good fit
-            if count_fix < self.retrain_GP: 
-                y_mean = np.mean(y_scl)
-                mean_mean = np.mean(mean)
-                y_max = np.max(y_scl)
-                mean_max = np.max(mean)
-                y_min = np.abs(np.min(y_scl))
-                mean_min = np.abs(np.min(mean))
+        #     #Check for good fit
+        #     if count_fix < self.retrain_GP: 
+        #         y_mean = np.mean(y_scl)
+        #         mean_mean = np.mean(mean)
+        #         y_max = np.max(y_scl)
+        #         mean_max = np.max(mean)
+        #         y_min = np.abs(np.min(y_scl))
+        #         mean_min = np.abs(np.min(mean))
                 
-                if y_mean > 0.0 and (mean_max > y_max or mean_min < y_min):
-                    if abs(round((mean_mean-y_mean)/y_mean)) > 0 or mean_mean == 0.0:
-                        count_fix += 1 
-                        fit_successed,model,count_fix = self.fit_GP(count_fix)
+        #         if y_mean > 0.0 and (mean_max > y_max or mean_min < y_min):
+        #             if abs(round((mean_mean-y_mean)/y_mean)) > 0 or mean_mean == 0.0:
+        #                 count_fix += 1 
+        #                 fit_successed,model,count_fix = self.fit_GP(count_fix)
 
         return fit_successed,model, count_fix
         
