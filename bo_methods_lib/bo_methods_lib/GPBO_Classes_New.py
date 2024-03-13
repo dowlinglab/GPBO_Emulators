@@ -1304,7 +1304,7 @@ class GP_Emulator:
         ls_guess, set_ls_trainable = self.__set_lenscl()
 
         if not edu_guess:
-            ls_guess = np.exp(np.random.uniform(0. , 5., size = len(ls_guess)) )
+            ls_guess = np.exp(np.random.uniform(0 , 3, size = len(ls_guess)))
             c_guess = scipy.stats.halfcauchy.rvs(loc = 1.0, scale = 5.0)
             # c_guess = np.exp(np.random.uniform(0. , 5.) )
 
@@ -1329,10 +1329,12 @@ class GP_Emulator:
         data = self.set_gp_model_data() 
 
         if kernel == None:
-            kernel = self.__set_gp_kernel(edu_guess = True)
+            kernel_use = self.__set_gp_kernel(edu_guess = True)
+        else:
+            kernel_use = kernel
 
         #Get likelihood noise
-        lik_noise = float(kernel.kernels[1].variance.numpy())
+        lik_noise = float(kernel_use.kernels[1].variance.numpy())
 
         gp_model = gpflow.models.GPR(data, kernel=kernel, noise_variance = lik_noise)
         # gpflow.utilities.print_summary(gp_model)
@@ -1354,7 +1356,7 @@ class GP_Emulator:
     # by random initialization if detected
     def fit_GP(self, count_fix):
         #Randomize Seed
-        np.random.seed(count_fix)
+        np.random.seed(count_fix+1)
         #Initialize fit_sucess as true
         fit_successed = True   
         #Get hyperparam guess list
@@ -1362,9 +1364,10 @@ class GP_Emulator:
         try:
             #Make model and optimizer and get results
             model = self.set_gp_model(kernel)
+            # gpflow.utilities.print_summary(model)
             o = gpflow.optimizers.Scipy()
             res = o.minimize(model.training_loss, variables=model.trainable_variables)
-            # gpflow.utilities.print_summary(model)
+            gpflow.utilities.print_summary(model)
             #If result isn't successful, remake and retrain model w/ different hyperparameters
             if not(res.success):
                 if count_fix < self.retrain_GP:
