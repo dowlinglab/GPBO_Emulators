@@ -1203,7 +1203,7 @@ class GP_Emulator:
             kernel_base = gpflow.kernels.Matern52(variance=c_guess, lengthscales = ls_guess) 
 
         #Set scale parameter on base kernel w/ a Half Cauchy Prior w/ mean 1
-        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(0.0), np.float64(5.0))
+        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(1.0), np.float64(5.0))
 
         #Set scale values
         if not set_c_trainable:
@@ -1280,8 +1280,7 @@ class GP_Emulator:
                 set_c_trainable = False
             
         tau_guess_min = 1.01e-6
-        tau_guess_max = 50
-        if tau_guess_min < tau < tau_guess_max:
+        if tau_guess_min < tau:
             tau_guess = tau  
         else:
             tau_guess = 1.0
@@ -1317,7 +1316,8 @@ class GP_Emulator:
 
         if not edu_guess:
             ls_guess = np.exp(np.random.uniform(0. , 5., size = len(ls_guess)) )
-            c_guess = scipy.stats.halfcauchy.rvs(loc = 1.0, scale = 5)
+            c_guess = scipy.stats.halfcauchy.rvs(loc = 1.0, scale = 5.0)
+            # c_guess = np.exp(np.random.uniform(0. , 5.) )
 
         #Set base kernel
         kernel_base = self.__set_base_kernel(c_guess, set_c_trainable, ls_guess, set_ls_trainable)
@@ -1459,7 +1459,7 @@ class GP_Emulator:
                 if best_model is None:
                     best_model = gp_model
 
-        gpflow.utilities.print_summary(gp_model)
+        # gpflow.utilities.print_summary(gp_model)
         
         #Pull out kernel parameters after GP training
         outputscl_final = float(best_model.kernel.kernels[0].variance.numpy())
