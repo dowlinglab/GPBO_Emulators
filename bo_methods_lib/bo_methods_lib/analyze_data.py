@@ -754,7 +754,7 @@ class General_Analysis:
                                 "names":param_names, "idcs":idcs_to_plot} 
             
             #Get best error metrics
-            best_error_metrics = driver._GPBO_Driver__get_best_error()
+            be_data, best_error_metrics = driver._GPBO_Driver__get_best_error()
                 
             #If the emulator is a conventional method, create heat map data in emulator form to calculate y_vals
             if not method.emulator:
@@ -1189,11 +1189,11 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
         best_error =  loaded_results[run_num].results_df["Best Error"].iloc[bo_iter]
         if method.emulator == False:
             #Type 1 best error is inferred from training data 
-            best_error, be_theta = gp_emulator.calc_best_error()
+            best_error, be_theta, train_idcs = gp_emulator.calc_best_error()
             best_errors_x = None
         else:
             #Type 2 best error must be calculated given the experimental data
-            best_error, be_theta, best_errors_x = gp_emulator.calc_best_error(method, exp_data)
+            best_error, be_theta, best_errors_x, train_idcs = gp_emulator.calc_best_error(method, exp_data)
         best_error_metrics = (best_error, be_theta, best_errors_x)
         theta_true = loaded_results[run_num].simulator_class.theta_true
         theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
