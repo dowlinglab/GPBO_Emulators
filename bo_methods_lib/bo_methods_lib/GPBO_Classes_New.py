@@ -769,7 +769,8 @@ class Simulator:
         unique_indexes = np.unique(sim_data.theta_vals, axis = 0, return_index=True)[1]
         unique_theta_vals = np.array([sim_data.theta_vals[index] for index in sorted(unique_indexes)])
         #Add the unique theta_vals and exp_data x values to the new data class instance
-        sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, None, None, None, self.bounds_theta, self.bounds_x, sep_fact, self.seed)
+        sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, sim_data.sse, sim_data.sse_var, 
+                            sim_data.ei, self.bounds_theta, self.bounds_x, sep_fact, self.seed)
         
         if gen_val_data == False:
             #Define all y_sims
@@ -3540,6 +3541,9 @@ class GPBO_Driver:
         self.bo_iter_term_frac = 0.3 #The fraction of iterations after which to terminate bo if no sse improvement is made
         self.sse_penalty = 1e7 #The penalty the __scipy_opt function gets for choosing nan theta values
         self.sg_depth = 10 #This can be changed at will
+
+        self.__min_obj_temp = None
+        self.__min_obj_class = None
                
     
     def __gen_emulator(self):
@@ -3713,17 +3717,15 @@ class GPBO_Driver:
         best_val: float, The optimized value of the function
         best_theta: ndarray, The theta set corresponding to val_best
         """
-        
+        self.__min_obj_temp = None
+        self.__min_obj_class = None
+
         assert isinstance(opt_obj, str), "opt_obj must be string!"
         assert opt_obj in ["neg_ei", "sse", "lcb"], "opt_obj must be 'neg_ei', 'sse', or 'lcb'"
 
         #Note add +1 because index 0 counts as 1 reoptimization
         if self.cs_params.reoptimize_obj > 50:
             warnings.warn("The objective will be reoptimized more than 50 times!")
-            
-        #Initialize val_best and best_theta
-        best_vals = np.full(self.cs_params.reoptimize_obj+1, np.inf)
-        best_thetas = np.zeros((self.cs_params.reoptimize_obj+1, self.gp_emulator.train_data.get_dim_theta()))
         
         #Calc best error        
         best_error_metrics = self.__get_best_error()
@@ -3732,9 +3734,6 @@ class GPBO_Driver:
         #Find bounds and arguments for function
         bnds = self.simulator.bounds_theta_reg.T #Transpose bounds to work with scipy.optimize
         #Need to account for normalization here (make bounds array of [0,1]^dim_theta)
-        
-        #Choose values of theta from validation set at random
-        theta_val_idc = list(range(len(self.opt_start_pts)))
     
         ## Loop over each validation point/ a certain number of validation point thetas
         for i in range(self.cs_params.reoptimize_obj+1):
@@ -3743,10 +3742,6 @@ class GPBO_Driver:
             
             #Initialize L-BFGS-B as default optimization method
             obj_opt_method = "L-BFGS-B"
-            
-            # if self.method.sparse_grid == True or self.method.mc == True:
-            #     if opt_obj == "neg_ei":
-            #         obj_opt_method = "Nelder-Mead"
                 
             try:
                 #Call scipy method to optimize EI given theta
@@ -3754,28 +3749,25 @@ class GPBO_Driver:
                 best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = obj_opt_method, args=(opt_obj, 
                                                                                                                         best_error_metrics,
                                                                                                                         beta))
-                #Add ei and best_thetas to lists as appropriate
-                best_vals[i] = best_result.fun
-                best_thetas[i] = best_result.x
             except ValueError: 
-                #If the intialized theta causes scipy.optimize to choose nan values, set the value of min sse and its theta to non
-                best_vals[i] = np.nan
-                best_thetas[i] = np.full(self.gp_emulator.train_data.get_dim_theta(), np.nan)
+                #If the intialized theta causes scipy.optimize to choose nan values, skip it
+                pass
         
-        #Choose a single value with the lowest -ei or sse
-        #In the case that 2 point have the same -ei or sse and this point is the lowest, this lets us pick one at random rather than always just choosing a certain point
-        min_value = np.nanmin(best_vals) #Find lowest value
-        min_indices = np.where( np.isclose(best_vals, min_value, rtol=1e-7) )[0] #Find all indeces where there may be a tie
-        rand_min_idx = np.random.choice(min_indices) #Choose one at random as the next step
-        
-        best_val = best_vals[rand_min_idx]
-        best_theta = best_thetas[rand_min_idx]
-        
+        best_val = copy.deepcopy(self.__min_obj_temp)
+        best_class = self.__min_obj_class
+
+        if opt_obj != "lcb":
+            best_class_simple = self.create_data_instance_from_theta(self.__min_obj_class.theta_vals[0])
+            best_class.y_vals = best_class_simple.y_vals
+        else:
+            best_class = self.__min_obj_class
+
         #Since we minimize -ei, multiply by -1 to get the maximum value of ei
         if opt_obj == "neg_ei":
             best_val = best_val*-1
+            best_class.ei = best_class.ei*-1
                     
-        return best_val, best_theta
+        return best_val, best_class
         
     def __scipy_fxn(self, theta, opt_obj, best_error_metrics, beta):
         """
@@ -3839,7 +3831,7 @@ class GPBO_Driver:
             #Calculate objective fxn
             if opt_obj == "sse":
                 #Objective to minimize is log(E[sse]) if using 1B or 2B, and sse for all other methods
-                obj = cand_sse_mean + cand_sse_var
+                obj = cand_sse_mean + np.sum(cand_sse_var)
             elif opt_obj == "lcb":
                 assert isinstance(beta, (int, float, np.float64)), "beta must be float or int"
                 #Objective to minimize is gp_mean - beta_gp_var if using 1B or 2B, and sse for all other methods
@@ -3851,7 +3843,21 @@ class GPBO_Driver:
                 else:
                     ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error_metrics, self.method, self.sg_depth)
                 obj = -1*ei_output[0]
-            
+
+            #Save candidate class if there is no current value
+            if self.__min_obj_temp == None:
+                self.__min_obj_temp = obj
+                self.__min_obj_class = self.gp_emulator.cand_data
+            #The objective is smaller than what we have so far
+            elif self.__min_obj_temp > obj:
+                self.__min_obj_temp = obj
+                self.__min_obj_class = self.gp_emulator.cand_data
+            #Or if they are the same and the algorithm decides to switch
+            elif np.isclose(self.__min_obj_temp, obj, rtol=1e-7):
+                random_number = random.randint(0, 1)
+                if random_number > 0:
+                    self.__min_obj_temp = obj
+                    self.__min_obj_class = self.gp_emulator.cand_data
         return obj
 
     def create_heat_map_param_data(self, n_points_set = None):
@@ -4136,28 +4142,21 @@ class GPBO_Driver:
         self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics)
 
         #Call optimize acquistion fxn
-        max_ei, max_ei_theta = self.__opt_with_scipy("neg_ei")
-        #Create data class instance for max_ei_theta
-        max_ei_theta_data = self.create_data_instance_from_theta(max_ei_theta)
-        #Evaluate GP mean/ stdev at max_ei_theta
-        feat_max_ei_theta_data = self.gp_emulator.featurize_data(max_ei_theta_data)
-        max_ei_theta_gp_mean, max_ei_theta_gp_var = self.gp_emulator.eval_gp_mean_var_misc(max_ei_theta_data, feat_max_ei_theta_data)
+        max_ei, max_ei_theta_data = self.__opt_with_scipy("neg_ei")
         max_ei_theta_data.beta = 2*np.log(self.gp_emulator.get_dim_gp_data()*(iteration+1)**2*np.pi**2/(6*0.05))/5
         max_ei_theta_data.kappa = self.__get_kappa(max_ei_theta_data.beta)
 
         #Call optimize E[SSE] or log(E[SSE]) objective function
-        min_sse, min_sse_theta = self.__opt_with_scipy("sse")
-        # print("min SSE Theta: ", min_sse_theta)
+        min_Esse, min_theta_data = self.__opt_with_scipy("sse")
 
-        #Find min sse using the true function value
-        #Turn min_sse_theta into a data instance (including generating y_data)
-        min_theta_data = self.create_data_instance_from_theta(min_sse_theta)
+        # print("min SSE Theta: ", min_sse_theta)
         
         #If type 2, turn it into sse_data
         #Set the best data to be in sse form if using a type 2 GP and find the min sse
         if self.method.emulator == True:
-            min_sse_theta_data = self.simulator.sim_data_to_sse_sim_data(self.method, min_theta_data, self.exp_data, self.cs_params.sep_fact, False)
             #Evaluate SSE & SSE stdev at max ei theta
+            min_sse_theta_data = self.simulator.sim_data_to_sse_sim_data(self.method, min_theta_data, self.exp_data, 
+                                                                         self.cs_params.sep_fact, False)
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data, self.method,
                                                                                                     self.exp_data)
             #Evaluate max EI terms at theta (Can probably get rid of this after debugging)
@@ -4168,6 +4167,7 @@ class GPBO_Driver:
         #Otherwise the sse data is the original (scaled) data
         else:     
             #Evaluate SSE & SSE stdev at max ei theta
+            min_sse_theta_data = min_theta_data
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data)
             
             #Evaluate max EI terms at theta
@@ -4175,13 +4175,14 @@ class GPBO_Driver:
                 ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
-        min_sse_sim = float(min_theta_data.y_vals)
+        min_sse_gp = float(min_sse_theta_data.y_vals)
+        min_sse_sim = float(min_sse_theta_data.y_vals)
                 
         #calculate improvement if using Boyle's method to update the exploration bias
         #Improvement is true if the min sim sse found is lower than (not log) best error, otherwise it's false
         if min_sse_sim < best_error:
             improvement = True
-            theta_opt = min_sse_theta
+            theta_opt = min_theta_data.theta_vals[0]
         else:
             improvement = False
             theta_opt = be_theta
@@ -4225,7 +4226,8 @@ class GPBO_Driver:
         #Return SSE and not log(SSE) for 'Min Obj', 'Min Obj Act', 'Theta Min Obj'
         column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Regret', 'Speed', 'Time/Iter']
         iter_df = pd.DataFrame(columns=column_names)
-        bo_iter_results = [best_error, float(self.ep_bias.ep_curr), max_ei, max_ei_theta, min_sse, min_sse_sim, min_sse_theta, regret, speed, time_per_iter]
+        bo_iter_results = [best_error, float(self.ep_bias.ep_curr), max_ei, max_ei_theta_data.theta_vals[0],
+                            min_sse_gp, min_sse_sim, min_sse_theta_data.theta_vals[0], regret, speed, time_per_iter]
         # Add the new row to the DataFrame
         iter_df.loc[0] = bo_iter_results
 
