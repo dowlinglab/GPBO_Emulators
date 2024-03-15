@@ -3599,6 +3599,8 @@ class GPBO_Driver:
             #Type 2 best error must be calculated given the experimental data
             best_error, be_theta, best_errors_x = self.gp_emulator.calc_best_error(self.method, self.exp_data)
         
+        be_data = self.create_data_instance_from_theta(be_theta.flatten(), get_y = False)
+
         return best_error, be_theta, best_errors_x
         
     def __make_starting_opt_pts(self, best_error_metrics):
@@ -3953,7 +3955,7 @@ class GPBO_Driver:
         #Augment training theta, x, and y/sse data
         self.gp_emulator.add_next_theta_to_train_data(theta_best_data)
                    
-    def create_data_instance_from_theta(self, theta_array):
+    def create_data_instance_from_theta(self, theta_array, get_y):
         """
         Creates instance of Data from an nd.array theta set
         
@@ -3974,12 +3976,13 @@ class GPBO_Driver:
         theta_arr_repeated = np.repeat(theta_array.reshape(1,-1), self.exp_data.get_num_x_vals() , axis =0)
         #Add instance of Data class to theta_best
         theta_arr_data = Data(theta_arr_repeated, self.exp_data.x_vals, None, None, None, None, None, None, self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
-        #Calculate y values and sse for theta_best with noise
-        theta_arr_data.y_vals = self.simulator.gen_y_data(theta_arr_data, self.simulator.noise_mean, self.simulator.noise_std)  
+        if get_y:
+            #Calculate y values and sse for theta_best with noise
+            theta_arr_data.y_vals = self.simulator.gen_y_data(theta_arr_data, self.simulator.noise_mean, self.simulator.noise_std)  
         
         #Set the best data to be in sse form if using a type 1 GP
         if self.method.emulator == False:
-            theta_arr_data = self.simulator.sim_data_to_sse_sim_data(self.method, theta_arr_data, self.exp_data, self.cs_params.sep_fact, False)
+            theta_arr_data = self.simulator.sim_data_to_sse_sim_data(self.method, theta_arr_data, self.exp_data, self.cs_params.sep_fact, not get_y)
             
         return theta_arr_data
         
@@ -4006,7 +4009,7 @@ class GPBO_Driver:
 
         ucb = self.gp_emulator.train_data.sse + np.sqrt(beta*self.gp_emulator.train_data.sse_var)
 
-        min_lcb, min_lcb_theta = self.__opt_with_scipy("lcb", beta)
+        min_lcb, min_lcb_data = self.__opt_with_scipy("lcb", beta)
 
         kappa = float(np.min(ucb) - min_lcb)
 
@@ -4157,22 +4160,17 @@ class GPBO_Driver:
             #Evaluate SSE & SSE stdev at max ei theta
             min_sse_theta_data = self.simulator.sim_data_to_sse_sim_data(self.method, min_theta_data, self.exp_data, 
                                                                          self.cs_params.sep_fact, False)
-            max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data, self.method,
-                                                                                                    self.exp_data)
-            #Evaluate max EI terms at theta (Can probably get rid of this after debugging)
-            if self.cs_params.save_data: 
-                ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, 
-                                                                          self.method, self.sg_depth)
+            ei_args = (max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, self.method, self.sg_depth)
                 
         #Otherwise the sse data is the original (scaled) data
         else:     
             #Evaluate SSE & SSE stdev at max ei theta
             min_sse_theta_data = min_theta_data
-            max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data)
+            ei_args = (max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
             
-            #Evaluate max EI terms at theta
-            if self.cs_params.save_data: 
-                ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
+        #Evaluate max EI terms at theta
+        if self.cs_params.save_data: 
+            ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(*ei_args)
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
         min_sse_gp = float(min_sse_theta_data.y_vals)
