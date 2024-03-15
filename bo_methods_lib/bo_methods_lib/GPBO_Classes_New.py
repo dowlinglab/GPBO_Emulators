@@ -3595,13 +3595,20 @@ class GPBO_Driver:
             #Type 1 best error is inferred from training data 
             best_error, be_theta = self.gp_emulator.calc_best_error()
             best_errors_x = None
+            be_data = self.create_data_instance_from_theta(be_theta.flatten(), get_y = False)
+            be_data.y_vals = np.array(best_error)
         else:
             #Type 2 best error must be calculated given the experimental data
             best_error, be_theta, best_errors_x = self.gp_emulator.calc_best_error(self.method, self.exp_data)
-        
-        be_data = self.create_data_instance_from_theta(be_theta.flatten(), get_y = False)
-
-        return best_error, be_theta, best_errors_x
+            be_data = self.create_data_instance_from_theta(be_theta.flatten(), get_y = False)
+            if self.method.obj.value == 2:
+                sq_err = np.exp(best_errors_x)
+            else:
+                sq_err = best_errors_x
+            
+            be_data.y_vals = np.sqrt(best_errors_x) + self.exp_data.y_vals
+        be_metrics = best_error, be_theta, best_errors_x
+        return be_data, be_metrics
         
     def __make_starting_opt_pts(self, best_error_metrics):
         """
@@ -3730,8 +3737,7 @@ class GPBO_Driver:
             warnings.warn("The objective will be reoptimized more than 50 times!")
         
         #Calc best error        
-        best_error_metrics = self.__get_best_error()
-        best_error, be_theta, best_errors_x = best_error_metrics 
+        be_data, best_error_metrics = self.__get_best_error()
         
         #Find bounds and arguments for function
         bnds = self.simulator.bounds_theta_reg.T #Transpose bounds to work with scipy.optimize
@@ -3955,7 +3961,7 @@ class GPBO_Driver:
         #Augment training theta, x, and y/sse data
         self.gp_emulator.add_next_theta_to_train_data(theta_best_data)
                    
-    def create_data_instance_from_theta(self, theta_array, get_y):
+    def create_data_instance_from_theta(self, theta_array, get_y=True):
         """
         Creates instance of Data from an nd.array theta set
         
@@ -4108,13 +4114,12 @@ class GPBO_Driver:
         self.gp_emulator.train_gp()
 
         #Calcuate best error
-        best_error_metrics = self.__get_best_error()
-        best_error, be_theta, best_errors_x = best_error_metrics
+        best_err_data, best_error_metrics = self.__get_best_error()
         
         #Add not log best error to ep_bias
         if iteration == 0 or self.ep_bias.ep_enum.value == 4:
             #Since best error is squared when used in Jasrasaria calculations, the value will always be >=0      
-            self.ep_bias.best_error = best_error
+            self.ep_bias.best_error = best_error_metrics[0]
                         
         #Calculate mean of var for validation set if using Jasrasaria heuristic
         if self.ep_bias.ep_enum.value == 4:
@@ -4178,12 +4183,12 @@ class GPBO_Driver:
                 
         #calculate improvement if using Boyle's method to update the exploration bias
         #Improvement is true if the min sim sse found is lower than (not log) best error, otherwise it's false
-        if min_sse_sim < best_error:
+        if min_sse_sim < best_error_metrics[0]:
             improvement = True
             theta_opt = min_theta_data.theta_vals[0]
         else:
             improvement = False
-            theta_opt = be_theta
+            theta_opt = best_err_data.theta_vals[0]
         if self.ep_bias.ep_enum.value == 3:
             #Set ep improvement
             self.ep_bias.improvement = improvement
@@ -4224,7 +4229,7 @@ class GPBO_Driver:
         #Return SSE and not log(SSE) for 'Min Obj', 'Min Obj Act', 'Theta Min Obj'
         column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Regret', 'Speed', 'Time/Iter']
         iter_df = pd.DataFrame(columns=column_names)
-        bo_iter_results = [best_error, float(self.ep_bias.ep_curr), max_ei, max_ei_theta_data.theta_vals[0],
+        bo_iter_results = [best_error_metrics[0], float(self.ep_bias.ep_curr), max_ei, max_ei_theta_data.theta_vals[0],
                             min_sse_gp, min_sse_sim, min_sse_theta_data.theta_vals[0], regret, speed, time_per_iter]
         # Add the new row to the DataFrame
         iter_df.loc[0] = bo_iter_results
