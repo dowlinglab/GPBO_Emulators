@@ -3838,8 +3838,8 @@ class GPBO_Driver:
 
             #Calculate objective fxn
             if opt_obj == "sse":
-                #Objective to minimize is log(sse) if using 1B or 2B, and sse for all other methods
-                obj = cand_sse_mean
+                #Objective to minimize is log(E[sse]) if using 1B or 2B, and sse for all other methods
+                obj = cand_sse_mean + cand_sse_var
             elif opt_obj == "lcb":
                 assert isinstance(beta, (int, float, np.float64)), "beta must be float or int"
                 #Objective to minimize is gp_mean - beta_gp_var if using 1B or 2B, and sse for all other methods
@@ -4145,7 +4145,7 @@ class GPBO_Driver:
         max_ei_theta_data.beta = 2*np.log(self.gp_emulator.get_dim_gp_data()*(iteration+1)**2*np.pi**2/(6*0.05))/5
         max_ei_theta_data.kappa = self.__get_kappa(max_ei_theta_data.beta)
 
-        #Call optimize objective function
+        #Call optimize E[SSE] or log(E[SSE]) objective function
         min_sse, min_sse_theta = self.__opt_with_scipy("sse")
         # print("min SSE Theta: ", min_sse_theta)
 
@@ -4157,7 +4157,6 @@ class GPBO_Driver:
         #Set the best data to be in sse form if using a type 2 GP and find the min sse
         if self.method.emulator == True:
             min_sse_theta_data = self.simulator.sim_data_to_sse_sim_data(self.method, min_theta_data, self.exp_data, self.cs_params.sep_fact, False)
-            min_sse_sim = min_sse_theta_data.y_vals
             #Evaluate SSE & SSE stdev at max ei theta
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data, self.method,
                                                                                                     self.exp_data)
@@ -4167,8 +4166,7 @@ class GPBO_Driver:
                                                                           self.method, self.sg_depth)
                 
         #Otherwise the sse data is the original (scaled) data
-        else:
-            min_sse_sim = min_theta_data.y_vals          
+        else:     
             #Evaluate SSE & SSE stdev at max ei theta
             max_ei_theta_data.sse, max_ei_theta_data.sse_var = self.gp_emulator.eval_gp_sse_var_misc(max_ei_theta_data)
             
@@ -4177,7 +4175,7 @@ class GPBO_Driver:
                 ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
-        min_sse_sim = min_sse_sim[0]
+        min_sse_sim = float(min_theta_data.y_vals)
                 
         #calculate improvement if using Boyle's method to update the exploration bias
         #Improvement is true if the min sim sse found is lower than (not log) best error, otherwise it's false
