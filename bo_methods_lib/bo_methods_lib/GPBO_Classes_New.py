@@ -1489,20 +1489,31 @@ class GP_Emulator:
         else:
             eval_points = data
         
-        #Evaluate GP given parameter set theta and state point value
-        gp_mean_scl, gp_covar_scl = self.posterior.predict_f(eval_points, full_cov=True)
+        eval_points_tf = tf.convert_to_tensor(eval_points)  
+
+        with tf.GradientTape(persistent=True) as tape:
+            # By default, only Variables are watched. For gradients with respect to tensors,
+            # we need to explicitly watch them:
+            tape.watch(eval_points_tf)
+            #Evaluate GP given parameter set theta and state point value
+            gp_mean_scl, gp_covar_scl = self.posterior.predict_f(eval_points_tf, full_cov=True)
+
+        grad_mean_scl = tape.gradient(gp_mean_scl, eval_points_tf).numpy()
+        # grad_var_scl = tape.gradient(gp_covar_scl, eval_points_tf).numpy()
+
         #Remove dimensions of 1
         gp_mean_scl = gp_mean_scl.numpy()
-        # print(gp_covar_scl.shape)
-        gp_covar_scl = np.squeeze(gp_covar_scl, axis = 0)
+        gp_covar_scl = np.squeeze(gp_covar_scl.numpy(), axis = 0)
 
         #Unscale gp_mean and gp_covariance
         if self.normalize == True:
             gp_mean = self.scalerY.inverse_transform(gp_mean_scl.reshape(-1,1)).flatten()
             gp_covar = float(self.scalerY.scale_**2) * gp_covar_scl  
+            grad_mean = self.scalerY.inverse_transform(grad_mean_scl.reshape(-1,1)).flatten()
         else:
             gp_mean = gp_mean_scl
             gp_covar = gp_covar_scl
+            grad_mean = grad_mean_scl
         
         gp_var = np.diag(gp_covar)
 
