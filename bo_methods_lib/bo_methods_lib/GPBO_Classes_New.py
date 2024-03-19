@@ -2317,6 +2317,21 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Calculate the sse variance. This SSE_variance CAN'T be negative
         sse_var = 2*np.trace(data.gp_covar**2) + 4*residuals.T@data.gp_covar@residuals
 
+        #Calculate Var(SSE[t1,t2]), Var(SSE[t1]), and Var(SSE[t2])
+        if num_uniq_theta == 2:
+            sum_vars_theta = 0
+            for i in range(n_blocks):
+                #Get section of covariance matrix that corresponds to the covariance of the different thetas
+                covar_t_t = data.gp_covar[num_uniq_theta*len_x:num_uniq_theta+1*len_x]
+                #Get row of block error corresponding to this matrix
+                res_theta = block_errors[i]
+                #Calculate Variance
+                ind_theta_var = 2*np.trace(covar_t_t**2) + 4*res_theta.T@covar_t_t@res_theta
+                sum_vars_theta += float(ind_theta_var)
+            #Calculate Covariance
+            sse_covar = (float(sse_var) - sum_vars_theta)/2
+            print(sse_covar)
+
         #For Method 2B, make sse and sse_covar data in the log form
         if method.obj.value == 2:
             #Propogation of errors: stdev_ln(val) = stdev/val           
@@ -2327,8 +2342,13 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Set class parameters
         data.sse = sse_mean
         data.sse_var = sse_var
-        #Variance is a covariance when more than 1 unique theta is present
-        data.sse_covar = sse_var
+
+        #Variance is the covariance when only 1 unique theta is present
+        if num_uniq_theta == 1:
+            data.sse_covar = sse_var
+        #If there are 2, the covariance is calculated
+        elif num_uniq_theta == 2:
+            data.sse_covar = sse_covar
 
         if covar == False:
             var_return = data.sse_var
