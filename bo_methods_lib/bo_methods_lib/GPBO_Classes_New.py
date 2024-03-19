@@ -2315,39 +2315,40 @@ class Type_2_GP_Emulator(GP_Emulator):
         sse_mean = sse_mean_org.flatten()
         
         #Calculate the sse variance. This SSE_variance CAN'T be negative
-        sse_var = 2*np.trace(data.gp_covar**2) + 4*residuals.T@data.gp_covar@residuals
+        sse_var_all = 2*np.trace(data.gp_covar**2) + 4*residuals.T@data.gp_covar@residuals
 
-        #Calculate Var(SSE[t1,t2]), Var(SSE[t1]), and Var(SSE[t2])
-        if num_uniq_theta == 2 and covar == True:
-            sum_vars_theta = 0
+        #Calculate individual variances Var(SSE[t1]), and Var(SSE[t2])
+        if num_uniq_theta == 1:
+            sse_var = sse_var_all
+            sse_covar = sse_var
+        else:
+            sse_var = np.zeros(n_blocks)
             for i in range(n_blocks):
                 #Get section of covariance matrix that corresponds to the covariance of the different thetas
                 covar_t_t = data.gp_covar[i*len_x:(i+1)*len_x, i*len_x:(i+1)*len_x]
                 #Get row of block error corresponding to this matrix
                 res_theta = block_errors[i].reshape(-1,1)
                 #Calculate Variance
-                ind_theta_var = 2*np.trace(covar_t_t**2) + 4*res_theta.T@covar_t_t@res_theta
-                sum_vars_theta += float(ind_theta_var)
-            #Calculate Covariance
-            sse_covar = (float(sse_var) - sum_vars_theta)/2
+                sse_var[i] = 2*np.trace(covar_t_t**2) + 4*res_theta.T@covar_t_t@res_theta
+            if num_uniq_theta == 2 and covar == True:
+                sse_covar = (sse_var_all - np.sum(sse_var))/2
+            else:
+                sse_covar = None      
 
         #For Method 2B, make sse and sse_covar data in the log form
         if method.obj.value == 2:
             #Propogation of errors: stdev_ln(val) = stdev/val           
             sse_var = sse_var/(residuals.T@residuals)
+            if sse_covar is not None:
+                sse_covar = sse_covar/(residuals.T@residuals)
+            sse_covar = sse_covar/(residuals.T@residuals)
             #Set mean to new value
             sse_mean = np.log(sse_mean)
 
         #Set class parameters
         data.sse = sse_mean
         data.sse_var = sse_var
-
-        #Variance is the covariance when only 1 unique theta is present
-        if num_uniq_theta == 1:
-            data.sse_covar = sse_var
-        #If there are 2, the covariance is calculated
-        elif num_uniq_theta == 2:
-            data.sse_covar = sse_covar
+        data.sse_covar = sse_covar
 
         if covar == False:
             var_return = data.sse_var
