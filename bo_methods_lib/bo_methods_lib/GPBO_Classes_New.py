@@ -2292,15 +2292,16 @@ class Type_2_GP_Emulator(GP_Emulator):
         Notes:
         ------
         Also stores the gp sse covariance matrix for the data as a class object stored in data.sse_covar
+        Covariance only saved if more than 1 unique theta is present. This value corresponds to the covariance of all the different thetas
         
         """
         assert isinstance(covar, bool), "covar must be bool!"
-        #Featurize data
-        feature_eval_data = self.featurize_data(data)
         
         #Find length of theta and number of unique x in data arrays
         len_theta = data.get_num_theta()
         len_x = len(data.get_unique_x())
+        #Infer number of thetas
+        num_uniq_theta = int(len_theta/len_x)
 
         #Reshape y_sim into n_theta rows x n_x columns
         indices = np.arange(0, len_theta, len_x)
@@ -2308,40 +2309,26 @@ class Type_2_GP_Emulator(GP_Emulator):
         # Slice y_sim into blocks of size len_x and calculate squared errors for each block
         gp_mean_resh = data.gp_mean.reshape(n_blocks, len_x)
         block_errors = gp_mean_resh - exp_data.y_vals[np.newaxis,:]
+        residuals = block_errors.reshape(data.gp_covar.shape[0], -1)
         # Sum squared errors for each block
-        sse_mean = np.sum((block_errors)**2, axis=1).reshape(-1, 1)
-        grad_sse = 2 * block_errors
+        sse_mean_org = np.sum((block_errors)**2, axis=1)
+        sse_mean = sse_mean_org.flatten()
         
-        #Infer number of thetas
-        num_uniq_theta = int(len_theta/len_x)
-        
-        if num_uniq_theta == 1:
-            #If only one theta, covar is just a number
-            jacobian = grad_sse.reshape(-1, 1)
-        else:
-            ##Otherwise reshape it to be the shape of the covariance matrix x num_uniq theta
-            jacobian = np.zeros((num_uniq_theta*len_x, num_uniq_theta))
-
-            for i in range(num_uniq_theta):
-                jacobian[i * len_x : (i + 1) * len_x, i] = grad_sse[i, :]
-            
-            
-        sse_covar =  jacobian.T@data.gp_covar@jacobian #This SSE_variance CAN'T be negative
+        #Calculate the sse variance. This SSE_variance CAN'T be negative
+        sse_var = 2*np.trace(data.gp_covar**2) + 4*residuals.T@data.gp_covar@residuals
 
         #For Method 2B, make sse and sse_covar data in the log form
         if method.obj.value == 2:
             #Propogation of errors: stdev_ln(val) = stdev/val           
-            sse_covar = sse_covar/(sse_mean.T@sse_mean)
+            sse_var = sse_var/(residuals.T@residuals)
             #Set mean to new value
             sse_mean = np.log(sse_mean)
 
-        sse_mean = sse_mean.flatten()
-        sse_var = np.diag(sse_covar)
-   
         #Set class parameters
         data.sse = sse_mean
         data.sse_var = sse_var
-        data.sse_covar = sse_covar
+        #Variance is a covariance when more than 1 unique theta is present
+        data.sse_covar = sse_var
 
         if covar == False:
             var_return = data.sse_var
@@ -4042,20 +4029,20 @@ class GPBO_Driver:
         best_thetas_y_vals = np.concatenate((self.opt_theta_last.y_vals, min_sse_theta_data.y_vals))
         best_data = Data(best_thetas_theta, best_thetas_x, best_thetas_y_vals, None, None, None, None, None, 
                          self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
-        
         best_data_feat = self.gp_emulator.featurize_data(best_data)
+
         #Evaluate mean, var, and covar
         best_data_mean, best_data_var = self.gp_emulator.eval_gp_mean_var_misc(best_data, best_data_feat)
 
         #Evaluate GP sse and covariance matricies
+        #Get the covariance between the old and new minimum sse parameter sets
         if self.method.emulator == False:
-            best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, covar = True)           
+            best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, covar = True)
+            covar_best = covar_thetas_sse[0,1]           
         else:  
             best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, self.method, 
                                                                                 self.exp_data, covar=True)
-        
-        #Get the covariance between the old and new minimum sse parameter sets
-        covar_best = covar_thetas_sse[0,1]
+            covar_best = float(covar_thetas_sse)
         
         #Set gamma and normalize it if necessary
         gamma = self.gp_emulator.fit_gp_model.kernel.kernels[1].variance
