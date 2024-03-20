@@ -2331,7 +2331,7 @@ class Type_2_GP_Emulator(GP_Emulator):
                 #Calculate Variance
                 sse_var[i] = 2*np.trace(covar_t_t**2) + 4*res_theta.T@covar_t_t@res_theta
             if num_uniq_theta == 2 and covar == True:
-                sse_covar = (sse_var_all - np.sum(sse_var))/2
+                sse_covar = sse_var_all
             else:
                 sse_covar = None      
 
