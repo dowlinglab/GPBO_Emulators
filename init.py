@@ -8,7 +8,7 @@ project = signac.init_project()
 
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
 gp_pack = "gpflow"
-cs_val_list  = [11]
+cs_val_list  = [1]
 meth_val_list = [1, 2, 3, 4, 5, 6, 7] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
@@ -32,7 +32,7 @@ runs_per_job_max = 5
 save_data = False
 ei_tol = 1e-7
 obj_tol = 1e-7
-num_x_data = 10
+num_x_data = 5
 gen_meth_theta = 1 
 gen_meth_x = 2
 gen_meth_theta_val = 2
