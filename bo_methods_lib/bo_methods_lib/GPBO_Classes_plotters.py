@@ -100,9 +100,9 @@ class Plotters:
         self.zbins = 900
         self.title_fntsz = 24
         self.other_fntsz = 24
-        self.colors = ["red", "blue", "green", "purple", "darkorange", "deeppink"]
+        self.colors = ["red", "blue", "green", "purple", "darkorange", "deeppink", "teal"]
         self.method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", 
-                             "Sparse Grid", "Monte Carlo"]
+                             "Sparse Grid", "Monte Carlo", "E[SSE]"]
 
     def plot_one_obj_all_methods(self, z_choice, log_data = False, title = None):
         """
