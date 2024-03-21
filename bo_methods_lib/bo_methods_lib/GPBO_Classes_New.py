@@ -41,11 +41,12 @@ class Method_name_enum(Enum):
     4 = B2 (Emulator GPBO, log independence approx. EI)
     5 = C2 (Emulator GPBO, sparse grid integrated EI)
     6 = D2 (Emulator GPBO, monte carlo integrated EI)
+    7 = A3 (Emulator GPBO, E[SSE] acquisition function)
     
     """
     #Ensure that only values 1 to 5 are chosen
-    if Enum in range(1, 7) == False:
-        raise ValueError("There are only five options for Enum: 1 to 6")
+    if Enum in range(1, 8) == False:
+        raise ValueError("There are only seven options for Enum: 1 to 7")
         
     A1 = 1
     B1 = 2
@@ -2548,7 +2549,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ei: The expected improvement of all the data in sim_data
         ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
         """
-        assert 6 >= method.method_name.value >=3, "Must be using method 2A, 2B, or 2C"
+        assert 6 >= method.method_name.value >=3, "Must be using method 2A, 2B, 2C, or 2D"
         #Set sparse grid depth if applicable
         if method.sparse_grid == True:
             assert isinstance(sg_depth, int) and sg_depth > 0, "sg_depth must be positive int for sparse grid"
@@ -2862,7 +2863,7 @@ class Expected_Improvement():
                 ei[i], row_data = self.__calc_ei_mc(gp_mean_i, gp_var_i, self.exp_data.y_vals)
 
             else:
-                raise ValueError("method.method_name.value must be 3 (2A), 4 (2B), or 5 (2C)")
+                raise ValueError("method.method_name.value must be 3 (2A), 4 (2B), 5 (2C), or 6 (2D)")
         
         # Concatenate the temporary DataFrame with the main DataFrame
         ei_term_df = pd.concat([ei_term_df, row_data], ignore_index=True)
