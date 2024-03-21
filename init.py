@@ -9,7 +9,7 @@ project = signac.init_project()
 #Set Method and Case Study (Start w/ just 1 and 2 for now)
 gp_pack = "gpflow"
 cs_val_list  = [11]
-meth_val_list = [1, 2, 3, 4, 5, 6] #1A, 1B, 2A, 2B, 2C, 2D
+meth_val_list = [1, 2, 3, 4, 5, 6, 7] #1A, 1B, 2A, 2B, 2C, 2D
 
 #Set Initial Parameters
 ep0 = 1 #Set initial ep as an even mix between exploration and exploitation
@@ -72,7 +72,6 @@ for cs_name_val in cs_val_list:
                 #Create job parameter dict
                 sp = {"cs_name_val": cs_name_val, 
                     "meth_name_val": meth_name_val,
-                    "E_sse": True,
                     "gp_package": gp_pack,
                     "ep0": ep0, 
                     "ep_enum_val": ep_enum_val,
