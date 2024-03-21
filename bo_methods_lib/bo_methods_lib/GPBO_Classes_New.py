@@ -53,6 +53,7 @@ class Method_name_enum(Enum):
     B2 = 4
     C2 = 5
     D2 = 6
+    A3 = 7
     #Note use Method_name_enum.enum.name to call "A1"
 
 class Kernel_enum(Enum):
@@ -209,7 +210,7 @@ class GPBO_Methods:
         emulator: bool, Status of whether the GP emulates the function directly
         """
         #Objective function uses emulator GP if class 2
-        if "2" in self.method_name.name:
+        if not "1" in self.method_name.name:
             emulator = True
         else:
             emulator = False
@@ -268,7 +269,7 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, set_seed, obj_tol, ei_tol):
+    def __init__(self, cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, set_seed, obj_tol, acq_tol):
         """
         Parameters
         ----------
@@ -288,7 +289,7 @@ class CaseStudyParameters:
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         seed: int or None, Determines seed for randomizations. None if seed is random
         obj_tol: float, obj at which to terminate algorithm after int(bo_iter_tot*0.3) iters
-        ei_tol: float, ei at which to terminate algorithm
+        acq_tol: float, acquisition function value at which to terminate algorithm
         """
         #Assert statements
         #Check for strings
@@ -326,7 +327,7 @@ class CaseStudyParameters:
         assert all(var >= 0 for var in [retrain_GP, reoptimize_obj]) == True, "retrain_GP and reoptimize_obj must be >= 0"
         #Check for str or None
         assert isinstance(DateTime, (str)) == True or DateTime == None, "DateTime must be str or None"
-        assert isinstance(ei_tol, (float,int)) and ei_tol >= 0, "ei_tol must be a positive float or integer"
+        assert isinstance(acq_tol, (float,int)) and acq_tol >= 0, "acq_tol must be a positive float or integer"
         assert isinstance(obj_tol, (float,int)) and obj_tol >= 0, "obj_tol must be a positive float or integer"
         
         # Constructor method
@@ -353,7 +354,7 @@ class CaseStudyParameters:
         if  self.seed != None:
             assert isinstance(self.seed, int) == True, "Seed number must be an integer or None"
             np.random.seed(self.seed)
-        self.ei_tol = ei_tol
+        self.acq_tol = acq_tol
         self.obj_tol = obj_tol
 
 class Simulator:
@@ -770,7 +771,7 @@ class Simulator:
         unique_theta_vals = np.array([sim_data.theta_vals[index] for index in sorted(unique_indexes)])
         #Add the unique theta_vals and exp_data x values to the new data class instance
         sim_sse_data = Data(unique_theta_vals, exp_data.x_vals, None, None, None, sim_data.sse, sim_data.sse_var, 
-                            sim_data.ei, self.bounds_theta, self.bounds_x, sep_fact, self.seed)
+                            sim_data.acq, self.bounds_theta, self.bounds_x, sep_fact, self.seed)
         
         if gen_val_data == False:
             #Define all y_sims
@@ -814,7 +815,7 @@ class Data:
     """
     # Class variables and attributes
     
-    def __init__(self, theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, sse_var, ei, bounds_theta, bounds_x, sep_fact, set_seed):
+    def __init__(self, theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, sse_var, acq, bounds_theta, bounds_x, sep_fact, set_seed):
         """
         Parameters
         ----------
@@ -825,13 +826,13 @@ class Data:
         gp_var: ndarray, GP variance prediction values associated with theta_vals and x_vals
         sse: ndarray, GP based sum of squared error values associated with theta_vals and x_vals
         sse_var: ndarray, GP based variance of sum of squared error values associated with theta_vals and x_vals
-        ei: ndarray, expected improvement values associated with theta_vals and x_vals
+        acq: ndarray, acquisition function values associated with theta_vals and x_vals
         bounds_theta: ndarray, bounds of theta
         bounds_x: ndarray, bounds of x
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         set_seed: int or None, Determines seed for randomizations. None if seed is random
         """
-        list_vars = [theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, ei]
+        list_vars = [theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, acq]
         assert all(isinstance(var, np.ndarray) or var is None for var in list_vars), "theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, and ei must be np.ndarray, or None"
         assert isinstance(set_seed, int) or set_seed is None, "Seed must be int or None"
         assert isinstance(sep_fact, (float,int)) or sep_fact is None, "Separation factor must be float or int > 0 or None (exp_data)"
@@ -847,7 +848,7 @@ class Data:
         self.sse = sse
         self.sse_var = sse_var
         self.sse_covar = None #This is calculated later
-        self.ei = ei
+        self.acq = acq
         self.bounds_theta = bounds_theta
         self.bounds_x = bounds_x
         self.sep_fact = sep_fact
@@ -1990,7 +1991,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_1()
         #Add ei data to validation data class
-        sim_data.ei = ei
+        sim_data.acq = ei
         
         return ei, ei_terms_df
     
@@ -2547,7 +2548,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ei: The expected improvement of all the data in sim_data
         ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
         """
-        assert method.method_name.value >= 3, "Must be using method 2A, 2B, or 2C"
+        assert 6 >= method.method_name.value >=3, "Must be using method 2A, 2B, or 2C"
         #Set sparse grid depth if applicable
         if method.sparse_grid == True:
             assert isinstance(sg_depth, int) and sg_depth > 0, "sg_depth must be positive int for sparse grid"
@@ -2559,7 +2560,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_2(method)
         #Add ei data to validation data class
-        sim_data.ei = ei
+        sim_data.acq = ei
         
         return ei, ei_terms_df
     
@@ -2586,7 +2587,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "Error metric must be a tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
-        assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
+        assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
         ei = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
         
         return ei
@@ -2614,7 +2615,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "Error metric must be a tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
-        assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
+        assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
                    
         ei = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
         return ei
@@ -2642,7 +2643,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "best_error_metrics must be tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
-        assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
+        assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
         ei = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
         
         return ei
@@ -2670,7 +2671,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "best_error_metrics must be tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
-        assert method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
+        assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
         ei, ei_terms_df = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
         
         return ei, ei_terms_df
@@ -3738,11 +3739,10 @@ class GPBO_Driver:
         best_val: float, The optimized value of the function
         best_theta: ndarray, The theta set corresponding to val_best
         """
-        self.__min_obj_temp = None
         self.__min_obj_class = None
 
         assert isinstance(opt_obj, str), "opt_obj must be string!"
-        assert opt_obj in ["neg_ei", "sse", "lcb"], "opt_obj must be 'neg_ei', 'sse', or 'lcb'"
+        assert opt_obj in ["neg_ei", "E_sse", "sse", "lcb"], "opt_obj must be 'neg_ei', 'sse', or 'lcb'"
 
         #Note add +1 because index 0 counts as 1 reoptimization
         if self.cs_params.reoptimize_obj > 50:
@@ -3773,7 +3773,7 @@ class GPBO_Driver:
                 #If the intialized theta causes scipy.optimize to choose nan values, skip it
                 pass
         
-        best_val = copy.deepcopy(self.__min_obj_temp)
+        best_val = self.__min_obj_class.acq
         best_class = self.__min_obj_class
 
         if opt_obj != "lcb":
@@ -3781,11 +3781,6 @@ class GPBO_Driver:
             best_class.y_vals = best_class_simple.y_vals
         else:
             best_class = self.__min_obj_class
-
-        #Since we minimize -ei, multiply by -1 to get the maximum value of ei
-        if opt_obj == "neg_ei":
-            best_val = best_val*-1
-            best_class.ei = best_class.ei*-1
                     
         return best_val, best_class
         
@@ -3850,7 +3845,10 @@ class GPBO_Driver:
 
             #Calculate objective fxn
             if opt_obj == "sse":
-                #Objective to minimize is log(E[sse]) if using 1B or 2B, and sse for all other methods
+                #Objective to minimize is log(sse) if using 1B or 2B, and sse for all other methods
+                obj = cand_sse_mean
+            elif opt_obj == "E_sse":
+                #Objective to minimize is log((E)[sse]) if using 1B or 2B, and sse for all other methods
                 obj = cand_sse_mean + np.sum(cand_sse_var)
             elif opt_obj == "lcb":
                 assert isinstance(beta, (int, float, np.float64)), "beta must be float or int"
@@ -3864,20 +3862,27 @@ class GPBO_Driver:
                     ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error_metrics, self.method, self.sg_depth)
                 obj = -1*ei_output[0]
 
+            set_acq_val = True
+
             #Save candidate class if there is no current value
-            if self.__min_obj_temp == None:
-                self.__min_obj_temp = obj
+            if self.__min_obj_class == None:
                 self.__min_obj_class = self.gp_emulator.cand_data
             #The objective is smaller than what we have so far
-            elif self.__min_obj_temp > obj:
-                self.__min_obj_temp = obj
+            elif self.__min_obj_class.acq > obj:
                 self.__min_obj_class = self.gp_emulator.cand_data
             #Or if they are the same and the algorithm decides to switch
-            elif np.isclose(self.__min_obj_temp, obj, rtol=1e-7):
+            elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7):
                 random_number = random.randint(0, 1)
                 if random_number > 0:
-                    self.__min_obj_temp = obj
                     self.__min_obj_class = self.gp_emulator.cand_data
+                else:
+                    set_acq_val = False
+            else:
+                set_acq_val = False
+
+            if set_acq_val and opt_obj != "neg_ei":
+                self.__min_obj_class.acq = obj
+
         return obj
 
     def create_heat_map_param_data(self, n_points_set = None):
@@ -4162,15 +4167,26 @@ class GPBO_Driver:
         #Set Optimization starting points for this iteration
         self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics)
 
-        #Call optimize acquistion fxn
-        max_ei, max_ei_theta_data = self.__opt_with_scipy("neg_ei")
-        max_ei_theta_data.beta = 2*np.log(self.gp_emulator.get_dim_gp_data()*(iteration+1)**2*np.pi**2/(6*0.05))/5
-        max_ei_theta_data.kappa = self.__get_kappa(max_ei_theta_data.beta)
+        #Call optimize EI acquistion fxn (If not using E[SSE])
+        if self.method.method_name.value != 7:
+            opt_acq, max_ei_theta_data = self.__opt_with_scipy("neg_ei")
+            #Call optimize E[SSE] or log(E[SSE]) objective function
+            min_sse, min_theta_data = self.__opt_with_scipy("sse")
+            if self.method.emulator == True:
+                ei_args = (max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, 
+                           self.method, self.sg_depth)
+            else:
+                ei_args = (max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
+        else:
+            opt_acq, min_theta_data = self.__opt_with_scipy("E_sse")
 
-        #Call optimize E[SSE] or log(E[SSE]) objective function
-        min_Esse, min_theta_data = self.__opt_with_scipy("sse")
+        if self.method.method_name.value != 7:
+            acq_theta_data = max_ei_theta_data
+        else:
+            acq_theta_data = min_theta_data
 
-        # print("min SSE Theta: ", min_sse_theta)
+        acq_theta_data.beta = 2*np.log(self.gp_emulator.get_dim_gp_data()*(iteration+1)**2*np.pi**2/(6*0.05))/5
+        acq_theta_data.kappa = self.__get_kappa(acq_theta_data.beta)
         
         #If type 2, turn it into sse_data
         #Set the best data to be in sse form if using a type 2 GP and find the min sse
@@ -4178,16 +4194,14 @@ class GPBO_Driver:
             #Evaluate SSE & SSE stdev at max ei theta
             min_sse_theta_data = self.simulator.sim_data_to_sse_sim_data(self.method, min_theta_data, self.exp_data, 
                                                                          self.cs_params.sep_fact, False)
-            ei_args = (max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, self.method, self.sg_depth)
-                
+                 
         #Otherwise the sse data is the original (scaled) data
         else:     
             #Evaluate SSE & SSE stdev at max ei theta
             min_sse_theta_data = min_theta_data
-            ei_args = (max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
             
         #Evaluate max EI terms at theta
-        if self.cs_params.save_data: 
+        if self.cs_params.save_data and not self.method.method_name.value == 7: 
             ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(*ei_args)
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
@@ -4210,17 +4224,17 @@ class GPBO_Driver:
         gp_emulator_curr = copy.deepcopy(self.gp_emulator)
               
         #Call __augment_train_data to append training data
-        self.__augment_train_data(max_ei_theta_data)
+        self.__augment_train_data(acq_theta_data)
 
         #After the 1st iteration, set the stopping criteria
         if iteration > 0:
             #Calculate regret
-            regret, speed, r_stop = self.__get_regret_term(opt_theta_data, max_ei_theta_data)
+            regret, speed, r_stop = self.__get_regret_term(opt_theta_data, acq_theta_data)
         else:
             regret, speed, r_stop = [np.inf, np.inf, False]
 
         #Set the driver's last best theta to this class instance
-        self.best_theta_last = max_ei_theta_data
+        self.best_theta_last = acq_theta_data
         self.opt_theta_last = opt_theta_data
 
         #Calc time/ iter
@@ -4229,9 +4243,9 @@ class GPBO_Driver:
         
         #Create Results Pandas DataFrame for 1 iter
         #Return SSE and not log(SSE) for 'Min Obj', 'Min Obj Act', 'Theta Min Obj'
-        column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Regret', 'Speed', 'Time/Iter']
+        column_names = ['Best Error', 'Exploration Bias', 'Opt Acq', 'Theta Opt Acq', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Regret', 'Speed', 'Time/Iter']
         iter_df = pd.DataFrame(columns=column_names)
-        bo_iter_results = [best_error_metrics[0], float(self.ep_bias.ep_curr), float(max_ei), max_ei_theta_data.theta_vals[0],
+        bo_iter_results = [best_error_metrics[0], float(self.ep_bias.ep_curr), float(opt_acq), acq_theta_data.theta_vals[0],
                             min_sse_gp, min_sse_sim, min_sse_theta_data.theta_vals[0], regret, speed, time_per_iter]
         # Add the new row to the DataFrame
         iter_df.loc[0] = bo_iter_results
@@ -4255,20 +4269,20 @@ class GPBO_Driver:
         """
         assert 0 < self.bo_iter_term_frac <= 1, "self.bo_iter_term_frac must be between 0 and 1"
         #Initialize pandas dataframes
-        column_names = ['Best Error', 'Exploration Bias', 'Max EI', 'Theta Max EI', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'Regret', 'Speed', 'Time/Iter']
+        column_names = ['Best Error', 'Exploration Bias', 'Opt Acq', 'Theta Opt Acq', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'Regret', 'Speed', 'Time/Iter']
         results_df = pd.DataFrame(columns=column_names)
         max_ei_details_df = pd.DataFrame()
         list_gp_emulator_class = []
         
         #Initilize terminate flags   
-        ei_flag = False
+        acq_flag = False
         obj_flag = False
         regret_flag = False
         max_bud_flag = False
         terminate = False
         
         #Set why_term strings
-        why_terms = ["ei", "obj", "regret", "max_budget"]
+        why_terms = ["acq", "obj", "regret", "max_budget"]
         
         #Initialize count
         obj_counter = 0
@@ -4323,9 +4337,9 @@ class GPBO_Driver:
                 else:
                     obj_counter = 0 
                     
-                #set flag if max ei is less than the tolerance 3 times in a row
-                if all(results_df["Max EI"].tail(3) < self.cs_params.ei_tol) and i > 2:
-                    ei_flag = True
+                #set flag if opt acq. func val is less than the tolerance 3 times in a row
+                if all(results_df["Opt Acq"].tail(3) < self.cs_params.acq_tol) and i > 2:
+                    acq_flag = True
                 #set flag if small sse progress over 1/3 of total iteration budget
                 if obj_counter >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac) and i > 0:
                     obj_flag = True
@@ -4333,7 +4347,7 @@ class GPBO_Driver:
                 if all(results_df["Regret"].tail(3) < results_df["Speed"].tail(3)) and i > 2:
                     regret_flag = True
 
-                flags = [ei_flag, obj_flag, regret_flag]
+                flags = [acq_flag, obj_flag, regret_flag]
                  
                 #Terminate if you meet 2 stopping criteria, hit the budget, or obj has not improved after 1/2 of iterations
                 if flags.count(True) >= 2:
@@ -4420,7 +4434,7 @@ class GPBO_Driver:
                          "Max BO Iters" : self.cs_params.bo_iter_tot,
                          "Number of Workflow Restarts" : self.cs_params.bo_run_tot,
                          "Seed" : self.cs_params.seed,
-                         "EI Tolerance" : self.cs_params.ei_tol,
+                         "Acq Tolerance" : self.cs_params.acq_tol,
                          "Sparse Grid Depth": self.sg_depth,
                          "Obj Improvement Tolerance" : self.cs_params.obj_tol,
                          "Theta Generation Enum Value": self.gen_meth_theta.value}
