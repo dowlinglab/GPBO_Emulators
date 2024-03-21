@@ -2343,7 +2343,6 @@ class Type_2_GP_Emulator(GP_Emulator):
             sse_var = sse_var/(residuals.T@residuals)
             if sse_covar is not None:
                 sse_covar = sse_covar/(residuals.T@residuals)
-            sse_covar = sse_covar/(residuals.T@residuals)
             #Set mean to new value
             sse_mean = np.log(sse_mean)
 
