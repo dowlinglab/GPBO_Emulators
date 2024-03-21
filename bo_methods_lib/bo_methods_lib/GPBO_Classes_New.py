@@ -3607,8 +3607,8 @@ class GPBO_Driver:
             be_data.y_vals = np.atleast_1d(self.gp_emulator.train_data.y_vals[train_idx])
             be_data.gp_mean = np.atleast_1d(self.gp_emulator.train_data.gp_mean[train_idx])
             be_data.gp_var = np.atleast_1d(self.gp_emulator.train_data.gp_var[train_idx])
-            be_data.sse = np.atleast_1d(self.gp_emulator.train_data.gp_mean[train_idx])
-            be_data.sse_var = np.atleast_1d(self.gp_emulator.train_data.gp_var[train_idx])
+            be_data.sse = np.atleast_1d(self.gp_emulator.train_data.sse[train_idx])
+            be_data.sse_var = np.atleast_1d(self.gp_emulator.train_data.sse_var[train_idx])
         else:
             #Type 2 best error must be calculated given the experimental data
             best_error, be_theta, best_errors_x, train_idx = self.gp_emulator.calc_best_error(self.method, self.exp_data)
@@ -3616,8 +3616,9 @@ class GPBO_Driver:
             be_data.y_vals = self.gp_emulator.train_data.y_vals[train_idx[0]:train_idx[1]]
             be_data.gp_mean = self.gp_emulator.train_data.gp_mean[train_idx[0]:train_idx[1]]
             be_data.gp_var = self.gp_emulator.train_data.gp_var[train_idx[0]:train_idx[1]]
-            be_data.sse = self.gp_emulator.train_data.gp_mean[train_idx[0]:train_idx[1]]
-            be_data.sse_var = self.gp_emulator.train_data.gp_var[train_idx[0]:train_idx[1]]
+            len_x = len(best_errors_x)
+            be_data.sse = np.atleast_1d(self.gp_emulator.train_data.sse[int(train_idx[0]/len_x)])
+            be_data.sse_var = np.atleast_1d(self.gp_emulator.train_data.sse_var[int(train_idx[0]/len_x)])
         
         be_metrics = best_error, be_theta, best_errors_x
 
@@ -3867,8 +3868,11 @@ class GPBO_Driver:
             #Save candidate class if there is no current value
             if self.__min_obj_class == None:
                 self.__min_obj_class = self.gp_emulator.cand_data
-            #The objective is smaller than what we have so far
-            elif self.__min_obj_class.acq > obj:
+            #The sse/lcb objective is smaller than what we have so far
+            elif self.__min_obj_class.acq > obj and opt_obj != "neg_ei":
+                self.__min_obj_class = self.gp_emulator.cand_data
+            #The ei objective is larger than what we have so far
+            elif self.__min_obj_class.acq*-1 > obj and opt_obj == "neg_ei":
                 self.__min_obj_class = self.gp_emulator.cand_data
             #Or if they are the same and the algorithm decides to switch
             elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7):
@@ -3882,7 +3886,7 @@ class GPBO_Driver:
 
             if set_acq_val and opt_obj != "neg_ei":
                 self.__min_obj_class.acq = obj
-
+        
         return obj
 
     def create_heat_map_param_data(self, n_points_set = None):
@@ -4029,14 +4033,14 @@ class GPBO_Driver:
 
         return kappa
     
-    def __get_regret_term(self, min_sse_theta_data, max_ei_theta_data):
+    def __get_regret_term(self, min_sse_theta_data, acq_theta_data):
         """
         Calculates the speed and regret of the algorithm for stopping criteria based on Ishibashi, H., Karasuyama, M., Takeuchi, I., & Hino, H. (2023)
         
         Parameters:
         -----------
         min_sse_theta_data: Instance of Data class, Data associated with the parameter set with the minimum sse
-        max_ei_theta_data: Instance of Data class, Data associated with the parameter set with the maximum ei
+        acq_theta_data: Instance of Data class, Data associated with the parameter set with the opt acq func.
         
         Returns:
         --------
@@ -4082,15 +4086,15 @@ class GPBO_Driver:
         Dkl_1 = (1/2)*np.log(1+gamma*self.best_theta_last.sse_var)
         Dkl_2 = -1*(1/2)*(self.best_theta_last.sse_var/(self.best_theta_last.sse_var+(1/gamma)))
         if self.method.emulator == True:
-            sse_sim = sum((self.exp_data.y_vals - max_ei_theta_data.y_vals)**2)
+            sse_sim = sum((self.exp_data.y_vals - acq_theta_data.y_vals)**2)
         else:
-            sse_sim = max_ei_theta_data.y_vals           
+            sse_sim = acq_theta_data.y_vals           
         Dkl_3 = (1/2)*(self.best_theta_last.sse_var)*(sse_sim - self.best_theta_last.sse)**2/(self.best_theta_last.sse_var + (1/gamma))**2
         Dkl = abs(Dkl_1 + Dkl_2 + Dkl_3)
 
         #Calculate regret and convergence speed
         regret = float(del_mu + v*norm.pdf(g) +v*g*norm.cdf(g) + kappa*np.sqrt((1/2)*Dkl))
-        speed_numerator = (np.sqrt(self.opt_theta_last.sse_var)+kappa/2) + np.sqrt(max_ei_theta_data.sse_var)*np.sqrt(-2*np.log(0.05))
+        speed_numerator = (np.sqrt(self.opt_theta_last.sse_var)+kappa/2) + np.sqrt(acq_theta_data.sse_var)*np.sqrt(-2*np.log(0.05))
         speed_denominator = np.sqrt(gamma)*(self.best_theta_last.sse_var + 1/gamma)
         speed = float(speed_numerator/speed_denominator)
         #Determine r_stop convergence criteria
