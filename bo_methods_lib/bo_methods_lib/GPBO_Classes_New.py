@@ -2340,9 +2340,9 @@ class Type_2_GP_Emulator(GP_Emulator):
         #For Method 2B, make sse and sse_covar data in the log form
         if method.obj.value == 2:
             #Propogation of errors: stdev_ln(val) = stdev/val           
-            sse_var = sse_var/(residuals.T@residuals)
+            sse_var = sse_var/float(residuals.T@residuals)
             if sse_covar is not None:
-                sse_covar = sse_covar/(residuals.T@residuals)
+                sse_covar = sse_covar/float(residuals.T@residuals)
             #Set mean to new value
             sse_mean = np.log(sse_mean)
 
@@ -2512,7 +2512,10 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         # Sum squared errors for each block
         sse_vals = np.sum(ind_errors, axis=1)
+        # print("sse_vals", sse_vals.shape)
+        # print("trn shape", self.train_data.theta_vals.shape)
         sse_train_vals = sse_vals.flatten()
+        # print(np.argmin(sse_train_vals))
 
         #List to array
         be_theta = self.train_data.theta_vals[int(np.argmin(sse_train_vals)*len_x)]
@@ -3618,6 +3621,8 @@ class GPBO_Driver:
             be_data.gp_var = self.gp_emulator.train_data.gp_var[train_idx[0]:train_idx[1]]
             len_x = len(best_errors_x)
             be_data.sse = np.atleast_1d(self.gp_emulator.train_data.sse[int(train_idx[0]/len_x)])
+            # print(train_idx, len_x, int(train_idx[0]/len_x))
+            # print(self.gp_emulator.train_data.sse[int(train_idx[0]/len_x)], be_data.sse)
             be_data.sse_var = np.atleast_1d(self.gp_emulator.train_data.sse_var[int(train_idx[0]/len_x)])
         
         be_metrics = best_error, be_theta, best_errors_x
