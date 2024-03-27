@@ -4353,8 +4353,8 @@ class GPBO_Driver:
                 if obj_counter >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac) and i > 0:
                     obj_flag = True
                 #set flag if reg_tol < speed 3 times in a row since this criteria assumes GP is good
-                if all(results_df["Regret"].tail(3) < results_df["Speed"].tail(3)) and i > 2:
-                    regret_flag = True
+                # if all(results_df["Regret"].tail(3) < results_df["Speed"].tail(3)) and i > 2:
+                #     regret_flag = True
 
                 flags = [acq_flag, obj_flag, regret_flag]
                  
