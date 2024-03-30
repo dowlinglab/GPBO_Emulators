@@ -663,12 +663,17 @@ class General_Analysis:
                 #Generate testing data if it doesn't exist
                 #Get 10 num_theta points for testing
                 num_x = exp_data.get_num_x_vals()
-                test_data_sim = simulator.gen_sim_data(15, num_x, Gen_meth_enum(1), Gen_meth_enum(2), 1.0, simulator.seed, False)
+                dim_x = exp_data.get_dim_x_vals()
+                use_x = int(num_x**(1/dim_x))
+                #Make Data (For multi vs 1D X data)
+                # For conventional methods, must use same x for testing data as exp values to get same results
+                test_data_sim = simulator.gen_sim_data(10, use_x, Gen_meth_enum(1), Gen_meth_enum(2), 1.0, simulator.seed, False)
                 if method.emulator == False:
                     test_data_sim = simulator.sim_data_to_sse_sim_data(method, test_data_sim, exp_data, 1.0, False)
+
                 gp_object.test_data = test_data_sim
                 gp_object.feature_test_data = gp_object.featurize_data(gp_object.test_data)
-                gp_object.test_data.gp_mean, gp_object.test_data.gp_var = gp_object.eval_gp_mean_var_test()   
+                gp_object.test_data.gp_mean, gp_object.test_data.gp_var = gp_object.eval_gp_mean_var_test()  
 
             test_data = gp_object.test_data
             
