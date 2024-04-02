@@ -477,7 +477,7 @@ class Plotters:
                 all_z_titles.append(r"$\mathbf{\sigma^2_{e(\theta)_{gp}}}$")
             elif "acq" == z_choice:
                 all_z_data.append(ei)
-                all_z_titles.append("Acquisition Function Value")
+                all_z_titles.append(r"$\mathbf{acq(\theta)}$")
             else:
                 raise Warning("choice must contain 'sim', 'mean', 'var', or 'acq'")
         if len(all_z_data) == 1:

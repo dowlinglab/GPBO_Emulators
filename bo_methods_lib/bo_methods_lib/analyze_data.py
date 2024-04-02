@@ -440,7 +440,7 @@ class General_Analysis:
                     data_names += ["\mathbf{Min\,e(\\theta)}"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
-                    data_names += ["$\mathbf{Opt\,acq(\theta)}$"]
+                    data_names += ["\mathbf{Opt\,acq(\theta)}"]
 
         elif data_type == "params":
             assert isinstance(z_choices, str), "z_choices must be a string"

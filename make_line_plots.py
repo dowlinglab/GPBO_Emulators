@@ -36,7 +36,7 @@ df_best, job_list_best = analyzer.get_best_data()
 
 #Loop over z_choices to make comparison line plots
 z_choices = ["sse", "min_sse", "acq"]
-titles = ["Min SSE Parameter Values", "Min SSE Parameter Values Overall", "Max EI Parameter Values"]
+titles = ["Min SSE Parameter Values", "Min SSE Parameter Values Overall", "Optimal Acq Func Parameter Values"]
 
 #Get best plots for all objectives with all 6 methods on each subplot
 plotters.plot_objs_all_methods(z_choices)
