@@ -428,7 +428,7 @@ class General_Analysis:
         if data_type == "objs":
             assert isinstance(z_choices, list), "z_choices must be list of string."
             assert all(isinstance(item, str) for item in z_choices), "z_choices elements must be string"
-            assert any(item in z_choices for item in ["ei", "min_sse", "sse"]), "z_choices must contain at least 'min_sse', 'ei', or 'sse'"
+            assert any(item in z_choices for item in ["acq", "min_sse", "sse"]), "z_choices must contain at least 'min_sse', 'acq', or 'sse'"
             col_name = [] 
             data_names = []
             for z_choice in z_choices:
@@ -438,22 +438,22 @@ class General_Analysis:
                 if "min_sse" == z_choice:
                     col_name += ["Min Obj Cum."]
                     data_names += ["\mathbf{Min\,e(\\theta)}"]        
-                if "ei" == z_choice:
-                    col_name += ["Max EI"]
-                    data_names += ["\mathbf{Max\,EI(\\theta)}"]
+                if "acq" == z_choice:
+                    col_name += ["Opt Acq"]
+                    data_names += ["$\mathbf{Opt\,acq(\theta)}$"]
 
         elif data_type == "params":
             assert isinstance(z_choices, str), "z_choices must be a string"
-            assert any(item == z_choices for item in ["ei", "min_sse", "sse"]), "z_choices must be one of 'min_sse', 'ei', or 'sse'"
+            assert any(item == z_choices for item in ["acq", "min_sse", "sse"]), "z_choices must be one of 'min_sse', 'acq', or 'sse'"
             data_names = list(theta_true_data.keys())
             if "min_sse" in z_choices:
                 col_name = "Theta Min Obj Cum."  
             elif "sse" == z_choices:
                 col_name = "Theta Min Obj"
-            elif "ei" in z_choices:
-                col_name = "Theta Max EI"
+            elif "acq" in z_choices:
+                col_name = "Theta Opt Acq"
             else:
-                warnings.warn("z_choices must be 'ei', 'sse', or 'min_sse'.")
+                warnings.warn("z_choices must be 'acq', 'sse', or 'min_sse'.")
         return col_name, data_names
 
     def __preprocess_analyze(self, job, z_choice, data_type):
@@ -725,7 +725,7 @@ class General_Analysis:
             #Get important theta values
             theta_true = loaded_results[run_num].simulator_class.theta_true
             theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
-            theta_next = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
+            theta_next = loaded_results[run_num].results_df["Theta Opt Acq"].iloc[bo_iter]
             train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
             
             #Get specific heat map data or generate it
@@ -755,7 +755,7 @@ class General_Analysis:
                             name in param_names]  
 
             #Set param info
-            param_info_dict = {"true":theta_true, "min_sse":theta_opt, "max_ei":theta_next, "train":train_theta,
+            param_info_dict = {"true":theta_true, "min_sse":theta_opt, "opt_acq":theta_next, "train":train_theta,
                                 "names":param_names, "idcs":idcs_to_plot} 
             
             #Get best error metrics
@@ -1139,7 +1139,6 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     #Check if data already exists, if so, just use it
     org_dir_name = os.path.dirname(file_path)
     dir_name = os.path.join(org_dir_name, "analysis_data", "gp_evaluations", "run_" + str(run_num), "pair_" + str(pair_id))
-    # os.makedirs(dir_name, exist_ok=True)
     
     #save heat_map_data as a pickle file instead of sse_sim, sse_mean, sse_var, and ei. Skip Ei gen step if ei isn't none
     hm_data_file = os.path.join(dir_name, "hm_data.gz")
@@ -1271,6 +1270,7 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     param_info_dict = {"true":theta_true, "min_sse":theta_opt, "max_ei":theta_next, "train":train_theta, "names":param_names, "idcs":idcs_to_plot}
     
     if save_csv:
+        os.makedirs(dir_name, exist_ok=True)
         fileObj = gzip.open(hm_data_file, 'wb', compresslevel  = 1)
         pickled_results = pickle.dump(heat_map_data, fileObj)
         fileObj.close()

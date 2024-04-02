@@ -112,13 +112,13 @@ class Plotters:
         -----------
             file_path_list: list of str, The file paths of data we want to make plots for
             run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-            z_choices:  str, one of "sse_sim", "sse_mean", "sse_var", or "ei". The value that will be plotted
+            z_choices:  str, one of "sse_sim", "sse_mean", "sse_var", or "acq". The value that will be plotted
             plot_dict: dict, a dictionary of the plot details 
             
         """
         #Assert Statements
         assert isinstance(z_choice, str), "z_choices must be str"
-        assert z_choice in ['min_sse','sse','ei'], "z_choices must be one of 'min_sse', 'sse', or 'ei'"
+        assert z_choice in ['min_sse','sse','acq'], "z_choices must be one of 'min_sse', 'sse', or 'acq'"
         assert isinstance(title, str) or title is None, "title must be a string or None"
         assert isinstance(log_data, bool), "log_data must be boolean:"
         
@@ -255,12 +255,7 @@ class Plotters:
         GPBO_method_val = sp_data["meth_name_val"]
         #Create label based on method #
         meth_label = self.method_names[GPBO_method_val-1]
-        if z_choice == "sse":
-            y_label = r"$\mathbf{e(\theta)}$" 
-        elif z_choice == "min_sse":
-            y_label = "Min " + r"$\mathbf{e(\theta)}$"
-        else:
-            y_label = "Max " + r"$\mathbf{EI(\theta)}$"
+        y_label = self.__set_ylab_from_z(z_choice)
 
         if title != None:
             title = title
@@ -357,7 +352,7 @@ class Plotters:
         -----------
             file_path_list: list of str, The file paths of data we want to make plots for
             run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-            z_choices:  list of str, list of strings "sse_sim", "sse_mean", "sse_var", and/or "ei". The values that will be plotted
+            z_choices:  list of str, list of strings "sse_sim", "sse_mean", "sse_var", and/or "acq". The values that will be plotted
             plot_dict: dict, a dictionary of the plot details 
             
         """
@@ -372,9 +367,9 @@ class Plotters:
             z_choices = list(z_choices)
         assert all(isinstance(item, str) for item in z_choices), "z_choices elements must be str"
         for i in range(len(z_choices)):
-            assert z_choices[i] in ['min_sse','sse','ei'],"z_choices items must be 'min_sse', 'sse', or 'ei'"
+            assert z_choices[i] in ['min_sse','sse','acq'],"z_choices items must be 'min_sse', 'sse', or 'acq'"
         
-        #Create figure and axes. Number of subplots is 1 for each ei, sse, sse_sim etc.
+        #Create figure and axes. Number of subplots is 1 for each acq, sse, sse_sim etc.
         subplots_needed = len(z_choices)
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True)
         
@@ -453,7 +448,7 @@ class Plotters:
         
         #save or show figure
         if self.save_figs:
-            z_choices_sort = sorted(z_choices, key=lambda x: ("sse", "min_sse", "ei").index(x))
+            z_choices_sort = sorted(z_choices, key=lambda x: ("sse", "min_sse", "acq").index(x))
             save_path_dir = os.path.join(save_path, "line_plots")
             save_path_to = os.path.join(save_path_dir, "all_meth_" + '_'.join(map(str, z_choices_sort)))
             self.__save_fig(save_path_to)
@@ -480,11 +475,11 @@ class Plotters:
             elif "sse_var" == z_choice:
                 all_z_data.append(sse_var)
                 all_z_titles.append(r"$\mathbf{\sigma^2_{e(\theta)_{gp}}}$")
-            elif "ei" == z_choice:
+            elif "acq" == z_choice:
                 all_z_data.append(ei)
-                all_z_titles.append(r"$\mathbf{EI(\theta)}$")
+                all_z_titles.append("Acquisition Function Value")
             else:
-                raise Warning("choice must contain 'sim', 'mean', 'var', or 'ei'")
+                raise Warning("choice must contain 'sim', 'mean', 'var', or 'acq'")
         if len(all_z_data) == 1:
             return all_z_data[0], all_z_titles[0]
         else:
@@ -499,7 +494,7 @@ class Plotters:
             run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
             bo_iter_list: list of int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
             pair: int, The pair of data parameters. pair 0 is the 1st pair
-            z_choice: str, "sse_sim", "sse_mean", "sse_var", or "ei". The values that will be plotted
+            z_choice: str, "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
             plot_dict: dict, dictionary of plotting options. Generate with make_plot_dict()
         Returns
         -------
@@ -532,7 +527,7 @@ class Plotters:
         #Get all data for subplots needed
         #Loop over number of subplots needed
         for i in range(len(job_list_best)):
-            if "ei" in z_choice:
+            if "acq" in z_choice:
                 get_ei = True
             else:
                 get_ei = False
@@ -545,7 +540,7 @@ class Plotters:
             
             theta_true = param_info_dict["true"]
             theta_opt = param_info_dict["min_sse"]
-            theta_next = param_info_dict["max_ei"]
+            theta_next = param_info_dict["opt_acq"]
             train_theta = param_info_dict["train"]
             plot_axis_names = param_info_dict["names"]
             idcs_to_plot = param_info_dict["idcs"]
@@ -702,7 +697,7 @@ class Plotters:
             run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
             bo_iter_list: list of int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
             pair: int, The pair of data parameters. pair 0 is the 1st pair
-            z_choice: str, "sse_sim", "sse_mean", "sse_var", or "ei". The values that will be plotted
+            z_choice: str, "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
             plot_dict: dict, dictionary of plotting options. Generate with make_plot_dict()
         Returns
         -------
@@ -713,7 +708,7 @@ class Plotters:
         if isinstance(z_choices, str):
             z_choices = [z_choices]
         for z_choice in z_choices:
-            assert z_choice in ['sse_sim', 'sse_mean', 'sse_var','ei'], "z_choices elements must be 'sse_sim', 'sse_mean', 'sse_var', or 'ei'"
+            assert z_choice in ['sse_sim', 'sse_mean', 'sse_var','acq'], "z_choices elements must be 'sse_sim', 'sse_mean', 'sse_var', or 'acq'"
 
         #Define plot levels
         if levels is None:
@@ -724,7 +719,7 @@ class Plotters:
             tot_lev = levels
         
         #Get all data for subplots needed
-        get_ei = True if "ei" in z_choices else False
+        get_ei = True if "acq" in z_choices else False
         analysis_list = self.analyzer.analyze_heat_maps(job, run_num, bo_iter, pair, get_ei = get_ei)
         sim_sse_var_ei, test_mesh, param_info_dict, sp_data = analysis_list
         #Get method value from json file
@@ -733,7 +728,7 @@ class Plotters:
         sim_sse_var_ei = self.__scale_z_data(sim_sse_var_ei, sp_data, log_data)
         theta_true = param_info_dict["true"]
         theta_opt = param_info_dict["min_sse"]
-        theta_next = param_info_dict["max_ei"]
+        theta_next = param_info_dict["opt_acq"]
         train_theta = param_info_dict["train"]
         plot_axis_names = param_info_dict["names"]
         idcs_to_plot = param_info_dict["idcs"]
@@ -909,8 +904,8 @@ class Plotters:
             y_label = r"$\mathbf{e(\theta)}$"
         if "min_sse" == z_choice:
             y_label = r"$\mathbf{Min\,e(\theta)}$"   
-        if "ei" == z_choice:
-            y_label = r"$\mathbf{Max\,EI(\theta)}$"
+        if "acq" == z_choice:
+            y_label = r"$\mathbf{Opt\,acq(\theta)}$"
         return y_label
     
     def __get_data_to_bo_iter_term(self, data_all_iters):
