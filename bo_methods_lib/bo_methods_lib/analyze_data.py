@@ -375,8 +375,8 @@ class General_Analysis:
         ext = os.path.splitext(path)[-1]
         #Extract directory name
         dirname = os.path.dirname(path)
-        #Make directory if it doesn't already exist
-        os.makedirs(dirname, exist_ok=True)
+        # #Make directory if it doesn't already exist
+        # os.makedirs(dirname, exist_ok=True)
         #Based on extension, save in different ways
         #Check if csv already exists
         if os.path.exists(path):
@@ -1139,7 +1139,7 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
     #Check if data already exists, if so, just use it
     org_dir_name = os.path.dirname(file_path)
     dir_name = os.path.join(org_dir_name, "analysis_data", "gp_evaluations", "run_" + str(run_num), "pair_" + str(pair_id))
-    os.makedirs(dir_name, exist_ok=True)
+    # os.makedirs(dir_name, exist_ok=True)
     
     #save heat_map_data as a pickle file instead of sse_sim, sse_mean, sse_var, and ei. Skip Ei gen step if ei isn't none
     hm_data_file = os.path.join(dir_name, "hm_data.gz")

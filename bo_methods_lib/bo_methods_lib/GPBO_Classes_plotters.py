@@ -252,8 +252,21 @@ class Plotters:
 
     def plot_thetas(self, job, z_choice, title = None):
         data, data_names, data_true, sp_data = self.analyzer.analyze_thetas(job, z_choice)
-        y_label = None
-        title = "Min Obj Parameter Values"
+        GPBO_method_val = sp_data["meth_name_val"]
+        #Create label based on method #
+        meth_label = self.method_names[GPBO_method_val-1]
+        if z_choice == "sse":
+            y_label = r"$\mathbf{e(\theta)}$" 
+        elif z_choice == "min_sse":
+            y_label = "Min " + r"$\mathbf{e(\theta)}$"
+        else:
+            y_label = "Max " + r"$\mathbf{EI(\theta)}$"
+
+        if title != None:
+            title = title
+        else:
+            title = meth_label + " Parameter Values"
+
         fig = self.__plot_2D_general(data, data_names, data_true, y_label, title, False)
         #save or show figure
         if self.save_figs:
@@ -1274,7 +1287,7 @@ class Plotters:
                 
         #Plots legend
         if labels:
-            fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 
+            fig.legend(handles, labels, loc= "lower right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 
                        borderaxespad=0)
 
         plt.tight_layout()
