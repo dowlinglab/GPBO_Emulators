@@ -416,7 +416,7 @@ class General_Analysis:
             with gzip.open(save_path, 'wb', compresslevel=1) as file:
                 data = pickle.dump(data, file)
         elif ext == ".pkl":
-            with open(save_path, 'wb', compresslevel=1) as file:
+            with open(save_path, 'wb') as file:
                 data = pickle.dump(data, file)
         else:
             raise ValueError("NOT a csv, json, npy, pkl, or gz file")
