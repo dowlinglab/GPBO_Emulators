@@ -905,7 +905,7 @@ class Plotters:
         if "min_sse" == z_choice:
             y_label = r"$\mathbf{Min\,e(\theta)}$"   
         if "acq" == z_choice:
-            y_label = r"$\mathbf{Opt\,acq(\theta)}$"
+            y_label = r"$\mathbf{Opt\ ,acq(\theta)}$"
         return y_label
     
     def __get_data_to_bo_iter_term(self, data_all_iters):
@@ -1282,7 +1282,7 @@ class Plotters:
                 
         #Plots legend
         if labels:
-            fig.legend(handles, labels, loc= "lower right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 
+            fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.4), 
                        borderaxespad=0)
 
         plt.tight_layout()

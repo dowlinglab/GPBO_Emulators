@@ -10,6 +10,8 @@ from .GPBO_Class_fxns import *
 import pickle
 import gzip
 import json
+import ast
+import re
 
 def open_file_helper(file_path):
     """
@@ -24,7 +26,7 @@ def open_file_helper(file_path):
     results: pickled object, The results stored in the .pickle or .gz file
     """
     
-    if file_path.endswith('.pickle'):
+    if file_path.endswith('.pickle') or file_path.endswith('.pkl'):
         with open(file_path, 'rb') as fileObj:
             results = pickle.load(fileObj) 
     elif file_path.endswith('.gz'):
@@ -103,7 +105,7 @@ class General_Analysis:
 
         return jobs
 
-    def get_df_all_jobs(self):
+    def get_df_all_jobs(self, save_csv = False):
         """
         Creates a dataframe of all information for a given experiment
         
@@ -139,9 +141,9 @@ class General_Analysis:
             tab_param_path = os.path.join(job.fn("analysis_data") , "true_param_data.json")
             found_data1, df_job = self.load_data(tab_data_path)
             found_data2, theta_true_data = self.load_data(tab_param_path)
-            #Otherwise, create them
-            if not found_data1 or not found_data2:
-                df_job, theta_true_data = self.get_study_data_signac(job)
+            #If results don't exist or we are overwriting our csvs, create them
+            if save_csv or not found_data1 or not found_data2:
+                df_job, theta_true_data = self.get_study_data_signac(job, save_csv)
                 
             #Add job dataframe to dataframe of all jobs
             df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
@@ -158,7 +160,7 @@ class General_Analysis:
             
         return df_all_jobs, job_list, theta_true_data
     
-    def get_study_data_signac(self, job):
+    def get_study_data_signac(self, job, save_csv = None):
         """
         Get best data from jobs and optionally save the csvs for the data
         
@@ -172,6 +174,7 @@ class General_Analysis:
         study_id: str "ep" or "sf", whether to analyze data for the 
         
         """
+        save_csv = self.save_csv if save_csv == None else save_csv
         #Initialize df for a single job
         df_job = pd.DataFrame()
         data_file = job.fn("BO_Results.gz")
@@ -221,7 +224,7 @@ class General_Analysis:
         df_job = df_job.reset_index(drop=True)
         
         #Put in a csv file in a directory based on the job
-        if self.save_csv:
+        if save_csv:
             all_data_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
             theta_data_path = os.path.join(job.fn("analysis_data"), "true_param_data.json")
             self.save_data(df_job, all_data_path)
@@ -234,7 +237,7 @@ class General_Analysis:
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_best_path = os.path.join(self.study_results_dir, "best_results.csv")
         data_exists, df_best = self.load_data(data_best_path)
-        if not data_exists:
+        if not data_exists or self.save_csv:
             #Start by sorting pd dataframe by lowest obj func value overall
             df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
             #Then take only the 1st instance for each method
@@ -258,7 +261,7 @@ class General_Analysis:
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "median_results.csv")
         data_exists, df_median = self.load_data(data_path)
-        if not data_exists:
+        if not data_exists or self.save_csv:
             #Initialize df for median values
             df_median = pd.DataFrame()
             #Loop over all methods
@@ -291,7 +294,7 @@ class General_Analysis:
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "mean_results.csv")
         data_exists, df_mean = self.load_data(data_path)
-        if not data_exists:
+        if not data_exists or self.save_csv:
             #Initialize df for median values
             df_mean = pd.DataFrame()
             #Loop over all methods
@@ -440,7 +443,7 @@ class General_Analysis:
                     data_names += ["\mathbf{Min\,e(\\theta)}"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
-                    data_names += ["\mathbf{Opt\,acq(\theta)}"]
+                    data_names += ["\mathbf{Opt\ ,acq(\\theta)}"]
 
         elif data_type == "params":
             assert isinstance(z_choices, str), "z_choices must be a string"
@@ -467,7 +470,7 @@ class General_Analysis:
         found_data2, theta_true_data = self.load_data(true_param_data_path)
 
         if not found_data1 or not found_data2:
-            df_job, theta_true_data = self.get_study_data_signac(job)
+            df_job, theta_true_data = self.get_study_data_signac(job, save_csv = False)
 
         #Get statepoint info
         with open(job.fn("signac_statepoint.json"), 'r') as json_file:
@@ -530,6 +533,8 @@ class General_Analysis:
                     #If the z_choice is sse and the method has a log objective function value, un logscale data
                     if sp_data["meth_name_val"] in [2,4]:
                         z_data = np.exp(z_data.values.astype(float))
+                else:
+                    data_true[z_choices[z]] = None
                 #Set data to be where it needs to go in the above data matrix
                 data[i,:len(z_data),z] = z_data
 
@@ -544,7 +549,20 @@ class General_Analysis:
         for i, run in enumerate(unique_run_nums):
             #Make a df of only the data which meets that run criteria
             df_run = df_job[df_job["Run Number"]==run]  
-            df_run_arry = np.array([arr.tolist() for arr in df_run[col_name].to_numpy()])
+            try:
+                df_run_arry = np.array([arr.tolist() for arr in df_run[col_name].to_numpy()])
+            except:
+                df_run_arry = []
+                for str_arr in df_run[col_name].to_numpy():
+                    # Find the index of the first space
+                    first_space_index = str_arr.index(' ')
+                    # Remove the first space
+                    if first_space_index == 1:
+                        str_no_space1 = str_arr[:first_space_index] + str_arr[first_space_index+1:]
+                    else:
+                        str_no_space1 = str_arr
+                    df_run_arry.append(np.array(ast.literal_eval(re.sub(r'\s+', ',',str_no_space1))))
+                df_run_arry = np.array([arr.tolist() for arr in df_run_arry])
             for param in range(data.shape[-1]):
                 z_data = df_run_arry[:,param]
                 #Set data to be where it needs to go in the above data matrix
@@ -570,7 +588,7 @@ class General_Analysis:
             tot_runs = sp_data["bo_runs_in_job"]
             max_iters = sp_data["bo_iter_tot"]
 
-        if not found_data1 and not found_data2:
+        if self.save_csv or (not found_data1 and not found_data2):
             loaded_results = open_file_helper(job.fn("BO_Results.gz"))
             dim_hps = len(loaded_results[0].list_gp_emulator_class[0].trained_hyperparams[0]) + 2
             data = np.zeros((tot_runs, max_iters, dim_hps))
@@ -651,7 +669,7 @@ class General_Analysis:
         method = GPBO_Methods(meth_name)
         
         #Otherwise Generate it
-        if not found_data1:
+        if self.save_csv or not found_data1:
             #Open file
             results = open_file_helper(job.fn("BO_Results.gz"))
             gp_object = copy.copy(results[run_idx].list_gp_emulator_class[bo_iter-1])
@@ -702,7 +720,7 @@ class General_Analysis:
         cs_params, method, gen_meth_theta, ep_method = self.__rebuild_cs(sp_data)
 
         #Generate data if you don't have it
-        if not found_data1 or not found_data2 or not found_data3:
+        if self.save_csv or not found_data1 or not found_data2 or not found_data3:
             loaded_results = open_file_helper(job.fn("BO_Results.gz"))
             
             #If there is only 1 run, set run num to 0
@@ -948,7 +966,7 @@ class LS_Analysis(General_Analysis):
         # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
         found_data1, ls_results = self.load_data(ls_data_path)
 
-        if not found_data1:
+        if self.save_csv or not found_data1:
             #Get simulator and exp_data Data class objects
             simulator, exp_data, tot_runs_cs, ftol = self.__get_simulator_exp_data()
             
@@ -1049,7 +1067,7 @@ class LS_Analysis(General_Analysis):
         self.save_csv = False
         
 
-        if not found_data1:
+        if self.save_csv or not found_data1:
             #Run Least Squares 500 times
             ls_results = self.least_squares_analysis(tot_runs)
             #Drop all except best iteration for each run

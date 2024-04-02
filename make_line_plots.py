@@ -31,6 +31,8 @@ criteria_dict = {"cs_name_val" : 1,
 analyzer = General_Analysis(criteria_dict, project, save_csv)
 plotters = Plotters(analyzer, save_figs)
 
+###Get all data from experiments
+df_all_jobs, job_list, theta_true_data = analyzer.get_df_all_jobs(save_csv)
 ### Get Best Data from ep experiment
 df_best, job_list_best = analyzer.get_best_data()
 
