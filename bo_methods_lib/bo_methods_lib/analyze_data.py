@@ -830,7 +830,7 @@ class General_Analysis:
                                                                                                     method, exp_data)
 
         #Get EI if needed. This operation can be expensive which is why it's optional
-        if get_ei and heat_map_data.acq is None:
+        if data_needs_ei:
             if method.method_name.value == 7:
                 heat_map_sse_data.acq = heat_map_sse_data.sse + np.sum(heat_map_sse_data.sse_var)
             elif method.emulator == False:

@@ -24,7 +24,7 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 #From signac
 import signac
 meth_name_val_list = [1, 2, 3, 4, 5, 6, 7]
-save_csv = True
+save_csv = True #Set to False if you don't want to save/resave csvs
 save_figs = True
 
 project = signac.get_project()
