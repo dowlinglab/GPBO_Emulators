@@ -443,7 +443,7 @@ class General_Analysis:
                     data_names += ["\mathbf{Min\,e(\\theta)}"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
-                    data_names += ["\mathbf{Opt\ ,acq(\\theta)}"]
+                    data_names += ["\mathbf{Opt\ acq(\\theta)}"]
 
         elif data_type == "params":
             assert isinstance(z_choices, str), "z_choices must be a string"
@@ -708,7 +708,8 @@ class General_Analysis:
                                 "run_" + str(run_num), "iter_" + str(bo_iter),  "pair_" + str(pair_id))
         hm_path_name = os.path.join(dir_name, "hm_data.gz")
         hm_sse_path_name = os.path.join(dir_name, "hm_sse_data.gz")
-        param_info_path = os.path.join(dir_name, "notable_param_info.npy")
+        param_info_path = os.path.join(dir_name, "notable_param_info.pkl")
+
         found_data1, heat_map_data = self.load_data(hm_path_name)
         found_data2, heat_map_sse_data = self.load_data(hm_sse_path_name)
         found_data3, param_info_dict = self.load_data(param_info_path)
@@ -719,8 +720,20 @@ class General_Analysis:
             sp_data = json.load(json_file)
         cs_params, method, gen_meth_theta, ep_method = self.__rebuild_cs(sp_data)
 
-        #Generate data if you don't have it
-        if self.save_csv or not found_data1 or not found_data2 or not found_data3:
+        data_not_found = not found_data1 or not found_data2 or not found_data3
+        #Initialize data_needs_ei as true
+        data_needs_ei = True
+        #If we have all the data and we need to calculate acq, check if we have acq data
+        if not data_not_found and get_ei:
+            #If we have all the data, we won't need to calculate ei
+            if heat_map_sse_data.acq is not None:
+                data_needs_ei = False
+        #If we don't need acq data, set data_needs_ei to False
+        elif not get_ei:
+            data_needs_ei = False
+     
+        #Generate driver class/ emulator class if data doesn't exist or we need to calculate acq
+        if self.save_csv or data_not_found or data_needs_ei:
             loaded_results = open_file_helper(job.fn("BO_Results.gz"))
             
             #If there is only 1 run, set run num to 0
@@ -740,6 +753,11 @@ class General_Analysis:
                                      gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, 
                                      gp_emulator, ep_bias, gen_meth_theta)
             
+            #Get best error metrics
+            be_data, best_error_metrics = driver._GPBO_Driver__get_best_error()
+
+        #Create heat map data if it doesn't exists
+        if self.save_csv or data_not_found:
             #Get important theta values
             theta_true = loaded_results[run_num].simulator_class.theta_true
             theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
@@ -775,9 +793,6 @@ class General_Analysis:
             #Set param info
             param_info_dict = {"true":theta_true, "min_sse":theta_opt, "opt_acq":theta_next, "train":train_theta,
                                 "names":param_names, "idcs":idcs_to_plot} 
-            
-            #Get best error metrics
-            be_data, best_error_metrics = driver._GPBO_Driver__get_best_error()
                 
             #If the emulator is a conventional method, create heat map data in emulator form to calculate y_vals
             if not method.emulator:
@@ -840,7 +855,7 @@ class General_Analysis:
             self.save_data(param_info_dict, param_info_path)
 
         #Find the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
-        theta_mesh_vals = heat_map_sse_data.theta_vals[:,idcs_to_plot]
+        theta_mesh_vals = heat_map_sse_data.theta_vals[:,param_info_dict["idcs"]]
         #Back out the number of theta points from the hm_sse_data
         theta_pts = int(np.sqrt(len(theta_mesh_vals)))
         #Create test mesh for that specific pair and set it as the new sse data theta vals.

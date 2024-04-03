@@ -36,7 +36,7 @@ filenames = []
 #Add all Heat map data files to list
 analyzer = General_Analysis(criteria_dict, project, save_csv)
 dir_base = analyzer.make_dir_name_from_criteria(criteria_dict)
-dir_hms = dir_base+"heat_maps/all_methods"
+dir_hms = dir_base+"/heat_maps/all_methods"
 
 z_choices = ["sse_sim", "sse_mean", "sse_var", "acq"]
 for z_choice in z_choices:

@@ -906,7 +906,7 @@ class Plotters:
         if "min_sse" == z_choice:
             y_label = r"$\mathbf{Min\,e(\theta)}$"   
         if "acq" == z_choice:
-            y_label = r"$\mathbf{Opt,\ acq(\theta)}$"
+            y_label = r"$\mathbf{Opt\ acq(\theta)}$"
         return y_label
     
     def __get_data_to_bo_iter_term(self, data_all_iters):
