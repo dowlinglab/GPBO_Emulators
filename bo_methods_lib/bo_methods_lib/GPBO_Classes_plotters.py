@@ -77,6 +77,21 @@ class Plotters:
     
     Methods
     --------------
+    __init__
+    plot_one_obj_all_methods
+    plot_objs_all_methods
+    plot_hypers
+    plot_thetas
+    plot_hms_all_methods
+    __get_z_plot_names_hms
+    __plot_2D_general
+    __create_subplots
+    __set_plot_titles
+    __set_subplot_details
+    __get_data_to_bo_iter_term
+    __save_fig
+    __set_ylab_from_z
+    __scale_z_data
 
     """
     # Class variables and attributes
@@ -85,8 +100,8 @@ class Plotters:
         """
         Parameters
         ----------
-        plt_options: dict, Generate with make_plot_dict()"
-        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
+        analyzer: General_Analysis, an instance of the General_Analysis class
+        save_figs: bool, save figures to file if True. Default False
         """
         #Asserts
         assert isinstance(save_figs, bool), "save_figs must be boolean"
@@ -110,10 +125,13 @@ class Plotters:
         
         Parameters
         -----------
-            file_path_list: list of str, The file paths of data we want to make plots for
-            run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-            z_choices:  str, one of "sse_sim", "sse_mean", "sse_var", or "acq". The value that will be plotted
-            plot_dict: dict, a dictionary of the plot details 
+        z_choice: str, one of "min_sse", "sse", or "acq". The values that will be plotted
+        log_data: bool, plots data on natural log scale if True
+        title: str or None, Title of plot
+
+        Returns
+        --------
+        None
             
         """
         #Assert Statements
@@ -238,6 +256,14 @@ class Plotters:
         return  
     
     def plot_hypers(self, job, title = None):
+        """
+        Plots hyperparameters vs BO Iter for all methods
+
+        Parameters
+        -----------
+        job: Job, The job to analyze
+        title: str or None, Title of plot
+        """
         data, data_names, data_true, sp_data = self.analyzer.analyze_hypers(job)
         y_label = "Value"
         title = "Hyperparameter Values"
@@ -251,6 +277,15 @@ class Plotters:
             plt.close()
 
     def plot_thetas(self, job, z_choice, title = None):
+        """
+        Plots parameter sets vs BO Iter for all methods
+
+        Parameters
+        -----------
+        job: Job, The job to analyze
+        z_choice: str, one of "min_sse", "sse", or "acq". The values that will be plotted
+        title: str or None, Title of plot
+        """
         data, data_names, data_true, sp_data = self.analyzer.analyze_thetas(job, z_choice)
         GPBO_method_val = sp_data["meth_name_val"]
         #Create label based on method #
@@ -277,10 +312,16 @@ class Plotters:
         
         Parameters
         -----------
-            data: ndarray (n_runs x n_iters x n_params), Array of data from bo workflow runs
-            data_names: list of str, List of data names
-            data_true: list/ndarray of float/int or None, The true values of each parameter
-            plot_dict: dict, a dictionary of the plot details 
+        data: ndarray (n_runs x n_iters x n_params), Array of data from bo workflow runs
+        data_names: list of str, List of data names
+        data_true: list/ndarray of float/int or None, The true values of each parameter
+        y_label: str, The y label of the plot
+        title: str, The title of the plot
+        log_data: bool, plots data on natural log scale if True
+
+        Returns
+        --------
+        fig: plt.figure, The figure object
         """
 
         #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
@@ -350,11 +391,13 @@ class Plotters:
         
         Parameters
         -----------
-            file_path_list: list of str, The file paths of data we want to make plots for
-            run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-            z_choices:  list of str, list of strings "sse_sim", "sse_mean", "sse_var", and/or "acq". The values that will be plotted
-            plot_dict: dict, a dictionary of the plot details 
-            
+        z_choices:  list of str, list of strings "sse_sim", "sse_mean", "sse_var", and/or "acq". The values that will be plotted
+        log_data: bool, plots data on natural log scale if True
+        title: str or None, Title of plot
+
+        Returns
+        --------
+        None
         """
         
         #Break down plot dict and check for correct things
@@ -459,6 +502,19 @@ class Plotters:
         return
     
     def __get_z_plot_names_hms(self, z_choices, sim_sse_var_ei):
+        """
+        Returns the z data and title for the heat map plots
+
+        Parameters
+        -----------
+        z_choices: str, one of "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
+        sim_sse_var_ei: tuple, tuple of the data from the analysis
+
+        Returns
+        --------
+        all_z_data: list of ndarray, list of z data for each method
+        all_z_titles: list of str, list of titles for each method
+        """
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
         if isinstance(z_choices, str):
             z_choices = [z_choices]
@@ -490,15 +546,15 @@ class Plotters:
         Plots comparison of y_sim, GP_mean, and GP_stdev
         Parameters
         ----------
-            file_path_list: list of str, The file paths of data we want to make plots for
-            run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-            bo_iter_list: list of int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
-            pair: int, The pair of data parameters. pair 0 is the 1st pair
-            z_choice: str, "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
-            plot_dict: dict, dictionary of plotting options. Generate with make_plot_dict()
+        pair: int, The pair of data parameters. pair 0 is the 1st pair
+        z_choice: str, "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
+        levels: int, list of int, or None, Number of zbins to skip when drawing contour lines
+        log_data: bool, plots data on natural log scale if True
+        title: str or None, Title of plot
+
         Returns
         -------
-            plt.show(), A heat map of test_mesh and z
+        None
         '''
         #Get best data for each method
         df_best, job_list_best = self.analyzer.get_best_data()
@@ -694,15 +750,18 @@ class Plotters:
         Plots comparison of y_sim, GP_mean, and GP_stdev
         Parameters
         ----------
-            file_path_list: list of str, The file paths of data we want to make plots for
-            run_num_list: list of int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-            bo_iter_list: list of int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
-            pair: int, The pair of data parameters. pair 0 is the 1st pair
-            z_choice: str, "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
-            plot_dict: dict, dictionary of plotting options. Generate with make_plot_dict()
+        job: Signac Job, The job to analyze
+        run_num: int, The run number to analyze
+        bo_iter: int, The bo iteration to analyze
+        pair: int, The pair of data parameters. pair 0 is the 1st pair
+        z_choices: str, list of str, one of "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
+        levels: int, list of int, or None, Number of zbins to skip when drawing contour lines
+        log_data: bool, plots data on natural log scale if True
+        title: str or None, Title of plot
+
         Returns
         -------
-            plt.show(), A heat map of test_mesh and z
+        plt.show(), A heat map of test_mesh and z
         '''
         #Assert Statements
         assert isinstance(z_choices, (Iterable, str)), "z_choices must be Iterable or str"
@@ -878,6 +937,19 @@ class Plotters:
         return plt.show()
     
     def __scale_z_data(self, sim_sse_var_ei, sp_data, log_data):
+        """
+        Scales the z data based on the method and log_data
+
+        Parameters
+        -----------
+        sim_sse_var_ei: tuple, tuple of the data from the analysis
+        sp_data: dict, dictionary of the data from the json file
+        log_data: bool, plots data on natural log scale if True
+
+        Returns
+        --------
+        sim_sse_var_ei: tuple, tuple of the data from the analysis with correct scaling for plots
+        """
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
         #Get log or unlogged data values        
         if log_data == False:
@@ -901,6 +973,17 @@ class Plotters:
         return sim_sse_var_ei
 
     def __set_ylab_from_z(self, z_choice):
+        """
+        Sets the y label based on the z_choice
+
+        Parameters
+        -----------
+        z_choice: str, one of "sse", "min_sse", or "acq"
+
+        Returns
+        --------
+        y_label: str, The y label for the plot
+        """
         if "sse" == z_choice:
             y_label = r"$\mathbf{e(\theta)}$"
         if "min_sse" == z_choice:
@@ -912,6 +995,14 @@ class Plotters:
     def __get_data_to_bo_iter_term(self, data_all_iters):
         """
         Gets data that is not zero for plotting from data array
+
+        Parameters
+        -----------
+        data_all_iters: ndarray, data from all iterations
+
+        Returns
+        --------
+        data_df_j: ndarray, data that is not numerically 0
         """
         #Remove elements that are numerically 0
         data_df_run = pd.DataFrame(data = data_all_iters)
@@ -927,7 +1018,7 @@ class Plotters:
         """Save a figure from pyplot.
         Parameters
         ----------
-        path : string
+        save_path : string
             The path (and filename, without the extension) to save the
             figure to.
         ext : string (default='png')
@@ -939,9 +1030,6 @@ class Plotters:
             the figure multiple times (e.g., to multiple formats), you
             should NOT close it in between saves or you will have to
             re-plot it.
-        verbose : boolean (default=True)
-            Whether to print information about when and where the image
-            has been saved.
         """
         
         # Extract the directory and filename from the given path
@@ -971,12 +1059,15 @@ class Plotters:
         Parameters
         ----------
         num_subplots: int, total number of needed subplots
+        sharex: str, sharex value for subplots
+        sharey: str, sharey value for subplots
         
         Returns
         -------
         fig: matplotlib.figure, The figure you are plotting
-        ax: matplotlib.axes.Axes, 1D array of axes
-        len(ax): The number of axes generated total
+        axes: matplotlib.axes.Axes, 2D array of axes
+        total_ax_num: int, The number of axes generated total
+        plot_mapping: dict, dictionary mapping plot number to axes
         """
 
         assert num_subplots >= 1, "Number of subplots must be at least 1"
@@ -1016,14 +1107,16 @@ class Plotters:
         
         Parameters
         ----------
+        ax: matplotlib.axes.Axes, The axes to set the plot settings for
         plot_x: ndarray, The x data for plotting
         plot_y: ndarray, The y data for plotting
         xlabel: str or None, the label for the x axis
         ylabel: str or None, the label for the y axis
         title: str or None, The subplot title
-        xbins: int, Number of x bins
-        ybins: int, Number of y bins
-        fontsize: int, fontsize of letters in the subplot
+
+        Returns
+        -------
+        ax: matplotlib.axes.Axes, The axes with the plot settings set
         """
         #Group inputs by type
         none_str_vars = [title, xlabel, ylabel]
@@ -1069,15 +1162,24 @@ class Plotters:
     def __set_plot_titles(self, fig, title, x_label, y_label):
         """
         Helper function to set plot titles and labels for figures with subplots
+
+        Parameters
+        ----------
+        fig: matplotlib.figure, The figure to set the title and labels for
+        title: str or None, The title of the figure
+        x_label: str or None, The x label of the figure
+        y_label: str or None, The y label of the figure
+
+        Returns
+        -------
+        None
         """
-        
         if self.title_fntsz is not None:
             fig.suptitle(title, weight='bold', fontsize=self.title_fntsz)
         if x_label is not None:
             fig.supxlabel(x_label, fontsize=self.other_fntsz,fontweight='bold')
         if y_label is not None:
-            fig.supylabel(y_label, fontsize=self.other_fntsz,fontweight='bold')
-            
+            fig.supylabel(y_label, fontsize=self.other_fntsz,fontweight='bold')  
         return 
      
     def plot_nlr_heat_maps(self, test_mesh, all_z_data, z_titles, levels, param_info_dict, log_data, title = None):
@@ -1085,24 +1187,17 @@ class Plotters:
         Plots comparison of y_sim, GP_mean, and GP_stdev
         Parameters
         ----------
-            test_mesh: list of ndarray of length 2, Containing all values of the parameters for the heat map x and y. Gen with np.meshgrid()
-            theta_true: ndarray or None, Containing the true input parameters in all dimensions
-            theta_obj_min: ndarray or None, Containing the optimal input parameters predicted by the GP
-            param_names: list of str, Parameter names. Length of 2
-            levels: int, list of int or None, Number of levels to skip when drawing contour lines
-            idcs_to_plot: list of int, Indecies of parameters to plot
-            all_z_data: list of np.ndarrays, The list of values that will be plotted. Ex. SSE, SSE_Var, EI
-            z_titles: list of str, The list of the names of the values in z
-            xbins: int, Number of bins for x
-            ybins: int, Number of bins for y
-            zbins: int, Number of bins for z
-            title: str or None, Title of graph
-            title_fontsize: int, fontisize for title. Default 24
-            other_fontsize: int, fontisize for other values. Default 20
-            save_path: str or None, Path to save figure to. Default None (do not save figure).    
+        test_mesh: list of ndarray of length 2, Containing all values of the parameters for the heat map x and y. Gen with np.meshgrid()
+        all_z_data: list of ndarray, The z data to plot
+        z_titles: list of str, The titles of the z data
+        levels: int, list of int, or None, Number of zbins to skip when drawing contour lines
+        param_info_dict: dict, Dictionary containing the true, min_sse, names, and idcs of the parameters
+        log_data: bool, plots data on natural log scale if True
+        title: str or None, Title of plot
+
         Returns
         -------
-            plt.show(), A heat map of test_mesh and z
+        plt.show(), A heat map of test_mesh and z
         '''
         
         #Assert Statements
@@ -1243,6 +1338,10 @@ class Plotters:
     def make_parity_plots(self):
         """
         Makes Parity plots of validation and true data for selected methods in best
+
+        Returns
+        -------
+        None
         """
         #Get Best Data Runs and iters
         df_best, job_list_best = self.analyzer.get_best_data()

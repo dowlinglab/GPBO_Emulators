@@ -46,11 +46,27 @@ class General_Analysis:
     Methods
     --------------
     __init__
-    __calc_L2_norm()
-    __get_data
+    make_dir_name_from_criteria
+    get_jobs_from_criteria
+    get_df_all_jobs
+    get_study_data_signac
     get_best
     get_median
     get_mean
+    __get_job_list
+    __sort_by_meth
+    __calc_L2_norm()
+    __get_data
+    load_data
+    save_data
+    __z_choice_helper
+    __preprocess_analyze
+    analyze_obj_vals
+    analyze_thetas
+    analyze_hypers
+    __rebuild_cs
+    analyze_parity_plot_data
+    analyze_heat_maps
     """
     # Class variables and attributes
     
@@ -59,6 +75,8 @@ class General_Analysis:
         Parameters
         ----------
         criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val
+        project: signac.Project, The signac project to analyze
+        save_csv: bool, whether to save csvs.
         """
         #Asserts
         assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
@@ -73,6 +91,15 @@ class General_Analysis:
     def make_dir_name_from_criteria(self, dict_to_use, is_nested = False):
         """
         Makes a directory string name from a criteria dictionary
+
+        Parameters
+        ----------
+        dict_to_use: dict, dictionary to use to make directory name
+        is_nested: bool, whether the dictionary is nested or not
+
+        Returns
+        -------
+        result_dir: str, the directory name from the dictionary
         """
         
         #Organize Dictionary keys and values sorted from lowest to highest
@@ -98,6 +125,10 @@ class General_Analysis:
     def get_jobs_from_criteria(self):
         """
         Gets a pointer of all jobs
+
+        Returns
+        -------
+        jobs: list, a list of jobs from Signac that fit criteria dict
         """
         #Find all jobs of a certain cs and method type for the criteria in order of job id
         jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
@@ -111,14 +142,13 @@ class General_Analysis:
         
         Parameters
         ----------
-        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val and param_name_str
         save_csv: bool, whether to save csvs. Default False
         
         Returns
         -------
         df_all_jobs: A dataframe of the all of the data for the given dictionary
         job_list: list, a list of jobs from Signac that fit criteria dict for the methods in meth_name_val_list
-        theta_true: np.ndarray, True values of the case study parameters
+        theta_true_data: dict, the true parameter values for the given case study
         
         """
         #Intialize dataframe and job list for all jobs in criteria_dict
@@ -167,11 +197,16 @@ class General_Analysis:
         Parameters
         ----------
         job: job, The job to get data from
+        save_csv: bool, whether to save csvs. Default None
         
         Returns
         -------
-        df: pd.DataFrame, Dataframe containing the results from the study given a case study and method name
-        study_id: str "ep" or "sf", whether to analyze data for the 
+        df_job: pd.DataFrame, The dataframe of the data for the given job
+        theta_true_data: dict, the true parameter values for the given case study
+
+        Notes:
+        ------
+        save_csv is set to the class default when not specified
         
         """
         save_csv = self.save_csv if save_csv == None else save_csv
@@ -233,6 +268,14 @@ class General_Analysis:
         return df_job, theta_true_data
 
     def get_best_data(self):
+        """
+        Gets the best performing data for each method in the criteria dict
+
+        Returns
+        -------
+        df_best: pd.DataFrame, The best data for each method
+        job_list_best: list, a list of jobs from Signac corresponding to the ones in df_best
+        """
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_best_path = os.path.join(self.study_results_dir, "best_results.csv")
@@ -257,6 +300,14 @@ class General_Analysis:
         return df_best, job_list_best
     
     def get_median_data(self):
+        """
+        Gets the median performing data for each method in the criteria dict
+
+        Returns
+        -------
+        df_median: pd.DataFrame, The median data for each method
+        job_list_med: list, a list of jobs from Signac corresponding to the ones in df_median
+        """
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "median_results.csv")
@@ -290,6 +341,14 @@ class General_Analysis:
         return df_median, job_list_med
     
     def get_mean_data(self):
+        """
+        Gets the mean performing data for each method in the criteria dict
+
+        Returns
+        -------
+        df_mean: pd.DataFrame, The mean data for each method
+        job_list_mean: list, a list of jobs from Signac corresponding to the ones in df_mean
+        """
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "mean_results.csv")
@@ -326,6 +385,17 @@ class General_Analysis:
     
     
     def __get_job_list(self, df_data):
+        """
+        Helper function to pull best jobs from a dataframe
+
+        Parameters
+        ----------
+        df_data: pd.DataFrame, The dataframe to pull the best jobs from
+
+        Returns
+        -------
+        job_list: list, a list of jobs from Signac corresponding to the ones in df_data 
+        """
         #Get list of best jobs
         job_list = []
         job_id_list = list(df_data["Job ID"])
@@ -337,6 +407,17 @@ class General_Analysis:
 
 
     def __sort_by_meth(self, df_data):
+        """
+        Sorts a dataframe by the method used
+
+        Parameters
+        ----------
+        df_data: pd.DataFrame, The dataframe to sort
+
+        Returns
+        -------
+        df_data: pd.DataFrame, The sorted dataframe
+        """
         #Put rows in order of method
         row_order = sorted([Method_name_enum[meth].value for meth in df_data['BO Method'].unique()])
         order = [Method_name_enum(num).name for num in row_order]
@@ -347,6 +428,18 @@ class General_Analysis:
         return df_data
     
     def __calc_l2_norm(self, df_data, theta_true):
+        """
+        Calculates the L2 norm of the theta values in a dataframe
+
+        Parameters
+        ----------
+        df_data: pd.DataFrame, The dataframe to calculate the L2 norm for
+        theta_true: np.array, The true theta values to compare to
+
+        Returns
+        -------
+        df_data: pd.DataFrame, The dataframe with the L2 norm values added
+        """
         #Calculate the difference between the true values and the GP best values in the dataframe for each parameter    
         def string_to_array(s):
             try:
@@ -373,6 +466,18 @@ class General_Analysis:
         return df_data
     
     def load_data(self, path):
+        """
+        Loads data from a file based on the file extension
+
+        Parameters
+        ----------
+        path: str, The file path of the data
+
+        Returns
+        -------
+        found_data: bool, whether the data was found
+        data: np.ndarray or pd.DataFrame or None, the data from the file or None
+        """
         assert isinstance(path, str), "path_end must be str"
         #Split path into parts
         ext = os.path.splitext(path)[-1]
@@ -398,9 +503,20 @@ class General_Analysis:
             return True, data
         else:
             return False, None
-
     
     def save_data(self, data, save_path):
+        """
+        Saves data to a file based on the file extension
+
+        Parameters
+        ----------
+        data: Object, the data to save
+        save_path: str, The file path to save the data
+
+        Returns
+        -------
+        None
+        """
         #Split path into parts
         ext = os.path.splitext(save_path)[-1]
         #Extract directory name
@@ -426,7 +542,21 @@ class General_Analysis:
         return
 
     def __z_choice_helper(self, z_choices, theta_true_data, data_type):
-        "creates column and data names based on data type"
+        """
+        creates column and data names based on data type
+
+        Parameters
+        ----------
+        z_choices: list, the choices of data to analyze
+        theta_true_data: dict, the true parameter values for the given case study
+        data_type: str, the type of data to analyze (parameter or objective data)
+
+        Returns
+        -------
+        col_name: list, the column names for the data
+        data_names: list, the names of the data
+
+        """
 
         if data_type == "objs":
             assert isinstance(z_choices, list), "z_choices must be list of string."
@@ -460,7 +590,23 @@ class General_Analysis:
         return col_name, data_names
 
     def __preprocess_analyze(self, job, z_choice, data_type):
-        "Basic framework for analyzing a certain type of data"
+        """
+        Preprocesses data for analysis based on data type
+
+        Parameters
+        ----------
+        job: signac.Job, the job to analyze
+        z_choice: list or str, the choices of data to analyze
+        data_type: str, the type of data to analyze (parameter or objective data)
+
+        Returns
+        -------
+        df_job: pd.DataFrame, the dataframe of the data for the given job
+        data: np.ndarray, the data for plotting
+        data_true: np.ndarray or None, the true values of the data
+        sp_data: dict, the statepoint data for the job
+        tot_runs: int, the total number of runs in the job
+        """
         #Look for data if it already exists, if not create it
         #Check if we have theta data and create it if not
         tab_data_path = os.path.join(job.fn("analysis_data") , "tabulated_data.csv")
@@ -500,17 +646,19 @@ class General_Analysis:
     
     def analyze_obj_vals(self, job, z_choices):
         """
-        Gets the data into an array for any comination of sse, log_sse, and ei
+        Gets the data into an array for for plotting any comination of sse, log_sse, and ei
         
         Parameters
         ----------
-        file_path: str, The file path of the data
-        value_names: list of str, the values to plot. In order, sse, min_sse, and ei
+        job: signac.Job, the job to analyze
+        z_choices: list or str, the choices of data to analyze
         
         Returns
         -------
         data: np.ndarray, The data for plotting
-        data_true: np.ndarray or None, the true values of the data
+        data_names: list, the names of the data
+        data_true: dict or None, the true values of the data
+        sp_data: dict, the statepoint data for the job
         """
         if isinstance(z_choices, str):
             z_choices = [z_choices]
@@ -541,7 +689,21 @@ class General_Analysis:
         return data, data_names, data_true, sp_data
         
     def analyze_thetas(self, job, z_choice):
-        "Gets parameter value data for a specific job"
+        """
+        Gets the data into an array for for plotting parameter values
+
+        Parameters
+        ----------
+        job: signac.Job, the job to analyze
+        z_choice: str, the choice of data to analyze
+
+        Returns
+        -------
+        data: np.ndarray, The data for plotting
+        data_names: list, the names of the data
+        data_true: dict or None, the true values of the data
+        sp_data: dict, the statepoint data for the job
+        """
         df_job, data, data_true, sp_data, tot_runs = self.__preprocess_analyze(job, z_choice, "params")
         col_name, data_names = self.__z_choice_helper(z_choice, data_true, "params")
         #Loop over runs
@@ -573,11 +735,24 @@ class General_Analysis:
         return data, data_names, data_true, sp_data
     
     def analyze_hypers(self, job):
+        """
+        Gets the data into an array for for plotting hyperparameters
+
+        Parameters
+        ----------
+        job: signac.Job, the job to analyze
+
+        Returns
+        -------
+        data: np.ndarray, The data for plotting
+        data_names: list, the names of the data
+        data_true: None, the true values of the data (None for hyperaprameters)
+        sp_data: dict, the statepoint data for the job
+        """
         data_true = None
         #Check for prexisting data
         hp_data_path = os.path.join(job.fn("analysis_data") , "hyperparam_data.npy")
         hp_name_path = os.path.join(job.fn("analysis_data") , "hp_name_data.json")
-        # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
         found_data1, data = self.load_data(hp_data_path)
         found_data2, data_names = self.load_data(hp_name_path)
 
@@ -596,7 +771,6 @@ class General_Analysis:
             data_names[-2] = "\sigma"
             data_names[-1] = "\\tau"
             
-
             for j in range(tot_runs):
                 run = loaded_results[j]
                 for i in range(len(run.list_gp_emulator_class)):
@@ -616,6 +790,17 @@ class General_Analysis:
     def __rebuild_cs(self, sp_data):
         """
         builds instance of CaseStudyParameters from saved file data
+
+        Parameters
+        ----------
+        sp_data: dict, the statepoint data for the job
+
+        Returns
+        -------
+        cs_params: CaseStudyParameters, the case study parameters
+        method: GPBO_Methods, the method used
+        gen_meth_theta: Gen_meth_enum, the method used to generate theta values
+        ep_enum: Ep_enum, the method used to generate exploration bias values
         """
         method = GPBO_Methods(Method_name_enum(sp_data["meth_name_val"]))
         cs_name = CS_name_enum(sp_data["cs_name_val"]) if "cs_name_val" in sp_data else "New_CS"
@@ -647,6 +832,16 @@ class General_Analysis:
     def analyze_parity_plot_data(self, job, run_num, bo_iter):
         """
         Generates parity plot for testing data
+
+        Parameters
+        ----------
+        job: signac.Job, the job to analyze
+        run_num: int, the run number to analyze
+        bo_iter: int, the bo iteration to analyze
+
+        Returns
+        -------
+        test_data: Data, the evaluated testing data for the given run and iteration
         """
         #Get Best Data
         #Check if data exists, if so, load it
@@ -701,7 +896,24 @@ class General_Analysis:
         return test_data
     
     def analyze_heat_maps(self, job, run_num, bo_iter, pair_id, get_ei = False):
-        "Gets heat map data and analysis for a specific job, run number, and bo_iter"
+        """
+        Generates/analyzes heat map data for the given run and iteration
+
+        Parameters
+        ----------
+        job: signac.Job, the job to analyze
+        run_num: int, the run number to analyze
+        bo_iter: int, the bo iteration to analyze
+        pair_id: int or str, the pair of parameters to analyze
+        get_ei: bool, whether to calculate the acquisition function. Default is False
+
+        Returns
+        -------
+        all_data: np.ndarray, the data for plotting
+        test_mesh: np.ndarray, the meshgrid for the testing data
+        param_info_dict: dict, the parameter information for the given pair
+        sp_data: dict, the statepoint data for the job
+        """
 
         #Assert that heat map data does not aleady exist
         dir_name = os.path.join(job.fn(""), "analysis_data", "gp_evaluations", 
@@ -845,8 +1057,6 @@ class General_Analysis:
                 except:
                     heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_data, exp_data,ep_bias,
                                                                     best_error_metrics, method,sg_depth =10)[0]  
-            #Shows where ei was added to the heat map data
-            ei_added = True
 
         #Save data if necessary
         if self.save_csv:
@@ -869,8 +1079,14 @@ class General_Analysis:
         #Reshape data to correct shape and add to list to return
         reshape_list = [sse_sim, sse_mean, sse_var]     
         all_data = [var.reshape(theta_pts,theta_pts).T for var in reshape_list]
-        if get_ei:
-            all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
+        if data_needs_ei:
+            try:
+                all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
+            except:
+                print(method.method_name.value)
+                print(heat_map_sse_data.acq)
+                print(sp_data["cs_name_val"])
+                all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
         else:
             all_data += [None]
         
@@ -879,6 +1095,19 @@ class General_Analysis:
 class LS_Analysis(General_Analysis):
     """
     The class for Least Squares regression analysis. Child class of General_Analysis
+
+    Methods:
+    --------
+    __init__(self, criteria_dict, project, save_csv, exp_data=None, simulator=None)
+        Initializes the class
+    __ls_scipy_func(self, theta_guess, exp_data, simulator)
+        Function to define regression function for least-squares fitting
+    __get_simulator_exp_data(self)
+        Gets the simulator and experimental data from the job
+    least_squares_analysis(self, tot_runs = None)
+        Performs least squares regression on the problem equal to what was done with BO
+    categ_min(self, tot_runs = None)
+        Categorizes the number of unique minima through multiple restarts of nonlinear least squares
     """
     #Inherit objects from General_Analysis
     def __init__(self, criteria_dict, project, save_csv, exp_data=None, simulator=None):
@@ -895,16 +1124,18 @@ class LS_Analysis(General_Analysis):
 
     # Create a function to optimize, in this case, least squares fitting
     def __ls_scipy_func(self, theta_guess, exp_data, simulator):
-        '''
+        """
         Function to define regression function for least-squares fitting
-        Arguments:
-            a_guess: ndarray, guess value for a
-            Constants: ndarray, The array containing the true values of Muller constants
-            x: ndarray, experimental X data (Inependent Variable)
-            y: ndarray, experimental Y data (Dependent Variable)
-        Returns:
-            e: residual vector
-        '''
+        Parameters
+        ----------
+        theta_guess: np.ndarray, the theta values to evaluate
+        exp_data: Data, the experimental data to evaluate
+        simulator: Simulator, the simulator object to evaluate
+
+        Returns
+        -------
+        error: np.ndarray, the error between the experimental data and the simulated data
+        """
         #Repeat the theta best array once for each x value
         #Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
         t_guess_repeat = np.repeat(theta_guess.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
@@ -928,6 +1159,20 @@ class LS_Analysis(General_Analysis):
         return error
     
     def __get_simulator_exp_data(self):
+        """
+        Gets the simulator and experimental data from the job
+
+        Returns
+        -------
+        simulator: Simulator, the simulator object to evaluate
+        exp_data: Data, the experimental data to evaluate
+        tot_runs_cs: int, the total number of runs in the case study
+        ftol: float, the tolerance for the objective function
+
+        Notes
+        -----
+        The simulator and experimental data is consistent between all methods of a given case study
+        """
         jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
         valid_files = [job.fn("BO_Results.gz") for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
         if len(valid_files) > 0:
@@ -973,6 +1218,19 @@ class LS_Analysis(General_Analysis):
     def least_squares_analysis(self, tot_runs = None):
         """
         Performs least squares regression on the problem equal to what was done with BO
+
+        Parameters
+        ----------
+        tot_runs: int or None, the total number of runs to perform. Default is None
+
+        Returns
+        -------
+        ls_results: pd.DataFrame, the results of the least squares regression
+
+        Notes
+        -----
+        If None, tot_runs will default to 5
+
         """
         assert isinstance(tot_runs, int) or tot_runs is None, "tot_runs must be int or None"
         if isinstance(tot_runs, int):
@@ -1071,6 +1329,18 @@ class LS_Analysis(General_Analysis):
     def categ_min(self, tot_runs = None):
         """
         categorize the minima found by least squares
+
+        Parameters
+        ----------
+        tot_runs: int or None, the total number of runs to perform. Default is None
+
+        Returns
+        -------
+        local_min_sets: pd.DataFrame, the local minima found by least squares
+
+        Notes
+        -----
+        If None, tot_runs will default to 5
         """
         assert isinstance(tot_runs, int) or tot_runs is None, "tot_runs must be int or None"
         if isinstance(tot_runs, int):
@@ -1140,8 +1410,6 @@ class LS_Analysis(General_Analysis):
             #Put in order of lowest sse and reset index
             local_min_sets = local_min_sets.sort_values(by=['Min Obj Cum.'], ascending=True)
             local_min_sets = local_min_sets.reset_index(drop=True)
-            
-            
 
             if self.save_csv:
                 self.save_data(local_min_sets, ls_data_path)
