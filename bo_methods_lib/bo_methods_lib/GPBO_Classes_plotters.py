@@ -514,9 +514,10 @@ class Plotters:
         if levels is None:
             tot_lev = None
         elif len(levels) == 1:
-            tot_lev = levels*len(z) 
+            tot_lev = levels*len(job_list_best) 
         else:
             tot_lev = levels
+        assert tot_lev is None or len(tot_lev) == len(job_list_best), "Levels must be None or have the same length as job_list_best"
 
         all_z_data = []
         all_sp_data = []
@@ -615,6 +616,7 @@ class Plotters:
 
             #Create a line contour for each colormap
             if levels is not None:  
+                assert len(tot_lev) >= i + 1, "Must have as many levels as methods"
                 cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], 
                                                      colors='k', alpha=0.7, linestyles='dashed', linewidths=3, 
                                                      norm = norm)
@@ -629,7 +631,7 @@ class Plotters:
                                            color="green", s=100, label="Train", marker= "x", zorder = 1)
             if theta_next is not None:
                 ax[ax_row, ax_col].scatter(theta_next[idcs_to_plot[0]], theta_next[idcs_to_plot[1]], color="black", 
-                                           s=175, label ="Max EI",marker = "^", zorder = 3)
+                                           s=175, label ="Opt Acq",marker = "^", zorder = 3)
             if theta_opt is not None:
                 ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", 
                                            s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, 
@@ -638,8 +640,8 @@ class Plotters:
             #Set plot details
             self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, self.method_names[ax_idx])
 
-        #Get legend information and make colorbar on last plot
-        handles, labels = ax[-1, -1].get_legend_handles_labels() 
+        #Get legend information and make colorbar on 1st plot
+        handles, labels = ax[0, 0].get_legend_handles_labels() 
 
         cb_ax = fig.add_axes([1.03,0,0.04,1])
         if log_data is True and not need_unscale:
@@ -672,19 +674,18 @@ class Plotters:
         
         #Plots legend and title
         fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, 
-                   bbox_to_anchor=(-0.02, 1), borderaxespad=0)
+                   bbox_to_anchor=(1.0, 0.4), borderaxespad=0)
 
         plt.tight_layout()  
 
         #save or show figure
         if self.save_figs:
             save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
-            save_path_dir = os.path.join(save_path, "heat_maps", plot_axis_names[0] + "-" + plot_axis_names[1])
+            save_path_dir = os.path.join(save_path, "heat_maps", "all_methods", plot_axis_names[0] + "-" + plot_axis_names[1])
             save_path_to = os.path.join(save_path_dir, z_choice)
             self.__save_fig(save_path_to)
         else:
             plt.show()
-            plt.close()
         
         return 
     
@@ -717,7 +718,7 @@ class Plotters:
             tot_lev = levels*len(z_choices) 
         else:
             tot_lev = levels
-        
+        assert tot_lev is None or len(tot_lev) == len(z_choices), "Levels must be None or have the same length as z_choices"
         #Get all data for subplots needed
         get_ei = True if "acq" in z_choices else False
         analysis_list = self.analyzer.analyze_heat_maps(job, run_num, bo_iter, pair, get_ei = get_ei)
@@ -809,7 +810,7 @@ class Plotters:
                                s=100,label="Train",marker="x",zorder=1)
                 if theta_next is not None:
                     ax.scatter(theta_next[idcs_to_plot[0]],theta_next[idcs_to_plot[1]],color="black",s=175,
-                               label ="Max EI",marker= "^", zorder = 3)
+                               label ="Opt Acq",marker= "^", zorder = 3)
                 if theta_opt is not None:
                     ax.scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", s=150, 
                                label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, zorder = 4)
@@ -862,7 +863,7 @@ class Plotters:
         
         #save or show figure
         if self.save_figs:
-            z_choices_sort = sorted(z_choices, key=lambda x: ('sse_sim', 'sse_mean', 'sse_var','ei').index(x))
+            z_choices_sort = sorted(z_choices, key=lambda x: ('sse_sim', 'sse_mean', 'sse_var','acq').index(x))
             z_choices_str = '_'.join(map(str, z_choices_sort))
             title_str = title.replace(" ", "_").lower()
             save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
@@ -905,7 +906,7 @@ class Plotters:
         if "min_sse" == z_choice:
             y_label = r"$\mathbf{Min\,e(\theta)}$"   
         if "acq" == z_choice:
-            y_label = r"$\mathbf{Opt\ ,acq(\theta)}$"
+            y_label = r"$\mathbf{Opt,\ acq(\theta)}$"
         return y_label
     
     def __get_data_to_bo_iter_term(self, data_all_iters):

@@ -387,7 +387,7 @@ class General_Analysis:
             if ext == ".csv":
                 data = pd.read_csv(path, index_col=0)
             elif ext == ".npy":
-                data = np.load(path)
+                data = np.load(path, allow_pickle=True)
             elif ext == ".pkl" or ext == ".gz":
                 data = open_file_helper(path)
             elif ext == ".json":
@@ -815,18 +815,20 @@ class General_Analysis:
                                                                                                     method, exp_data)
 
         #Get EI if needed. This operation can be expensive which is why it's optional
-        if get_ei and heat_map_data.ei is None:
-            if method.emulator == False:
-                heat_map_sse_data.ei = gp_emulator.eval_ei_misc(heat_map_sse_data, exp_data, ep_bias, 
+        if get_ei and heat_map_data.acq is None:
+            if method.method_name.value == 7:
+                heat_map_sse_data.acq = heat_map_sse_data.sse + np.sum(heat_map_sse_data.sse_var)
+            elif method.emulator == False:
+                heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_sse_data, exp_data, ep_bias, 
                                                                 best_error_metrics)[0]
             #In older data, sparse grid depth is not a set parameter. Therefore, we it's either 10, or a set value
             else:
                 try:
                     sg_depth = loaded_results[run_num].configuration["Sparse Grid Depth"]
-                    heat_map_sse_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, 
+                    heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, 
                                                                     best_error_metrics, method, sg_depth)[0]
                 except:
-                    heat_map_sse_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data,ep_bias,
+                    heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_data, exp_data,ep_bias,
                                                                     best_error_metrics, method,sg_depth =10)[0]  
             #Shows where ei was added to the heat map data
             ei_added = True
@@ -853,7 +855,7 @@ class General_Analysis:
         reshape_list = [sse_sim, sse_mean, sse_var]     
         all_data = [var.reshape(theta_pts,theta_pts).T for var in reshape_list]
         if get_ei:
-            all_data += [heat_map_sse_data.ei.reshape(theta_pts,theta_pts).T]
+            all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
         else:
             all_data += [None]
         
