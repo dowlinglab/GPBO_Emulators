@@ -1080,13 +1080,7 @@ class General_Analysis:
         reshape_list = [sse_sim, sse_mean, sse_var]     
         all_data = [var.reshape(theta_pts,theta_pts).T for var in reshape_list]
         if data_needs_ei:
-            try:
-                all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
-            except:
-                print(method.method_name.value)
-                print(heat_map_sse_data.acq)
-                print(sp_data["cs_name_val"])
-                all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
+            all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
         else:
             all_data += [None]
         
