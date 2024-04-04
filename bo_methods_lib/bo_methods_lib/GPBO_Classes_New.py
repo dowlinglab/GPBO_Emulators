@@ -997,14 +997,13 @@ class Data:
         
         #Create an index for each theta
         all_idx = np.arange(0,len_theta)
-
         #Shuffles Random Data. Will calling this once in case study parameters mean I don't need this? (No. It doesn't)
         if self.seed is not None:
             #Set seed to number specified by shuffle seed
             np.random.seed(self.seed)
             
         #Shuffle all_idx data in such a way that theta values will be randomized
-        random.shuffle(all_idx)
+        np.random.shuffle(all_idx)
         #Set train test indeces
         train_idx = all_idx[:len_train_idc]
         test_idx = all_idx[len_train_idc:]
@@ -1440,7 +1439,7 @@ class GP_Emulator:
         #Initialize number of counters
         count_fix_tot = 0
         #While you still have retrains left
-        while count_fix_tot < self.retrain_GP:
+        while count_fix_tot <= self.retrain_GP:
             #Create and fit the model
             fit_successed, gp_model, count_fix = self.fit_GP(count_fix_tot)
             #The new counter total is the number of counters used + 1

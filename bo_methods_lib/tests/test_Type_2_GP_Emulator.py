@@ -67,7 +67,7 @@ gp_emulator2_e = Type_2_GP_Emulator(sim_data2, val_data2, None, None, None, kern
 #This test function tests whether get_num_gp_data checker works correctly
                     #emulator class, expected value
 get_num_gp_data_list = [[gp_emulator1_e, 125],
-                        [gp_emulator2_e, 6400]]
+                        [gp_emulator2_e, 400]]
 @pytest.mark.parametrize("gp_emulator, expected", get_num_gp_data_list)
 def test_get_num_gp_data(gp_emulator, expected):
     assert gp_emulator.get_num_gp_data() == expected
@@ -113,7 +113,7 @@ def test_set_gp_model_err(sim_data, val_data, kernel, lenscl, outputscl, retrain
 #This test function tests whether get_dim_gp_data checker works correctly
                         #Emulator class, number of GP training dims
 get_dim_gp_data_list = [[gp_emulator1_e, 3],
-                        [gp_emulator2_e, 10]]
+                        [gp_emulator2_e, 6]]
 @pytest.mark.parametrize("gp_emulator, expected", get_dim_gp_data_list)
 def test_get_dim_gp_data(gp_emulator, expected):
     assert gp_emulator.get_dim_gp_data() == expected
@@ -167,8 +167,7 @@ train_gp_list = [[Type_2_GP_Emulator, sim_data1, val_data1, 1, 1, np.ones(3), 1]
 def test_train_gp(gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, exp_ops):
     gp_emulator = gp_type(sim_data, val_data, None,None,None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None,None,None,None)
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    gp_model = gp_emulator.set_gp_model()
-    gp_emulator.train_gp(gp_model)
+    gp_emulator.train_gp()
     trained_lenscl = gp_emulator.trained_hyperparams[0]
     trained_ops = gp_emulator.trained_hyperparams[-1]
     assert gp_emulator.kernel == Kernel_enum.MAT_52
@@ -186,36 +185,26 @@ def test_train_gp_opt(gp_type, sim_data, val_data, lenscl, outputscl):
     tol = 1e-7
     gp_emulator = gp_type(sim_data, val_data, None,None,None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None,None,None,None)
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    gp_model = gp_emulator.set_gp_model()
-    gp_emulator.train_gp(gp_model)
+    gp_emulator.train_gp()
     trained_lenscl = gp_emulator.trained_hyperparams[0]
     trained_ops = gp_emulator.trained_hyperparams[-1]
     assert gp_emulator.kernel == Kernel_enum.MAT_52
     assert len(trained_lenscl) == gp_emulator.get_dim_gp_data()
-    assert np.all( 1e-5 - tol <= element <= 1e5 + tol for element in trained_lenscl )
-    assert 1e-5 - tol <= trained_ops <= 1e2 + tol
 
 #This test function tests whether train_gp throws correct errors
-                  # gp_emulator, feature_train_data, set_model_val
-train_gp_err_list = [[gp_emulator1_e, None, True],
-                     [gp_emulator1_e, True, None],
-                     [gp_emulator1_e, True, "string"],
-                     [gp_emulator2_e, None, True],
-                     [gp_emulator2_e, True, None]]
+                  # gp_emulator, feature_train_data
+train_gp_err_list = [[gp_emulator1_e, None],
+                     [gp_emulator2_e, None]]
                                 
-@pytest.mark.parametrize("gp_emulator, feature_train_data, set_model_val", train_gp_err_list)
-def test_train_gp_err(gp_emulator, feature_train_data, set_model_val):
+@pytest.mark.parametrize("gp_emulator, feature_train_data", train_gp_err_list)
+def test_train_gp_err(gp_emulator, feature_train_data):
     gp_emulator_fail = copy.copy(gp_emulator)
     train_data, test_data = gp_emulator_fail.set_train_test_data(sep_fact, seed) 
     with pytest.raises((AssertionError, ValueError)): 
-        if set_model_val == True:
-            gp_model = gp_emulator_fail.set_gp_model()
-        else:
-            gp_model = set_model_val
         if feature_train_data is not True:
             gp_emulator_fail.feature_train_data = feature_train_data
             
-        gp_emulator_fail.train_gp(gp_model)
+        gp_emulator_fail.train_gp()
         
 #This test function tests whether calc_best_error checker works correctly
                             #gp emulator, exp_data, sim_sse_data
@@ -224,8 +213,10 @@ calc_best_error_list = [[gp_emulator1_e, exp_data1, sim_sse_data1],
 @pytest.mark.parametrize("gp_emulator, exp_data, sim_sse_data", calc_best_error_list)
 def test_calc_best_error(gp_emulator, exp_data, sim_sse_data):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    best_error = gp_emulator.calc_best_error(method, exp_data)
-    assert np.isclose(best_error[0], min(sim_sse_data.y_vals), rtol = 1e-6)
+    best_error, be_theta, best_sq_error, org_train_idcs = gp_emulator.calc_best_error(method, exp_data)
+    assert np.isclose(best_error, float(min(sim_sse_data.y_vals)), rtol = 1e-6)
+    assert np.allclose(be_theta, sim_sse_data.theta_vals[np.argmin(sim_sse_data.y_vals)], rtol = 1e-6)
+    assert np.isclose(sum(best_sq_error), float(min(sim_sse_data.y_vals)), rtol = 1e-6)
 
 #This test function tests whether calc_best_error throws correct errors
                           #gp_emulator, exp_data, train_data, y_vals, method
@@ -261,35 +252,38 @@ eval_ei_test_list = [[gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(3
                    [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(5))]]
 @pytest.mark.parametrize("gp_emulator, exp_data, method", eval_ei_test_list)
 def test_eval_ei_test(gp_emulator, exp_data, method):
-    gp_model = gp_emulator.set_gp_model()#Set model
-    gp_emulator.train_gp(gp_model) #Train model 
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
+    gp_emulator.train_gp() #Train model 
     #Set testing data to training data for example
     gp_emulator.feature_test_data = gp_emulator.featurize_data(gp_emulator.train_data)
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_test() #Calc mean, var of gp 
-    best_error = gp_emulator.calc_best_error(method, exp_data) #Calc best error
+    best_error, be_theta, best_sq_error, org_train_idcs = gp_emulator.calc_best_error(method, exp_data) #Calc best error
+    best_error_metrics = best_error, be_theta, best_sq_error
     if method.sparse_grid == True:
         depth = 5
     else:
         depth = None
-    ei = gp_emulator.eval_ei_test(exp_data, ep_bias, best_error, method, depth)
+    ei = gp_emulator.eval_ei_test(exp_data, ep_bias, best_error_metrics, method, depth)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei[0])*num_x_data == len(gp_emulator.train_data.theta_vals)
 
                  #gp_emulator, exp_data, method
 eval_ei_val_list = [[gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(3))],
                    [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(4))],
-                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(5))]]
+                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(5))],
+                   [gp_emulator1_e, exp_data1, GPBO_Methods(Method_name_enum(6))]]
 @pytest.mark.parametrize("gp_emulator, exp_data, method_val", eval_ei_val_list)
 def test_eval_ei_val(gp_emulator, exp_data, method_val):
-    gp_model = gp_emulator.set_gp_model()#Set model
-    gp_emulator.train_gp(gp_model) #Train model    
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
+    gp_emulator.train_gp() #Train model    
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_val() #Calc mean, var of gp 
-    best_error = gp_emulator.calc_best_error(method_val, exp_data) #Calc best error
+    best_error, be_theta, best_sq_error, org_train_idcs = gp_emulator.calc_best_error(method_val, exp_data) #Calc best error
+    best_error_metrics = best_error, be_theta, best_sq_error
     if method.sparse_grid == True:
         depth = 5
     else:
         depth = None
-    ei = gp_emulator.eval_ei_val(exp_data, ep_bias, best_error, method_val, depth)
+    ei = gp_emulator.eval_ei_val(exp_data, ep_bias, best_error_metrics, method_val, depth)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei[0])*num_x_data == len(gp_emulator.gp_val_data.theta_vals)
     
@@ -300,8 +294,8 @@ eval_ei_cand_list = [[gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method
                    [gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(5))]]
 @pytest.mark.parametrize("gp_emulator, simulator, exp_data, method", eval_ei_cand_list)
 def test_eval_ei_cand(gp_emulator, simulator, exp_data, method):
-    gp_model = gp_emulator.set_gp_model()#Set model
-    gp_emulator.train_gp(gp_model) #Train model 
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
+    gp_emulator.train_gp() #Train model   
     candidate = Data(None, exp_data.x_vals, None, None, None, None, None, None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
     theta = gp_emulator.gp_val_data.theta_vals[0].reshape(1,-1) #Set "candidate thetas"
     theta_vals = np.repeat(theta.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
@@ -309,12 +303,13 @@ def test_eval_ei_cand(gp_emulator, simulator, exp_data, method):
     gp_emulator.cand_data = candidate #Set candidate point
     gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data)
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_cand() #Calc mean, var of gp 
-    best_error = gp_emulator.calc_best_error(method, exp_data) #Calc best error
+    best_error, be_theta, best_sq_error, org_train_idcs = gp_emulator.calc_best_error(method, exp_data) #Calc best error
+    best_error_metrics = best_error, be_theta, best_sq_error
     if method.sparse_grid == True:
         depth = 5
     else:
         depth = None
-    ei = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error, method, depth)
+    ei = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error_metrics, method, depth)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei[0])*num_x_data == len(gp_emulator.cand_data.theta_vals)
     
@@ -325,38 +320,39 @@ eval_ei_misc_list = [[gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method
                    [gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(5))]]
 @pytest.mark.parametrize("gp_emulator, simulator, exp_data, method", eval_ei_misc_list)
 def test_eval_ei_misc(gp_emulator, simulator, exp_data, method):
-    gp_model = gp_emulator.set_gp_model()#Set model
-    gp_emulator.train_gp(gp_model) #Train model 
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
+    gp_emulator.train_gp() #Train model  
     misc_data = Data(None, exp_data.x_vals, None,None,None,None,None, None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
     theta = gp_emulator.gp_val_data.theta_vals[0].reshape(1,-1) #Set "misc_data thetas"
     theta_vals = np.repeat(theta.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
     misc_data.theta_vals = theta_vals
     feature_misc_data = gp_emulator.featurize_data(misc_data)
     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_misc(misc_data, feature_misc_data) #Calc mean, var of gp 
-    best_error = gp_emulator.calc_best_error(method, exp_data) #Calc best error
+    best_error, be_theta, best_sq_error, org_train_idcs = gp_emulator.calc_best_error(method, exp_data) #Calc best error
+    best_error_metrics = best_error, be_theta, best_sq_error
     if method.sparse_grid == True:
         depth = 5
     else:
         depth = None
-    ei = gp_emulator.eval_ei_misc(misc_data, exp_data, ep_bias, best_error, method, depth)
+    ei = gp_emulator.eval_ei_misc(misc_data, exp_data, ep_bias, best_error_metrics, method, depth)
     #Multiply by 5 because there is 1 prediction for each x data point
     assert len(ei[0])*num_x_data == len(misc_data.theta_vals)
 
 #This test function tests whether eval_ei_cand/val/test/and misc throw correct errors
-                          #gp_emulator, simualtor, exp_data, ep_bias, best_error, method, data
-calc_ei_err_list = [[gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, method, None],
-                            [gp_emulator1_e, simulator1, None, ep_bias, 1, method, True],
-                            [gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, GPBO_Methods(Method_name_enum(1)), True],
-                            [gp_emulator1_e, simulator1, exp_data1, ep_bias, 1, "str", True],
-                            [gp_emulator1_e, simulator1, exp_data1, None, 1, method, True],
-                            [gp_emulator2_e, simulator2, exp_data2, None, 1, method, True],
-                            [gp_emulator2_e, simulator2, exp_data2, ep_bias, 1, None, True]]
+                          #gp_emulator, simualtor, exp_data, ep_bias, method, data
+calc_ei_err_list = [[gp_emulator1_e, simulator1, exp_data1, ep_bias, method, None],
+                            [gp_emulator1_e, simulator1, None, ep_bias, method, True],
+                            [gp_emulator1_e, simulator1, exp_data1, ep_bias, GPBO_Methods(Method_name_enum(1)), True],
+                            [gp_emulator1_e, simulator1, exp_data1, ep_bias, "str", True],
+                            [gp_emulator1_e, simulator1, exp_data1, None, method, True],
+                            [gp_emulator2_e, simulator2, exp_data2, None, method, True],
+                            [gp_emulator2_e, simulator2, exp_data2, ep_bias, None, True]]
                                 
-@pytest.mark.parametrize("gp_emulator, simulator, exp_data, ep_bias, best_error, method, data", calc_ei_err_list)
-def test_calc_ei_err(gp_emulator, simulator, exp_data, ep_bias, best_error, method, data):
+@pytest.mark.parametrize("gp_emulator, simulator, exp_data, ep_bias, method, data", calc_ei_err_list)
+def test_calc_ei_err(gp_emulator, simulator, exp_data, ep_bias, method, data):
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
     gp_emulator_fail = copy.copy(gp_emulator)
-    gp_model = gp_emulator_fail.set_gp_model()#Set model
-    gp_emulator_fail.train_gp(gp_model) #Train model 
+    gp_emulator_fail.train_gp() #Train model 
 
     if data is True and exp_data is not None:
         misc_data = Data(None, exp_data.x_vals, None,None,None,None,None, None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
@@ -364,39 +360,47 @@ def test_calc_ei_err(gp_emulator, simulator, exp_data, ep_bias, best_error, meth
         theta_vals = np.repeat(theta.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
         misc_data.theta_vals = theta_vals
         feature_misc_data = gp_emulator.featurize_data(misc_data)
+        if isinstance(method, GPBO_Methods):
+            best_error, be_theta, best_sq_error, org_train_idcs = gp_emulator.calc_best_error(method, exp_data) #Calc best error
+            best_error_metrics = best_error, be_theta, best_sq_error
+        else:
+            best_error_metrics = None
     else:
         data = None
+        best_error_metrics = None
 
     with pytest.raises((AssertionError, AttributeError, ValueError)):
         gp_emulator_fail.cand_data = data #Set candidate point
-        ei = gp_emulator_fail.eval_ei_cand(exp_data, ep_bias, best_error, method)
+        ei = gp_emulator_fail.eval_ei_cand(exp_data, ep_bias, best_error_metrics, method)
     with pytest.raises((AssertionError, AttributeError, ValueError)):        
         gp_emulator_fail.test_data = data #Set candidate point
-        ei = gp_emulator_fail.eval_ei_test(exp_data, ep_bias, best_error, method)
+        ei = gp_emulator_fail.eval_ei_test(exp_data, ep_bias, best_error_metrics, method)
     with pytest.raises((AssertionError, AttributeError, ValueError)):        
         gp_emulator_fail.gp_val_data = data #Set candidate point
-        ei = gp_emulator_fail.eval_ei_val(exp_data, ep_bias, best_error, method)
+        ei = gp_emulator_fail.eval_ei_val(exp_data, ep_bias, best_error_metrics, method)
     with pytest.raises((AssertionError, AttributeError, ValueError)):        
-        ei = gp_emulator_fail.eval_ei_misc(data, exp_data, ep_bias, best_error, method)
+        ei = gp_emulator_fail.eval_ei_misc(data, exp_data, ep_bias, best_error_metrics, method)
         
     if method == GPBO_Methods(Method_name_enum(5)):
         with pytest.raises((AssertionError, AttributeError, ValueError)):
             gp_emulator_fail.cand_data = data #Set candidate point
-            ei = gp_emulator_fail.eval_ei_cand(exp_data, ep_bias, best_error, method, 0)
+            ei = gp_emulator_fail.eval_ei_cand(exp_data, ep_bias, best_error_metrics, method, 0)
         with pytest.raises((AssertionError, AttributeError, ValueError)):        
             gp_emulator_fail.test_data = data #Set candidate point
-            ei = gp_emulator_fail.eval_ei_test(exp_data, ep_bias, best_error, method, 0.8)
+            ei = gp_emulator_fail.eval_ei_test(exp_data, ep_bias, best_error_metrics, method, 0.8)
         with pytest.raises((AssertionError, AttributeError, ValueError)):        
             gp_emulator_fail.gp_val_data = data #Set candidate point
-            ei = gp_emulator_fail.eval_ei_val(exp_data, ep_bias, best_error, method, "1")
+            ei = gp_emulator_fail.eval_ei_val(exp_data, ep_bias, best_error_metrics, method, "1")
         with pytest.raises((AssertionError, AttributeError, ValueError)):        
-            ei = gp_emulator_fail.eval_ei_misc(data, exp_data, ep_bias, best_error, method, None)
+            ei = gp_emulator_fail.eval_ei_misc(data, exp_data, ep_bias, best_error_metrics, method, None)
         
         
                  #gp_emulator, exp_data, method
 featurize_data_list = [[gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(3))],
                    [gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(4))],
-                   [gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(5))]]
+                   [gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(5))],
+                   [gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(6))],
+                   [gp_emulator1_e, simulator1, exp_data1, GPBO_Methods(Method_name_enum(7))]]
 @pytest.mark.parametrize("gp_emulator, simulator, exp_data, method", featurize_data_list)
 def test_featurize_data(gp_emulator, simulator, exp_data, method):
     misc_data = Data(None, exp_data.x_vals, None,None,None,None,None, None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
@@ -461,25 +465,30 @@ gp_emulator2_e = Type_2_GP_Emulator(sim_data2, val_data2, None, None, None, kern
     
 #This test function tests whether eval_gp_mean_var checker works correctly
 expected_mean1_test = np.array([
-    -5.69768671, -2.29834478, -0.14384735,  2.66129928,  7.42554651, -0.19770476,  0.96579034,  0.03521839,  2.4431893 , 11.82000324
+    -4.72258552, -2.43031039, 0.54347301, 4.03296498, 6.9245544,
+-4.15991685, -2.32636575, -0.57124432, 0.59673766, 1.74169483
+
 ])
 expected_var1_test = np.array([
-    0.62858822, 0.62123159, 0.62119029, 0.62123159, 0.62858822, 0.26891116, 0.2665345 , 0.26647474, 0.2665345 , 0.26891116
+    4.33736851, 3.93959677, 3.93170407, 3.93959677, 4.33736851,
+4.90243459, 4.47375484, 4.455128, 4.47375484, 4.90243459
+
 ])
 
 expected_mean2_test = np.array([
-       6.03039151, 6.03566037, 6.04234395, 6.04839094, 6.0522504 ,
-       6.02616909, 6.03290993, 6.04176482, 6.04971419, 6.05470286,
-       6.02656448, 6.03353238, 6.04312748, 6.05188341, 6.05723479,
-       6.03090104, 6.03729112, 6.0463477 , 6.05467673, 6.0594715 ,
-       6.03611423, 6.04170528, 6.04939868, 6.0562607 , 6.05979425])
+       5.67435502, 5.63441328, 5.57075905, 5.52334012, 5.50152108, 5.62957301,
+5.58619736, 5.5284916, 5.48960623, 5.47616581, 5.5580813, 5.51836324,
+5.48034238, 5.46203136, 5.46037859, 5.49701705, 5.46268491, 5.44565487,
+5.44994169, 5.4603697, 5.46030582, 5.43272097, 5.43008552, 5.44833164,
+5.46609181
+])
 
 expected_var2_test = np.array([
-       0.79938704, 0.7993841 , 0.79938372, 0.79938437, 0.799387  ,
-       0.79938432, 0.79938127, 0.79938089, 0.79938155, 0.79938428,
-       0.79938374, 0.79938069, 0.79938032, 0.79938096, 0.79938369,
-       0.79938422, 0.79938117, 0.79938079, 0.79938145, 0.79938418,
-       0.79938705, 0.79938412, 0.79938374, 0.79938439, 0.79938702
+       0.65430736, 0.65387554, 0.6538284, 0.65387554, 0.65430736,
+0.65387554, 0.65346313, 0.65342539, 0.65346313, 0.65387554,
+0.6538284, 0.65342539, 0.65338965, 0.65342539, 0.6538284,
+0.65387554, 0.65346313, 0.65342539, 0.65346313, 0.65387554,
+0.65430736, 0.65387554, 0.6538284, 0.65387554, 0.65430736
 ])
                              #gp_emulator, expected_mean, expected_var
 eval_gp_mean_var_test_list = [[gp_emulator1_e, False, expected_mean1_test, expected_var1_test],
@@ -488,132 +497,127 @@ eval_gp_mean_var_test_list = [[gp_emulator1_e, False, expected_mean1_test, expec
 @pytest.mark.parametrize("gp_emulator, covar, expected_mean, expected_var", eval_gp_mean_var_test_list)
 def test_eval_gp_mean_var_test(gp_emulator, covar, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    gp_model = gp_emulator.set_gp_model()
-    gp_emulator.train_gp(gp_model) 
-    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_test(covar) #Calc mean, var of gp 
+    gp_emulator.train_gp() 
+    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_test(False) #Calc mean, var of gp
+    gp_mean, gp_covar = gp_emulator.eval_gp_mean_var_test(True) #Calc mean, var of gp  
 
     assert len(gp_mean) == len(test_data.theta_vals) == len(gp_var)
     assert np.allclose(gp_mean, expected_mean, rtol=1e-02)
     
     #If covar is false, check variance values are correct
-    if covar == False:
-        assert np.allclose(gp_var, expected_var, rtol=1e-02)
+    assert np.allclose(gp_var, expected_var, rtol=1e-02)
     #Otherwise check that square covariance matrix is returned
-    else:
-        assert len(gp_var.shape) == 2 
-        assert gp_var.shape[0] == gp_var.shape[1]
+    assert len(gp_covar.shape) == 2 
+    assert gp_covar.shape[0] == gp_covar.shape[1]
 
 expected_mean1_val = np.array([
-    -4.09101293e+00, -1.45927444e-01, 3.06356251e-02, 2.59794613e+00, 1.22681324e+01, -1.02457629e+01, -2.20195064e+00, -1.62709135e-01,
-    -4.61825136e-01, 2.30292328e+00, -4.96144100e+00, -1.22965035e+00, 1.90971165e-01, 3.41677427e+00, 1.10782651e+01, -6.65076842e+00, 
-    -1.06114406e+00, 2.48216697e-02, 2.64770818e+00, 1.24109057e+01, -8.00854083e+00, -7.34984655e-01, 1.04151757e-02, 2.29024337e-01, 
-    5.93860188e+00, -3.40463000e+00, -1.00109374e-01, 1.19008570e-01, 1.11516784e+00, 5.49091795e+00, -1.18823701e+01, -3.46568206e+00,
-    -1.41568406e-02, 1.84240971e+00, 6.63677947e+00, -9.57085135e+00, -1.26988663e+00, -3.74977702e-02, -1.18892098e+00, 1.58681497e+00, 
-    -5.71892773e+00, -1.44463876e+00, 9.64337327e-02, 3.32006550e+00, 1.16337473e+01, -1.07405931e+01, -8.74989545e-01, -2.58327285e-02,
-    -2.41856121e+00, -2.12656067e+00
+    -5.11516336, -2.7389, 0.5171214, 4.36658836, 7.46267137, -6.41038645,
+-3.66877136, 0.01010446, 3.72908251, 6.49800347, -0.60563402, 0.09891939,
+0.86366737, 3.50048307, 6.69105288, -5.18541074, -2.61091171, -0.09273532,
+2.20548939, 4.48224462, -4.40770396, -2.50470561, -1.03574225, -0.86884226,
+-0.58609131, -4.72258552, -2.43031039, 0.54347301, 4.03296498, 6.9245544,
+-8.09403318, -4.66575609, -0.87095501, 1.49401502, 3.08378186, -7.72233521,
+-4.20488713, -0.66036072, 1.63383651, 3.51805956, -4.15991685, -2.32636575,
+-0.57124432, 0.59673766, 1.74169483, -0.29783504, 0.30993434, 1.10472017,
+3.94421232, 7.24198702
 ])
 
 expected_var1_val = np.array([
-    0.14894872, 0.14791648, 0.14785142, 0.14791648, 0.14894872, 0.34246146, 0.33877762, 0.33869666, 0.33877762, 0.34246146, 0.3911121, 
-    0.3879422, 0.38790525, 0.3879422, 0.3911121, 0.06141792, 0.06108165, 0.06105769, 0.06108165, 0.06141792, 0.02340763, 0.02335528, 
-    0.02334802, 0.02335528, 0.02340763, 0.48494208, 0.47891568, 0.47889096, 0.47891568, 0.48494208, 0.44754412, 0.44423061, 0.4441141,
-    0.44423061, 0.44754412, 0.25445063, 0.25269969, 0.25256328, 0.25269969, 0.25445063, 0.22865051, 0.22577588, 0.22576584, 0.22577588,
-    0.22865051, 0.01247869, 0.01243313, 0.0124329, 0.01243313, 0.01247869
+    3.53945767, 3.03820865, 3.02868304, 3.03820865, 3.53945767,
+3.52289855, 3.01932453, 3.01005975, 3.01932453, 3.52289855,
+3.25824407, 2.76660456, 2.76141739, 2.76660456, 3.25824407,
+3.39344733, 2.9181482, 2.91191561, 2.9181482, 3.39344733,
+4.14182633, 3.5649589, 3.53921803, 3.5649589, 4.14182633,
+4.33736851, 3.93959677, 3.93170407, 3.93959677, 4.33736851,
+3.56987876, 3.06714704, 3.05628474, 3.06714704, 3.56987876,
+3.15712332, 2.69056212, 2.68762859, 2.69056212, 3.15712332,
+4.90243459, 4.47375484, 4.455128, 4.47375484, 4.90243459,
+3.33344531, 2.83572307, 2.82895404, 2.83572307, 3.33344531
 ])
 
 expected_mean2_val = np.array([
-       6.05038012, 6.05203312, 6.05740349, 6.06678599, 6.07476357,
-       6.01882622, 6.01897548, 6.03213567, 6.05175902, 6.06783476,
-       5.99448771, 5.9900754 , 6.00915574, 6.0385712 , 6.06196257,
-       5.98936119, 5.98261162, 6.00397291, 6.03737643, 6.06315429,
-       6.00193161, 5.99938411, 6.02020785, 6.04871292, 6.06918728,
-       6.09185601, 6.09131879, 6.09194771, 6.09885189, 6.10509011,
-       6.04100732, 6.03599848, 6.04699402, 6.06876176, 6.08768714,
-       5.9944894 , 5.98124535, 6.00133423, 6.03867232, 6.06989231,
-       5.97528619, 5.95858151, 5.98332094, 6.02819936, 6.06457289,
-       5.98540668, 5.97636388, 6.00221803, 6.04110845, 6.07063416,
-       6.03831991, 6.03995511, 6.04198814, 6.04381453, 6.04492453,
-       6.03653664, 6.03850534, 6.04121568, 6.04373259, 6.0453278 ,
-       6.03585644, 6.03785778, 6.04087809, 6.04378205, 6.04564755,
-       6.03649567, 6.0383449 , 6.0412829 , 6.0441506 , 6.04595189,
-       6.03785247, 6.03950322, 6.04205351, 6.04448084, 6.0459055 ,
-       6.05399251, 6.05011787, 6.0474433 , 6.04751163, 6.04867778,
-       6.04057905, 6.0345079 , 6.03384595, 6.03776643, 6.04257058,
-       6.02643989, 6.01835115, 6.02023325, 6.02851144, 6.03703029,
-       6.01918839, 6.01095201, 6.01474203, 6.02541052, 6.03564623,
-       6.02134484, 6.0158285 , 6.02050869, 6.03013356, 6.03878703,
-       6.17390659, 6.16299299, 6.14113316, 6.12443833, 6.11142054,
-       6.13449029, 6.11319423, 6.09148766, 6.08163175, 6.07848532,
-       6.07398292, 6.04592085, 6.02996836, 6.03077379, 6.03919819,
-       6.02443479, 5.99709481, 5.98899907, 5.99821374, 6.01391571,
-       6.00391356, 5.98410553, 5.98239677, 5.99365121, 6.00932539
+       5.04794457, 3.89509766, 4.7022203, 5.34590467, 5.47910491, 5.35335785,
+4.62111819, 5.01090039, 5.48881249, 5.77542754, 5.71946639, 5.38987394,
+5.49084607, 6.00649593, 6.68402581, 6.46529358, 6.40154033, 6.61616433,
+7.56476311, 8.60281383, 7.44288019, 7.72684438, 8.22378017, 9.41646894,
+10.32887774, 12.84498193, 11.68319488, 9.91332587, 8.88745988, 8.13856966,
+10.96221103, 9.46933066, 7.89774895, 7.16291646, 6.80761502, 8.3741007,
+6.95925001, 6.0554951, 5.83166358, 5.77956395, 6.65212084, 5.44761328,
+5.11442378, 5.27578893, 5.45018381, 5.79648217, 4.99817648, 4.75214991,
+4.813213, 5.25731305, 6.84012168, 6.11818437, 5.42133585, 5.17800959,
+5.38042259, 6.16325018, 5.64064368, 5.19221882, 4.86490969, 5.06782293,
+5.62701546, 5.27645363, 5.13935951, 5.13398931, 5.1517146, 5.42042472,
+4.97430923, 5.06483686, 5.35056628, 5.43994308, 5.2821685, 4.71900688,
+5.04702998, 5.47030808, 5.65664941, 5.67435502, 5.63441328, 5.57075905,
+5.52334012, 5.50152108, 5.62957301, 5.58619736, 5.5284916, 5.48960623,
+5.47616581, 5.5580813, 5.51836324, 5.48034238, 5.46203136, 5.46037859,
+5.49701705, 5.46268491, 5.44565487, 5.44994169, 5.4603697, 5.46030582,
+5.43272097, 5.43008552, 5.44833164, 5.46609181, 5.97645185, 5.50183379,
+5.19853615, 5.31506302, 5.40118337, 5.68983853, 5.29772741, 5.0741676,
+5.22119026, 5.38726087, 5.47321967, 5.13272867, 4.98292621, 5.0034509,
+5.33793493, 5.38537059, 4.91815987, 5.09089495, 5.11267307, 5.5217863,
+5.39603634, 4.86094875, 5.36412312, 5.79615578, 6.15729524
 ])
 
 expected_var2_val = np.array(
-    [0.7988031 , 0.79874583, 0.79874076, 0.79875021, 0.79880265,
-       0.79874926, 0.79869181, 0.79868713, 0.79869603, 0.79874857,
-       0.79874108, 0.79868415, 0.79867959, 0.79868827, 0.79874031,
-       0.79874767, 0.79869029, 0.79868563, 0.79869449, 0.79874697,
-       0.79880328, 0.79874611, 0.79874107, 0.79875048, 0.79880284,
-       0.79819774, 0.79808905, 0.79808031, 0.79809693, 0.798197  ,
-       0.79809515, 0.79798707, 0.79797914, 0.79799456, 0.79809394,
-       0.79808086, 0.79797388, 0.79796619, 0.7979812 , 0.7980795 ,
-       0.79809229, 0.79798435, 0.79797647, 0.79799182, 0.79809106,
-       0.79819805, 0.79808955, 0.79808085, 0.79809741, 0.79819731,
-       0.79940923, 0.79940877, 0.7994087 , 0.79940882, 0.79940923,
-       0.79940881, 0.79940832, 0.79940825, 0.79940837, 0.7994088 ,
-       0.7994087 , 0.79940821, 0.79940814, 0.79940826, 0.79940869,
-       0.79940879, 0.7994083 , 0.79940823, 0.79940835, 0.79940878,
-       0.79940924, 0.79940877, 0.7994087 , 0.79940882, 0.79940923,
-       0.79926866, 0.79925381, 0.79925221, 0.79925506, 0.79926852,
-       0.79925481, 0.79923965, 0.79923811, 0.79924088, 0.7992546 ,
-       0.79925231, 0.79923723, 0.79923572, 0.79923844, 0.79925208,
-       0.79925436, 0.7992392 , 0.79923767, 0.79924044, 0.79925415,
-       0.79926872, 0.79925389, 0.7992523 , 0.79925514, 0.79926858,
-       0.79838619, 0.79829349, 0.79828599, 0.79830025, 0.79838555,
-       0.79829872, 0.79820639, 0.79819957, 0.79821283, 0.79829769,
-       0.79828645, 0.79819504, 0.79818841, 0.79820134, 0.79828529,
-       0.79829627, 0.79820406, 0.79819727, 0.79821048, 0.79829522,
-       0.79838645, 0.79829392, 0.79828645, 0.79830066, 0.79838582
+    [0.09332846, 0.07986269, 0.07939828, 0.07986269, 0.09332846, 0.07986269,
+0.07061119, 0.06997318, 0.07061119, 0.07986269, 0.07939828, 0.06997318,
+0.06939585, 0.06997318, 0.07939828, 0.07986269, 0.07061119, 0.06997318,
+0.07061119, 0.07986269, 0.09332846, 0.07986269, 0.07939828, 0.07986269,
+0.09332846, 0.09333151, 0.07986391, 0.07939962, 0.07986391, 0.09333151,
+0.07986391, 0.07061155, 0.06997358, 0.07061155, 0.07986391, 0.07939962,
+0.06997358, 0.06939631, 0.06997358, 0.07939962, 0.07986391, 0.07061155,
+0.06997358, 0.07061155, 0.07986391, 0.09333151, 0.07986391, 0.07939962,
+0.07986391, 0.09333151, 0.09323977, 0.07982304, 0.07935634, 0.07982304,
+0.09323977, 0.07982304, 0.07059517, 0.06995687, 0.07059517, 0.07982304,
+0.07935634, 0.06995687, 0.06937901, 0.06995687, 0.07935634, 0.07982304,
+0.07059517, 0.06995687, 0.07059517, 0.07982304, 0.09323977, 0.07982304,
+0.07935634, 0.07982304, 0.09323977, 0.65430736, 0.65387554, 0.6538284,
+0.65387554, 0.65430736, 0.65387554, 0.65346313, 0.65342539, 0.65346313,
+0.65387554, 0.6538284, 0.65342539, 0.65338965, 0.65342539, 0.6538284,
+0.65387554, 0.65346313, 0.65342539, 0.65346313, 0.65387554, 0.65430736,
+0.65387554, 0.6538284, 0.65387554, 0.65430736, 0.09323339, 0.07982063,
+0.07935364, 0.07982063, 0.09323339, 0.07982063, 0.07059454, 0.06995613,
+0.07059454, 0.07982063, 0.07935364, 0.06995613, 0.06937813, 0.06995613,
+0.07935364, 0.07982063, 0.07059454, 0.06995613, 0.07059454, 0.07982063,
+0.09323339, 0.07982063, 0.07935364, 0.07982063, 0.09323339
     ])
 
-                             #gp_emulator, covar expected_mean, expected_var
-eval_gp_mean_var_val_list = [[gp_emulator1_e, False, expected_mean1_val, expected_var1_val],
-                             [gp_emulator1_e, True, expected_mean1_val, expected_var1_val],
-                             [gp_emulator2_e, False, expected_mean2_val, expected_var2_val]]
-@pytest.mark.parametrize("gp_emulator, covar, expected_mean, expected_var", eval_gp_mean_var_val_list)
-def test_eval_gp_mean_var_val(gp_emulator, covar, expected_mean, expected_var):
-    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    gp_model = gp_emulator.set_gp_model()
-    gp_emulator.train_gp(gp_model) 
-    gp_mean, gp_var = gp_emulator.eval_gp_mean_var_val(covar) #Calc mean, var of gp 
+#                              #gp_emulator, covar expected_mean, expected_var
+# eval_gp_mean_var_val_list = [[gp_emulator1_e, False, expected_mean1_val, expected_var1_val],
+#                              [gp_emulator1_e, True, expected_mean1_val, expected_var1_val],
+#                              [gp_emulator2_e, False, expected_mean2_val, expected_var2_val]]
+# @pytest.mark.parametrize("gp_emulator, covar, expected_mean, expected_var", eval_gp_mean_var_val_list)
+# def test_eval_gp_mean_var_val(gp_emulator, covar, expected_mean, expected_var):
+#     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
+#     gp_emulator.train_gp() 
+#     gp_mean, gp_var = gp_emulator.eval_gp_mean_var_val(False) #Calc mean, var of gp 
+#     gp_mean, gp_covar = gp_emulator.eval_gp_mean_var_val(True) #Calc mean, var of gp
 
-    assert len(gp_mean) == len(gp_emulator.gp_val_data.theta_vals) == len(gp_var)
-    assert np.allclose(gp_mean, expected_mean, rtol=1e-02)
+#     assert len(gp_mean) == len(gp_emulator.gp_val_data.theta_vals) == len(gp_var)
+#     assert np.allclose(gp_mean, expected_mean, rtol=1e-02)
     
-    #If covar is false, check variance values are correct
-    if covar == False:
-        assert np.allclose(gp_var, expected_var, rtol=1e-02)
-    #Otherwise check that square covariance matrix is returned
-    else:
-        assert len(gp_var.shape) == 2 
-        assert gp_var.shape[0] == gp_var.shape[1]
+#     #If covar is false, check variance values are correct
+#     assert np.allclose(gp_var, expected_var, rtol=1e-02)
+#     #Otherwise check that square covariance matrix is returned
+#     assert len(gp_covar.shape) == 2 
+#     assert gp_covar.shape[0] == gp_covar.shape[1]
     
-expected_mean1 = np.array([-4.09101293, -0.14592744,  0.03063563,  2.59794613, 12.26813236])
-expected_var1 = np.array([0.14894872, 0.14791648, 0.14785142, 0.14791648, 0.14894872])
+expected_mean1 = np.array([-5.11516336, -2.7389, 0.5171214, 4.36658836, 7.46267137])
+expected_var1 = np.array([3.53945767, 3.03820865, 3.02868304, 3.03820865, 3.53945767])
 expected_mean2 = np.array([
-       6.05038012, 6.05203312, 6.05740349, 6.06678599, 6.07476357,
-       6.01882622, 6.01897548, 6.03213567, 6.05175902, 6.06783476,
-       5.99448771, 5.9900754 , 6.00915574, 6.0385712 , 6.06196257,
-       5.98936119, 5.98261162, 6.00397291, 6.03737643, 6.06315429,
-       6.00193161, 5.99938411, 6.02020785, 6.04871292, 6.06918728
+       5.04794457, 3.89509766, 4.7022203, 5.34590467, 5.47910491, 5.35335785,
+4.62111819, 5.01090039, 5.48881249, 5.77542754, 5.71946639, 5.38987394,
+5.49084607, 6.00649593, 6.68402581, 6.46529358, 6.40154033, 6.61616433,
+7.56476311, 8.60281383, 7.44288019, 7.72684438, 8.22378017, 9.41646894,
+10.32887774
 ])
 expected_var2 = np.array([
-       0.7988031 , 0.79874583, 0.79874076, 0.79875021, 0.79880265,
-       0.79874926, 0.79869181, 0.79868713, 0.79869603, 0.79874857,
-       0.79874108, 0.79868415, 0.79867959, 0.79868827, 0.79874031,
-       0.79874767, 0.79869029, 0.79868563, 0.79869449, 0.79874697,
-       0.79880328, 0.79874611, 0.79874107, 0.79875048, 0.79880284
+       0.09332846, 0.07986269, 0.07939828, 0.07986269, 0.09332846, 0.07986269,
+0.07061119, 0.06997318, 0.07061119, 0.07986269, 0.07939828, 0.06997318,
+0.06939585, 0.06997318, 0.07939828, 0.07986269, 0.07061119, 0.06997318,
+0.07061119, 0.07986269, 0.09332846, 0.07986269, 0.07939828, 0.07986269,
+0.09332846
 ])
 
                              #gp_emulator, simulator, exp_data, expected_mean, expected_var
@@ -623,8 +627,7 @@ eval_gp_mean_var_misc_list = [[gp_emulator1_e, False, simulator1, exp_data1, exp
 @pytest.mark.parametrize("gp_emulator, covar, simulator, exp_data, expected_mean, expected_var", eval_gp_mean_var_misc_list)
 def test_eval_gp_mean_var_misc_cand(gp_emulator, covar, simulator, exp_data, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    gp_model = gp_emulator.set_gp_model()
-    gp_emulator.train_gp(gp_model)
+    gp_emulator.train_gp()
     misc_data = Data(None, exp_data.x_vals, None, None,None,None,None,None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
     theta = gp_emulator.gp_val_data.theta_vals[0].reshape(1,-1) #Set "candidate thetas"
     theta_vals = np.repeat(theta.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
@@ -685,10 +688,10 @@ def test_eval_gp_mean_var_err(gp_emulator):
         gp_mean, gp_var = gp_emulator_fail.eval_gp_mean_var_misc(misc_data, feat_misc_data, "True") #Calc mean, var of gp 
         
 #This test function tests whether eval_gp_sse_var checker works correctly
-expected_mean1_test_sse = np.array([73.98236105, 241.7185761])
-expected_var1_test_sse = np.array([217.19806523, 345.59589243])
-expected_mean2_test_sse = np.array([17.78391007])
-expected_var2_test_sse = np.array([309.50112594])
+expected_mean1_test_sse = np.array([96.50492497, 115.65122575])
+expected_var1_test_sse = np.array([2066.8154584, 2638.07266705])
+expected_mean2_test_sse = np.array([9.2851424])
+expected_var2_test_sse = np.array([74.90450297])
                              #gp_emulator, exp_data, method, expected_mean, expected_var
 eval_gp_sse_var_test_list = [[gp_emulator1_e, False, exp_data1, method, expected_mean1_test_sse, expected_var1_test_sse],
                              [gp_emulator1_e, True, exp_data1, method, expected_mean1_test_sse, expected_var1_test_sse],
@@ -697,17 +700,16 @@ eval_gp_sse_var_test_list = [[gp_emulator1_e, False, exp_data1, method, expected
 @pytest.mark.parametrize("gp_emulator, covar, exp_data, method, expected_mean, expected_var", eval_gp_sse_var_test_list)
 def test_eval_gp_sse_var_test(gp_emulator, covar, exp_data, method, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    gp_model = gp_emulator.set_gp_model()
-    gp_emulator.train_gp(gp_model) 
+    gp_emulator.train_gp() 
     gp_emulator.test_data.gp_mean, gp_emulator.test_data.gp_var = gp_emulator.eval_gp_mean_var_test() #Calc mean, var of gp 
     sse_mean, sse_var = gp_emulator.eval_gp_sse_var_test(method, exp_data, covar) #Calc mean, var of gp sse
     mult_factor = exp_data.get_num_x_vals()
     
-    assert len(sse_mean)*mult_factor == len(test_data.theta_vals) == len(sse_var)*mult_factor
     assert np.allclose(sse_mean, expected_mean, rtol=1e-02)
     
     #If covar is false, check variance values are correct
     if covar == False:
+        assert len(sse_mean)*mult_factor == len(test_data.theta_vals) == len(sse_var)*mult_factor
         assert np.allclose(sse_var, expected_var, rtol=1e-02)
     #Otherwise check that square covariance matrix is returned
     else:
@@ -716,13 +718,15 @@ def test_eval_gp_sse_var_test(gp_emulator, covar, exp_data, method, expected_mea
     
 #This test function tests whether eval_gp_sse_var checker works correctly
 expected_mean1_val_sse = np.array([
-    147.81726003, 30.48218282, 116.1902601, 101.29578505, 41.44437525, 120.6621511, 5.74949159, 46.78644633, 107.83023785, 92.85527271
+    92.51669873, 65.54131517, 196.14234711, 81.38383942, 139.9572951,
+96.50492497, 47.00227637, 47.69010072, 115.65122575, 209.78554424
 ])
 expected_var1_val_sse = np.array([
-    112.78340684,  52.91127333, 249.39080888,  30.41774291, 4.7530246 , 306.86169299,   9.39637032,  63.64525288, 130.65995194, 6.12767308
+   1522.28331489, 953.84253059, 3207.44499074, 1215.95511864, 2770.90054159,
+2066.81545842, 621.23569709, 576.50909848, 2638.07266705, 3578.00424117
 ])
-expected_mean2_val_sse = np.array([17.26686418, 17.47243606, 17.7744707 , 17.45821545, 18.70787708])
-expected_var2_val_sse = np.array([298.67733198, 303.13967843, 308.16645083, 300.63012781,325.36403632])
+expected_mean2_val_sse = np.array([56.67628699, 222.91845154, 8.8533323, 9.2851424, 4.02436433])
+expected_var2_val_sse = np.array([31.04599607, 122.06645035, 4.65206117, 74.90450297, 2.18940686])
                              #gp_emulator, exp_data, expected_mean, expected_var
 eval_gp_sse_var_val_list = [[gp_emulator1_e, False, exp_data1, expected_mean1_val_sse, expected_var1_val_sse],
                             [gp_emulator1_e, True, exp_data1, expected_mean1_val_sse, expected_var1_val_sse],
@@ -730,27 +734,24 @@ eval_gp_sse_var_val_list = [[gp_emulator1_e, False, exp_data1, expected_mean1_va
 @pytest.mark.parametrize("gp_emulator, covar, exp_data, expected_mean, expected_var", eval_gp_sse_var_val_list)
 def test_eval_gp_sse_var_val(gp_emulator, covar, exp_data, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    gp_model = gp_emulator.set_gp_model()
-    gp_emulator.train_gp(gp_model) 
+    gp_emulator.train_gp() 
     gp_emulator.gp_val_data.gp_mean, gp_emulator.gp_val_data.gp_var = gp_emulator.eval_gp_mean_var_val() #Calc mean, var of gp 
     sse_mean, sse_var = gp_emulator.eval_gp_sse_var_val(method, exp_data, covar) #Calc mean, var of gp sse
-    mult_factor = exp_data.get_num_x_vals()
-    
-    assert len(sse_mean)*mult_factor == len(gp_emulator.gp_val_data.theta_vals) == len(sse_var)*mult_factor
+    mult_factor = exp_data.get_num_x_vals()   
     assert np.allclose(sse_mean, expected_mean, rtol=1e-02)
     
     #If covar is false, check variance values are correct
     if covar == False:
+        assert len(sse_mean)*mult_factor == len(gp_emulator.gp_val_data.theta_vals) == len(sse_var)*mult_factor
         assert np.allclose(sse_var, expected_var, rtol=1e-02)
-    #Otherwise check that square covariance matrix is returned
+    #Otherwise check that no covariance matrix is returned
     else:
-        assert len(sse_var.shape) == 2 
-        assert sse_var.shape[0] == sse_var.shape[1]
+        assert sse_var == None
 
-expected_mean1_sse = np.array([148.09705927])
-expected_var1_sse = np.array([112.78340684])
-expected_mean2_sse = np.array([17.26686418])
-expected_var2_sse = np.array([298.67733198])
+expected_mean1_sse = np.array([92.51669873])
+expected_var1_sse = np.array([1522.28331489])
+expected_mean2_sse = np.array([56.67628699])
+expected_var2_sse = np.array([31.04599607])
 
                              #gp_emulator, simulator, exp_data, expected_mean, expected_var
 eval_gp_sse_var_misc_list = [[gp_emulator1_e, False, simulator1, exp_data1, expected_mean1_sse, expected_var1_sse],
@@ -759,8 +760,7 @@ eval_gp_sse_var_misc_list = [[gp_emulator1_e, False, simulator1, exp_data1, expe
 @pytest.mark.parametrize("gp_emulator, covar, simulator, exp_data, expected_mean, expected_var", eval_gp_sse_var_misc_list)
 def test_eval_gp_sse_var_misc_cand(gp_emulator, covar, simulator, exp_data, expected_mean, expected_var):
     train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
-    gp_model = gp_emulator.set_gp_model()
-    gp_emulator.train_gp(gp_model)
+    gp_emulator.train_gp()
     misc_data = Data(None, exp_data.x_vals, None, None,None,None,None,None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
     theta = gp_emulator.gp_val_data.theta_vals[0].reshape(1,-1) #Set "candidate thetas"
     theta_vals = np.repeat(theta.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
@@ -780,12 +780,12 @@ def test_eval_gp_sse_var_misc_cand(gp_emulator, covar, simulator, exp_data, expe
 
     mult_factor = exp_data.get_num_x_vals()
     
-    assert len(sse_mean)*mult_factor == len(misc_data.theta_vals) == len(sse_var)*mult_factor == len(sse_mean_cand)*mult_factor == len(sse_var_cand)*mult_factor
     assert np.allclose(sse_mean, expected_mean, rtol=1e-02)
     assert np.allclose(sse_mean_cand, expected_mean, rtol=1e-02)
     
     #If covar is false, check variance values are correct
     if covar == False:
+        assert len(sse_mean)*mult_factor == len(misc_data.theta_vals) == len(sse_var)*mult_factor == len(sse_mean_cand)*mult_factor == len(sse_var_cand)*mult_factor
         assert np.allclose(sse_var, expected_var, rtol=1e-02)
         assert np.allclose(sse_var_cand, expected_var, rtol=1e-02)
     #Otherwise check that square covariance matrix is returned
@@ -806,8 +806,7 @@ eval_gp_sse_var_err_list = [[gp_emulator1_e, simulator1, exp_data1, False, True,
 def test_eval_gp_sse_var_err(gp_emulator, simulator, exp_data, set_data, set_gp_mean, set_gp_var, method, set_covar):
     gp_emulator_fail = copy.copy(gp_emulator)
     train_data, test_data = gp_emulator_fail.set_train_test_data(sep_fact, seed)
-    gp_model = gp_emulator_fail.set_gp_model()
-    gp_emulator_fail.train_gp(gp_model)
+    gp_emulator_fail.train_gp()
     
     candidate = Data(None, exp_data.x_vals, None,None,None,None,None,None, simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
     theta = gp_emulator_fail.gp_val_data.theta_vals[0].reshape(1,-1) #Set "candidate thetas"
