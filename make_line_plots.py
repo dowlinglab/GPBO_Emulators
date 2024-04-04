@@ -23,7 +23,7 @@ save_csv = True #Set to False if you don't want to save/resave csvs
 save_figs = True
 project = signac.get_project()
 
-for val in [11, 12]:
+for val in [13]:
     criteria_dict = {"cs_name_val" : val,
                     "ep_enum_val": 1,
                     "gp_package":"gpflow",
