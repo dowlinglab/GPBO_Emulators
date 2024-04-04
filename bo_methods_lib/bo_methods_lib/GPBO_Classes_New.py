@@ -389,7 +389,7 @@ class Simulator:
         bounds_x_u: list, upper bounds of x
         noise_mean:float, int: The mean of the noise
         noise_std: float, int: The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
-        seed: int or None, Determines seed for randomizations. None if seed is random
+        set_seed: int or None, Determines seed for randomizations. None if seed is random
         calc_y_fxn: function, The function to calculate ysim data with
         calc_y_fxn_args: dict, dictionary of arguments other than parameters and x to pass to calc_y_fxn
         """
@@ -406,7 +406,6 @@ class Simulator:
         assert len(bounds_theta_l) == len(bounds_theta_u) and len(bounds_x_l) == len(bounds_x_u), "bounds lists for x and theta must be same length"
         #Check indeces to consider in theta_ref
         assert all(0 <= idx <= len(theta_ref)-1 for idx in indeces_to_consider)==True, "indeces to consider must be in range of theta_ref"
-        
         assert isinstance(calc_y_fxn_args, dict) or calc_y_fxn_args is None, "calc_y_fxn_args must be dict or None"
         
         #How to write assert statements for calc_y_fxn?
@@ -479,7 +478,7 @@ class Simulator:
         ----------
         num_points: int, number of points in LHS, should be greater than # of dimensions
         bounds: ndarray, array containing upper and lower bounds of elements in LHS sample. Defaults of 0 and 1
-        seed: int, seed of random generation
+        set_seed: int, seed of random generation
 
         Returns
         -------
@@ -586,9 +585,9 @@ class Simulator:
             #If noise is none, set the noise as 5% of the mean value
             noise_std = np.abs(np.mean(y_data))*0.05
         else:
-            noise_std = self.noise_std
+            noise_std = noise_std
 
-        noise = np.random.normal(size=len(y_data), loc = self.noise_mean, scale = noise_std)
+        noise = np.random.normal(size=len(y_data), loc = noise_mean, scale = noise_std)
         
         #Add noise to data
         y_data = y_data + noise
@@ -716,11 +715,10 @@ class Simulator:
         Parameters
         ----------
         num_theta_data: int, number of theta values
-        gen_meth_theta: bool: Whether to generate theta data with LHS or grid method
         
         Returns:
         --------
-        sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        theta_vals: ndarray, theta values generated
         """
         assert isinstance(num_theta_data, int) and num_theta_data > 0, "num_theta_data must be int > 0"
         gen_meth_theta = Gen_meth_enum(1)
@@ -744,9 +742,9 @@ class Simulator:
 
         Parameters
         ----------
-        method: class, fully defined methods class which determines which method will be used
-        sim_data: Class, Class containing at least the theta_vals, x_vals, and y_vals for simulation
-        exp_data: Class, Class containing at least the x_data and y_data for the experimental data
+        method: GPBO_Methods, fully defined methods class which determines which method will be used
+        sim_data: Data, Class containing at least the theta_vals, x_vals, and y_vals for simulation
+        exp_data: Data, Class containing at least the x_data and y_data for the experimental data
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
         gen_val_data: bool, Whether validation data (no y vals) or simulation data (has y vals) will be generated. Default False
 
