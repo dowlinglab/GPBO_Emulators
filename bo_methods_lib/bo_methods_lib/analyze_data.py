@@ -34,7 +34,6 @@ def open_file_helper(file_path):
             results = pickle.load(fileObj)          
     else:
         raise Warning("File type must be .gz or .pickle!")
-    fileObj.close()
     
     return results
 
@@ -914,15 +913,17 @@ class General_Analysis:
         param_info_dict: dict, the parameter information for the given pair
         sp_data: dict, the statepoint data for the job
         """
-
         #Assert that heat map data does not aleady exist
         dir_name = os.path.join(job.fn(""), "analysis_data", "gp_evaluations", 
                                 "run_" + str(run_num), "iter_" + str(bo_iter),  "pair_" + str(pair_id))
         hm_path_name = os.path.join(dir_name, "hm_data.gz")
         hm_sse_path_name = os.path.join(dir_name, "hm_sse_data.gz")
         param_info_path = os.path.join(dir_name, "notable_param_info.pkl")
-
-        found_data1, heat_map_data = self.load_data(hm_path_name)
+        try:
+            found_data1, heat_map_data = self.load_data(hm_path_name)
+        except:
+            print(job.id, hm_path_name)
+            found_data1, heat_map_data = False, None
         found_data2, heat_map_sse_data = self.load_data(hm_sse_path_name)
         found_data3, param_info_dict = self.load_data(param_info_path)
 
