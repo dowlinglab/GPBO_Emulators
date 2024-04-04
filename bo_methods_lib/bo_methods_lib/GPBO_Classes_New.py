@@ -1229,7 +1229,7 @@ class GP_Emulator:
         #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim,\
         elif isinstance(self.lenscl, (float, int)):            
             #Anisotropic but the same
-            lenscl_guess = self.lenscl
+            lenscl_guess = self.lenscl*np.ones(self.get_dim_gp_data())
             set_lenscl_trainable = False
             
         #Otherwise initialize them at 1 (lenscl is trained) 
@@ -1263,11 +1263,13 @@ class GP_Emulator:
 
             c_guess= sum(scl_y.flatten()**2)/len(scl_y)
             tau = c_guess
-        else:
-            assert self.outputscl> 0, "outputscl must be positive"
+        elif isinstance(self.outputscl, (float, int, np.float64)):
+            assert self.outputscl > 0, "outputscl must be positive int or float"
             tau = self.outputscl
-            if self.outputscl == False:
-                set_c_trainable = False
+            set_c_trainable = False
+        else:
+            tau = 1.0
+            set_c_trainable = False
             
         tau_guess_min = 1.01e-6
         if tau_guess_min < tau:
@@ -1305,9 +1307,11 @@ class GP_Emulator:
         ls_guess, set_ls_trainable = self.__set_lenscl()
 
         if not edu_guess:
-            ls_guess = np.exp(np.random.uniform(0 , 3, size = len(ls_guess)))
-            # c_guess = scipy.stats.halfcauchy.rvs(loc = 1.0, scale = 5.0)
-            c_guess = np.exp(np.random.uniform(0. , 5.) )
+            if set_c_trainable:
+                c_guess = np.exp(np.random.uniform(0. , 5.) )
+                # c_guess = scipy.stats.halfcauchy.rvs(loc = 1.0, scale = 5.0)
+            if set_ls_trainable:
+                ls_guess = np.exp(np.random.uniform(0 , 3, size = len(ls_guess)))
 
         #Set base kernel
         kernel_base = self.__set_base_kernel(c_guess, set_c_trainable, ls_guess, set_ls_trainable)
@@ -1350,6 +1354,8 @@ class GP_Emulator:
         #On the 1st iteration, use initial guesses based on training data values
         edu_guess = True if count_fix == 0 else False
         kernel = self.__set_gp_kernel(edu_guess)
+
+        # gpflow.utilities.print_summary(kernel)
         
         return kernel
     

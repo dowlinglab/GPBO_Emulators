@@ -61,6 +61,7 @@ def test_type_1_list(gp_mean, gp_var, best_error, ei_expected):
                ## ep_bias, gp_mean, gp_var, exp_data, best_error, method, depth
 ei_init_list = [["ep_bias", np.array([0.5]), np.array([0.02]), exp_data, 0.2, Method_name_enum(3), None],
                [ep_bias, [0.5], np.array([0.02]), exp_data, 0.2, Method_name_enum(3), 1],
+               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, 0.2, Method_name_enum(7), 1],
                [ep_bias, np.array([0.5]), np.array([0.02]), "exp_data", 0.2, Method_name_enum(3), 1],
                [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, "best_error", Method_name_enum(3), 1],
                [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, 0.2, 3, 1],
