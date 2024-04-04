@@ -930,6 +930,11 @@ class General_Analysis:
         with open(job.fn("signac_statepoint.json"), 'r') as json_file:
             # Load the JSON data
             sp_data = json.load(json_file)
+
+        #Set run number to the index of the run number in the job by subtracting
+        #The number of the first run in the job
+        run_num -= sp_data["bo_run_num"]
+        bo_iter -= 1
         cs_params, method, gen_meth_theta, ep_method = self.__rebuild_cs(sp_data)
 
         data_not_found = not found_data1 or not found_data2 or not found_data3
@@ -943,16 +948,10 @@ class General_Analysis:
         #If we don't need acq data, set data_needs_ei to False
         elif not get_ei:
             data_needs_ei = False
-     
+
         #Generate driver class/ emulator class if data doesn't exist or we need to calculate acq
         if self.save_csv or data_not_found or data_needs_ei:
             loaded_results = open_file_helper(job.fn("BO_Results.gz"))
-            
-            #If there is only 1 run, set run num to 0
-            run_num -= 1
-            bo_iter -= 1
-            if len(loaded_results) == 1:
-                run_num = 0
 
             #Create Heat Map Data for a run and iter
             #Regeneate class objects 
@@ -1079,7 +1078,7 @@ class General_Analysis:
         #Reshape data to correct shape and add to list to return
         reshape_list = [sse_sim, sse_mean, sse_var]     
         all_data = [var.reshape(theta_pts,theta_pts).T for var in reshape_list]
-        if data_needs_ei:
+        if get_ei:
             all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
         else:
             all_data += [None]
