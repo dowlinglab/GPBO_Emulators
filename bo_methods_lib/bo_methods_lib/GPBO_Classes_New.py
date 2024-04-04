@@ -1024,8 +1024,8 @@ class GP_Emulator:
     __set_outputscl(self)
     set_gp_model_data(self)
     __set_gp_kernel(self, edu_guess = True)
-    init_hyper_parameters(self, count_fix)
-    fit_GP(self, count_fix)
+    __init_hyper_parameters(self, count_fix)
+    __fit_GP(self, count_fix)
     train_gp(self)
     __eval_gp_mean_var(data)
     eval_gp_mean_var_misc(misc_data, featurized_misc_data, covar=False)
@@ -1367,7 +1367,7 @@ class GP_Emulator:
         return gp_model
     
     # Hyper-parameters initialization
-    def init_hyper_parameters(self, count_fix):
+    def __init_hyper_parameters(self, count_fix):
         """
         Initializes the kernel and its hyperparameters for the GP model
 
@@ -1391,7 +1391,7 @@ class GP_Emulator:
         
         return kernel
 
-    def fit_GP(self, count_fix):
+    def __fit_GP(self, count_fix):
         """
         Fit a GP and fix Cholesky decomposition failure and optimization failure by random initialization
 
@@ -1410,7 +1410,7 @@ class GP_Emulator:
         #Initialize fit_sucess as true
         fit_successed = True   
         #Get hyperparam guess list
-        kernel = self.init_hyper_parameters(count_fix)
+        kernel = self.__init_hyper_parameters(count_fix)
         try:
             #Make model and optimizer and get results
             model = self.set_gp_model(kernel)
@@ -1421,14 +1421,14 @@ class GP_Emulator:
             if not(res.success):
                 if count_fix < self.retrain_GP:
                     count_fix += 1 
-                    fit_successed,model,count_fix = self.fit_GP(count_fix)
+                    fit_successed,model,count_fix = self.__fit_GP(count_fix)
                 else:
                     fit_successed = False
         #If an error is thrown becauuse of bad hyperparameters, reoptimize them
         except tf.errors.InvalidArgumentError as e:
             if count_fix < self.retrain_GP:
                 count_fix += 1
-                fit_successed,model,count_fix = self.fit_GP(count_fix)
+                fit_successed,model,count_fix = self.__fit_GP(count_fix)
             else:
                 fit_successed = False
 
@@ -1457,7 +1457,7 @@ class GP_Emulator:
         #While you still have retrains left
         while count_fix_tot <= self.retrain_GP:
             #Create and fit the model
-            fit_successed, gp_model, count_fix = self.fit_GP(count_fix_tot)
+            fit_successed, gp_model, count_fix = self.__fit_GP(count_fix_tot)
             #The new counter total is the number of counters used + 1
             count_fix_tot += count_fix + 1
             #If the fit succeeded 
