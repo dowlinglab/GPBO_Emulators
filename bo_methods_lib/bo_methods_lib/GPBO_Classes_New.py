@@ -288,7 +288,7 @@ class CaseStudyParameters:
         bo_run_tot: int, total number of BO algorithm restarts
         save_data: bool, Determines whether ei data for argmax(ei) theta will be saved
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
-        seed: int or None, Determines seed for randomizations. None if seed is random
+        set_seed: int or None, Determines seed for randomizations. None if seed is random
         obj_tol: float, obj at which to terminate algorithm after int(bo_iter_tot*0.3) iters
         acq_tol: float, acquisition function value at which to terminate algorithm
         """
@@ -603,6 +603,7 @@ class Simulator:
         num_x_data: int, number of experiments
         gen_meth_x: bool: Whether to generate X data with LHS or grid method
         set_seed: int or None, Seed with which t0 generate experimental data. None sets the seed to the class seed
+
         Returns:
         --------
         exp_data: instance of a class filled in with experimental x and y data along with parameter bounds
@@ -1017,16 +1018,20 @@ class GP_Emulator:
     --------------
     __init__
     get_num_gp_data()
-    __set_kernel()
-    __set_lenscl(kernel)
-    __set_outputscl(kernel)
-    set_model()
-    train_gp(gp_model)
+    __set_lenscl_guess(self)
+    __set_white_kern(self)
+    __set_base_kernel(self, c_guess, set_c_trainable, ls_guess, set_ls_trainable)
+    __set_outputscl(self)
+    set_gp_model_data(self)
+    __set_gp_kernel(self, edu_guess = True)
+    init_hyper_parameters(self, count_fix)
+    fit_GP(self, count_fix)
+    train_gp(self)
     __eval_gp_mean_var(data)
-    eval_gp_mean_var_misc(misc_data, featurized_misc_data)
-    eval_gp_mean_var_test()
-    eval_gp_mean_var_val()
-    eval_gp_mean_var_cand()
+    eval_gp_mean_var_misc(misc_data, featurized_misc_data, covar=False)
+    eval_gp_mean_var_test(covar=False)
+    eval_gp_mean_var_val(covar=False)
+    eval_gp_mean_var_cand(covar=False)
     """
     # Class variables and attributes
     
@@ -1118,8 +1123,7 @@ class GP_Emulator:
 
         Returns:
         --------
-        min_lenscl: float, the lower bound of the lengthscale parameters
-        max_lenscl: float, the upper bound of the lengthscale parameters
+        lenscl_guess: ndarray, array of lengthscale guesses
         """
 
         #Set lenscl bounds using the original training data to ensure distance
@@ -1147,6 +1151,13 @@ class GP_Emulator:
         
     
     def __set_white_kern(self):
+        """
+        Sets the white kernel value guess or allows gp to tune the noise parameter
+
+        Returns:
+        --------    
+        noise_kern: kernel, the noise kernel of the model
+        """
         #Set the noise guess or allow gp to tune the noise parameter
         if self.normalize:
             self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
@@ -1174,11 +1185,11 @@ class GP_Emulator:
 
     def __set_base_kernel(self, c_guess, set_c_trainable, ls_guess, set_ls_trainable):
         """
-        Sets kernel of the model
+        Sets the base kernel of the model
         
         Returns
         ----------
-        kernel: The original kernel of the model
+        kernel: The base kernel of the model
         
         """ 
         #Set the type of kernel
@@ -1202,15 +1213,16 @@ class GP_Emulator:
     
     def __set_lenscl(self):
         """
-        Set the lengthscale of the model. Need to have training data before 
-        
-        Parameters
-        ----------
-        kernel: The kernel of the model defined by __set_kernel
+        Set the original lengthscale of the model and determines whether lengthscale is tunable
         
         Returns
         -------
-        kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
+        lenscl_guess: ndarray, array of lengthscale guesses
+        set_lenscl_trainable: bool, whether the lengthscale is tunable or not
+
+        Notes:
+        ------
+        Need to have training data before using this function
         """
         set_lenscl_trainable = True
         if isinstance(self.lenscl, np.ndarray):
@@ -1238,15 +1250,16 @@ class GP_Emulator:
     
     def __set_outputscl(self):
         """
-        Set the outputscale of the model
-        
-        Parameters
-        ----------
-        kernel: The kernel of the model defined by __set_kernel with the lengthscale bounds set
+        Set the initial outputscale of the model and determines whether it is tunable
         
         Returns
         -------
-        kernel: The kernel of the model defined by __set_kernel with the outputscale bounds set
+        tau_guess: float, initial outputscale guess
+        set_c_trainable: bool, whether the outputscale is tunable or not
+
+        Notes:
+        ------
+        Need to have training data before using this function
         """
         set_c_trainable = True
         
@@ -1277,6 +1290,13 @@ class GP_Emulator:
         return tau_guess, set_c_trainable
     
     def set_gp_model_data(self):
+        """
+        Sets the training data for the GP model
+
+        Returns
+        -------
+        data: tuple or 2 np.ndarrays, the feature and output training data for the GP model
+        """
         #Set new model data
         #Preprocess Training data
         if self.normalize == True:
@@ -1292,11 +1312,15 @@ class GP_Emulator:
     
     def __set_gp_kernel(self, edu_guess = True):
         """
-        Generates the GP model for the process in sklearn
+        Generates the full gp kernel by combining the noise and base kernels
+
+        Parameters
+        ----------
+        edu_guess: bool, whether to use an educated guess for the hyperparameters or not
             
         Returns
         --------
-        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor containing kernel, optimizer, etc.
+        kernel: kernel, the full gp kernel
         """  
         #Get tau val
         c_guess, set_c_trainable = self.__set_outputscl()
@@ -1344,6 +1368,17 @@ class GP_Emulator:
     
     # Hyper-parameters initialization
     def init_hyper_parameters(self, count_fix):
+        """
+        Initializes the kernel and its hyperparameters for the GP model
+
+        Parameters
+        ----------
+        count_fix: int, the number of times the GP has been retrained
+
+        Returns
+        --------
+        kernel: kernel, the full gp kernel to optimize
+        """
         tf.compat.v1.get_default_graph()
         tf.compat.v1.set_random_seed(count_fix)
         tf.random.set_seed(count_fix)
@@ -1355,10 +1390,21 @@ class GP_Emulator:
         # gpflow.utilities.print_summary(kernel)
         
         return kernel
-    
-    # fit a GP and fix Cholesky decomposition failure,optimization failure and bad solution 
-    # by random initialization if detected
+
     def fit_GP(self, count_fix):
+        """
+        Fit a GP and fix Cholesky decomposition failure and optimization failure by random initialization
+
+        Parameters
+        ----------
+        count_fix: int, the number of times the GP has been retrained
+
+        Returns
+        --------
+        fit_successed: bool, whether the GP was fit successfully
+        model: instance of gpflow.models.GPR, the trained GP model
+        count_fix: int, the number of times the GP has been retrained
+        """
         #Randomize Seed
         np.random.seed(count_fix+1)
         #Initialize fit_sucess as true
@@ -1386,46 +1432,18 @@ class GP_Emulator:
             else:
                 fit_successed = False
 
-        #If the fit is successful, check whether the fit is good (This is BROKEN DO NOT USE FOR NOW)
-        # if fit_successed:
-        #     #Get scaled model data
-        #     X_scl = model.data[0]
-        #     y_scl = model.data[1]
-
-        #     #Make testing data from min and max + linspace
-        #     minX = np.amin(X_scl, axis = 0)
-        #     maxX = np.amax(X_scl, axis = 0)
-        #     xtest = np.linspace(minX, maxX, 100)
-
-        #     #Evaluate GP
-        #     posterior = model.posterior()
-        #     mean, var = posterior.predict_f(xtest)
-        #     mean = mean.numpy()      
-            
-        #     #Check for good fit
-        #     if count_fix < self.retrain_GP: 
-        #         y_mean = np.mean(y_scl)
-        #         mean_mean = np.mean(mean)
-        #         y_max = np.max(y_scl)
-        #         mean_max = np.max(mean)
-        #         y_min = np.abs(np.min(y_scl))
-        #         mean_min = np.abs(np.min(mean))
-                
-        #         if y_mean > 0.0 and (mean_max > y_max or mean_min < y_min):
-        #             if abs(round((mean_mean-y_mean)/y_mean)) > 0 or mean_mean == 0.0:
-        #                 count_fix += 1 
-        #                 fit_successed,model,count_fix = self.fit_GP(count_fix)
-
         return fit_successed,model, count_fix
         
     def train_gp(self):
         """
         Trains the GP given training data. Sets self.trained_hyperparams and self.fit_gp_model
         
-        Parameters
-        ----------
-        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor, The untrained, fully defined gp model
-            
+        Notes:
+        ------
+        Sets the following parameters of self
+        self.trained_hyperparams: list, the trained hyperparameters of the GP model
+        self.fit_gp_model: instance of gpflow.models.GPR, the trained GP model
+        self.posterior: instance of gpflow.mean_field.KFGaussian, the posterior of the GP model 
         """  
         assert isinstance(self.feature_train_data, np.ndarray), "self.feature_train_data must be np.ndarray"
         assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
@@ -1960,6 +1978,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         -------
         best_error: float, the best error of the method
         be_theta: np.ndarray, the parameter set associated with the best error of the method
+        train_idc: int, the index of the best error in the training data
         
         """   
         assert self.train_data is not None, "Must have self.train_data"
@@ -1983,7 +2002,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         
         Returns
         -------
@@ -2008,7 +2027,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         misc_data, Instance of Data class, data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (squared error) values of the method
         
         Returns
         -------
@@ -2030,7 +2049,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ----------
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error theta, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error theta, and best_error_x (squared error) values of the method
         
         Returns
         -------
@@ -2052,7 +2071,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ----------
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         
         Returns
         -------
@@ -2075,7 +2094,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ----------
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         
         Returns
         -------
@@ -2480,7 +2499,7 @@ class Type_2_GP_Emulator(GP_Emulator):
     
     def calc_best_error(self, method, exp_data):
         """
-        Calculates the best error of the model (sse) and error for each state point x (se)
+        Calculates the best error of the model (sse) and squared error for each state point x (squared error)
         
         Parameters
         ----------
@@ -2491,8 +2510,8 @@ class Type_2_GP_Emulator(GP_Emulator):
         -------
         best_error: float, the best error (sse) of the method
         be_theta: np.ndarray, The parameter set associated with the best error value
-        ind_errors: np.ndarray, array of squared errors for each value of x
-        
+        best_sq_error: np.ndarray, array of squared errors for each value of x
+        org_train_idcs: list, the original training indices of be_theta
         """ 
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods class"
         assert all(isinstance(var , Data) for var in [self.train_data, exp_data]), "self.tain_data and exp_data must be type Data"
@@ -2545,7 +2564,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
         sg_depth: int or None, the depth to use for the Tasmanian sparse grid
         
@@ -2579,7 +2598,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         misc_data, Instance of Data class, data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
         sg_depth: int or None, the depth to use for the Tasmanian sparse grid
         
@@ -2607,7 +2626,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
         sg_depth: int or None, the depth to use for the Tasmanian sparse grid
         
@@ -2635,7 +2654,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
         sg_depth: int or None, the depth to use for the Tasmanian sparse grid
         
@@ -2663,7 +2682,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         sim_data, Instance of Data class, sim data to evaluate ei for
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
         sg_depth: int or None, the depth to use for the Tasmanian sparse grid
         
@@ -2718,7 +2737,7 @@ class Expected_Improvement():
     type_2(method)
     __calc_ei_emulator(gp_mean, gp_var, y_target)
     __calc_ei_log_emulator(gp_mean, gp_var, y_target)
-    __ei_approx_ln_term(epsilon, gp_mean, gp_stdev, y_target, ep)
+    __ei_approx_ln_term(epsilon, gp_mean, gp_stdev, y_target)
     __calc_ei_sparse(gp_mean, gp_var, y_target)
     __get_sparse_grids(dim, output=0,depth=10, rule="gauss-hermite", verbose = False, alpha = 0)
     __calc_ei_mc(gp_mean, gp_var, y_target)
@@ -2732,7 +2751,7 @@ class Expected_Improvement():
         gp_mean: tensor, The GP model's mean evaluated over param_set 
         gp_var: tensor, The GP model's variance evaluated over param_set
         exp_data: Instance of Data class, the experimental data to evaluate ei with
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         set_seed: int or None, Determines seed for randomizations. None if seed is random
         sg_depth: int or None, the depth to use for the Tasmanian sparse grid. Only necessary for Sparse Grid method
         """
@@ -3001,7 +3020,7 @@ class Expected_Improvement():
                 #Calculate EI
                 args = (gp_mean_val, pred_stdev_val, y_target_val, self.ep_bias.ep_curr)
                 ei_term_1 = (best_errors_x*self.ep_bias.ep_curr)*( norm.cdf(bound_upper)-norm.cdf(bound_lower) )
-                ei_term_2_out = np.array([integrate.quad(self.__ei_approx_ln_term, bl, bu, args=(gm, ps, yt, self.ep_bias.ep_curr)) for bl, bu, gm, ps, yt in zip(bound_lower, bound_upper, gp_mean_val, pred_stdev_val, y_target_val)])
+                ei_term_2_out = np.array([integrate.quad(self.__ei_approx_ln_term, bl, bu, args=(gm, ps, yt)) for bl, bu, gm, ps, yt in zip(bound_lower, bound_upper, gp_mean_val, pred_stdev_val, y_target_val)])
 
                 ei_term_2 = (-2)*ei_term_2_out[:,0] 
                 term_2_abs_err = ei_term_2_out[:,1]
@@ -3021,7 +3040,7 @@ class Expected_Improvement():
   
         return ei_temp, row_data
 
-    def __ei_approx_ln_term(self, epsilon, gp_mean, gp_stdev, y_target, ep): 
+    def __ei_approx_ln_term(self, epsilon, gp_mean, gp_stdev, y_target): 
         """ 
         Calculates the integrand of expected improvement of the emulator approach using the log version
         
@@ -3597,7 +3616,7 @@ class GPBO_Driver:
     
     def __get_best_error(self):
         """
-        Helper function to calculate the best error (sse) and error calculations over x (se) given the method.
+        Helper function to calculate the best error (sse) and squared error calculations over x (squared error) given the method.
         
         Returns
         -------
@@ -3638,7 +3657,7 @@ class GPBO_Driver:
         
         Parameters:
         -----------
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         
         Returns:
         --------
@@ -3659,7 +3678,7 @@ class GPBO_Driver:
         
         Parameters:
         -----------
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         
         Returns:
         --------
@@ -3900,11 +3919,14 @@ class GPBO_Driver:
     def create_heat_map_param_data(self, n_points_set = None):
         """
         Creates parameter sets that can be used to create heat maps of data at any given iteration
-               
+
+        Parameters:
+        -----------
+        n_points_set: int or None, the number of points to use per axis for creating heat maps. Default None. If None, the number of unique simulation points is used
+        
         Returns:
         --------
         heat_map_data_dict: dict, heat map data for each set of 2 parameters indexed by parameter name tuple ("param_1,param_2")
-        n_points_set: int or None, the number of points to use per axis for creating heat maps. Default None. If None, the number of unique simulation points is used
         """      
         assert isinstance(self.gp_emulator, (Type_1_GP_Emulator, Type_2_GP_Emulator)), "self.gp_emulator must be instance of Type_1_GP_Emulator or Type_2_GP_Emulator"
         assert isinstance(self.gp_emulator.gp_sim_data, Data), "self.gp_emulator.gp_sim_data must be an instance of Data!"
@@ -3997,6 +4019,7 @@ class GPBO_Driver:
         Parameters
         ----------
         theta_array: np.ndarray, Array of theta values to turn into an instance of Data
+        get_y: bool, Whether to calculate y values for the theta_array
         
         Returns
         --------
