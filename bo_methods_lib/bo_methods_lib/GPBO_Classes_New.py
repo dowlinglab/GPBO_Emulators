@@ -3820,7 +3820,7 @@ class GPBO_Driver:
         -----------
         theta: ndarray, the array of theta values to optimize
         opt_obj: str, which objective to calculate. neg_ei, sse, or lcb
-        tuple, the best error (sse), best error parameter set, and  best_error_x (se) values of the method
+        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         beta: float or None, The value of beta for calculating the lcb. Only necessary when opt_obj == 'lcb'
         
         Returns:
