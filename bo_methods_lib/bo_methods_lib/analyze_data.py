@@ -4,8 +4,8 @@ import pandas as pd
 import copy
 import signac
 from ast import literal_eval
+from collections.abc import Iterable
 
-import bo_methods_lib
 from .GPBO_Classes_New import *
 from .GPBO_Class_fxns import * 
 import pickle
@@ -26,7 +26,6 @@ def open_file_helper(file_path):
     -------
     results: pickled object, The results stored in the .pickle or .gz file
     """
-    
     if file_path.endswith('.pickle') or file_path.endswith('.pkl'):
         with open(file_path, 'rb') as fileObj:
             results = pickle.load(fileObj) 
@@ -82,9 +81,18 @@ class General_Analysis:
         assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
         assert isinstance(project, signac.project.Project), "project must be a signac.Project object"
         assert isinstance(save_csv, bool), "save_csv must be a boolean"
-        key_list = list(project.get_statepoints())
-        assert all(key in key_list for key in criteria_dict.keys()), "All keys in criteria_dict must be in project statepoints"
-
+        # Collect unique statepoints of all jobs
+        statepoint_names = set()
+        for job in project:
+            statepoint_names.update(job.statepoint().keys())
+        key_list = list(statepoint_names)
+        self.sp_keys_valid = key_list
+        # print(self.sp_keys_valid)
+        # value = all(key in key_list for key in list(criteria_dict.keys()))
+        # print(value)
+        # print(all(key in key_list for key in list(criteria_dict.keys())))
+        # print(list(criteria_dict.keys()))
+        assert all(key in key_list for key in list(criteria_dict.keys())) == True, "All keys in criteria_dict must be in project statepoints"
 
         # Constructor method
         self.criteria_dict = criteria_dict
@@ -109,7 +117,11 @@ class General_Analysis:
         -----
         For proper use, ALWAYS use this function with is_nested = False
         """
-        
+        assert isinstance(dict_to_use, dict), "dict_to_use must be a dictionary"
+        assert isinstance(is_nested, bool), "is_nested must be a boolean"
+        #Note, criteria dict is only checked when is_nested = False
+        if not is_nested:
+            assert all(key in self.sp_keys_valid for key in list(dict_to_use.keys())) == True, "All keys in criteria_dict must be in project statepoints"
         #Organize Dictionary keys and values sorted from lowest to highest
         sorted_dict = dict(sorted(dict_to_use.items(), key=lambda item: (item[0], item[1])))
         
@@ -217,7 +229,7 @@ class General_Analysis:
         save_csv is set to the class default when not specified
         
         """
-        assert isinstance(job, signac.Job), "job must be a signac.Job object"
+        assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         save_csv = self.save_csv if save_csv == None else save_csv
         #Initialize df for a single job
         df_job = pd.DataFrame()
@@ -333,8 +345,10 @@ class General_Analysis:
                     median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')[0]
                 else:
                     median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')
+                #Ensure that only one values is used if there are multiple
+                med_df = pd.DataFrame([df_meth[df_meth['Min Obj Act'] == median_sse].iloc[0]], columns=df_meth.columns) 
                 #Add df to median
-                df_median = pd.concat([df_median,df_meth[df_meth['Min Obj Act'] == median_sse]])
+                df_median = pd.concat([df_median, med_df])
             #Calculate the L2 Norm for the median values
             df_median = self.__calc_l2_norm(df_median, np.array(list(theta_true_data.values())))
             #Sort df
@@ -604,7 +618,7 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.Job, the job to analyze
+        job: signac.job.Job, the job to analyze
         z_choice: list or str, the choices of data to analyze
         data_type: str, the type of data to analyze (parameter or objective data)
 
@@ -659,7 +673,7 @@ class General_Analysis:
         
         Parameters
         ----------
-        job: signac.Job, the job to analyze
+        job: signac.job.Job, the job to analyze
         z_choices: list or str, the choices of data to analyze
         
         Returns
@@ -669,8 +683,13 @@ class General_Analysis:
         data_true: dict or None, the true values of the data
         sp_data: dict, the statepoint data for the job
         """
+        assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
+        assert isinstance(z_choices, (Iterable, str)), "z_choices must be Iterable or str"
         if isinstance(z_choices, str):
             z_choices = [z_choices]
+        assert all(isinstance(item, str) for item in z_choices), "z_choices elements must be str"
+        for i in range(len(z_choices)):
+            assert z_choices[i] in ['min_sse','sse','acq'],"z_choices items must be 'min_sse', 'sse', or 'acq'"
 
         df_job, data, data_true_val, sp_data, tot_runs = self.__preprocess_analyze(job, z_choices, "objs")
         data_true = {}
@@ -703,7 +722,7 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.Job, the job to analyze
+        job: signac.job.Job, the job to analyze
         z_choice: str, the choice of data to analyze
 
         Returns
@@ -713,6 +732,10 @@ class General_Analysis:
         data_true: dict or None, the true values of the data
         sp_data: dict, the statepoint data for the job
         """
+        assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
+        assert isinstance(z_choice, (str)), "z_choice must be a str"
+        assert z_choice in ['min_sse','sse','acq'],"z_choice must be 'min_sse', 'sse', or 'acq'"
+
         df_job, data, data_true, sp_data, tot_runs = self.__preprocess_analyze(job, z_choice, "params")
         col_name, data_names = self.__z_choice_helper(z_choice, data_true, "params")
         #Loop over runs
@@ -749,7 +772,7 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.Job, the job to analyze
+        job: signac.job.Job, the job to analyze
 
         Returns
         -------
@@ -844,7 +867,7 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.Job, the job to analyze
+        job: signac.job.Job, the job to analyze
         run_num: int, the run number to analyze
         bo_iter: int, the bo iteration to analyze
 
@@ -852,6 +875,9 @@ class General_Analysis:
         -------
         test_data: Data, the evaluated testing data for the given run and iteration
         """
+        assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
+        assert isinstance(run_num, (np.int64, int)), "run_num must be an int"
+        assert isinstance(bo_iter, (np.int64,int)), "bo_iter must be an int"
         #Get Best Data
         #Check if data exists, if so, load it
         #Assert that heat map data does not aleady exist
@@ -876,6 +902,8 @@ class General_Analysis:
         if self.save_csv or not found_data1:
             #Open file
             results = open_file_helper(job.fn("BO_Results.gz"))
+            assert len(results) > run_idx, "run_num is out of bounds"
+            assert len((results[run_idx].list_gp_emulator_class) > bo_iter-1), "bo_iter is out of bounds"
             gp_object = copy.copy(results[run_idx].list_gp_emulator_class[bo_iter-1])
             simulator = copy.copy(results[run_idx].simulator_class)
             exp_data = copy.copy(results[0].exp_data_class) #Experimental data won't change
@@ -910,7 +938,7 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.Job, the job to analyze
+        job: signac.job.Job, the job to analyze
         run_num: int, the run number to analyze
         bo_iter: int, the bo iteration to analyze
         pair_id: int or str, the pair of parameters to analyze
@@ -923,6 +951,12 @@ class General_Analysis:
         param_info_dict: dict, the parameter information for the given pair
         sp_data: dict, the statepoint data for the job
         """
+        assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
+        assert isinstance(run_num, (np.int64, int)), "run_num must be an int"
+        assert isinstance(bo_iter, (np.int64,int)), "bo_iter must be an int"
+        assert isinstance(pair_id, (np.int64, int, str)), "pair_id must be an int or str"
+        assert isinstance(get_ei, bool), "get_ei must be a bool"
+
         #Assert that heat map data does not aleady exist
         dir_name = os.path.join(job.fn(""), "analysis_data", "gp_evaluations", 
                                 "run_" + str(run_num), "iter_" + str(bo_iter),  "pair_" + str(pair_id))
@@ -963,6 +997,8 @@ class General_Analysis:
         #Generate driver class/ emulator class if data doesn't exist or we need to calculate acq
         if self.save_csv or data_not_found or data_needs_ei:
             loaded_results = open_file_helper(job.fn("BO_Results.gz"))
+            assert len(loaded_results) > run_num, "run_num is out of bounds"
+            assert len((loaded_results[run_num].list_gp_emulator_class) > bo_iter), "bo_iter is out of bounds"
 
             #Create Heat Map Data for a run and iter
             #Regeneate class objects 
@@ -995,8 +1031,10 @@ class General_Analysis:
 
             #Get pair ID
             if isinstance(pair_id, str):
+                assert pair_id in loaded_results[0].heat_map_data_dict.keys(), "pair_id is an invalid string"
                 param_names = pair_id
             elif isinstance(pair_id, int):
+                assert pair_id < len(loaded_results[0].heat_map_data_dict.keys()), "pair_id is out of bounds"
                 param_names = list(loaded_results[0].heat_map_data_dict.keys())[pair_id]
             else:
                 raise Warning("Invalid pair_id!")

@@ -7,13 +7,14 @@ import itertools
 from itertools import combinations_with_replacement, combinations, permutations
 import signac
 
-import bo_methods_lib
 import pytest
 from bo_methods_lib.GPBO_Classes_New import * #Fix this later
 from bo_methods_lib.GPBO_Class_fxns import * #Fix this later
 from bo_methods_lib.analyze_data import *
 
 #FIX SYSTEM PATH PROBLEM
+# Get the parent directory
+print(os.getcwd())
 
 def test_bo_methods_lib_imported():
     """Sample test, will always pass so long as import statement worked."""
@@ -27,7 +28,7 @@ save_csv = False
 
 #This test function tests whether least_squares_analysis works correctly
                     #tot_runs, expected runs
-ls_analysis_list = [[None, 5],[3,3]] #Note: Since this is exp_data, number of thetas is defined by num_x_data**dim_x
+ls_analysis_list = [[None, 5],[3,3]] 
 @pytest.mark.parametrize("tot_runs, exp_runs", ls_analysis_list)
 def test_least_squares_analysis(tot_runs, exp_runs):
     ls_analyzer = LS_Analysis(criteria_dict, project, save_csv)
@@ -53,9 +54,9 @@ def test_categ_min(tot_runs):
     local_mins = ls_analyzer.categ_min(tot_runs)
     assert local_mins.shape[1] == 4
     assert local_mins.shape[0] == 1
-    assert local_mins["Min Obj Cum."] < 1e-5
-    assert local_mins["Optimality"] < 1e-7
-    assert local_mins["Termination"] == 1
+    assert (local_mins["Min Obj Cum."] < 1e-5).all()
+    assert (local_mins["Optimality"] < 1e-7).all()
+    assert (local_mins["Termination"] == 1).all()
 
 #This test function tests whether categ_min throws correct errors
                     #tot_runs
