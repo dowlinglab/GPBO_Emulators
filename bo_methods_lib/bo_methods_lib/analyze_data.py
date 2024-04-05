@@ -5,6 +5,7 @@ import copy
 import signac
 from ast import literal_eval
 
+import bo_methods_lib
 from .GPBO_Classes_New import *
 from .GPBO_Class_fxns import * 
 import pickle
@@ -79,7 +80,8 @@ class General_Analysis:
         """
         #Asserts
         assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
-        assert isinstance(save_csv, bool), "save_csv must be boolean"
+        assert isinstance(project, signac.Project), "project must be a signac.Project object"
+        assert isinstance(save_csv, bool), "save_csv must be a boolean"
 
         # Constructor method
         self.criteria_dict = criteria_dict
@@ -1105,6 +1107,11 @@ class LS_Analysis(General_Analysis):
     """
     #Inherit objects from General_Analysis
     def __init__(self, criteria_dict, project, save_csv, exp_data=None, simulator=None):
+        assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
+        assert isinstance(project, signac.Project), "project must be a signac.Project object"
+        assert isinstance(save_csv, bool), "save_csv must be a boolean"
+        assert isinstance(exp_data, Data) or exp_data == None, "exp_data must be type Data or None"
+        assert isinstance(simulator, Simulator) or simulator == None, "simulator must be type Simulator or None"
         super().__init__(criteria_dict, project, save_csv)
         self.iter_param_data = []
         self.iter_sse_data = []
@@ -1363,7 +1370,23 @@ class LS_Analysis(General_Analysis):
             all_sets = ls_results[["Theta Min Obj Cum.", "Min Obj Cum.", "Optimality", "Termination"]].copy(deep=True)
             
             #Make all arrays tuples
-            all_sets["Theta Min Obj Cum."] = tuple(map(tuple, all_sets["Theta Min Obj Cum."]))
+            # print(all_sets["Theta Min Obj Cum."].iloc[0], type(all_sets["Theta Min Obj Cum."].iloc[0]))
+            #Get string thetas into arrays if necessary
+            if type(all_sets["Theta Min Obj Cum."].iloc[0]) == str:
+                np_theta_arr = []
+                for str_arr in all_sets["Theta Min Obj Cum."]:
+                    # Find the index of the first space
+                    first_space_index = str_arr.index(' ')
+                    # Remove the first space
+                    if first_space_index == 1:
+                        str_no_space1 = str_arr[:first_space_index] + str_arr[first_space_index+1:]
+                    else:
+                        str_no_space1 = str_arr
+                    np_theta_arr.append(np.array(ast.literal_eval(re.sub(r'\s+', ',',str_no_space1))))
+                np_theta = np.array([arr.tolist() for arr in np_theta_arr])
+            else:
+                np_theta = all_sets["Theta Min Obj Cum."]
+            all_sets["Theta Min Obj Cum."] = tuple(map(tuple, np_theta))
             
             #Drop duplicate minima
             all_sets = all_sets.drop_duplicates(subset="Theta Min Obj Cum.", keep='first')

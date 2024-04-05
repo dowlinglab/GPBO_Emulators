@@ -429,6 +429,33 @@ def test_featurize_data_err(gp_emulator, simulator, exp_data, bad_data_val):
             bad_data = Data(None, exp_data.x_vals, None, None, None, None, None, None, bounds_theta, bounds_x, sep_fact, seed)
 
         gp_emulator.featurize_data(bad_data) #Set feature vals
+
+#Test that set_gp_model_data works as intended    
+                     #gp_emulator
+set_gp_model_data_list = [gp_emulator1_e, gp_emulator2_e]
+@pytest.mark.parametrize("gp_emulator", set_gp_model_data_list)
+def test_set_gp_model_data(gp_emulator):
+    #Make Fake Data class
+    train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed)
+    data = gp_emulator.set_gp_model_data()
+    assert isinstance(data, tuple)
+    assert len(data) == 2
+    assert data[0].shape[1] == train_data.theta_vals.shape[1] + train_data.x_vals.shape[1]
+    assert len(data[1]) == len(train_data.y_vals)
+
+#Test that set_gp_model_data throws the correct errors  
+                     #gp_emulator, simulator, exp_data, bad_data_val
+set_gp_model_data_err_list = [gp_emulator1_e, gp_emulator2_e]
+@pytest.mark.parametrize("gp_emulator", set_gp_model_data_err_list)
+def test_set_gp_model_data_err(gp_emulator):
+    with pytest.raises((AssertionError, AttributeError, ValueError)):
+        gp_emulator.train_data = None
+        gp_emulator.feature_train_data = None   
+        data = gp_emulator.set_gp_model_data()
+    with pytest.raises((AssertionError, AttributeError, ValueError)): 
+        train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed) 
+        gp_emulator.train_data.y_vals = None
+        data = gp_emulator.set_gp_model_data()
         
 #Define small case study
 num_x_data = 5

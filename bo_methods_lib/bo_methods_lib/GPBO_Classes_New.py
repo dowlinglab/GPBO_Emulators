@@ -1297,6 +1297,8 @@ class GP_Emulator:
         -------
         data: tuple or 2 np.ndarrays, the feature and output training data for the GP model
         """
+        assert self.feature_train_data is not None, "self.feature_train_data must be defined"
+        assert self.train_data.y_vals is not None, "self.train_data.y_vals must be defined"
         #Set new model data
         #Preprocess Training data
         if self.normalize == True:
