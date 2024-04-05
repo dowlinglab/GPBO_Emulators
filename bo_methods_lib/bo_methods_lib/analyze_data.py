@@ -75,13 +75,16 @@ class General_Analysis:
         Parameters
         ----------
         criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val
-        project: signac.Project, The signac project to analyze
+        project: signac.project.Project, The signac project to analyze
         save_csv: bool, whether to save csvs.
         """
         #Asserts
         assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
-        assert isinstance(project, signac.Project), "project must be a signac.Project object"
+        assert isinstance(project, signac.project.Project), "project must be a signac.Project object"
         assert isinstance(save_csv, bool), "save_csv must be a boolean"
+        key_list = list(project.get_statepoints())
+        assert all(key in key_list for key in criteria_dict.keys()), "All keys in criteria_dict must be in project statepoints"
+
 
         # Constructor method
         self.criteria_dict = criteria_dict
@@ -101,6 +104,10 @@ class General_Analysis:
         Returns
         -------
         result_dir: str, the directory name from the dictionary
+
+        Notes
+        -----
+        For proper use, ALWAYS use this function with is_nested = False
         """
         
         #Organize Dictionary keys and values sorted from lowest to highest
@@ -210,6 +217,7 @@ class General_Analysis:
         save_csv is set to the class default when not specified
         
         """
+        assert isinstance(job, signac.Job), "job must be a signac.Job object"
         save_csv = self.save_csv if save_csv == None else save_csv
         #Initialize df for a single job
         df_job = pd.DataFrame()
@@ -1107,9 +1115,6 @@ class LS_Analysis(General_Analysis):
     """
     #Inherit objects from General_Analysis
     def __init__(self, criteria_dict, project, save_csv, exp_data=None, simulator=None):
-        assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
-        assert isinstance(project, signac.Project), "project must be a signac.Project object"
-        assert isinstance(save_csv, bool), "save_csv must be a boolean"
         assert isinstance(exp_data, Data) or exp_data == None, "exp_data must be type Data or None"
         assert isinstance(simulator, Simulator) or simulator == None, "simulator must be type Simulator or None"
         super().__init__(criteria_dict, project, save_csv)
