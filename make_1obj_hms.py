@@ -29,7 +29,7 @@ save_figs = True
 
 project = signac.get_project()
 
-for val in [13]:
+for val in [14]:
     criteria_dict = {"cs_name_val" : val,
                     "ep_enum_val": 1,
                     "gp_package":"gpflow",
