@@ -903,7 +903,7 @@ class General_Analysis:
             #Open file
             results = open_file_helper(job.fn("BO_Results.gz"))
             assert len(results) > run_idx, "run_num is out of bounds"
-            assert len((results[run_idx].list_gp_emulator_class) > bo_iter-1), "bo_iter is out of bounds"
+            assert len(results[run_idx].list_gp_emulator_class) > bo_iter-1, "bo_iter is out of bounds"
             gp_object = copy.copy(results[run_idx].list_gp_emulator_class[bo_iter-1])
             simulator = copy.copy(results[run_idx].simulator_class)
             exp_data = copy.copy(results[0].exp_data_class) #Experimental data won't change
@@ -998,7 +998,7 @@ class General_Analysis:
         if self.save_csv or data_not_found or data_needs_ei:
             loaded_results = open_file_helper(job.fn("BO_Results.gz"))
             assert len(loaded_results) > run_num, "run_num is out of bounds"
-            assert len((loaded_results[run_num].list_gp_emulator_class) > bo_iter), "bo_iter is out of bounds"
+            assert len(loaded_results[run_num].list_gp_emulator_class) > bo_iter, "bo_iter is out of bounds"
 
             #Create Heat Map Data for a run and iter
             #Regeneate class objects 
