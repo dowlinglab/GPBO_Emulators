@@ -991,14 +991,14 @@ class General_Analysis:
         data_not_found = not found_data1 or not found_data2 or not found_data3
         #Initialize data_needs_ei as true
         data_needs_ei = True
+        #If we don't need acq data, set data_needs_ei to False
+        if get_ei == False:
+            data_needs_ei = False
         #If we have all the data and we need to calculate acq, check if we have acq data
-        if not data_not_found and get_ei:
+        elif not data_not_found and not self.save_csv and get_ei:
             #If we have all the data, we won't need to calculate ei
             if heat_map_sse_data.acq is not None:
                 data_needs_ei = False
-        #If we don't need acq data, set data_needs_ei to False
-        elif not get_ei:
-            data_needs_ei = False
 
         #Generate driver class/ emulator class if data doesn't exist or we need to calculate acq
         if self.save_csv or data_not_found or data_needs_ei:
@@ -1137,8 +1137,13 @@ class General_Analysis:
         #Reshape data to correct shape and add to list to return
         reshape_list = [sse_sim, sse_mean, sse_var]     
         all_data = [var.reshape(theta_pts,theta_pts).T for var in reshape_list]
-        if get_ei:
-            all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
+        if get_ei: #and heat_map_sse_data.acq is not None
+            try:
+                acq_new = copy.deepcopy(heat_map_sse_data.acq)
+                all_data += [acq_new.reshape(theta_pts,theta_pts).T]
+            except:
+                print(heat_map_sse_data.sse, heat_map_sse_data.sse_var, get_ei, data_needs_ei, heat_map_sse_data.acq)
+                all_data += [heat_map_sse_data.acq.reshape(theta_pts,theta_pts).T]
         else:
             all_data += [None]
         

@@ -3946,7 +3946,11 @@ class GPBO_Driver:
         
         #If no number of points is set, use the length of the unique simulation thetas
         if n_points_set == None:
-            n_thetas_points = len(self.gp_emulator.gp_sim_data.get_unique_theta()) #Use 20 pts for heat map data
+            #Use 20 pts for heat map data max otherwise, use number of training theta
+            if len(self.gp_emulator.gp_sim_data.get_unique_theta()) <= 20:
+                n_thetas_points = len(self.gp_emulator.gp_sim_data.get_unique_theta())
+            else:
+                n_thetas_points = 20
             #Initialze meshgrid-like set of theta values at their true values 
             #If points were generated with an LHS, the number of points per parameter is n_thetas_points for the meshgrid
             if self.gen_meth_theta.value == 1:
