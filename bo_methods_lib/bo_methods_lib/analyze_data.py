@@ -475,9 +475,15 @@ class General_Analysis:
             #If the values are not being read as strings this works
             theta_min_obj = np.array(list(df_data['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
         except:
-            #Otherwise, turn the theta values into a list and manually format the strings to be arrays
-            thetas_as_list = np.array(df_data['Theta Min Obj']).tolist()
-            theta_min_obj = np.array([list(map(float, s.strip('[]').split())) for s in thetas_as_list])
+            try:
+                #Otherwise, turn the theta values into a list and manually format the strings to be arrays
+                thetas_as_list = np.array(df_data['Theta Min Obj']).tolist()
+                theta_min_obj = np.array([list(map(float, s.strip('[]').split())) for s in thetas_as_list])
+            except: 
+                print(type(thetas_as_list))
+                print(thetas_as_list)
+                print(thetas_as_list.shape)
+                print(thetas_as_list[0].strip('[]').split())
 
         del_theta = theta_min_obj - theta_true
         theta_L2_norm = np.zeros(del_theta.shape[0])
@@ -1026,7 +1032,11 @@ class General_Analysis:
             if loaded_results[0].heat_map_data_dict is not None:
                 heat_map_data_dict = loaded_results[0].heat_map_data_dict
             else:
-                loaded_results[0].heat_map_data_dict = driver.create_heat_map_param_data()
+                if len(driver.gp_emulator.gp_sim_data.get_unique_theta()) <= 20:
+                    n_points_set = len(driver.gp_emulator.gp_sim_data.get_unique_theta())
+                else:
+                    n_points_set = 20
+                loaded_results[0].heat_map_data_dict = driver.create_heat_map_param_data(n_points_set)
                 heat_map_data_dict = loaded_results[0].heat_map_data_dict
 
             #Get pair ID

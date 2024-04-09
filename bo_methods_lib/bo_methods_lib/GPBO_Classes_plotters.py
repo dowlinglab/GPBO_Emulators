@@ -742,8 +742,9 @@ class Plotters:
             self.__save_fig(save_path_to)
         else:
             plt.show()
+            plt.close()
         
-        return 
+        return plt.show()
     
     def plot_hms_gp_compare(self, job, run_num, bo_iter, pair, z_choices, levels, log_data = False, title = None):
         '''
