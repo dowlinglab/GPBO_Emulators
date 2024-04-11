@@ -3632,22 +3632,11 @@ class GPBO_Driver:
             best_errors_x = None
             be_data = self.create_data_instance_from_theta(be_theta.flatten(), get_y = False)
             be_data.y_vals = np.atleast_1d(self.gp_emulator.train_data.y_vals[train_idx])
-            # be_data.gp_mean = np.atleast_1d(self.gp_emulator.train_data.gp_mean[train_idx])
-            # be_data.gp_var = np.atleast_1d(self.gp_emulator.train_data.gp_var[train_idx])
-            # be_data.sse = np.atleast_1d(self.gp_emulator.train_data.sse[train_idx])
-            # be_data.sse_var = np.atleast_1d(self.gp_emulator.train_data.sse_var[train_idx])
         else:
             #Type 2 best error must be calculated given the experimental data
             best_error, be_theta, best_errors_x, train_idx = self.gp_emulator.calc_best_error(self.method, self.exp_data)
             be_data = self.create_data_instance_from_theta(be_theta.flatten(), get_y = False)
             be_data.y_vals = self.gp_emulator.train_data.y_vals[train_idx[0]:train_idx[1]]
-            # be_data.gp_mean = self.gp_emulator.train_data.gp_mean[train_idx[0]:train_idx[1]]
-            # be_data.gp_var = self.gp_emulator.train_data.gp_var[train_idx[0]:train_idx[1]]
-            len_x = len(best_errors_x)
-            # be_data.sse = np.atleast_1d(self.gp_emulator.train_data.sse[int(train_idx[0]/len_x)])
-            # print(train_idx, len_x, int(train_idx[0]/len_x))
-            # print(self.gp_emulator.train_data.sse[int(train_idx[0]/len_x)], be_data.sse)
-            # be_data.sse_var = np.atleast_1d(self.gp_emulator.train_data.sse_var[int(train_idx[0]/len_x)])
         
         be_metrics = best_error, be_theta, best_errors_x
 
@@ -4049,95 +4038,6 @@ class GPBO_Driver:
             theta_arr_data = self.simulator.sim_data_to_sse_sim_data(self.method, theta_arr_data, self.exp_data, self.cs_params.sep_fact, not get_y)
             
         return theta_arr_data
-        
-    # def __get_kappa(self, beta):
-    #     """
-    #     Finds the regret associated with this step in the BO iteration
-
-    #     Parameters
-    #     ----------
-    #     beta: float or None, The value of beta for calculating the lcb. Only necessary when opt_obj == 'lcb'
-        
-    #     Returns:
-    #     --------
-    #     kappa: float, The value of kappa for the iteration
-    #     """
-    #     ucb = self.gp_emulator.train_data.sse + np.sqrt(beta*self.gp_emulator.train_data.sse_var)
-
-    #     min_lcb, min_lcb_data = self.__opt_with_scipy("lcb", beta)
-
-    #     kappa = float(np.min(ucb) - min_lcb)
-
-    #     return kappa
-    
-    # def __get_regret_term(self, min_sse_theta_data, acq_theta_data):
-    #     """
-    #     Calculates the speed and regret of the algorithm for stopping criteria based on Ishibashi, H., Karasuyama, M., Takeuchi, I., & Hino, H. (2023)
-        
-    #     Parameters:
-    #     -----------
-    #     min_sse_theta_data: Instance of Data class, Data associated with the parameter set with the minimum sse
-    #     acq_theta_data: Instance of Data class, Data associated with the parameter set with the opt acq func.
-        
-    #     Returns:
-    #     --------
-    #     regret: The upper bound of the gap between the expected minimum simple regrets
-    #     speed: The convergence speed of the algorithm
-    #     r_stop: bool, termination criteria. Whether regret < speed
-        
-    #     """
-    #     #Calculate Mu
-    #     del_mu = self.opt_theta_last.sse - min_sse_theta_data.sse
-
-    #     #stack feature training data of old and new min_sse_theta to get covariance estimate
-    #     best_thetas_theta = np.vstack((self.opt_theta_last.theta_vals, min_sse_theta_data.theta_vals))
-    #     best_thetas_x = np.vstack((self.opt_theta_last.x_vals, min_sse_theta_data.x_vals))
-    #     best_thetas_y_vals = np.concatenate((self.opt_theta_last.y_vals, min_sse_theta_data.y_vals))
-    #     best_data = Data(best_thetas_theta, best_thetas_x, best_thetas_y_vals, None, None, None, None, None, 
-    #                      self.simulator.bounds_theta_reg, self.simulator.bounds_x, self.cs_params.sep_fact, self.cs_params.seed)
-    #     best_data_feat = self.gp_emulator.featurize_data(best_data)
-
-    #     #Evaluate mean, var, and covar
-    #     best_data_mean, best_data_var = self.gp_emulator.eval_gp_mean_var_misc(best_data, best_data_feat)
-
-    #     #Evaluate GP sse and covariance matricies
-    #     #Get the covariance between the old and new minimum sse parameter sets
-    #     if self.method.emulator == False:
-    #         best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, covar = True)
-    #         covar_best = covar_thetas_sse[0,1]           
-    #     else:  
-    #         best_sses, covar_thetas_sse = self.gp_emulator.eval_gp_sse_var_misc(best_data, self.method, 
-    #                                                                             self.exp_data, covar=True)
-    #         covar_best = float(covar_thetas_sse)
-        
-    #     #Set gamma and normalize it if necessary
-    #     gamma = self.gp_emulator.fit_gp_model.kernel.kernels[1].variance
-    #     if self.gp_emulator.normalize:
-    #         gamma = gamma*(self.gp_emulator.scalerY.scale_**2)
-        
-    #     #Caclulate the Kullback–Leibler (KL) divergence (Kullback and Leibler, 1951)
-    #     #Use max to ensure that we don't take the sqrt of a negative number
-    #     v = np.sqrt(abs(min_sse_theta_data.sse_var - 2*covar_best + self.opt_theta_last.sse_var))
-    #     g = (min_sse_theta_data.sse - self.opt_theta_last.sse)/v
-    #     kappa = self.best_theta_last.kappa
-    #     Dkl_1 = (1/2)*np.log(1+gamma*self.best_theta_last.sse_var)
-    #     Dkl_2 = -1*(1/2)*(self.best_theta_last.sse_var/(self.best_theta_last.sse_var+(1/gamma)))
-    #     if self.method.emulator == True:
-    #         sse_sim = sum((self.exp_data.y_vals - acq_theta_data.y_vals)**2)
-    #     else:
-    #         sse_sim = acq_theta_data.y_vals           
-    #     Dkl_3 = (1/2)*(self.best_theta_last.sse_var)*(sse_sim - self.best_theta_last.sse)**2/(self.best_theta_last.sse_var + (1/gamma))**2
-    #     Dkl = abs(Dkl_1 + Dkl_2 + Dkl_3)
-
-    #     #Calculate regret and convergence speed
-    #     regret = float(del_mu + v*norm.pdf(g) +v*g*norm.cdf(g) + kappa*np.sqrt((1/2)*Dkl))
-    #     speed_numerator = (np.sqrt(self.opt_theta_last.sse_var)+kappa/2) + np.sqrt(acq_theta_data.sse_var)*np.sqrt(-2*np.log(0.05))
-    #     speed_denominator = np.sqrt(gamma)*(self.best_theta_last.sse_var + 1/gamma)
-    #     speed = float(speed_numerator/speed_denominator)
-    #     #Determine r_stop convergence criteria
-    #     r_stop = regret < speed
-        
-    #     return regret, speed, r_stop
     
     def __run_bo_iter(self, iteration):
         """
@@ -4162,15 +4062,6 @@ class GPBO_Driver:
         
         #Train GP model (this step updates the model to a trained model)
         self.gp_emulator.train_gp()
-
-        #Evaluate GP predictions at training points
-        # train_gp_mean, train_gp_var = self.gp_emulator.eval_gp_mean_var_misc(self.gp_emulator.train_data, 
-        #                                                                      self.gp_emulator.feature_train_data)
-        # if self.method.emulator == True:
-        #     sse_args = (self.gp_emulator.train_data, self.method, self.exp_data)
-        # else:
-        #     sse_args = [self.gp_emulator.train_data]
-        # train_sse_mean, train_sse_var = self.gp_emulator.eval_gp_sse_var_misc(*sse_args) 
 
         #Calcuate best error
         best_err_data, best_error_metrics = self.__get_best_error()
@@ -4225,9 +4116,6 @@ class GPBO_Driver:
             acq_theta_data = max_ei_theta_data
         else:
             acq_theta_data = min_theta_data
-
-        # acq_theta_data.beta = 2*np.log(self.gp_emulator.get_dim_gp_data()*(iteration+1)**2*np.pi**2/(6*0.05))/5
-        # acq_theta_data.kappa = self.__get_kappa(acq_theta_data.beta)
         
         #If type 2, turn it into sse_data
         #Set the best data to be in sse form if using a type 2 GP and find the min sse
@@ -4253,10 +4141,8 @@ class GPBO_Driver:
         #Improvement is true if the min sim sse found is lower than (not log) best error, otherwise it's false
         if min_sse_sim < best_error_metrics[0]:
             improvement = True
-            # opt_theta_data = min_theta_data
         else:
             improvement = False
-            # opt_theta_data = best_err_data
         if self.ep_bias.ep_enum.value == 3:
             #Set ep improvement
             self.ep_bias.improvement = improvement
@@ -4267,28 +4153,14 @@ class GPBO_Driver:
         #Call __augment_train_data to append training data
         self.__augment_train_data(acq_theta_data)
 
-        #After the 1st iteration, set the stopping criteria
-        # if iteration > 0:
-        #     #Calculate regret
-        #     regret, speed, r_stop = self.__get_regret_term(opt_theta_data, acq_theta_data)
-        # else:
-        #     regret, speed, r_stop = [np.inf, np.inf, False]
-
-        #Set the driver's last best theta to this class instance
-        # self.best_theta_last = acq_theta_data
-        # self.opt_theta_last = opt_theta_data
-
         #Calc time/ iter
         time_end = time.time()
         time_per_iter = time_end-time_start
         
         #Create Results Pandas DataFrame for 1 iter
         #Return SSE and not log(SSE) for 'Min Obj', 'Min Obj Act', 'Theta Min Obj'
-        # column_names = ['Best Error', 'Exploration Bias', 'Opt Acq', 'Theta Opt Acq', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Regret', 'Speed', 'Time/Iter']
         column_names = ['Best Error', 'Exploration Bias', 'Opt Acq', 'Theta Opt Acq', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Time/Iter']
         iter_df = pd.DataFrame(columns=column_names)
-        # bo_iter_results = [best_error_metrics[0], float(self.ep_bias.ep_curr), float(opt_acq), acq_theta_data.theta_vals[0],
-        #                     min_sse_gp, min_sse_sim, min_sse_theta_data.theta_vals[0], regret, speed, time_per_iter]
         bo_iter_results = [best_error_metrics[0], float(self.ep_bias.ep_curr), float(opt_acq), acq_theta_data.theta_vals[0],
                             min_sse_gp, min_sse_sim, min_sse_theta_data.theta_vals[0], time_per_iter]
         # Add the new row to the DataFrame
@@ -4322,7 +4194,6 @@ class GPBO_Driver:
         #Initilize terminate flags   
         acq_flag = False
         obj_flag = False
-        # regret_flag = False
         max_bud_flag = False
         terminate = False
         
@@ -4338,7 +4209,6 @@ class GPBO_Driver:
             #Loop over number of max bo iters
             for i in range(self.cs_params.bo_iter_tot):
                 #Output results of 1 bo iter and the emulator used to get the results
-                # iter_df, iter_max_ei_terms, gp_emulator_class, r_stop = self.__run_bo_iter(i) #Change me later
                 iter_df, iter_max_ei_terms, gp_emulator_class = self.__run_bo_iter(i) #Change me later
                 #Add results to dataframe
                 results_df = pd.concat([results_df.astype(iter_df.dtypes), iter_df], ignore_index=True)
@@ -4390,11 +4260,7 @@ class GPBO_Driver:
                 #set flag if small sse progress over 1/3 of total iteration budget
                 if obj_counter >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac) and i > 0:
                     obj_flag = True
-                #set flag if reg_tol < speed 3 times in a row since this criteria assumes GP is good
-                # if all(results_df["Regret"].tail(3) < results_df["Speed"].tail(3)) and i > 2:
-                #     regret_flag = True
 
-                # flags = [acq_flag, obj_flag, regret_flag]
                 flags = [acq_flag, obj_flag]
                  
                 #Terminate if you meet 2 stopping criteria, hit the budget, or obj has not improved after 1/2 of iterations
