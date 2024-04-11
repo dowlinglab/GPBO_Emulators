@@ -219,7 +219,7 @@ class General_Analysis:
             #If results don't exist or we are overwriting our csvs, create them
             if save_csv or not found_data1 or not found_data2:
                 df_job, theta_true_data = self.get_study_data_signac(job, save_csv)
-            if found_data1:
+            elif found_data1:
                 df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
                 df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(self.str_to_array_df_col)
                 df_job["Theta Min Obj Cum."] = df_job["Theta Min Obj Cum."].apply(self.str_to_array_df_col) 
@@ -492,26 +492,7 @@ class General_Analysis:
         df_data: pd.DataFrame, The dataframe with the L2 norm values added
         """
         #Calculate the difference between the true values and the GP best values in the dataframe for each parameter    
-        # def string_to_array(s):
-        #     try:
-        #         return np.array(eval(s), dtype=np.float64)
-        #     except (SyntaxError, NameError):
-        #         return s
-        
-        # Apply the function to the DataFrame column   
-        # try:
-        #If the values are not being read as strings this works
         theta_min_obj = np.array(list(df_data['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
-        # except:
-        #     try:
-        #         #Otherwise, turn the theta values into a list and manually format the strings to be arrays
-        #         thetas_as_list = np.array(df_data['Theta Min Obj']).tolist()
-        #         theta_min_obj = np.array([list(map(float, s.strip('[]').split())) for s in thetas_as_list])
-        #     except: 
-        #         print(type(thetas_as_list))
-        #         print(thetas_as_list)
-        #         print(thetas_as_list.shape)
-        #         print(thetas_as_list[0].strip('[]').split())
 
         del_theta = theta_min_obj - theta_true
         theta_L2_norm = np.zeros(del_theta.shape[0])
@@ -674,7 +655,7 @@ class General_Analysis:
 
         if not found_data1 or not found_data2:
             df_job, theta_true_data = self.get_study_data_signac(job, save_csv = False)
-        if found_data1:
+        elif found_data1:
             df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
             df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(self.str_to_array_df_col)
             df_job["Theta Min Obj Cum."] = df_job["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
@@ -781,20 +762,7 @@ class General_Analysis:
         for i, run in enumerate(unique_run_nums):
             #Make a df of only the data which meets that run criteria
             df_run = df_job[df_job["Run Number"]==run]  
-            # try:
             df_run_arry = np.array([arr.tolist() for arr in df_run[col_name].to_numpy()])
-            # except:
-            #     df_run_arry = []
-            #     for str_arr in df_run[col_name].to_numpy():
-            #         # Find the index of the first space
-            #         first_space_index = str_arr.index(' ')
-            #         # Remove the first space
-            #         if first_space_index == 1:
-            #             str_no_space1 = str_arr[:first_space_index] + str_arr[first_space_index+1:]
-            #         else:
-            #             str_no_space1 = str_arr
-            #         df_run_arry.append(np.array(ast.literal_eval(re.sub(r'\s+', ',',str_no_space1))))
-            #     df_run_arry = np.array([arr.tolist() for arr in df_run_arry])
             for param in range(data.shape[-1]):
                 z_data = df_run_arry[:,param]
                 #Set data to be where it needs to go in the above data matrix
