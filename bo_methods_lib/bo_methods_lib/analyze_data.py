@@ -6,8 +6,9 @@ import signac
 from ast import literal_eval
 from collections.abc import Iterable
 
+from .GPBO_Class_fxns import *
 from .GPBO_Classes_New import *
-from .GPBO_Class_fxns import * 
+
 import pickle
 import gzip
 import json
@@ -31,7 +32,7 @@ def open_file_helper(file_path):
             results = pickle.load(fileObj) 
     elif file_path.endswith('.gz'):
         with gzip.open(file_path, 'rb') as fileObj:
-            results = pickle.load(fileObj)          
+            results = pickle.load(fileObj)        
     else:
         raise Warning("File type must be .gz or .pickle!")
     
@@ -49,6 +50,7 @@ class General_Analysis:
     get_jobs_from_criteria
     get_df_all_jobs
     get_study_data_signac
+    str_to_array_df_col(self, str_arr)
     get_best
     get_median
     get_mean
@@ -155,6 +157,29 @@ class General_Analysis:
         jobs = [job for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
 
         return jobs
+    
+    def str_to_array_df_col(self, str_arr):
+        """
+        Used to turn arrays from csvs loaded to pd dataframes from strings into arrays
+
+        Parameters
+        ----------
+        str_arr: str, the string to turn into an array
+
+        Returns
+        -------
+        array_from_str: np.ndarray, the array from the string
+        """
+        # Find the index of the first space
+        first_space_index = str_arr.index(' ')
+        # Remove the first space if its the 2nd character (the first will be [)
+        if first_space_index == 1:
+            str_no_space1 = str_arr[:first_space_index] + str_arr[first_space_index+1:]
+        else:
+            str_no_space1 = str_arr
+        # Turn the string into an array be subbing spaces with a ,
+        array_from_str = np.array(ast.literal_eval(re.sub(r'\s+', ',',str_no_space1)))
+        return array_from_str
 
     def get_df_all_jobs(self, save_csv = False):
         """
@@ -194,7 +219,10 @@ class General_Analysis:
             #If results don't exist or we are overwriting our csvs, create them
             if save_csv or not found_data1 or not found_data2:
                 df_job, theta_true_data = self.get_study_data_signac(job, save_csv)
-                
+            if found_data1:
+                df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
+                df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(self.str_to_array_df_col)
+                df_job["Theta Min Obj Cum."] = df_job["Theta Min Obj Cum."].apply(self.str_to_array_df_col) 
             #Add job dataframe to dataframe of all jobs
             df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
 
@@ -464,26 +492,26 @@ class General_Analysis:
         df_data: pd.DataFrame, The dataframe with the L2 norm values added
         """
         #Calculate the difference between the true values and the GP best values in the dataframe for each parameter    
-        def string_to_array(s):
-            try:
-                return np.array(eval(s), dtype=np.float64)
-            except (SyntaxError, NameError):
-                return s
+        # def string_to_array(s):
+        #     try:
+        #         return np.array(eval(s), dtype=np.float64)
+        #     except (SyntaxError, NameError):
+        #         return s
         
         # Apply the function to the DataFrame column   
-        try:
-            #If the values are not being read as strings this works
-            theta_min_obj = np.array(list(df_data['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
-        except:
-            try:
-                #Otherwise, turn the theta values into a list and manually format the strings to be arrays
-                thetas_as_list = np.array(df_data['Theta Min Obj']).tolist()
-                theta_min_obj = np.array([list(map(float, s.strip('[]').split())) for s in thetas_as_list])
-            except: 
-                print(type(thetas_as_list))
-                print(thetas_as_list)
-                print(thetas_as_list.shape)
-                print(thetas_as_list[0].strip('[]').split())
+        # try:
+        #If the values are not being read as strings this works
+        theta_min_obj = np.array(list(df_data['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
+        # except:
+        #     try:
+        #         #Otherwise, turn the theta values into a list and manually format the strings to be arrays
+        #         thetas_as_list = np.array(df_data['Theta Min Obj']).tolist()
+        #         theta_min_obj = np.array([list(map(float, s.strip('[]').split())) for s in thetas_as_list])
+        #     except: 
+        #         print(type(thetas_as_list))
+        #         print(thetas_as_list)
+        #         print(thetas_as_list.shape)
+        #         print(thetas_as_list[0].strip('[]').split())
 
         del_theta = theta_min_obj - theta_true
         theta_L2_norm = np.zeros(del_theta.shape[0])
@@ -646,6 +674,10 @@ class General_Analysis:
 
         if not found_data1 or not found_data2:
             df_job, theta_true_data = self.get_study_data_signac(job, save_csv = False)
+        if found_data1:
+            df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
+            df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(self.str_to_array_df_col)
+            df_job["Theta Min Obj Cum."] = df_job["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
 
         #Get statepoint info
         with open(job.fn("signac_statepoint.json"), 'r') as json_file:
@@ -749,20 +781,20 @@ class General_Analysis:
         for i, run in enumerate(unique_run_nums):
             #Make a df of only the data which meets that run criteria
             df_run = df_job[df_job["Run Number"]==run]  
-            try:
-                df_run_arry = np.array([arr.tolist() for arr in df_run[col_name].to_numpy()])
-            except:
-                df_run_arry = []
-                for str_arr in df_run[col_name].to_numpy():
-                    # Find the index of the first space
-                    first_space_index = str_arr.index(' ')
-                    # Remove the first space
-                    if first_space_index == 1:
-                        str_no_space1 = str_arr[:first_space_index] + str_arr[first_space_index+1:]
-                    else:
-                        str_no_space1 = str_arr
-                    df_run_arry.append(np.array(ast.literal_eval(re.sub(r'\s+', ',',str_no_space1))))
-                df_run_arry = np.array([arr.tolist() for arr in df_run_arry])
+            # try:
+            df_run_arry = np.array([arr.tolist() for arr in df_run[col_name].to_numpy()])
+            # except:
+            #     df_run_arry = []
+            #     for str_arr in df_run[col_name].to_numpy():
+            #         # Find the index of the first space
+            #         first_space_index = str_arr.index(' ')
+            #         # Remove the first space
+            #         if first_space_index == 1:
+            #             str_no_space1 = str_arr[:first_space_index] + str_arr[first_space_index+1:]
+            #         else:
+            #             str_no_space1 = str_arr
+            #         df_run_arry.append(np.array(ast.literal_eval(re.sub(r'\s+', ',',str_no_space1))))
+            #     df_run_arry = np.array([arr.tolist() for arr in df_run_arry])
             for param in range(data.shape[-1]):
                 z_data = df_run_arry[:,param]
                 #Set data to be where it needs to go in the above data matrix
@@ -1382,7 +1414,9 @@ class LS_Analysis(General_Analysis):
 
             if self.save_csv:
                 self.save_data(ls_results, ls_data_path)
-
+        elif found_data1:
+            ls_results["Theta Min Obj"] = ls_results["Theta Min Obj"].apply(self.str_to_array_df_col)
+            ls_results["Theta Min Obj Cum."] = ls_results["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
         return ls_results
     
     def categ_min(self, tot_runs = None):
@@ -1412,7 +1446,6 @@ class LS_Analysis(General_Analysis):
         save_csv_org = self.save_csv
         self.save_csv = False
         
-
         if self.save_csv or not found_data1:
             #Run Least Squares 500 times
             ls_results = self.least_squares_analysis(tot_runs)
@@ -1428,22 +1461,7 @@ class LS_Analysis(General_Analysis):
             all_sets = ls_results[["Theta Min Obj Cum.", "Min Obj Cum.", "Optimality", "Termination"]].copy(deep=True)
             
             #Make all arrays tuples
-            # print(all_sets["Theta Min Obj Cum."].iloc[0], type(all_sets["Theta Min Obj Cum."].iloc[0]))
-            #Get string thetas into arrays if necessary
-            if type(all_sets["Theta Min Obj Cum."].iloc[0]) == str:
-                np_theta_arr = []
-                for str_arr in all_sets["Theta Min Obj Cum."]:
-                    # Find the index of the first space
-                    first_space_index = str_arr.index(' ')
-                    # Remove the first space
-                    if first_space_index == 1:
-                        str_no_space1 = str_arr[:first_space_index] + str_arr[first_space_index+1:]
-                    else:
-                        str_no_space1 = str_arr
-                    np_theta_arr.append(np.array(ast.literal_eval(re.sub(r'\s+', ',',str_no_space1))))
-                np_theta = np.array([arr.tolist() for arr in np_theta_arr])
-            else:
-                np_theta = all_sets["Theta Min Obj Cum."]
+            np_theta = all_sets["Theta Min Obj Cum."]
             all_sets["Theta Min Obj Cum."] = tuple(map(tuple, np_theta))
             
             #Drop duplicate minima
@@ -1488,6 +1506,9 @@ class LS_Analysis(General_Analysis):
 
             if self.save_csv:
                 self.save_data(local_min_sets, ls_data_path)
+        
+        elif found_data1:
+            local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
 
         return local_min_sets
 
