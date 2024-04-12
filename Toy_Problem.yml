@@ -12,4 +12,6 @@ dependencies:
   - pytorch-cuda=11.6
   - signac-flow
   - signac
+  - ipopt
+  - glpk
 prefix: /afs/crc.nd.edu/user/m/mcarlozo/.conda/envs/Toy_Problem_env
