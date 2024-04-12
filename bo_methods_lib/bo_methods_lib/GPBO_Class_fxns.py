@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import qmc
 import pandas as pd
 import math
-import bo_methods_lib
+# import bo_methods_lib
 from .GPBO_Classes_New import Simulator
 from pyomo.environ import *
 
