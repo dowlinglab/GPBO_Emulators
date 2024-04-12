@@ -274,13 +274,12 @@ def test_analyze_heat_maps_data(crit_dict, get_ei):
     pairs = len((list(combinations(dim_list, 2))))
     for job, run_num, bo_iter in zip(job_list_best, df_best["Run Number"], df_best["BO Iter"]):
         for pair_id in range(pairs):
-            for job, run_num, bo_iter in zip(job_list_best, df_best["Run Number"], df_best["BO Iter"]):
-                all_data, test_mesh, param_info_dict, sp_data = analyze_heat_maps(job, run_num, bo_iter, pair_id, get_ei)
-                assert isinstance(all_data, list)
-                assert isinstance(test_mesh, np.ndarray)
-                assert isinstance(param_info_dict, dict)
-                assert isinstance(sp_data, dict)
-                assert all(value is not None for value in [all_data, test_mesh, param_info_dict, sp_data])
+            all_data, test_mesh, param_info_dict, sp_data = analyzer.analyze_heat_maps(job, run_num, bo_iter, pair_id, get_ei)
+            assert isinstance(all_data, list)
+            assert isinstance(test_mesh, np.ndarray)
+            assert isinstance(param_info_dict, dict)
+            assert isinstance(sp_data, dict)
+            assert all(value is not None for value in [all_data, test_mesh, param_info_dict, sp_data])
 
 analyze_hm_err_list = [["jobs", "test", "test", "test", "test"],
                         [None, "test", "test", "test", "test"],
