@@ -8,9 +8,9 @@ from itertools import combinations_with_replacement, combinations, permutations
 import signac
 
 import pytest
-from bo_methods_lib.GPBO_Classes_New import * #Fix this later
-from bo_methods_lib.GPBO_Class_fxns import * #Fix this later
-from bo_methods_lib.analyze_data import *
+from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import * #Fix this later
+from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import * #Fix this later
+from bo_methods_lib.bo_methods_lib.analyze_data import *
 
 #FIX SYSTEM PATH PROBLEM
 
