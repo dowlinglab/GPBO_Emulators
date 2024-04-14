@@ -1032,10 +1032,10 @@ class General_Analysis:
             if loaded_results[0].heat_map_data_dict is not None:
                 heat_map_data_dict = loaded_results[0].heat_map_data_dict
             else:
-                if len(driver.gp_emulator.gp_sim_data.get_unique_theta()) <= 20:
-                    n_points_set = len(driver.gp_emulator.gp_sim_data.get_unique_theta())
-                else:
-                    n_points_set = 20
+                num_x = exp_data.get_num_x_vals()
+                n_points_set = len(driver.gp_emulator.gp_sim_data.get_unique_theta())
+                if num_x*n_points_set**2 >= 5000:
+                    n_points_set = int(np.sqrt(5000/num_x))
                 loaded_results[0].heat_map_data_dict = driver.create_heat_map_param_data(n_points_set)
                 heat_map_data_dict = loaded_results[0].heat_map_data_dict
 

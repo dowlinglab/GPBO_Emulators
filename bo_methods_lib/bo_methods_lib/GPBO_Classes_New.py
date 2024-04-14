@@ -3932,14 +3932,15 @@ class GPBO_Driver:
         dim_list = np.linspace(0,self.simulator.dim_theta-1,self.simulator.dim_theta)
         #Create a list of all combinations (without repeats e.g no (1,1), (2,2)) of dimensions of theta
         mesh_combos = np.array(list(combinations(dim_list, 2)), dtype = int)
-        
+
+        #Set x_vals
+        norm_x_vals = self.exp_data.x_vals
+        num_x = self.exp_data.get_num_x_vals()
+
         #If no number of points is set, use the length of the unique simulation thetas
         if n_points_set == None:
-            #Use 20 pts for heat map data max otherwise, use number of training theta
-            if len(self.gp_emulator.gp_sim_data.get_unique_theta()) <= 20:
-                n_thetas_points = len(self.gp_emulator.gp_sim_data.get_unique_theta())
-            else:
-                n_thetas_points = 20
+            #Use number of training theta for number of theta points
+            n_thetas_points = len(self.gp_emulator.gp_sim_data.get_unique_theta())
             #Initialze meshgrid-like set of theta values at their true values 
             #If points were generated with an LHS, the number of points per parameter is n_thetas_points for the meshgrid
             if self.gen_meth_theta.value == 1:
@@ -3950,11 +3951,14 @@ class GPBO_Driver:
         else:
             n_points = n_points_set
 
+        #Ensure we will never generate more than 5000 pts per heat map
+        # if self.method.emulator == True:
+        if num_x*n_points**2 >= 5000:
+            n_points = int(np.sqrt(5000/(num_x)))
+
         #Meshgrid set always defined by n_points**2
+        #Set thetas for meshgrid. Never use more than 10000 points
         theta_set = np.tile(np.array(self.simulator.theta_true), (n_points**2, 1))
-        
-        #Set x_vals
-        norm_x_vals = self.exp_data.x_vals
         
         #Infer how many times to repeat theta and x values given that heat maps are meshgrid form by definition
         #The meshgrid of parameter values created below is symmetric, therefore, x is repeated by n_points**2 for a 2D meshgrid
