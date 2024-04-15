@@ -1029,15 +1029,15 @@ class General_Analysis:
             train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
             
             #Get specific heat map data or generate it
-            if loaded_results[0].heat_map_data_dict is not None:
-                heat_map_data_dict = loaded_results[0].heat_map_data_dict
-            else:
-                num_x = exp_data.get_num_x_vals()
-                n_points_set = len(driver.gp_emulator.gp_sim_data.get_unique_theta())
-                if num_x*n_points_set**2 >= 5000:
-                    n_points_set = int(np.sqrt(5000/num_x))
-                loaded_results[0].heat_map_data_dict = driver.create_heat_map_param_data(n_points_set)
-                heat_map_data_dict = loaded_results[0].heat_map_data_dict
+            # if loaded_results[0].heat_map_data_dict is not None:
+            #     heat_map_data_dict = loaded_results[0].heat_map_data_dict
+            # else:
+            num_x = exp_data.get_num_x_vals()
+            n_points_set = len(driver.gp_emulator.gp_sim_data.get_unique_theta())
+            if num_x*n_points_set**2 >= 5000:
+                n_points_set = int(np.sqrt(5000/num_x))
+            loaded_results[0].heat_map_data_dict = driver.create_heat_map_param_data(n_points_set)
+            heat_map_data_dict = loaded_results[0].heat_map_data_dict
 
             #Get pair ID
             if isinstance(pair_id, str):
@@ -1054,7 +1054,10 @@ class General_Analysis:
 
             #Calculate GP mean and var for heat map data
             featurized_hm_data = gp_emulator.featurize_data(heat_map_data_org)
-            hm_org_mean, hm_org_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data_org, featurized_hm_data)
+            try:
+                hm_org_mean, hm_org_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data_org, featurized_hm_data)
+            except:
+                print(n_points_set)
 
             #Get index of param set and best error
             idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for 
