@@ -561,6 +561,7 @@ class Plotters:
         #Back out best runs from job_list_best
         emph_runs = df_best["Run Number"].values
         emph_iters = df_best["BO Iter"].values
+        # emph_iters = (df_best['Max Evals'] / 10).round().astype(int).values
 
         #Make figures and define number of subplots based on number of different methods
         subplots_needed = len(job_list_best)
