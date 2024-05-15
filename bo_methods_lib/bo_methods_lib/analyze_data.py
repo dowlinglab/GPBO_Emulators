@@ -283,6 +283,8 @@ class General_Analysis:
             df_run['EP Method Val'] = Ep_enum(int(col_vals)).name
             #Set index as the first run in the job's run number + the run we're at in the job
             df_run["index"] = int(job.sp.bo_run_num + run)
+            #Recalculate the true value of theta here based on method number if applicable and continue as normal
+            #DO IF NECESSARY 
             #Add other important columns
             #If using a log scaled sse objective function (2 or 4)
             if job.sp.meth_name_val in [2,4]:
