@@ -434,7 +434,7 @@ class Plotters:
             GPBO_method_val = sp_data["meth_name_val"]
             #Create label based on method #
             label = self.method_names[GPBO_method_val-1] 
-            
+                    
             #Loop over number of data types
             for k, ax in enumerate(axes.flatten()):
                 #Only plot data if axis is visible
@@ -473,6 +473,20 @@ class Plotters:
                         else:
                             ax.step(bo_space, data_df_j, alpha = 0.2, color = self.colors[GPBO_method_val-1], 
                                     linestyle='--', drawstyle='steps')
+                            
+                    #Plot true value if applicable
+                    ls_xset = False
+                    if data_true is not None and i == len(job_pointer) - 1:
+                        data_ls = data_true[z_choices[k]]
+                        if isinstance(data_ls, pd.DataFrame):
+                            x = data_ls["Iter"].to_numpy()
+                            ls_xset = True
+                            if z_choices[k] == "min_sse":
+                                y = data_ls["Min Obj Cum."].to_numpy()
+                            else:
+                                y = data_ls["Min Obj Act"].to_numpy()
+                            ax.plot(x, y, color = "darkslategrey", linestyle='solid', 
+                                                    label = "Least Squares")
 
                     #Set plot details
                     bo_space_org = np.linspace(1,bo_len_max,100)
