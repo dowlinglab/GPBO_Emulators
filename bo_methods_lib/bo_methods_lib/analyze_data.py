@@ -141,7 +141,7 @@ class General_Analysis:
             else:
                 parts.append(f"{key.replace('$', '')}_{value}")
 
-        result_dir = "/".join(parts) if is_nested else os.path.join("Results", "/".join(parts))
+        result_dir = "/".join(parts) if is_nested else os.path.join("Results_acq", "/".join(parts))
         return result_dir
 
     def get_jobs_from_criteria(self):
@@ -266,6 +266,11 @@ class General_Analysis:
         #Open the file and get the dataframe
         results = open_file_helper(data_file)
 
+        #Get statepoint info
+        with open(job.fn("signac_statepoint.json"), 'r') as json_file:
+            # Load the JSON data
+            sp_data = json.load(json_file)
+        
         #Find number of workflow restarts in that job
         tot_runs = results[0].configuration["Number of Workflow Restarts"]
         num_x_exp = results[0].exp_data_class.get_num_x_vals()
@@ -278,6 +283,10 @@ class General_Analysis:
         for run in range(tot_runs):
             #Read data as pd.df
             df_run = results[run].results_df
+            cs_params, method, gen_meth_theta, ep_method = self.__rebuild_cs(sp_data)
+            simulator = results[run].simulator_class
+            exp_data = results[run].exp_data_class
+            gp_emulator_classes = results[run].list_gp_emulator_class
             #Add the EP enum value as a column
             col_vals = job.sp.ep_enum_val
             df_run['EP Method Val'] = Ep_enum(int(col_vals)).name
@@ -303,12 +312,44 @@ class General_Analysis:
             df_run.rename(columns={'index': 'Run Number'}, inplace=True)   
             df_run.insert(1, "BO Iter", df_run.index + 1)
             
+            def get_opt_acq_min_obj(row):
+                bo_iter = row["BO Iter"] - 1
+                gp_emulator = gp_emulator_classes[bo_iter]
+                sim_data = gp_emulator.gp_sim_data
+                val_data = gp_emulator.gp_val_data
+                ep_at_iter = df_run["Exploration Bias"].iloc[bo_iter]
+                ep_bias = Exploration_Bias(None, ep_at_iter, ep_method, None, None, None, None, None, None, None)
+                driver = GPBO_Driver(cs_params, method, simulator, exp_data, sim_data, 
+                                        sim_data, val_data, val_data, 
+                                        gp_emulator, ep_bias, gen_meth_theta)
+                opt_acq_act_data = driver.create_data_instance_from_theta(row["Theta Opt Acq"])
+                if driver.method.emulator == True:
+                #Evaluate SSE & SSE stdev at max ei theta
+                    y_vals = driver.simulator.sim_data_to_sse_sim_data(driver.method, opt_acq_act_data, driver.exp_data, 
+                                                                            driver.cs_params.sep_fact, False).y_vals
+                #Otherwise the sse data is the original (scaled) data
+                else:     
+                    #Evaluate SSE & SSE stdev at max ei theta
+                    y_vals = opt_acq_act_data.y_vals
+                return float(y_vals)
+                
+            df_run["Opt Acq Min Obj"] = df_run.apply(get_opt_acq_min_obj, axis = 1)
+
             #Add run dataframe to job dataframe after
             df_job = pd.concat([df_job, df_run], ignore_index=False)
 
         #Reset index on job dataframe
         df_job = df_job.reset_index(drop=True)
-        
+
+        #Calculate the cumulative minimum objective function based off of acq value
+        df_job["Opt Acq Min Obj Cum"] = None
+        for i in range(len(df_job)):
+            if df_job["BO Iter"].iloc[i] == 1:
+                df_job.loc[i, "Opt Acq Min Obj Cum"] = df_job.loc[i,"Opt Acq Min Obj"]
+            elif df_job["Opt Acq Min Obj"].iloc[i] < df_job["Opt Acq Min Obj Cum"].iloc[i-1]:
+                df_job.loc[i,"Opt Acq Min Obj Cum"] = df_job.loc[i, "Opt Acq Min Obj"]
+            else:
+                df_job.loc[i, "Opt Acq Min Obj Cum"] = df_job.loc[i-1,"Opt Acq Min Obj Cum"]
         #Put in a csv file in a directory based on the job
         if save_csv:
             all_data_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
@@ -333,7 +374,8 @@ class General_Analysis:
         data_exists, df_best = self.load_data(data_best_path)
         if not data_exists or self.save_csv:
             #Start by sorting pd dataframe by lowest obj func value overall
-            df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
+            # df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
+            df_sorted = df.sort_values(by=["Opt Acq Min Obj Cum", 'BO Iter'], ascending=True)
             #Then take only the 1st instance for each method
             df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first').copy()
             #Calculate the L2 norm of the best runs
@@ -606,10 +648,10 @@ class General_Analysis:
             data_names = []
             for z_choice in z_choices:
                 if "sse" == z_choice:
-                    col_name += ["Min Obj Act"]
+                    col_name += ["Opt Acq Min Obj"] #["Min Obj Act"]
                     data_names += ["\mathbf{e(\\theta)}"]
                 if "min_sse" == z_choice:
-                    col_name += ["Min Obj Cum."]
+                    col_name += ["Opt Acq Min Obj Cum"]#["Min Obj Cum."]
                     data_names += ["\mathbf{Min\,e(\\theta)}"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
