@@ -312,6 +312,27 @@ class General_Analysis:
             df_run.rename(columns={'index': 'Run Number'}, inplace=True)   
             df_run.insert(1, "BO Iter", df_run.index + 1)
             
+            def get_gp_min_obj(row):
+                bo_iter = row["BO Iter"] - 1
+                gp_emulator = gp_emulator_classes[bo_iter]
+                sim_data = gp_emulator.gp_sim_data
+                val_data = gp_emulator.gp_val_data
+                ep_at_iter = df_run["Exploration Bias"].iloc[bo_iter]
+                ep_bias = Exploration_Bias(None, ep_at_iter, ep_method, None, None, None, None, None, None, None)
+                driver = GPBO_Driver(cs_params, method, simulator, exp_data, sim_data, 
+                                        sim_data, val_data, val_data, 
+                                        gp_emulator, ep_bias, gen_meth_theta)
+                sp_data = driver.create_data_instance_from_theta(row["Theta Min Obj"], False)
+                feat_sp_data = gp_emulator.featurize_data(sp_data)
+                sp_data.gp_mean, sp_data.gp_var = gp_emulator.eval_gp_mean_var_misc(sp_data, feat_sp_data)
+                #Evaluate GP SSE and SSE_Var (This is the 2nd slowest step)
+                if method.emulator == True:
+                    sp_data_sse_mean, sp_data_sse_var = gp_emulator.eval_gp_sse_var_misc(sp_data, method, exp_data)
+                else:
+                    sp_data_sse_mean, sp_data_sse_var = gp_emulator.eval_gp_sse_var_misc(sp_data)
+
+                return(float(sp_data_sse_mean))
+            
             def get_opt_acq_min_obj(row):
                 bo_iter = row["BO Iter"] - 1
                 gp_emulator = gp_emulator_classes[bo_iter]
@@ -334,6 +355,7 @@ class General_Analysis:
                 return float(y_vals)
                 
             df_run["Opt Acq Min Obj"] = df_run.apply(get_opt_acq_min_obj, axis = 1)
+            # df_run["Min Obj"] = df_run.apply(get_gp_min_obj, axis = 1)
 
             #Add run dataframe to job dataframe after
             df_job = pd.concat([df_job, df_run], ignore_index=False)
@@ -350,6 +372,18 @@ class General_Analysis:
                 df_job.loc[i,"Opt Acq Min Obj Cum"] = df_job.loc[i, "Opt Acq Min Obj"]
             else:
                 df_job.loc[i, "Opt Acq Min Obj Cum"] = df_job.loc[i-1,"Opt Acq Min Obj Cum"]
+
+        # df_job["GP Min Obj Cum"] = None
+        
+        # for i in range(len(df_job)):
+        #     if df_job["Min Obj"].iloc[i] < 0 and "2" not in df_job["BO Method"].iloc[i]:
+        #         df_job.loc[i, "GP Min Obj Cum"] = None
+        #     elif df_job["BO Iter"].iloc[i] == 1:
+        #         df_job.loc[i, "GP Min Obj Cum"] = df_job.loc[i,"Min Obj"]
+        #     elif df_job["Min Obj"].iloc[i] < df_job["GP Min Obj Cum"].iloc[i-1]:
+        #         df_job.loc[i,"GP Min Obj Cum"] = df_job.loc[i, "Min Obj"]
+        #     else:
+        #         df_job.loc[i, "GP Min Obj Cum"] = df_job.loc[i-1,"GP Min Obj Cum"]
         #Put in a csv file in a directory based on the job
         if save_csv:
             all_data_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
@@ -376,6 +410,7 @@ class General_Analysis:
             #Start by sorting pd dataframe by lowest obj func value overall
             # df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
             df_sorted = df.sort_values(by=["Opt Acq Min Obj Cum", 'BO Iter'], ascending=True)
+            # df_sorted = df.sort_values(by=["GP Min Obj Cum", 'BO Iter'], ascending=True)
             #Then take only the 1st instance for each method
             df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first').copy()
             #Calculate the L2 norm of the best runs
@@ -648,10 +683,10 @@ class General_Analysis:
             data_names = []
             for z_choice in z_choices:
                 if "sse" == z_choice:
-                    col_name += ["Opt Acq Min Obj"] #["Min Obj Act"]
+                    col_name += ["Opt Acq Min Obj"] #["Min Obj"], ["Min Obj Act"]
                     data_names += ["\mathbf{e(\\theta)}"]
                 if "min_sse" == z_choice:
-                    col_name += ["Opt Acq Min Obj Cum"]#["Min Obj Cum."]
+                    col_name += ["Opt Acq Min Obj Cum"] #["GP Min Obj Cum"], ["Min Obj Cum."]
                     data_names += ["\mathbf{Min\,e(\\theta)}"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
