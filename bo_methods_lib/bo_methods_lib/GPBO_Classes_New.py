@@ -4103,11 +4103,12 @@ class GPBO_Driver:
         #Set Optimization starting points for this iteration
         self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics)
 
+        #Call optimize E[SSE] or log(E[SSE]) objective function
+        min_sse, _ = self.__opt_with_scipy("sse")
+
         #Call optimize EI acquistion fxn (If not using E[SSE])
         if self.method.method_name.value != 7:
             opt_acq, max_ei_theta_data = self.__opt_with_scipy("neg_ei")
-            #Call optimize E[SSE] or log(E[SSE]) objective function
-            min_sse, min_theta_data = self.__opt_with_scipy("sse")
             if self.method.emulator == True:
                 ei_args = (max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, 
                            self.method, self.sg_depth)
@@ -4120,7 +4121,7 @@ class GPBO_Driver:
             acq_theta_data = max_ei_theta_data
         else:
             acq_theta_data = min_theta_data
-        
+
         #If type 2, turn it into sse_data
         #Set the best data to be in sse form if using a type 2 GP and find the min sse
         if self.method.emulator == True:
@@ -4138,7 +4139,7 @@ class GPBO_Driver:
             ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(*ei_args)
         
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
-        min_sse_gp = float(min_sse_theta_data.y_vals)
+        min_sse_gp = float(min_sse)
         min_sse_sim = float(min_sse_theta_data.y_vals)
                 
         #calculate improvement if using Boyle's method to update the exploration bias
