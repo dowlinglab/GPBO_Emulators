@@ -4223,22 +4223,22 @@ class GPBO_Driver:
                 if i == 0:
                     #Then the minimimum is defined by the first value of the objective function you calculate
                     # results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj Act"].iloc[i]
-                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i, "Min Obj Act"]
+                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i, "Min Obj"]
                     #The Theta values are then inferred
                     results_df.at[i, "Theta Min Obj Cum."] = results_df["Theta Min Obj"].iloc[i]
                     #improvement is defined as infinity on 1st iteration (something is always better than nothing)
                     improvement = np.inf 
                 #If it is not the 1st iteration and your current Min Obj value is smaller than your previous Overall Min Obj
-                elif results_df["Min Obj Act"].iloc[i] < results_df["Min Obj Cum."].iloc[i-1]:
+                elif results_df["Min Obj"].iloc[i] < results_df["Min Obj Cum."].iloc[i-1]:
                     #Then the New Cumulative Minimum objective value is the current minimum objective value
-                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i, "Min Obj Act"]
+                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i, "Min Obj"]
                     #The Thetas are inferred
                     results_df.at[i, "Theta Min Obj Cum."] = results_df["Theta Min Obj"].iloc[i].copy()
                     #And the improvement is defined as the difference between the last Min Obj Cum. and current Obj Min (unscaled)
                     if self.method.obj.value == 1:
-                        improvement = results_df["Min Obj Cum."].iloc[i-1] - results_df["Min Obj Act"].iloc[i]
+                        improvement = results_df["Min Obj Cum."].iloc[i-1] - results_df["Min Obj"].iloc[i]
                     else:
-                        improvement = np.exp(results_df["Min Obj Cum."].iloc[i-1]) - np.exp(results_df["Min Obj Act"].iloc[i])
+                        improvement = np.exp(results_df["Min Obj Cum."].iloc[i-1]) - np.exp(results_df["Min Obj"].iloc[i])
                 #Otherwise
                 else:
                     #The minimum objective for all the runs is the same as it was before
