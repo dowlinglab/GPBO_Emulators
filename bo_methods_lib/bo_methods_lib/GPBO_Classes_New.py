@@ -4104,7 +4104,7 @@ class GPBO_Driver:
         self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics)
 
         #Call optimize E[SSE] or log(E[SSE]) objective function
-        min_sse, _ = self.__opt_with_scipy("sse")
+        min_sse, min_theta_data = self.__opt_with_scipy("sse")
 
         #Call optimize EI acquistion fxn (If not using E[SSE])
         if self.method.method_name.value != 7:
