@@ -141,7 +141,8 @@ class General_Analysis:
             else:
                 parts.append(f"{key.replace('$', '')}_{value}")
 
-        result_dir = "/".join(parts) if is_nested else os.path.join("Results_acq", "/".join(parts))
+        # result_dir = "/".join(parts) if is_nested else os.path.join("Results_acq", "/".join(parts))
+        result_dir = "/".join(parts) if is_nested else os.path.join("Results", "/".join(parts))
         return result_dir
 
     def get_jobs_from_criteria(self):
@@ -374,6 +375,13 @@ class General_Analysis:
                 df_job.loc[i, "Opt Acq Min Obj Cum"] = df_job.loc[i-1,"Opt Acq Min Obj Cum"]
 
         # df_job["GP Min Obj Cum"] = None
+        for i in range(len(df_job)):
+            if df_job["BO Iter"].iloc[i] == 1:
+                df_job.loc[i, "Min Obj Cum."] = df_job.loc[i,"Min Obj Act"]
+            elif df_job["Min Obj Act"].iloc[i] < df_job["Min Obj Cum."].iloc[i-1]:
+                df_job.loc[i,"Min Obj Cum."] = df_job.loc[i, "Min Obj Act"]
+            else:
+                df_job.loc[i, "Min Obj Cum."] = df_job.loc[i-1,"Min Obj Cum."]
         
         # for i in range(len(df_job)):
         #     if df_job["Min Obj"].iloc[i] < 0 and "2" not in df_job["BO Method"].iloc[i]:
@@ -408,8 +416,8 @@ class General_Analysis:
         data_exists, df_best = self.load_data(data_best_path)
         if not data_exists or self.save_csv:
             #Start by sorting pd dataframe by lowest obj func value overall
-            # df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
-            df_sorted = df.sort_values(by=["Opt Acq Min Obj Cum", 'BO Iter'], ascending=True)
+            df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
+            # df_sorted = df.sort_values(by=["Opt Acq Min Obj Cum", 'BO Iter'], ascending=True)
             # df_sorted = df.sort_values(by=["GP Min Obj Cum", 'BO Iter'], ascending=True)
             #Then take only the 1st instance for each method
             df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first').copy()
@@ -683,10 +691,10 @@ class General_Analysis:
             data_names = []
             for z_choice in z_choices:
                 if "sse" == z_choice:
-                    col_name += ["Opt Acq Min Obj"] #["Min Obj"], ["Min Obj Act"]
+                    col_name += ["Min Obj Act"] #["Opt Acq Min Obj"] #["Min Obj"], 
                     data_names += ["\mathbf{e(\\theta)}"]
                 if "min_sse" == z_choice:
-                    col_name += ["Opt Acq Min Obj Cum"] #["GP Min Obj Cum"], ["Min Obj Cum."]
+                    col_name += ["Min Obj Cum."] #["Opt Acq Min Obj Cum"] #["GP Min Obj Cum"], 
                     data_names += ["\mathbf{Min\,e(\\theta)}"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
