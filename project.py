@@ -26,18 +26,18 @@ from warnings import simplefilter
 from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
 
-class Project(FlowProject):
+class ProjectGPBO(FlowProject):
     def __init__(self):
         super().__init__()
         current_path = Path(os.getcwd()).absolute()
 
-@Project.label
+@ProjectGPBO.label
 def results_computed(job):
     #Write script that checks whether the .pickle file is there
     return job.isfile("BO_Results.gz")
 
-@Project.post(results_computed)
-@Project.operation(with_job = True)
+@ProjectGPBO.post(results_computed)
+@ProjectGPBO.operation(with_job = True)
 def run_ep_or_sf_exp(job):
     #Define method, ep_enum classes, indecies to consider, and kernel
     meth_name = Method_name_enum(job.sp.meth_name_val)
@@ -119,4 +119,4 @@ def run_ep_or_sf_exp(job):
     fileObj.close()
 
 if __name__ == "__main__":
-    Project().main()
+    ProjectGPBO().main()
