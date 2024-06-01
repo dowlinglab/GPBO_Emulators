@@ -200,8 +200,30 @@ class GPBO_Methods:
         self.method_name = method_name
         self.emulator = self.get_emulator()
         self.obj = self.get_obj()
+        self.report_name = self.get_name_long()
         self.sparse_grid, self.mc = self.get_sparse_mc()
         
+    def get_name_long(self):
+        """
+        Gets the shorthand name of the method that appears in the manuscript
+        """
+
+        if self.method_name.name == "A1":
+            report_name = "Conventional"
+        elif self.method_name.name == "B1":
+            report_name = "Log Conventional"
+        elif self.method_name.name == "A2":
+            report_name = "Independence"
+        elif self.method_name.name == "B2":
+            report_name = "Log Independence"
+        elif self.method_name.name == "C2":
+            report_name = "Sparse Grid"
+        elif self.method_name.name == "D2":
+            report_name = "Monte Carlo"
+        elif self.method_name.name == "A3":
+            report_name = "E[SSE]"
+        return report_name
+    
     def get_emulator(self):
         """
         Function to get emulator status based on method name
@@ -4128,11 +4150,14 @@ class GPBO_Driver:
             #Evaluate SSE & SSE stdev at max ei theta
             min_sse_theta_data = self.simulator.sim_data_to_sse_sim_data(self.method, min_theta_data, self.exp_data, 
                                                                          self.cs_params.sep_fact, False)
+            acq_sse_theta_data = self.simulator.sim_data_to_sse_sim_data(self.method, min_theta_data, self.exp_data, 
+                                                                         self.cs_params.sep_fact, False)
                  
         #Otherwise the sse data is the original (scaled) data
         else:     
             #Evaluate SSE & SSE stdev at max ei theta
             min_sse_theta_data = min_theta_data
+            acq_sse_theta_data = acq_theta_data
             
         #Evaluate max EI terms at theta
         if self.cs_params.save_data and not self.method.method_name.value == 7: 
@@ -4141,10 +4166,11 @@ class GPBO_Driver:
         #Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
         min_sse_gp = float(min_sse)
         min_sse_sim = float(min_sse_theta_data.y_vals)
+        opt_acq_sim = float(acq_sse_theta_data.y_vals) 
                 
         #calculate improvement if using Boyle's method to update the exploration bias
         #Improvement is true if the min sim sse found is lower than (not log) best error, otherwise it's false
-        if min_sse_sim < best_error_metrics[0]:
+        if min_sse_gp < best_error_metrics[0]:
             improvement = True
         else:
             improvement = False
@@ -4164,10 +4190,22 @@ class GPBO_Driver:
         
         #Create Results Pandas DataFrame for 1 iter
         #Return SSE and not log(SSE) for 'Min Obj', 'Min Obj Act', 'Theta Min Obj'
-        column_names = ['Best Error', 'Exploration Bias', 'Opt Acq', 'Theta Opt Acq', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Time/Iter']
+        column_names = ['Best Error', 'Exploration Bias', 
+                        'Theta Opt Acq', 'Opt Acq', 'Acq Obj Act', 'MSE Acq Act',
+                        'Theta Min Obj', 'Min Obj GP', 'Min Obj Act',  'MSE Obj GP', 'MSE Obj Act',
+                        'Time/Iter']
+        num_exp_x = self.exp_data.get_num_x_vals()
+        MSE_acq_obj_act = np.exp(opt_acq_sim)/num_exp_x if self.method.obj.value == 2 else opt_acq_sim/num_exp_x
+        MSE_obj_act = np.exp(min_sse_sim)/num_exp_x if self.method.obj.value == 2 else min_sse_sim/num_exp_x
+        MSE_obj_gp = np.exp(min_sse_gp)/num_exp_x if self.method.obj.value == 2 else min_sse_gp/num_exp_x
+        bo_iter_results = [best_error_metrics[0], float(self.ep_bias.ep_curr), 
+                           acq_theta_data.theta_vals[0], float(opt_acq), opt_acq_sim, MSE_acq_obj_act,
+                           min_sse_theta_data.theta_vals[0], min_sse_gp, min_sse_sim, MSE_obj_gp, MSE_obj_act,
+                           time_per_iter]
+        # column_names = ['Best Error', 'Exploration Bias', 'Opt Acq', 'Theta Opt Acq', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Time/Iter']
         iter_df = pd.DataFrame(columns=column_names)
-        bo_iter_results = [best_error_metrics[0], float(self.ep_bias.ep_curr), float(opt_acq), acq_theta_data.theta_vals[0],
-                            min_sse_gp, min_sse_sim, min_sse_theta_data.theta_vals[0], time_per_iter]
+        # bo_iter_results = [best_error_metrics[0], float(self.ep_bias.ep_curr), float(opt_acq), acq_theta_data.theta_vals[0],
+        #                     min_sse_gp, min_sse_sim, min_sse_theta_data.theta_vals[0], time_per_iter]
         # Add the new row to the DataFrame
         iter_df.loc[0] = bo_iter_results
 
@@ -4191,7 +4229,17 @@ class GPBO_Driver:
         assert 0 < self.bo_iter_term_frac <= 1, "self.bo_iter_term_frac must be between 0 and 1"
         #Initialize pandas dataframes
         # column_names = ['Best Error', 'Exploration Bias', 'Opt Acq', 'Theta Opt Acq', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'Regret', 'Speed', 'Time/Iter']
-        column_names = ['Best Error', 'Exploration Bias', 'Opt Acq', 'Theta Opt Acq', 'Min Obj', 'Min Obj Act', 'Theta Min Obj', 'Min Obj Cum.', 'Theta Min Obj Cum.', 'Time/Iter']
+        # column_names = ['Best Error', 'Exploration Bias', 
+        #                 'Theta Opt Acq', 'Opt Acq', 'Acq Obj Act', 
+        #                 'Theta Acq Act Cum', 'Acq Obj Act Cum', 
+        #                 'Theta Min Obj', 'Min Obj GP', 'Min Obj Act',  
+        #                 'Theta Obj GP Cum', 'Min Obj GP Cum', 
+        #                 'Theta Obj Act Cum', 'Min Obj Act Cum', 
+        #                 'Time/Iter']
+        column_names = ['Best Error', 'Exploration Bias', 
+                        'Theta Opt Acq', 'Opt Acq', 'Acq Obj Act', 'MSE Acq Act',
+                        'Theta Min Obj', 'Min Obj GP', 'Min Obj Act',  'MSE Obj GP', 'MSE Obj Act',
+                        'Time/Iter']
         results_df = pd.DataFrame(columns=column_names)
         max_ei_details_df = pd.DataFrame()
         list_gp_emulator_class = []
@@ -4221,30 +4269,16 @@ class GPBO_Driver:
                     max_ei_details_df = pd.concat([max_ei_details_df, iter_max_ei_terms])
                 #At the first iteration
                 if i == 0:
-                    #Then the minimimum is defined by the first value of the objective function you calculate
-                    # results_df["Min Obj Cum."].iloc[i] = results_df["Min Obj Act"].iloc[i]
-                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i, "Min Obj"]
-                    #The Theta values are then inferred
-                    results_df.at[i, "Theta Min Obj Cum."] = results_df["Theta Min Obj"].iloc[i]
                     #improvement is defined as infinity on 1st iteration (something is always better than nothing)
                     improvement = np.inf 
-                #If it is not the 1st iteration and your current Min Obj value is smaller than your previous Overall Min Obj
-                elif results_df["Min Obj"].iloc[i] < results_df["Min Obj Cum."].iloc[i-1]:
-                    #Then the New Cumulative Minimum objective value is the current minimum objective value
-                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i, "Min Obj"]
-                    #The Thetas are inferred
-                    results_df.at[i, "Theta Min Obj Cum."] = results_df["Theta Min Obj"].iloc[i].copy()
+                elif results_df["Min Obj GP"].iloc[i] < float(results_df["Min Obj GP"][:-1].min()):
                     #And the improvement is defined as the difference between the last Min Obj Cum. and current Obj Min (unscaled)
                     if self.method.obj.value == 1:
-                        improvement = results_df["Min Obj Cum."].iloc[i-1] - results_df["Min Obj"].iloc[i]
+                        improvement = results_df["Min Obj GP"][:-1].min() - results_df["Min Obj GP"].iloc[i]
                     else:
-                        improvement = np.exp(results_df["Min Obj Cum."].iloc[i-1]) - np.exp(results_df["Min Obj"].iloc[i])
+                        improvement = np.exp(results_df["Min Obj GP"][:-1].min()) - np.exp(results_df["Min Obj GP"].iloc[i])
                 #Otherwise
                 else:
-                    #The minimum objective for all the runs is the same as it was before
-                    results_df.loc[i, "Min Obj Cum."] = results_df.loc[i-1, "Min Obj Cum."]
-                    #And so are the thetas
-                    results_df.at[i, "Theta Min Obj Cum."] = results_df['Theta Min Obj Cum.'].iloc[i-1].copy()
                     #And the improvement is defined as 0, since it must be non-negative
                     improvement = 0
 
@@ -4286,9 +4320,35 @@ class GPBO_Driver:
                 #Continue if no stopping criteria are met   
                 else:
                     terminate = False
-            
+
         #Reset the index of the pandas df
         results_df = results_df.reset_index()
+
+        #Fill Cumulative value columns based on results
+        #Initialize cum columns as the same as the original columns
+        # results_df.insert(1, "BO Iter", results_df.index + 1)
+        results_df.rename(columns={'index': 'BO Iter'}, inplace=True) 
+        results_df["BO Iter"] += 1
+        results_df["BO Method"] = self.method.report_name
+        results_df["Max Evals"] = len(results_df)
+        results_df['Theta Acq Act Cum'] = results_df['Theta Opt Acq']
+        results_df['Theta Obj GP Cum'] = results_df['Theta Min Obj']
+        results_df['Theta Obj Act Cum'] = results_df['Theta Min Obj']
+        results_df["Termination"] = why_term
+        results_df["Total Run Time"] = float(results_df["Time/Iter"].sum())
+
+        results_df["Min Obj GP Cum"] = np.minimum.accumulate(results_df['Min Obj GP'])
+        results_df['Min Obj Act Cum'] = np.minimum.accumulate(results_df['Min Obj Act'])
+        results_df["Acq Obj Act Cum"] = np.minimum.accumulate(results_df['Acq Obj Act'])
+
+        for i in range(len(results_df)):
+            if i > 0:
+                if results_df["Acq Obj Act Cum"].iloc[i] > results_df["Acq Obj Act Cum"].iloc[i-1]:
+                    results_df.at[i, 'Theta Acq Act Cum'] = results_df['Theta Acq Act Cum'].iloc[i-1].copy()
+                if results_df["Min Obj Act Cum"].iloc[i] > results_df["Min Obj Act Cum"].iloc[i-1]:
+                    results_df.at[i, 'Theta Obj Act Cum'] = results_df['Theta Obj Act Cum'].iloc[i-1].copy()
+                if results_df["Min Obj GP Cum"].iloc[i] > results_df["Min Obj GP Cum"].iloc[i-1]:
+                    results_df.at[i, 'Theta Min GP Cum'] = results_df['Theta Min GP Cum'].iloc[i-1].copy()
         
         #Create df for ei and add those results here
         if iter_max_ei_terms is not None:
@@ -4341,6 +4401,7 @@ class GPBO_Driver:
                          "Method Name Enum Value" : self.method.method_name.value,
                          "Case Study Name" : self.cs_params.cs_name,
                          "Number of Parameters": len(self.simulator.theta_true_names),
+                         "Number of State Points": self.exp_data.get_num_x_vals(),
                          "Exploration Bias Method Value" : self.ep_bias.ep_enum.value,
                          "Separation Factor" : self.cs_params.sep_fact,
                          "Normalize" : self.cs_params.normalize,
