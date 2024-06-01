@@ -223,7 +223,10 @@ class General_Analysis:
             elif found_data1:
                 df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
                 df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(self.str_to_array_df_col)
-                df_job["Theta Min Obj Cum."] = df_job["Theta Min Obj Cum."].apply(self.str_to_array_df_col) 
+                df_job['Theta Obj GP Cum'] = df_job['Theta Obj GP Cum'].apply(self.str_to_array_df_col) 
+                df_job['Theta Obj Act Cum'] = df_job['Theta Obj Act Cum'].apply(self.str_to_array_df_col) 
+                df_job['Theta Acq Act Cum'] = df_job['Theta Acq Act Cum'].apply(self.str_to_array_df_col)
+                
             #Add job dataframe to dataframe of all jobs
             df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
 
@@ -284,115 +287,22 @@ class General_Analysis:
         for run in range(tot_runs):
             #Read data as pd.df
             df_run = results[run].results_df
-            cs_params, method, gen_meth_theta, ep_method = self.__rebuild_cs(sp_data)
-            simulator = results[run].simulator_class
-            exp_data = results[run].exp_data_class
-            gp_emulator_classes = results[run].list_gp_emulator_class
             #Add the EP enum value as a column
             col_vals = job.sp.ep_enum_val
             df_run['EP Method Val'] = Ep_enum(int(col_vals)).name
             #Set index as the first run in the job's run number + the run we're at in the job
             df_run["index"] = int(job.sp.bo_run_num + run)
-            #Recalculate the true value of theta here based on method number if applicable and continue as normal
-            #DO IF NECESSARY 
-            #Add other important columns
-            #If using a log scaled sse objective function (2 or 4)
-            if job.sp.meth_name_val in [2,4]:
-                #MSE is calculated by taking exp(ln(sse)) first
-                df_run["MSE"] = np.exp(df_run["Min Obj Act"])/num_x_exp
-            else:
-                #Otherwise, sse is calculated as normal
-                df_run["MSE"] = df_run["Min Obj Act"]/num_x_exp
-            df_run["BO Method"] = Method_name_enum(job.sp.meth_name_val).name
             df_run["Job ID"] = job.id
-            df_run["Max Evals"] = len(df_run)
-            df_run["Termination"] = results[run].why_term
-            df_run["Total Run Time"] = df_run["Time/Iter"]*df_run["Max Evals"]  
 
-            #Set BO and run numbers as columns        
+            #Set Run numbers as columns        
             df_run.rename(columns={'index': 'Run Number'}, inplace=True)   
-            df_run.insert(1, "BO Iter", df_run.index + 1)
-            
-            def get_gp_min_obj(row):
-                bo_iter = row["BO Iter"] - 1
-                gp_emulator = gp_emulator_classes[bo_iter]
-                sim_data = gp_emulator.gp_sim_data
-                val_data = gp_emulator.gp_val_data
-                ep_at_iter = df_run["Exploration Bias"].iloc[bo_iter]
-                ep_bias = Exploration_Bias(None, ep_at_iter, ep_method, None, None, None, None, None, None, None)
-                driver = GPBO_Driver(cs_params, method, simulator, exp_data, sim_data, 
-                                        sim_data, val_data, val_data, 
-                                        gp_emulator, ep_bias, gen_meth_theta)
-                sp_data = driver.create_data_instance_from_theta(row["Theta Min Obj"], False)
-                feat_sp_data = gp_emulator.featurize_data(sp_data)
-                sp_data.gp_mean, sp_data.gp_var = gp_emulator.eval_gp_mean_var_misc(sp_data, feat_sp_data)
-                #Evaluate GP SSE and SSE_Var (This is the 2nd slowest step)
-                if method.emulator == True:
-                    sp_data_sse_mean, sp_data_sse_var = gp_emulator.eval_gp_sse_var_misc(sp_data, method, exp_data)
-                else:
-                    sp_data_sse_mean, sp_data_sse_var = gp_emulator.eval_gp_sse_var_misc(sp_data)
-
-                return(float(sp_data_sse_mean))
-            
-            def get_opt_acq_min_obj(row):
-                bo_iter = row["BO Iter"] - 1
-                gp_emulator = gp_emulator_classes[bo_iter]
-                sim_data = gp_emulator.gp_sim_data
-                val_data = gp_emulator.gp_val_data
-                ep_at_iter = df_run["Exploration Bias"].iloc[bo_iter]
-                ep_bias = Exploration_Bias(None, ep_at_iter, ep_method, None, None, None, None, None, None, None)
-                driver = GPBO_Driver(cs_params, method, simulator, exp_data, sim_data, 
-                                        sim_data, val_data, val_data, 
-                                        gp_emulator, ep_bias, gen_meth_theta)
-                opt_acq_act_data = driver.create_data_instance_from_theta(row["Theta Opt Acq"])
-                if driver.method.emulator == True:
-                #Evaluate SSE & SSE stdev at max ei theta
-                    y_vals = driver.simulator.sim_data_to_sse_sim_data(driver.method, opt_acq_act_data, driver.exp_data, 
-                                                                            driver.cs_params.sep_fact, False).y_vals
-                #Otherwise the sse data is the original (scaled) data
-                else:     
-                    #Evaluate SSE & SSE stdev at max ei theta
-                    y_vals = opt_acq_act_data.y_vals
-                return float(y_vals)
-                
-            df_run["Opt Acq Min Obj"] = df_run.apply(get_opt_acq_min_obj, axis = 1)
-            # df_run["Min Obj"] = df_run.apply(get_gp_min_obj, axis = 1)
-
+           
             #Add run dataframe to job dataframe after
             df_job = pd.concat([df_job, df_run], ignore_index=False)
 
         #Reset index on job dataframe
         df_job = df_job.reset_index(drop=True)
 
-        #Calculate the cumulative minimum objective function based off of acq value
-        df_job["Opt Acq Min Obj Cum"] = None
-        for i in range(len(df_job)):
-            if df_job["BO Iter"].iloc[i] == 1:
-                df_job.loc[i, "Opt Acq Min Obj Cum"] = df_job.loc[i,"Opt Acq Min Obj"]
-            elif df_job["Opt Acq Min Obj"].iloc[i] < df_job["Opt Acq Min Obj Cum"].iloc[i-1]:
-                df_job.loc[i,"Opt Acq Min Obj Cum"] = df_job.loc[i, "Opt Acq Min Obj"]
-            else:
-                df_job.loc[i, "Opt Acq Min Obj Cum"] = df_job.loc[i-1,"Opt Acq Min Obj Cum"]
-
-        # df_job["GP Min Obj Cum"] = None
-        for i in range(len(df_job)):
-            if df_job["BO Iter"].iloc[i] == 1:
-                df_job.loc[i, "Min Obj Cum."] = df_job.loc[i,"Min Obj Act"]
-            elif df_job["Min Obj Act"].iloc[i] < df_job["Min Obj Cum."].iloc[i-1]:
-                df_job.loc[i,"Min Obj Cum."] = df_job.loc[i, "Min Obj Act"]
-            else:
-                df_job.loc[i, "Min Obj Cum."] = df_job.loc[i-1,"Min Obj Cum."]
-        
-        # for i in range(len(df_job)):
-        #     if df_job["Min Obj"].iloc[i] < 0 and "2" not in df_job["BO Method"].iloc[i]:
-        #         df_job.loc[i, "GP Min Obj Cum"] = None
-        #     elif df_job["BO Iter"].iloc[i] == 1:
-        #         df_job.loc[i, "GP Min Obj Cum"] = df_job.loc[i,"Min Obj"]
-        #     elif df_job["Min Obj"].iloc[i] < df_job["GP Min Obj Cum"].iloc[i-1]:
-        #         df_job.loc[i,"GP Min Obj Cum"] = df_job.loc[i, "Min Obj"]
-        #     else:
-        #         df_job.loc[i, "GP Min Obj Cum"] = df_job.loc[i-1,"GP Min Obj Cum"]
-        #Put in a csv file in a directory based on the job
         if save_csv:
             all_data_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
             theta_data_path = os.path.join(job.fn("analysis_data"), "true_param_data.json")
@@ -416,9 +326,9 @@ class General_Analysis:
         data_exists, df_best = self.load_data(data_best_path)
         if not data_exists or self.save_csv:
             #Start by sorting pd dataframe by lowest obj func value overall
-            df_sorted = df.sort_values(by=['Min Obj Cum.', 'BO Iter'], ascending=True)
-            # df_sorted = df.sort_values(by=["Opt Acq Min Obj Cum", 'BO Iter'], ascending=True)
-            # df_sorted = df.sort_values(by=["GP Min Obj Cum", 'BO Iter'], ascending=True)
+            df_sorted = df.sort_values(by=["Min Obj Act Cum", 'BO Iter'], ascending=True)
+            # df_sorted = df.sort_values(by=["Acq Obj Act Cum", 'BO Iter'], ascending=True)
+            # df_sorted = df.sort_values(by=["Min Obj GP Cum", 'BO Iter'], ascending=True)
             #Then take only the 1st instance for each method
             df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first').copy()
             #Calculate the L2 norm of the best runs
@@ -691,25 +601,25 @@ class General_Analysis:
             data_names = []
             for z_choice in z_choices:
                 if "sse" == z_choice:
-                    col_name += ["Min Obj Act"] #["Opt Acq Min Obj"] #["Min Obj"], 
-                    data_names += ["\mathbf{e(\\theta)}"]
+                    col_name += ["Min Obj Act"] #["Acq Obj Act"] #["Min Obj GP"], 
+                    data_names += ["\mathbf{g(\\theta)}"]
                 if "min_sse" == z_choice:
-                    col_name += ["Min Obj Cum."] #["Opt Acq Min Obj Cum"] #["GP Min Obj Cum"], 
-                    data_names += ["\mathbf{Min\,e(\\theta)}"]        
+                    col_name += ["Min Obj Act Cum"] #["Acq Obj Act Cum"] #["Min Obj GP Cum"], 
+                    data_names += ["\mathbf{Min\,g(\\theta)}"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
-                    data_names += ["\mathbf{Opt\ acq(\\theta)}"]
+                    data_names += ["\mathbf{Opt\ \Xi(\\theta)}"]
 
         elif data_type == "params":
             assert isinstance(z_choices, str), "z_choices must be a string"
             assert any(item == z_choices for item in ["acq", "min_sse", "sse"]), "z_choices must be one of 'min_sse', 'acq', or 'sse'"
             data_names = list(theta_true_data.keys())
             if "min_sse" in z_choices:
-                col_name = "Theta Min Obj Cum."  
+                col_name = 'Theta Obj Act Cum' #['Theta Acq Act Cum'], ['Theta Obj GP Cum'], ['Theta Obj Act Cum']
             elif "sse" == z_choices:
-                col_name = "Theta Min Obj"
+                col_name = "Theta Act Obj" #['Theta Min Obj'], ['Theta Opt Acq']
             elif "acq" in z_choices:
-                col_name = "Theta Opt Acq"
+                col_name = 'Theta Opt Acq'
             else:
                 warnings.warn("z_choices must be 'acq', 'sse', or 'min_sse'.")
         return col_name, data_names
@@ -745,7 +655,9 @@ class General_Analysis:
         elif found_data1:
             df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
             df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(self.str_to_array_df_col)
-            df_job["Theta Min Obj Cum."] = df_job["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
+            df_job['Theta Obj GP Cum'] = df_job['Theta Obj GP Cum'].apply(self.str_to_array_df_col) 
+            df_job['Theta Obj Act Cum'] = df_job['Theta Obj Act Cum'].apply(self.str_to_array_df_col) 
+            df_job['Theta Acq Act Cum'] = df_job['Theta Acq Act Cum'].apply(self.str_to_array_df_col)
 
         #Get statepoint info
         with open(job.fn("signac_statepoint.json"), 'r') as json_file:
@@ -995,9 +907,10 @@ class General_Analysis:
         if self.save_csv or not found_data1:
             #Open file
             results = open_file_helper(job.fn("BO_Results.gz"))
+            results_GP = open_file_helper(job.fn("BO_Results_GPs.gz"))
             assert len(results) > run_idx, "run_num is out of bounds"
             assert len(results[run_idx].list_gp_emulator_class) > bo_iter-1, "bo_iter is out of bounds"
-            gp_object = copy.copy(results[run_idx].list_gp_emulator_class[bo_iter-1])
+            gp_object = copy.copy(results_GP[run_idx].list_gp_emulator_class[bo_iter-1])
             simulator = copy.copy(results[run_idx].simulator_class)
             exp_data = copy.copy(results[0].exp_data_class) #Experimental data won't change
 
@@ -1090,12 +1003,13 @@ class General_Analysis:
         #Generate driver class/ emulator class if data doesn't exist or we need to calculate acq
         if self.save_csv or data_not_found or data_needs_ei:
             loaded_results = open_file_helper(job.fn("BO_Results.gz"))
-            assert len(loaded_results) > run_num, "run_num is out of bounds"
-            assert len(loaded_results[run_num].list_gp_emulator_class) > bo_iter, "bo_iter is out of bounds"
+            loaded_results_GPs = open_file_helper(job.fn("BO_Results.gz"))
+            assert len(loaded_results_GPs) > run_num, "run_num is out of bounds"
+            assert len(loaded_results_GPs[run_num].list_gp_emulator_class) > bo_iter, "bo_iter is out of bounds"
 
             #Create Heat Map Data for a run and iter
             #Regeneate class objects 
-            gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
+            gp_emulator = loaded_results_GPs[run_num].list_gp_emulator_class[bo_iter]
             exp_data = loaded_results[run_num].exp_data_class
             simulator = loaded_results[run_num].simulator_class
             ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
@@ -1113,7 +1027,7 @@ class General_Analysis:
             theta_true = loaded_results[run_num].simulator_class.theta_true
             theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
             theta_next = loaded_results[run_num].results_df["Theta Opt Acq"].iloc[bo_iter]
-            train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
+            train_theta = loaded_results_GPs[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
             
             #Get specific heat map data or generate it
             # if loaded_results[0].heat_map_data_dict is not None:
@@ -1123,16 +1037,16 @@ class General_Analysis:
             n_points_set = len(driver.gp_emulator.gp_sim_data.get_unique_theta())
             if num_x*n_points_set**2 >= 5000:
                 n_points_set = int(np.sqrt(5000/num_x))
-            loaded_results[0].heat_map_data_dict = driver.create_heat_map_param_data(n_points_set)
-            heat_map_data_dict = loaded_results[0].heat_map_data_dict
+            loaded_results_GPs[0].heat_map_data_dict = driver.create_heat_map_param_data(n_points_set)
+            heat_map_data_dict = loaded_results_GPs[0].heat_map_data_dict
 
             #Get pair ID
             if isinstance(pair_id, str):
-                assert pair_id in loaded_results[0].heat_map_data_dict.keys(), "pair_id is an invalid string"
+                assert pair_id in loaded_results_GPs[0].heat_map_data_dict.keys(), "pair_id is an invalid string"
                 param_names = pair_id
             elif isinstance(pair_id, int):
-                assert pair_id < len(loaded_results[0].heat_map_data_dict.keys()), "pair_id is out of bounds"
-                param_names = list(loaded_results[0].heat_map_data_dict.keys())[pair_id]
+                assert pair_id < len(loaded_results_GPs[0].heat_map_data_dict.keys()), "pair_id is out of bounds"
+                param_names = list(loaded_results_GPs[0].heat_map_data_dict.keys())[pair_id]
             else:
                 raise Warning("Invalid pair_id!")
 
@@ -1470,6 +1384,14 @@ class LS_Analysis(General_Analysis):
             #Reset the index of the pandas df
             ls_results = ls_results.reset_index(drop=True)
 
+            ls_results['Theta Min Obj Cum'] = ls_results['Theta Min Obj']
+            ls_results["Min Obj Cum."] = np.minimum.accumulate(ls_results['Min Obj Act'])
+
+            for i in range(len(ls_results)):
+                if i > 0:
+                    if ls_results["Min Obj Cum."].iloc[i] >= ls_results["Min Obj Cum."].iloc[i-1]:
+                        ls_results.at[i, 'Theta Min Obj Cum.'] = ls_results['Theta Min Obj Cum.'].iloc[i-1].copy()
+
             if self.save_csv:
                 self.save_data(ls_results, ls_data_path)
         elif found_data1:
@@ -1570,6 +1492,7 @@ class LS_Analysis(General_Analysis):
 
         return local_min_sets
 
+#Outdated functions below
 def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = False, save_csv =False):
     """
     Gets the heat map data necessary for plotting heat maps

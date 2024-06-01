@@ -4339,12 +4339,12 @@ class GPBO_Driver:
 
         for i in range(len(results_df)):
             if i > 0:
-                if results_df["Acq Obj Act Cum"].iloc[i] > results_df["Acq Obj Act Cum"].iloc[i-1]:
+                if results_df["Acq Obj Act Cum"].iloc[i] >= results_df["Acq Obj Act Cum"].iloc[i-1]:
                     results_df.at[i, 'Theta Acq Act Cum'] = results_df['Theta Acq Act Cum'].iloc[i-1].copy()
-                if results_df["Min Obj Act Cum"].iloc[i] > results_df["Min Obj Act Cum"].iloc[i-1]:
+                if results_df["Min Obj Act Cum"].iloc[i] >= results_df["Min Obj Act Cum"].iloc[i-1]:
                     results_df.at[i, 'Theta Obj Act Cum'] = results_df['Theta Obj Act Cum'].iloc[i-1].copy()
-                if results_df["Min Obj GP Cum"].iloc[i] > results_df["Min Obj GP Cum"].iloc[i-1]:
-                    results_df.at[i, 'Theta Min GP Cum'] = results_df['Theta Min GP Cum'].iloc[i-1].copy()
+                if results_df["Min Obj GP Cum"].iloc[i] >= results_df["Min Obj GP Cum"].iloc[i-1]:
+                    results_df.at[i, 'Theta Obj GP Cum'] = results_df['Theta Obj GP Cum'].iloc[i-1].copy()
         
         #Create df for ei and add those results here
         if iter_max_ei_terms is not None:
@@ -4377,10 +4377,13 @@ class GPBO_Driver:
         results_df, max_ei_details_df, list_gp_emulator_class, why_term = self.__run_bo_to_term()
         
         #Set results
-        bo_results = BO_Results(None, None, self.exp_data, list_gp_emulator_class, results_df, 
+        bo_results_res = BO_Results(None, None, self.exp_data, None, results_df, 
                                 max_ei_details_df, why_term, None)
         
-        return bo_results
+        bo_results_GPs = BO_Results(None, None, None, list_gp_emulator_class, None, 
+                                max_ei_details_df, None, None)
+        
+        return bo_results_res, bo_results_GPs
 
     
     def run_bo_restarts(self):
@@ -4391,7 +4394,8 @@ class GPBO_Driver:
         --------
         restart_bo_results, list of instances of BO_Results, Includes the results related to a set of Bo iters for all restarts
         """
-        restart_bo_results = []
+        gpbo_res_simple = []
+        gpbo_res_GP = []
         simulator_class = self.simulator
         configuration = {"DateTime String" : self.cs_params.DateTime,
                          "Method Name Enum Value" : self.method.method_name.value,
@@ -4416,13 +4420,13 @@ class GPBO_Driver:
                          "Theta Generation Enum Value": self.gen_meth_theta.value}
                 
         for i in range(self.cs_params.bo_run_tot):
-            bo_results = self.__run_bo_workflow()
+            bo_results_res, bo_results_GPs = self.__run_bo_workflow()
             #Update the seed in configuration
             configuration["Seed"] = self.cs_params.seed
             #Add this updated copy of configuration with the new seed to the bo_results
-            bo_results.configuration = configuration.copy()           
+            bo_results_res.configuration = configuration.copy()           
             #Add simulator class
-            bo_results.simulator_class = simulator_class
+            bo_results_res.simulator_class = simulator_class
             #On the 1st iteration, create heat map data if we are actually generating the data           
             if i == 0:
                 if self.cs_params.gen_heat_map_data == True:
@@ -4430,16 +4434,17 @@ class GPBO_Driver:
                     heat_map_data_dict = self.create_heat_map_param_data()
                     # Save these heat map values in the bo_results object 
                     # Only store in first list entry to avoid repeated data which stays the same for each iteration.
-                    bo_results.heat_map_data_dict = heat_map_data_dict
-            restart_bo_results.append(bo_results)
+                    bo_results_GPs.heat_map_data_dict = heat_map_data_dict
+            gpbo_res_simple.append(bo_results_res)
+            gpbo_res_GP.append(bo_results_GPs)
             #Add 2 to the seed for each restart (1 for the sim/exp data seed and 1 for validation data seed) to get completely new seeds
             self.cs_params.seed += 2
                    
         #Save data automatically if DateTime is not None
         if self.cs_params.DateTime is not None:
-            self.save_data(restart_bo_results)
+            self.save_data(gpbo_res_simple)
 
-        return restart_bo_results
+        return gpbo_res_simple, gpbo_res_GP
     
     def save_data(self, restart_bo_results):
         """
