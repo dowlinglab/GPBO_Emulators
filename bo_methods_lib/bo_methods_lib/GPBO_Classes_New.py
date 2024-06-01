@@ -4126,23 +4126,19 @@ class GPBO_Driver:
         self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics)
 
         #Call optimize E[SSE] or log(E[SSE]) objective function
+        #Note if we didn't want actual sse values, we would have to set get_y = False in create_data_instance_from_theta in __opt_with_scipy
         min_sse, min_theta_data = self.__opt_with_scipy("sse")
 
         #Call optimize EI acquistion fxn (If not using E[SSE])
         if self.method.method_name.value != 7:
-            opt_acq, max_ei_theta_data = self.__opt_with_scipy("neg_ei")
+            opt_acq, acq_theta_data = self.__opt_with_scipy("neg_ei")
             if self.method.emulator == True:
-                ei_args = (max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics, 
+                ei_args = (acq_theta_data, self.exp_data, self.ep_bias, best_error_metrics, 
                            self.method, self.sg_depth)
             else:
-                ei_args = (max_ei_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
+                ei_args = (acq_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
         else:
-            opt_acq, min_theta_data = self.__opt_with_scipy("E_sse")
-
-        if self.method.method_name.value != 7:
-            acq_theta_data = max_ei_theta_data
-        else:
-            acq_theta_data = min_theta_data
+            opt_acq, acq_theta_data = self.__opt_with_scipy("E_sse")
 
         #If type 2, turn it into sse_data
         #Set the best data to be in sse form if using a type 2 GP and find the min sse
