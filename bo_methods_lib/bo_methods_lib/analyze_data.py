@@ -1043,7 +1043,7 @@ class General_Analysis:
         #Generate driver class/ emulator class if data doesn't exist or we need to calculate acq
         if self.save_csv or data_not_found or data_needs_ei:
             loaded_results = open_file_helper(job.fn("BO_Results.gz"))
-            loaded_results_GPs = open_file_helper(job.fn("BO_Results.gz"))
+            loaded_results_GPs = open_file_helper(job.fn("BO_Results_GPs.gz"))
             assert len(loaded_results_GPs) > run_num, "run_num is out of bounds"
             assert len(loaded_results_GPs[run_num].list_gp_emulator_class) > bo_iter, "bo_iter is out of bounds"
 
@@ -1063,9 +1063,16 @@ class General_Analysis:
 
         #Create heat map data if it doesn't exists
         if self.save_csv or data_not_found:
+            if self.mode == "act":
+                param_sse_min = 'Theta Obj Act Cum'
+            elif self.mode == "acq":
+                param_sse_min = 'Theta Acq Act Cum'
+            elif self.mode == "gp":
+                param_sse_min = 'Theta Obj GP Cum'
+
             #Get important theta values
             theta_true = loaded_results[run_num].simulator_class.theta_true
-            theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
+            theta_opt =  loaded_results[run_num].results_df[param_sse_min].iloc[bo_iter]
             theta_next = loaded_results[run_num].results_df["Theta Opt Acq"].iloc[bo_iter]
             train_theta = loaded_results_GPs[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
             

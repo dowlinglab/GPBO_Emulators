@@ -118,7 +118,15 @@ class Plotters:
         self.colors = ["red", "blue", "green", "purple", "darkorange", "deeppink", "teal"]
         self.method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", 
                              "Sparse Grid", "Monte Carlo", "E[SSE]"]
+        self.gpbo_meth_dict = {"Conventional":1,
+                 "Log Conventional":2,
+                 "Independence":3,
+                 "Log Independence":4,
+                 "Sparse Grid":5,
+                 "Monte Carlo":6,
+                 "E[SSE]":7}
 
+    
     def plot_one_obj_all_methods(self, z_choice, log_data = False, title = None):
         """
         Plots SSE, Min SSE, or EI values vs BO iter for all BO Methods at the best runs
@@ -166,7 +174,7 @@ class Plotters:
             #Get data
             data, data_names, data_true, sp_data = self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
             GPBO_method_val = sp_data["meth_name_val"]
-            shrt_name = Method_name_enum(GPBO_method_val).name
+            shrt_name = GPBO_Methods(Method_name_enum(GPBO_method_val)).report_name
 
             #Get Number of runs in the job
             runs_in_job = sp_data["bo_runs_in_job"]
@@ -218,7 +226,7 @@ class Plotters:
                     else:
                         x = [1, data.shape[1]]
                         y = [list(data_true.values())[0], list(data_true.values())[0]]
-                    ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='dashdot', 
+                    ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='solid', 
                                                label = "Least Squares")
 
                 #Set plot details 
@@ -538,16 +546,16 @@ class Plotters:
         for z_choice in z_choices:
             if "sse_sim" == z_choice:
                 all_z_data.append(sse_sim)
-                all_z_titles.append(r"$\mathbf{e(\theta)_{sim}}$")
+                all_z_titles.append(r"$\mathbf{g(\theta)_{sim}}$")
             elif "sse_mean" == z_choice:
                 all_z_data.append(sse_mean)
-                all_z_titles.append(r"$\mathbf{e(\theta)_{gp}}$")
+                all_z_titles.append(r"$\mathbf{g(\theta)_{gp}}$")
             elif "sse_var" == z_choice:
                 all_z_data.append(sse_var)
-                all_z_titles.append(r"$\mathbf{\sigma^2_{e(\theta)_{gp}}}$")
+                all_z_titles.append(r"$\mathbf{\sigma^2_{g(\theta)_{gp}}}$")
             elif "acq" == z_choice:
                 all_z_data.append(ei)
-                all_z_titles.append(r"$\mathbf{acq(\theta)}$")
+                all_z_titles.append(r"$\mathbf{\Xi(\theta)}$")
             else:
                 raise Warning("choice must contain 'sim', 'mean', 'var', or 'acq'")
         if len(all_z_data) == 1:
@@ -640,22 +648,23 @@ class Plotters:
                 warnings.warn("Cannot plot log scaled data! Reverting to original")
                 z = np.exp(all_z_data[i])
 
-        # Find the maximum and minimum values in your data to normalize the color scale
-        vmin = min(np.min(arr) for arr in all_z_data)
-        vmax = max(np.max(arr) for arr in all_z_data)
-        #Check if data scales 2+ orders of magnitude
-        mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
+        if z_choice != "acq":
+            # Find the maximum and minimum values in your data to normalize the color scale
+            vmin = min(np.min(arr) for arr in all_z_data)
+            vmax = max(np.max(arr) for arr in all_z_data)
+            #Check if data scales 2+ orders of magnitude
+            mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
 
-        # Create a common color normalization for all subplots
-        #Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3 
-        if log_data == True or need_unscale or not mag_diff :
-            norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
-            cbar_ticks = np.linspace(vmin, vmax, self.zbins)
-            new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks
-        else:
-            norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
-            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
-            new_ticks= matplotlib.ticker.LogLocator(numticks=7)
+            # Create a common color normalization for all subplots
+            #Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3 
+            if log_data == True or need_unscale or not mag_diff :
+                norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
+                cbar_ticks = np.linspace(vmin, vmax, self.zbins)
+                new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks
+            else:
+                norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
+                cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
+                new_ticks= matplotlib.ticker.LogLocator(numticks=7)
 
         #Set plot details
         #Loop over number of subplots
@@ -674,21 +683,49 @@ class Plotters:
             fmt = '%.2e' if np.amax(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000 else '%2.2f'
 
             if np.all(z == z[0]):
-                z =  np.random.normal(scale=1e-14, size=z.shape)
+                z =  abs(np.random.normal(scale=1e-14, size=z.shape))
+
+            if z_choice == "acq":
+                use_log10 = False
+                # Find the maximum and minimum values in your data to normalize the color scale
+                vmin = np.amin(z)
+                vmax = np.amax(z)
+                #Check if data scales 2+ orders of magnitude
+                mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
+
+                # Create a common color normalization for all subplots
+                #Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3 
+                if log_data == True or need_unscale or not mag_diff :
+                    norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
+                    locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks = 4) #Set up to 12 ticks
+                    cbar_ticks = new_ticks.tick_values(vmin, vmax)
+
+                else:
+                    norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
+                    locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks=4)
+                    tick_positions = locator.tick_values(np.log10(vmin), np.log10(vmax))
+                    cbar_ticks = 10 ** tick_positions
+                    use_log10 = True
+
+                def custom_format(x, pos):
+                    return '{:2.2e}'.format(x) if x != 0 else '0'
 
             #Create a colormap and colorbar for each subplot
             if log_data == True:
-                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, 
+                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = self.zbins, #cbar_ticks
                                                      cmap = plt.cm.get_cmap(self.cmap), norm = norm)
             else:
-                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, 
+                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = self.zbins, 
                                                      cmap = plt.cm.get_cmap(self.cmap), norm = norm)
     #             cs_fig = ax[i].contourf(xx, yy, z, levels = zbins, cmap = plt.cm.get_cmap(cmap), norm = norm)
 
             #Create a line contour for each colormap
             if levels is not None:  
                 assert len(tot_lev) >= i + 1, "Must have as many levels as methods"
-                cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], 
+                num_levels = len(cbar_ticks)
+                indices = np.linspace(0, len(cs_fig.levels) - 1, num_levels, dtype=int)
+                selected_levels = cs_fig.levels[indices]
+                cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=selected_levels, #levels=cs_fig.levels[::tot_lev[i]]
                                                      colors='k', alpha=0.7, linestyles='dashed', linewidths=3, 
                                                      norm = norm)
                 # ax[ax_idx].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1, fmt = fmt)
@@ -707,6 +744,19 @@ class Plotters:
                 ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", 
                                            s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, 
                                            zorder = 4)
+                
+            if z_choice == "acq":
+                divider1 = make_axes_locatable(ax[ax_row, ax_col])
+                cax1 = divider1.append_axes("right", size="5%", pad="6%")
+                
+                cbar = fig.colorbar(cs_fig, ax = ax[ax_row, ax_col], ticks = cbar_ticks, cax = cax1, use_gridspec=True) #format = fmt
+                # cbar.ax.set_yticklabels([f'{tick:.2e}' for tick in cbar.cbar_ticks]) 
+                fmt_acq = matplotlib.ticker.FuncFormatter(custom_format) 
+                cbar.ax.yaxis.set_major_formatter(fmt_acq)
+                cbar.ax.set_ylabel(title2, fontsize=self.other_fntsz, fontweight='bold')
+                cbar.ax.tick_params(labelsize=int(self.other_fntsz/2), labelleft = False)
+                if use_log10:
+                    cbar.formatter.set_powerlimits((0, 0))
 
             #Set plot details
             self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, self.method_names[ax_idx])
@@ -714,13 +764,15 @@ class Plotters:
         #Get legend information and make colorbar on 1st plot
         handles, labels = ax[0, 0].get_legend_handles_labels() 
 
-        cb_ax = fig.add_axes([1.03,0,0.04,1])
+        
         if log_data is True and not need_unscale:
             title2 = "log(" + title2 + ")"
-            
-        cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks)
-        cbar.ax.tick_params(labelsize=self.other_fntsz)
-        cbar.ax.set_ylabel(title2, fontsize=self.other_fntsz, fontweight='bold')
+
+        if z_choice != "acq":
+            cb_ax = fig.add_axes([1.03,0,0.04,1])
+            cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks, format= fmt)
+            cbar.ax.tick_params(labelsize=self.other_fntsz)
+            cbar.ax.set_ylabel(title2, fontsize=self.other_fntsz, fontweight='bold')
                         
         #Print the title
         if title is not None:
@@ -855,24 +907,34 @@ class Plotters:
                 #If not using log data, vmin > 0, and the data scales 3 orders+ of magnitude use log10 to view plots
                 if log_data or vmin < 0 or not mag_diff:
                     norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False) 
-                    cbar_ticks = np.linspace(vmin, vmax, self.zbins)
-                    new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks  
-                    def custom_format(x, pos):
-                        return '{:2.2e}'.format(x) if x != 0 else '0'
+                    # cbar_ticks = np.linspace(vmin, vmax, self.zbins)
+                    # new_ticks = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks = 4) #Set up to 12 ticks  
+                    locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks = 5) #Set up to 12 ticks
+                    cbar_ticks = locator.tick_values(vmin, vmax)
+                    
                 else:
                     norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-                    cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
+                    # cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
         #             new_ticks = np.logspace(np.log10(vmin), np.log10(vmax), 7)
-                    new_ticks = matplotlib.ticker.LogLocator(numticks=7) #Set up to 12 ticks
-                    def custom_format(x, pos):
-                        return f'{eval("10**" + str(int(np.log10(x))))}' if x != 0 else '0'
+                    locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks=5)
+                    tick_positions = locator.tick_values(np.log10(vmin), np.log10(vmax))
+                    cbar_ticks = 10 ** tick_positions
+                    use_log10 = True
+                    # new_ticks = matplotlib.ticker.LogLocator(numticks=7) #Set up to 12 ticks
+                    # def custom_format(x, pos):
+                    #     return f'{eval("10**" + str(int(np.log10(x))))}' if x != 0 else '0'
+                def custom_format(x, pos):
+                    return '{:2.2e}'.format(x) if x != 0 else '0'
 
                 #Create a colormap and colorbar normalization for each subplot
-                cs_fig = ax.contourf(xx, yy, z, levels = cbar_ticks, cmap = plt.cm.get_cmap(self.cmap), norm = norm)
+                cs_fig = ax.contourf(xx, yy, z, levels = self.zbins, cmap = plt.cm.get_cmap(self.cmap), norm = norm)
 
                 #Create a line contour for each colormap
                 if levels is not None:  
-                    cs2_fig = ax.contour(cs_fig,levels=cs_fig.levels[::tot_lev[i]],colors='k',alpha=0.7,
+                    num_levels = len(cbar_ticks)
+                    indices = np.linspace(0, len(cs_fig.levels) - 1, num_levels, dtype=int)
+                    selected_levels = cs_fig.levels[indices]
+                    cs2_fig = ax.contour(cs_fig, levels=selected_levels, colors='k',alpha=0.7,
                                          linestyles='dashed',linewidths=3,norm=norm)
                     # ax[i].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1) #Uncomment for numbers
 
@@ -894,14 +956,11 @@ class Plotters:
                 self.__set_subplot_details(ax, xx, yy, None, None, all_z_titles[i])
 
                 # Use a custom formatter for the colorbar
-                if not log_data and vmin >0:
-                    fmt = matplotlib.ticker.FuncFormatter(custom_format)
-                else:
-                    fmt = matplotlib.ticker.FuncFormatter(custom_format) 
+                fmt = matplotlib.ticker.FuncFormatter(custom_format) 
 
                 divider1 = make_axes_locatable(ax)
                 cax1 = divider1.append_axes("right", size="5%", pad="6%")
-                cbar = fig.colorbar(cs_fig, ax = ax, cax = cax1, ticks = new_ticks, use_gridspec=True) #format = fmt
+                cbar = fig.colorbar(cs_fig, ax = ax, cax = cax1, ticks = cbar_ticks, use_gridspec=True) #format = fmt
                 cbar.ax.yaxis.set_major_formatter(fmt)
                 cbar.ax.tick_params(labelsize=int(self.other_fntsz/2))
     #             cbar.ax.set_ylabel(title2, fontsize=int(other_fontsize/2), fontweight='bold')
@@ -1001,11 +1060,11 @@ class Plotters:
         y_label: str, The y label for the plot
         """
         if "sse" == z_choice:
-            y_label = r"$\mathbf{e(\theta)}$"
+            y_label = r"$\mathbf{g(\theta)}$"
         if "min_sse" == z_choice:
-            y_label = r"$\mathbf{Min\,e(\theta)}$"   
+            y_label = r"$\mathbf{Min\,g(\theta)}$"   
         if "acq" == z_choice:
-            y_label = r"$\mathbf{Opt\ acq(\theta)}$"
+            y_label = r"$\mathbf{Opt\ \Xi(\theta)}$"
         return y_label
     
     def __get_data_to_bo_iter_term(self, data_all_iters):
@@ -1364,7 +1423,7 @@ class Plotters:
         runs = df_best["Run Number"].to_list()
         iters = df_best["BO Iter"].to_list()
         GPBO_methods = df_best["BO Method"].to_list()
-        ax_idxs = [int(Method_name_enum[str].value-1) for str in GPBO_methods]
+        ax_idxs = [self.gpbo_meth_dict[str]-1 for str in GPBO_methods]
         #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
         subplots_needed = len(runs)
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False, sharey=False)
