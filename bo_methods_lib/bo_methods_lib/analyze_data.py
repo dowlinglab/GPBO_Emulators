@@ -71,18 +71,20 @@ class General_Analysis:
     """
     # Class variables and attributes
     
-    def __init__(self, criteria_dict, project, save_csv):
+    def __init__(self, criteria_dict, project, mode, save_csv):
         """
         Parameters
         ----------
         criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val
         project: signac.project.Project, The signac project to analyze
+        mode: str, the mode to analyze the data in (act, acq, or gp)
         save_csv: bool, whether to save csvs.
         """
         #Asserts
         assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
         assert isinstance(project, signac.project.Project), "project must be a signac.Project object"
         assert isinstance(save_csv, bool), "save_csv must be a boolean"
+        assert mode in ["act", "acq", "gp"], "mode must be 'act', 'acq', or 'gp'"
         # Collect unique statepoints of all jobs
         statepoint_names = set()
         for job in project:
@@ -97,6 +99,7 @@ class General_Analysis:
         assert all(key in key_list for key in list(criteria_dict.keys())) == True, "All keys in criteria_dict must be in project statepoints"
 
         # Constructor method
+        self.mode = mode
         self.criteria_dict = criteria_dict
         self.project = project
         self.study_results_dir = os.path.join(self.make_dir_name_from_criteria(self.criteria_dict))
@@ -142,7 +145,7 @@ class General_Analysis:
                 parts.append(f"{key.replace('$', '')}_{value}")
 
         # result_dir = "/".join(parts) if is_nested else os.path.join("Results_acq", "/".join(parts))
-        result_dir = "/".join(parts) if is_nested else os.path.join("Results", "/".join(parts))
+        result_dir = "/".join(parts) if is_nested else os.path.join("Results_" + self.mode, "/".join(parts))
         return result_dir
 
     def get_jobs_from_criteria(self):
@@ -221,11 +224,14 @@ class General_Analysis:
             if save_csv or not found_data1 or not found_data2:
                 df_job, theta_true_data = self.get_study_data_signac(job, save_csv)
             elif found_data1:
-                df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
-                df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(self.str_to_array_df_col)
-                df_job['Theta Obj GP Cum'] = df_job['Theta Obj GP Cum'].apply(self.str_to_array_df_col) 
-                df_job['Theta Obj Act Cum'] = df_job['Theta Obj Act Cum'].apply(self.str_to_array_df_col) 
-                df_job['Theta Acq Act Cum'] = df_job['Theta Acq Act Cum'].apply(self.str_to_array_df_col)
+                try:
+                    df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
+                    df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(self.str_to_array_df_col)
+                    df_job['Theta Obj GP Cum'] = df_job['Theta Obj GP Cum'].apply(self.str_to_array_df_col) 
+                    df_job['Theta Obj Act Cum'] = df_job['Theta Obj Act Cum'].apply(self.str_to_array_df_col) 
+                    df_job['Theta Acq Act Cum'] = df_job['Theta Acq Act Cum'].apply(self.str_to_array_df_col)
+                except:
+                    df_job.head()
                 
             #Add job dataframe to dataframe of all jobs
             df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
@@ -313,20 +319,26 @@ class General_Analysis:
 
     def get_best_data(self):
         """
-        Gets the best performing data for each method in the criteria dict
-
+        Gets the best (as described from self.mode) performing data for each method in the criteria dict
+    
         Returns
         -------
         df_best: pd.DataFrame, The best data for each method
         job_list_best: list, a list of jobs from Signac corresponding to the ones in df_best
         """
+        if self.mode == "act":
+            obj_col = "Min Obj Act Cum"
+        elif self.mode == "acq":
+            obj_col = "Acq Obj Act Cum"
+        elif self.mode == "gp":
+            obj_col = "Min Obj GP Cum"
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_best_path = os.path.join(self.study_results_dir, "best_results.csv")
         data_exists, df_best = self.load_data(data_best_path)
         if not data_exists or self.save_csv:
             #Start by sorting pd dataframe by lowest obj func value overall
-            df_sorted = df.sort_values(by=["Min Obj Act Cum", 'BO Iter'], ascending=True)
+            df_sorted = df.sort_values(by=[obj_col, 'BO Iter'], ascending=True)
             # df_sorted = df.sort_values(by=["Acq Obj Act Cum", 'BO Iter'], ascending=True)
             # df_sorted = df.sort_values(by=["Min Obj GP Cum", 'BO Iter'], ascending=True)
             #Then take only the 1st instance for each method
@@ -354,6 +366,12 @@ class General_Analysis:
         df_median: pd.DataFrame, The median data for each method
         job_list_med: list, a list of jobs from Signac corresponding to the ones in df_median
         """
+        if self.mode == "act":
+            obj_col = "Min Obj Act"
+        elif self.mode == "acq":
+            obj_col = "Acq Obj Act"
+        elif self.mode == "gp":
+            obj_col = "Min Obj GP"
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "median_results.csv")
@@ -366,12 +384,12 @@ class General_Analysis:
                 #Create a new dataframe w/ just the data for one method in it
                 df_meth = df[df["BO Method"]==meth]
                 #Add the row corresponding to the median value of SSE to the list
-                if isinstance(df_meth["Min Obj Act"].iloc[0], np.ndarray):
-                    median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')[0]
+                if isinstance(df_meth[obj_col].iloc[0], np.ndarray):
+                    median_sse = df_meth[obj_col].quantile(interpolation='nearest')[0]
                 else:
-                    median_sse = df_meth['Min Obj Act'].quantile(interpolation='nearest')
+                    median_sse = df_meth[obj_col].quantile(interpolation='nearest')
                 #Ensure that only one values is used if there are multiple
-                med_df = pd.DataFrame([df_meth[df_meth['Min Obj Act'] == median_sse].iloc[0]], columns=df_meth.columns) 
+                med_df = pd.DataFrame([df_meth[df_meth[obj_col] == median_sse].iloc[0]], columns=df_meth.columns) 
                 #Add df to median
                 df_median = pd.concat([df_median, med_df])
             #Calculate the L2 Norm for the median values
@@ -397,6 +415,12 @@ class General_Analysis:
         df_mean: pd.DataFrame, The mean data for each method
         job_list_mean: list, a list of jobs from Signac corresponding to the ones in df_mean
         """
+        if self.mode == "act":
+            obj_col = "Min Obj Act"
+        elif self.mode == "acq":
+            obj_col = "Acq Obj Act"
+        elif self.mode == "gp":
+            obj_col = "Min Obj GP"
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "mean_results.csv")
@@ -409,12 +433,12 @@ class General_Analysis:
                 #Get dataframe of data for just one method
                 df_meth = df[df["BO Method"]==meth]  
                 #Add find the true mean of the data
-                if isinstance(df_meth["Min Obj Act"].iloc[0], np.ndarray):
-                    df_true_mean = df_meth["Min Obj Act"].mean()[0]
+                if isinstance(df_meth[obj_col].iloc[0], np.ndarray):
+                    df_true_mean = df_meth[obj_col].mean()[0]
                 else:
-                    df_true_mean = df_meth["Min Obj Act"].mean()
+                    df_true_mean = df_meth[obj_col].mean()
                 #Find point closest to true mean
-                df_closest_to_mean = df_meth.iloc[(df_meth["Min Obj Act"]-df_true_mean).abs().argsort()[:1]]
+                df_closest_to_mean = df_meth.iloc[(df_meth[obj_col]-df_true_mean).abs().argsort()[:1]]
                 #Add closest point to mean to df
                 df_mean = pd.concat([df_mean, df_closest_to_mean])
             #Calculate the L2 Norm for the mean values
@@ -467,8 +491,9 @@ class General_Analysis:
         df_data: pd.DataFrame, The sorted dataframe
         """
         #Put rows in order of method
-        row_order = sorted([Method_name_enum[meth].value for meth in df_data['BO Method'].unique()])
-        order = [Method_name_enum(num).name for num in row_order]
+        # row_order = sorted([Method_name_enum[meth].value for meth in df_data['BO Method'].unique()])
+        # order = [Method_name_enum(num).name for num in row_order]
+        order = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid", "Monte Carlo", "E[SSE]"]
         # Reindex the DataFrame with the specified row order
         df_data['BO Method'] = pd.Categorical(df_data['BO Method'], categories=order, ordered=True)
         # Sort the DataFrame based on the categorical order
@@ -592,6 +617,21 @@ class General_Analysis:
         data_names: list, the names of the data
 
         """
+        if self.mode == "act":
+            obj_col_sse = "Min Obj Act"
+            obj_col_sse_min = "Min Obj Act Cum"
+            param_sse = 'Theta Min Obj'
+            param_sse_min = 'Theta Obj Act Cum'
+        elif self.mode == "acq":
+            obj_col_sse = "Acq Obj Act"
+            obj_col_sse_min = "Acq Obj Act Cum"
+            param_sse = 'Theta Opt Acq'
+            param_sse_min = 'Theta Opt Acq Cum'
+        elif self.mode == "gp":
+            obj_col_sse = "Min Obj GP"
+            obj_col_sse_min = "Min Obj GP Cum"
+            param_sse = 'Theta Min Obj'
+            param_sse_min = 'Theta Obj GP Cum'
 
         if data_type == "objs":
             assert isinstance(z_choices, list), "z_choices must be list of string."
@@ -601,10 +641,10 @@ class General_Analysis:
             data_names = []
             for z_choice in z_choices:
                 if "sse" == z_choice:
-                    col_name += ["Min Obj Act"] #["Acq Obj Act"] #["Min Obj GP"], 
+                    col_name += [obj_col_sse] #["Acq Obj Act"] #["Min Obj GP"], 
                     data_names += ["\mathbf{g(\\theta)}"]
                 if "min_sse" == z_choice:
-                    col_name += ["Min Obj Act Cum"] #["Acq Obj Act Cum"] #["Min Obj GP Cum"], 
+                    col_name += [obj_col_sse_min] #["Acq Obj Act Cum"] #["Min Obj GP Cum"], 
                     data_names += ["\mathbf{Min\,g(\\theta)}"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
@@ -615,9 +655,9 @@ class General_Analysis:
             assert any(item == z_choices for item in ["acq", "min_sse", "sse"]), "z_choices must be one of 'min_sse', 'acq', or 'sse'"
             data_names = list(theta_true_data.keys())
             if "min_sse" in z_choices:
-                col_name = 'Theta Obj Act Cum' #['Theta Acq Act Cum'], ['Theta Obj GP Cum'], ['Theta Obj Act Cum']
+                col_name = param_sse_min #['Theta Acq Act Cum'], ['Theta Obj GP Cum'], ['Theta Obj Act Cum']
             elif "sse" == z_choices:
-                col_name = "Theta Act Obj" #['Theta Min Obj'], ['Theta Opt Acq']
+                col_name = param_sse #['Theta Min Obj'], ['Theta Opt Acq']
             elif "acq" in z_choices:
                 col_name = 'Theta Opt Acq'
             else:
@@ -801,7 +841,7 @@ class General_Analysis:
             max_iters = sp_data["bo_iter_tot"]
 
         if self.save_csv or (not found_data1 and not found_data2):
-            loaded_results = open_file_helper(job.fn("BO_Results.gz"))
+            loaded_results = open_file_helper(job.fn("BO_Results_GPs.gz"))
             dim_hps = len(loaded_results[0].list_gp_emulator_class[0].trained_hyperparams[0]) + 2
             data = np.zeros((tot_runs, max_iters, dim_hps))
             data_names = [f"\\ell_{i}" for i in range(1, dim_hps+1)]
@@ -909,7 +949,7 @@ class General_Analysis:
             results = open_file_helper(job.fn("BO_Results.gz"))
             results_GP = open_file_helper(job.fn("BO_Results_GPs.gz"))
             assert len(results) > run_idx, "run_num is out of bounds"
-            assert len(results[run_idx].list_gp_emulator_class) > bo_iter-1, "bo_iter is out of bounds"
+            assert len(results_GP[run_idx].list_gp_emulator_class) > bo_iter-1, "bo_iter is out of bounds"
             gp_object = copy.copy(results_GP[run_idx].list_gp_emulator_class[bo_iter-1])
             simulator = copy.copy(results[run_idx].simulator_class)
             exp_data = copy.copy(results[0].exp_data_class) #Experimental data won't change
@@ -1174,7 +1214,7 @@ class LS_Analysis(General_Analysis):
     def __init__(self, criteria_dict, project, save_csv, exp_data=None, simulator=None):
         assert isinstance(exp_data, Data) or exp_data == None, "exp_data must be type Data or None"
         assert isinstance(simulator, Simulator) or simulator == None, "simulator must be type Simulator or None"
-        super().__init__(criteria_dict, project, save_csv)
+        super().__init__(criteria_dict, project, "act", save_csv)
         self.iter_param_data = []
         self.iter_sse_data = []
         self.iter_l2_norm = []
@@ -1355,16 +1395,25 @@ class LS_Analysis(General_Analysis):
 
                 #Add Theta min obj and theta_sse obj
                 #Loop over each iteration to create the min obj columns
-                for j in range(len(iter_df)):
-                    min_sse = iter_df.loc[j, "Min Obj Act"].copy()
-                    if j == 0 or min_sse < iter_df["Min Obj Act"].iloc[j-1]:
-                        min_param = iter_df["Theta Min Obj"].iloc[j].copy()
-                    else:
-                        min_sse = iter_df["Min Obj Cum."].iloc[j-1].copy()
-                        min_param = iter_df["Theta Min Obj Cum."].iloc[j-1].copy()
+                
+                # for j in range(len(iter_df)):
+                #     min_sse = iter_df.loc[j, "Min Obj Act"].copy()
+                #     if j == 0 or min_sse < iter_df["Min Obj Act"].iloc[j-1]:
+                #         min_param = iter_df["Theta Min Obj"].iloc[j].copy()
+                #     else:
+                #         min_sse = iter_df["Min Obj Cum."].iloc[j-1].copy()
+                #         min_param = iter_df["Theta Min Obj Cum."].iloc[j-1].copy()
 
-                    iter_df.loc[j, "Min Obj Cum."] = min_sse
-                    iter_df.at[j, "Theta Min Obj Cum."] = min_param
+                #     iter_df.loc[j, "Min Obj Cum."] = min_sse
+                #     iter_df.at[j, "Theta Min Obj Cum."] = min_param
+
+                iter_df['Theta Min Obj Cum.'] = iter_df['Theta Min Obj']
+                iter_df["Min Obj Cum."] = np.minimum.accumulate(iter_df['Min Obj Act'])
+
+                for j in range(len(iter_df)):
+                    if j > 0:
+                        if iter_df["Min Obj Cum."].iloc[i] >= iter_df["Min Obj Cum."].iloc[i-1]:
+                            iter_df.at[i, 'Theta Min Obj Cum.'] = iter_df['Theta Min Obj Cum.'].iloc[i-1].copy()
                     
                 iter_df["Run Time"] = time_per_run
                 iter_df["jac evals"] = Solution.njev
@@ -1383,14 +1432,6 @@ class LS_Analysis(General_Analysis):
 
             #Reset the index of the pandas df
             ls_results = ls_results.reset_index(drop=True)
-
-            ls_results['Theta Min Obj Cum'] = ls_results['Theta Min Obj']
-            ls_results["Min Obj Cum."] = np.minimum.accumulate(ls_results['Min Obj Act'])
-
-            for i in range(len(ls_results)):
-                if i > 0:
-                    if ls_results["Min Obj Cum."].iloc[i] >= ls_results["Min Obj Cum."].iloc[i-1]:
-                        ls_results.at[i, 'Theta Min Obj Cum.'] = ls_results['Theta Min Obj Cum.'].iloc[i-1].copy()
 
             if self.save_csv:
                 self.save_data(ls_results, ls_data_path)
