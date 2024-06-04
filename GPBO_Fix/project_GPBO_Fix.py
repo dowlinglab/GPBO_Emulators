@@ -31,6 +31,20 @@ class ProjectGPBO_Fix(FlowProject):
         super().__init__()
         current_path = Path(os.getcwd()).absolute()
 
+
+@ProjectGPBO_Fix.label
+def job_complete(job):
+    "Confirm job is completed"
+    import numpy as np
+
+    with job:
+        if job.isfile("BO_Results.gz") and job.isfile("BO_Results_GPs.gz"):
+            completed = True
+        else:
+            completed = False
+
+    return completed
+
 @ProjectGPBO_Fix.post.isfile("BO_Results.gz")
 @ProjectGPBO_Fix.post.isfile("BO_Results_GPs.gz")
 @ProjectGPBO_Fix.operation(with_job = True) #directives={"omp_num_threads": 12},
