@@ -639,13 +639,19 @@ class General_Analysis:
             assert any(item in z_choices for item in ["acq", "min_sse", "sse"]), "z_choices must contain at least 'min_sse', 'acq', or 'sse'"
             col_name = [] 
             data_names = []
+
+            if self.mode == "gp":
+                label_g = "\mathcal{M}_g(\\theta)"
+            else:
+                label_g = "\mathbf{g(\\theta)}"
+
             for z_choice in z_choices:
                 if "sse" == z_choice:
                     col_name += [obj_col_sse] #["Acq Obj Act"] #["Min Obj GP"], 
-                    data_names += ["\mathbf{g(\\theta)}"]
+                    data_names += [label_g]
                 if "min_sse" == z_choice:
                     col_name += [obj_col_sse_min] #["Acq Obj Act Cum"] #["Min Obj GP Cum"], 
-                    data_names += ["\mathbf{Min\,g(\\theta)}"]        
+                    data_names += ["\mathbf{Min\,}" + label_g]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
                     data_names += ["\mathbf{Opt\ \Xi(\\theta)}"]
