@@ -641,20 +641,22 @@ class General_Analysis:
             data_names = []
 
             if self.mode == "gp":
-                label_g = "\mathcal{M}_g(\mathbf{\\theta})"
+                label_g = "\mathcal{M}_g(\mathbf{"
             else:
-                label_g = "g(\mathbf{\\theta})"
+                label_g = "g(\mathbf{"
 
             for z_choice in z_choices:
                 if "sse" == z_choice:
+                    theta = "\\theta}^o" if self.mode != "acq" else "\hat{\\theta}}"
                     col_name += [obj_col_sse] #["Acq Obj Act"] #["Min Obj GP"], 
-                    data_names += [label_g]
+                    data_names += [label_g + theta + ")"]
                 if "min_sse" == z_choice:
+                    theta = "\\theta}^{\prime}"
                     col_name += [obj_col_sse_min] #["Acq Obj Act Cum"] #["Min Obj GP Cum"], 
-                    data_names += ["Min\," + label_g]        
+                    data_names += [label_g + theta + ")"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
-                    data_names += ["Opt\ \Xi(\mathbf{\\theta})"]
+                    data_names += ["\Xi(\mathbf{\hat{\\theta}})"]
 
         elif data_type == "params":
             assert isinstance(z_choices, str), "z_choices must be a string"

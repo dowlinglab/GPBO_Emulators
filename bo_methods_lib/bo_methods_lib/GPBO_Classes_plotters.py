@@ -1060,16 +1060,18 @@ class Plotters:
         y_label: str, The y label for the plot
         """
         if self.analyzer.mode == "gp":
-            label_g = r"$\mathcal{M}_g(\mathbf{\theta})$"
+            label_g = "\mathcal{M}_g(\mathbf{"
         else:
-            label_g = r"$g(\mathbf{\theta})$"
+            label_g = "g(\mathbf{"
         if "sse" == z_choice:
-            y_label = label_g
+            theta = "\\theta}^o" if self.analyzer.mode != "acq" else "\hat{\\theta}}"
+            y_label = label_g + theta + ")"
         if "min_sse" == z_choice:
-            y_label = r"$Min\ $" + label_g   
+            theta = "\\theta}^{\prime}" + ")"
+            y_label = label_g + theta
         if "acq" == z_choice:
-            y_label = r"$Opt\ \Xi(\mathbf{\theta})$"
-        return y_label
+            y_label = "\Xi(\mathbf{\hat{\\theta}})"
+        return r"$" + y_label + "$"
     
     def __get_data_to_bo_iter_term(self, data_all_iters):
         """
