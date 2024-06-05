@@ -543,19 +543,22 @@ class Plotters:
         all_z_data = []
         all_z_titles = []
         #Find z based on z_choice
+        #Fix me: Heat Maps always use just theta: Only the bar labels need to change
         for z_choice in z_choices:
             if "sse_sim" == z_choice:
+                title = r"$g(\mathbf{\theta})$"
                 all_z_data.append(sse_sim)
-                all_z_titles.append(r"$\mathbf{g(\theta)_{sim}}$")
+                all_z_titles.append(title)
             elif "sse_mean" == z_choice:
+                title = r"$\mathcal{M}_g(\mathbf{\theta})$"
                 all_z_data.append(sse_mean)
-                all_z_titles.append(r"$\mathbf{g(\theta)_{gp}}$")
+                all_z_titles.append(title)
             elif "sse_var" == z_choice:
                 all_z_data.append(sse_var)
-                all_z_titles.append(r"$\mathbf{\sigma^2_{g(\theta)_{gp}}}$")
+                all_z_titles.append(r"$\mathbf{\sigma}^2_{\mathcal{M}_g(\mathbf{\theta})}$")
             elif "acq" == z_choice:
                 all_z_data.append(ei)
-                all_z_titles.append(r"$\mathbf{\Xi(\theta)}$")
+                all_z_titles.append(r"$\Xi(\mathbf{\theta})$")
             else:
                 raise Warning("choice must contain 'sim', 'mean', 'var', or 'acq'")
         if len(all_z_data) == 1:
@@ -776,7 +779,7 @@ class Plotters:
                         
         #Print the title
         if title is not None:
-            title = title + " " + str(plot_axis_names)
+            title = title #+ " " + str(plot_axis_names)
             
         #Print the title and labels as appropriate
         #Define x and y labels
