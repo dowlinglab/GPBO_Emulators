@@ -701,7 +701,7 @@ class Plotters:
                 if log_data == True or need_unscale or not mag_diff :
                     norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
                     locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks = 4) #Set up to 12 ticks
-                    cbar_ticks = new_ticks.tick_values(vmin, vmax)
+                    cbar_ticks = locator.tick_values(vmin, vmax)
 
                 else:
                     norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
