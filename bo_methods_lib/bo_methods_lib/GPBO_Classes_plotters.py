@@ -433,8 +433,11 @@ class Plotters:
         #Get best data for each method
         df_best, job_list_best = self.analyzer.get_best_data()
         #Back out best runs from job_list_best
-        emph_runs = df_best["Run Number"].values
-
+        emph_runs = list(df_best["Run Number"].values)
+        methods = df_best["BO Method"].values
+        indices_to_insert = [i for i, name in enumerate(self.method_names) if name not in methods]
+        for index in sorted(indices_to_insert):
+            emph_runs.insert(index, 0)
         #Loop over different methdods (number of subplots)
         for i in range(len(job_pointer)):     
             #Get data
@@ -474,7 +477,7 @@ class Plotters:
                         if log_data == True:
                             data_df_j = np.log(data_df_j)
 
-                        #For the best result, print a solid line                  
+                        #For the best result, print a solid line               
                         if emph_runs[GPBO_method_val -1] == run_number:
                             ax.plot(bo_space, data_df_j, alpha = 1, color = self.colors[GPBO_method_val-1], 
                                     label = label, drawstyle='steps')
