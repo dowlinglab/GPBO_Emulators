@@ -3914,14 +3914,14 @@ class GPBO_Driver:
             #The ei objective is larger than what we have so far
             elif self.__min_obj_class.acq*-1 > obj and opt_obj == "neg_ei":
                 self.__min_obj_class = self.gp_emulator.cand_data
-            #Random switch below
+            #For SSE/E[SSE], if the objective is the same, randomly choose between the two
             elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7) and opt_obj != "neg_ei":
                 random_number = random.randint(0, 1)
                 if random_number > 0:
                     self.__min_obj_class = self.gp_emulator.cand_data
                 else:
                     set_acq_val = False
-            #Or if they are the same and the algorithm decides to switch to the value farthest from all the data
+            #For EI switch to the value farthest from all the training data
             elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7) and opt_obj == "neg_ei":
                 #Get the distance between the candidate and the current min_obj_class value and the training data
                 train_mean = np.mean(self.gp_emulator.train_data.theta_vals, axis=0)
