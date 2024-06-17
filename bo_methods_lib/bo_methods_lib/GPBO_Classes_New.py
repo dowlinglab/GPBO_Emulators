@@ -3914,14 +3914,15 @@ class GPBO_Driver:
             #The ei objective is larger than what we have so far
             elif self.__min_obj_class.acq*-1 > obj and opt_obj == "neg_ei":
                 self.__min_obj_class = self.gp_emulator.cand_data
-            #Or if they are the same and the algorithm decides to switch
-            elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7) and opt_obj != "neg_ei":
-                random_number = random.randint(0, 1)
-                if random_number > 0:
-                    self.__min_obj_class = self.gp_emulator.cand_data
-                else:
-                    set_acq_val = False
-            elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7) and opt_obj == "neg_ei":
+            #Random switch below
+            # elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7) and opt_obj != "neg_ei":
+            #     random_number = random.randint(0, 1)
+            #     if random_number > 0:
+            #         self.__min_obj_class = self.gp_emulator.cand_data
+            #     else:
+            #         set_acq_val = False
+            #Or if they are the same and the algorithm decides to switch to the value farthest from all the data
+            elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7):
                 #Get the distance between the candidate and the current min_obj_class value and the training data
                 train_mean = np.mean(self.gp_emulator.train_data.theta_vals, axis=0)
                 dist_old = np.linalg.norm(train_mean - self.__min_obj_class.theta_vals)
@@ -3929,6 +3930,8 @@ class GPBO_Driver:
                 #If the distance of the new point is larger or equal to the old point, keep the new point
                 if dist_new >= dist_old:
                     self.__min_obj_class = self.gp_emulator.cand_data
+                else:
+                    set_acq_val = False
             else:
                 set_acq_val = False
 
