@@ -3924,9 +3924,9 @@ class GPBO_Driver:
             #For EI switch to the value farthest from all the training data
             elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7) and opt_obj == "neg_ei":
                 #Get the distance between the candidate and the current min_obj_class value and the training data
-                train_mean = np.mean(self.gp_emulator.train_data.theta_vals, axis=0)
-                dist_old = np.linalg.norm(train_mean - self.__min_obj_class.theta_vals)
-                dist_new = np.linalg.norm(train_mean - self.gp_emulator.cand_data.theta_vals)
+                train_mean = np.mean(self.gp_emulator.train_data.theta_vals, axis=0).flatten()
+                dist_old = np.linalg.norm(train_mean - self.__min_obj_class.theta_vals[0,:].flatten())
+                dist_new = np.linalg.norm(train_mean - self.gp_emulator.cand_data.theta_vals[0,:].flatten())
                 #If the distance of the new point is larger or equal to the old point, keep the new point
                 if dist_new >= dist_old:
                     self.__min_obj_class = self.gp_emulator.cand_data
