@@ -7,6 +7,7 @@ import math
 from scipy.stats import norm, multivariate_normal
 from scipy import integrate
 import scipy.optimize as optimize
+import scipy.spatial.distance as distance
 import os
 import time
 import Tasmanian
@@ -3914,22 +3915,27 @@ class GPBO_Driver:
             #The ei objective is larger than what we have so far
             elif self.__min_obj_class.acq*-1 > obj and opt_obj == "neg_ei":
                 self.__min_obj_class = self.gp_emulator.cand_data
-            #For SSE/E[SSE], if the objective is the same, randomly choose between the two
-            elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7) and opt_obj != "neg_ei":
+            #For SSE, if the objective is the same, randomly choose between the two (since sse is an objective fxn)
+            elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7) and opt_obj == "sse":
                 random_number = random.randint(0, 1)
                 if random_number > 0:
                     self.__min_obj_class = self.gp_emulator.cand_data
                 else:
                     set_acq_val = False
-            #For EI switch to the value farthest from all the training data
-            elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7) and opt_obj == "neg_ei":
+            #For EI/E_sse/lcb (acquisition fxns) switch to the value farthest from any training data
+            elif np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7):
                 #Get the distance between the candidate and the current min_obj_class value and the training data
-                train_mean = np.mean(self.gp_emulator.train_data.theta_vals, axis=0).flatten()
-                dist_old = np.linalg.norm(train_mean - self.__min_obj_class.theta_vals[0,:].flatten())
-                dist_new = np.linalg.norm(train_mean - self.gp_emulator.cand_data.theta_vals[0,:].flatten())
+                dist_old = distance.cdist(self.gp_emulator.train_data.theta_vals, 
+                                 self.__min_obj_class.theta_vals[0,:].reshape(1,-1),
+                                 metric='euclidean').ravel().max()
+                dist_new = distance.cdist(self.gp_emulator.train_data.theta_vals, 
+                                 self.gp_emulator.cand_data.theta_vals[0,:].reshape(1,-1),
+                                 metric='euclidean').ravel().max()
                 #If the distance of the new point is larger or equal to the old point, keep the new point
                 if dist_new >= dist_old:
                     self.__min_obj_class = self.gp_emulator.cand_data
+                else:
+                    set_acq_val = False
             else:
                 set_acq_val = False
 
