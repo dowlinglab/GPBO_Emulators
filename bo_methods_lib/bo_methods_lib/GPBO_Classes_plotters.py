@@ -15,6 +15,7 @@ import matplotlib.colors as colors
 import matplotlib.ticker as ticker
 from .GPBO_Classes_New import Data, Method_name_enum
 from.analyze_data import *
+from .GPBO_Class_fxns import get_cs_class_from_val
 
 import warnings
 np.warnings = warnings
@@ -1486,5 +1487,74 @@ class Plotters:
             
         return 
 
+class All_CS_Plotter(Plotters):
+    """
+    Plotter for all case study data plots
+    """
+
+    def __init__(self, analyzer, save_figs = False):
+        """
+        Parameters
+        ----------
+        analyzer: General_Analysis, an instance of the General_Analysis class
+        save_figs: bool, save figures to file if True. Default False
+        """
+        #Asserts
+        assert isinstance(save_figs, bool), "save_figs must be boolean"
+        assert isinstance(analyzer, All_CS_Analysis), "analyzer must be an instance of All_CS_Analysis"
+        super().__init__(analyzer, save_figs = False)
+
+    def make_bar_charts(self):
+        """
+        Makes a bar chart of computational time/ fxn evaluations for each method and case study
+
+        Parameters:
+        -----------
+        cs_list: list of str, list of case studies to plot
+        meth_val_list: list of str, list of method name values to plot
+        """
         
+        #Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = True, sharey = False)
+        t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
+
+        bar_size = 1/(len(self.analyzer.meth_val_list)+1)
+        padding = 1/(len(self.analyzer.meth_val_list)+1)
+
+        #Get jobs associated with the case studies given
+        df_averages = self.analyzer.get_averages
+
+        y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+1) + padding)
+
+        for i in range(len(self.analyzer.meth_val_list)):
+            rects1 = axes[0].barh(y_locs + i*bar_size, df_averages["Avg Time"], align='edge', height=bar_size, color=self.colors[i], 
+                                  label=self.method_names[i] if i==0 else None)
+            rects2 = axes[1].barh(y_locs + i*bar_size, df_averages["Avg Loss"], align='edge', height=bar_size, color=self.colors[i], 
+                                  label=self.method_names[i] if i==0 else None)
+            rects3 = axes[2].barh(y_locs + i*bar_size, df_averages["Avg Evals"], align='edge', height=bar_size, color=self.colors[i], 
+                                  label=self.method_names[i] if i==0 else None)
+            
+        axes[0].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)], title = "Average Computational Time")
+        axes[1].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)], title = "Average " + r"$\mathcal{g}(\theta)$")
+        axes[2].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)], title = "Average Function Evaluations")
+        
+        #Add legends and handles from last subplot that is visible
+        handles, labels = axes[-1].get_legend_handles_labels()  
+                
+        #Plots legend
+        if labels:
+            fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.4), 
+                       borderaxespad=0)
+            
+        plt.tight_layout()
+            
+        #Save or show figure
+        if self.save_figs:
+            save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
+            save_path_dir = os.path.join(save_path)
+            save_path_to = os.path.join(save_path_dir, "time_eval_bar_charts")
+            self.__save_fig(save_path_to)
+        else:
+            plt.show()
+            plt.close()
 
