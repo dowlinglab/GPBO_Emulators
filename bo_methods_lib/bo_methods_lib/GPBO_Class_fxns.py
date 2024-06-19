@@ -11,11 +11,35 @@ def get_cs_class_from_val(cs_num):
     """
     Returns the class associated with the case study value.
     """
-    cs_class_dict = {1: CS1, 2: CSMuller, 3: CSMuller, 4: CSMuller, 
-                     5: CSMuller, 6: CSMuller, 7: CSMuller, 8: CS8, 
-                     9: CS9, 10: CS10, 11: CS11, 12: CS12, 13: CS13, 
-                     14: CS14, 15: CS15, 16: CS16, 17: CS17}
-    return cs_class_dict[cs_num]
+    assert 1 <= cs_num <=17
+    #Get class based on cs number
+    if cs_num == 1:
+        cs_class = CS1()
+    elif 2 <= cs_num <=7:
+        cs_class = CSMuller(cs_num)
+    elif cs_num == 8:
+        cs_class = CS8()
+    elif cs_num == 9:
+        cs_class = CS9()
+    elif cs_num == 10:
+        cs_class = CS10()
+    elif cs_num == 11:
+        cs_class = CS11()
+    elif cs_num == 12:
+        cs_class = CS12()
+    elif cs_num == 13:
+        cs_class = CS13()
+    elif cs_num == 14:
+        cs_class = CS14()
+    elif cs_num == 15:
+        cs_class = CS15()
+    elif cs_num == 16:
+        cs_class = CS16()
+    elif cs_num == 17:
+        cs_class = CS17()
+    else:
+        raise(ValueError, "cs_num must be from 1 to 17")
+    return cs_class
 
 def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
     """
