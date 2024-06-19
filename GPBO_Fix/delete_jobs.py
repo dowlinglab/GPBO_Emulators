@@ -3,11 +3,11 @@ import os
 
 project = signac.get_project()
 
-for job in project.find_jobs({"cs_name_val":{"$in": [1,11,12,13]}}):
+for job in project.find_jobs({"cs_name_val":{"$in": [2,3,10,14]}}):
     # print(job.fn("signac_statepoint.json"))
 
     if os.path.isfile(job.fn("BO_Results.gz")):
-        print(job.fn("signac_statepoint.json"))
+        # print(job.fn("signac_statepoint.json"))
     # # Delete the file
         os.remove(job.fn("BO_Results.gz"))
         os.remove(job.fn("BO_Results_GPs.gz"))
