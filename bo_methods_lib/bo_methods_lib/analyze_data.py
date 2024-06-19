@@ -37,113 +37,6 @@ def open_file_helper(file_path):
         raise Warning("File type must be .gz or .pickle!")
     
     return results
-
-
-class All_CS_Analysis:
-    """
-    Class for analyzing results from all case studies
-    """
-    def __init__(self, cs_list, meth_val_list, project, mode, save_csv):
-        """
-        Parameters
-        ----------
-        cs_list: list, the list of case studies to analyze
-        meth_val_list: list, the list of methods to analyze
-        project: signac.project.Project, The signac project to analyze
-        mode: str, the mode to analyze the data in (act, acq, or gp)
-        save_csv: bool, whether to save csvs.
-        """
-        if len(cs_list) == 1:
-            cs_name_val = cs_list[0]
-        else: 
-            cs_name_val = {"$in": cs_list}
-
-        if len(meth_val_list) == 1:
-            meth_name_val_list = meth_val_list[0]
-        else:
-            meth_name_val_list = {"$in": meth_val_list}
-
-        criteria_dict = {"cs_name_val" : cs_name_val,
-                        "meth_name_val": meth_name_val_list}
-        
-        super().__init__(criteria_dict, project, mode, save_csv)
-
-        self.cs_list = cs_list
-        self.meth_val_list = meth_val_list
-
-    def __sort_by_cs_meth(self, df_data):
-        """
-        Sorts a dataframe by the method used
-
-        Parameters
-        ----------
-        df_data: pd.DataFrame, The dataframe to sort
-
-        Returns
-        -------
-        df_data: pd.DataFrame, The sorted dataframe
-        """
-        #Put rows in order of method
-        # row_order = sorted([Method_name_enum[meth].value for meth in df_data['BO Method'].unique()])
-        # order = [Method_name_enum(num).name for num in row_order]
-        order = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid", "Monte Carlo", "E[SSE]"]
-        # Reindex the DataFrame with the specified row order
-        df_data['BO Method'] = pd.Categorical(df_data['BO Method'], categories=order, ordered=True)
-        # Sort the DataFrame based on the categorical order
-        df_data = df_data.sort_values(by=['CS Name Val','BO Method'])
-        return df_data
-
-    def get_all_data(self):
-        """
-        Gets all data for all case studies
-        
-        Returns
-        -------
-        df_all_jobs: pd.DataFrame, The dataframe of all of the data for the given dictionary
-        job_list: list, a list of jobs from Signac that fit criteria dict for the methods in meth_name_val_list
-        theta_true_data: dict, the true parameter values for the given case study
-        """
-        #Sort by method and CS Name
-        df_all_jobs, job_list, __ = self.get_df_all_jobs()
-        df_all_jobs = self.__sort_by_cs_meth(df_all_jobs)
-        return df_all_jobs
-    
-    def get_averages(self):
-        """
-        Get average computational time, max function evaltuations, and sse values for all case studies
-        """
-
-        df_all_jobs = self.get_all_data()
-        #For each case study
-
-        if self.mode == "act":
-            obj_col_sse_min = "Min Obj Act Cum"
-        elif self.mode == "acq":
-            obj_col_sse_min = "Acq Obj Act Cum"
-        elif self.mode == "gp":
-            obj_col_sse_min = "Min Obj GP Cum"
-
-        grouped_stats = df_all_jobs.groupby(["CS Name", "BO Method"]).agg({
-        obj_col_sse_min: ['mean', 'std'],
-        'Total Run Time': ['mean', 'std'],
-        'Max Evals': ['mean', 'std']}).reset_index()
-
-        # Flatten the MultiIndex columns
-        grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']
-
-        # For log loss, exponentiate the average loss and apply error propogaton to std loss
-        grouped_stats['Avg Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
-                                            np.exp(grouped_stats['Avg Loss']),
-                                            grouped_stats['Avg Loss'])
-
-        grouped_stats['Std Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
-                                            grouped_stats['Std Loss'] * np.exp(grouped_stats['Avg Loss']),
-                                            grouped_stats['Std Loss'])
-
-        # Create a new DataFrame with results
-        df_averages = grouped_stats[['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']]
-      
-        return df_averages
 class General_Analysis:
     """
     The base class for Gaussian Processes
@@ -338,6 +231,10 @@ class General_Analysis:
                     df_job['Theta Acq Act Cum'] = df_job['Theta Acq Act Cum'].apply(self.str_to_array_df_col)
                 except:
                     df_job.head()
+
+                #Add cs name data to the dataframe
+                df_job["CS Name Val"] = job.sp.cs_name_val
+                df_job["CS Name"] = get_cs_class_from_val(job.sp.cs_name_val).name
                 
             #Add job dataframe to dataframe of all jobs
             df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
@@ -1317,6 +1214,112 @@ class General_Analysis:
         
         return all_data, test_mesh, param_info_dict, sp_data
 
+class All_CS_Analysis(General_Analysis):
+    """
+    Class for analyzing results from all case studies
+    """
+    def __init__(self, cs_list, meth_val_list, project, mode, save_csv):
+        """
+        Parameters
+        ----------
+        cs_list: list, the list of case studies to analyze
+        meth_val_list: list, the list of methods to analyze
+        project: signac.project.Project, The signac project to analyze
+        mode: str, the mode to analyze the data in (act, acq, or gp)
+        save_csv: bool, whether to save csvs.
+        """
+        if len(cs_list) == 1:
+            cs_name_val = cs_list[0]
+        else: 
+            cs_name_val = {"$in": cs_list}
+
+        if len(meth_val_list) == 1:
+            meth_name_val_list = meth_val_list[0]
+        else:
+            meth_name_val_list = {"$in": meth_val_list}
+
+        criteria_dict = {"cs_name_val" : cs_name_val,
+                        "meth_name_val": meth_name_val_list}
+        
+        super().__init__(criteria_dict, project, mode, save_csv)
+
+        self.cs_list = cs_list
+        self.meth_val_list = meth_val_list
+
+    def __sort_by_cs_meth(self, df_data):
+        """
+        Sorts a dataframe by the method used
+
+        Parameters
+        ----------
+        df_data: pd.DataFrame, The dataframe to sort
+
+        Returns
+        -------
+        df_data: pd.DataFrame, The sorted dataframe
+        """
+        #Put rows in order of method
+        # row_order = sorted([Method_name_enum[meth].value for meth in df_data['BO Method'].unique()])
+        # order = [Method_name_enum(num).name for num in row_order]
+        order = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid", "Monte Carlo", "E[SSE]"]
+        # Reindex the DataFrame with the specified row order
+        df_data['BO Method'] = pd.Categorical(df_data['BO Method'], categories=order, ordered=True)
+        # Sort the DataFrame based on the categorical order
+        df_data = df_data.sort_values(by=['CS Name Val','BO Method'])
+        return df_data
+
+    def get_all_data(self):
+        """
+        Gets all data for all case studies
+        
+        Returns
+        -------
+        df_all_jobs: pd.DataFrame, The dataframe of all of the data for the given dictionary
+        job_list: list, a list of jobs from Signac that fit criteria dict for the methods in meth_name_val_list
+        theta_true_data: dict, the true parameter values for the given case study
+        """
+        #Sort by method and CS Name
+        df_all_jobs, job_list, __ = self.get_df_all_jobs()
+        df_all_jobs = self.__sort_by_cs_meth(df_all_jobs)
+        return df_all_jobs
+    
+    def get_averages(self):
+        """
+        Get average computational time, max function evaltuations, and sse values for all case studies
+        """
+
+        df_all_jobs = self.get_all_data()
+        #For each case study
+
+        if self.mode == "act":
+            obj_col_sse_min = "Min Obj Act Cum"
+        elif self.mode == "acq":
+            obj_col_sse_min = "Acq Obj Act Cum"
+        elif self.mode == "gp":
+            obj_col_sse_min = "Min Obj GP Cum"
+
+        grouped_stats = df_all_jobs.groupby(["CS Name", "BO Method"]).agg({
+        obj_col_sse_min: ['mean', 'std'],
+        'Total Run Time': ['mean', 'std'],
+        'Max Evals': ['mean', 'std']}).reset_index()
+
+        # Flatten the MultiIndex columns
+        grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']
+
+        # For log loss, exponentiate the average loss and apply error propogaton to std loss
+        grouped_stats['Avg Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
+                                            np.exp(grouped_stats['Avg Loss']),
+                                            grouped_stats['Avg Loss'])
+
+        grouped_stats['Std Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
+                                            grouped_stats['Std Loss'] * np.exp(grouped_stats['Avg Loss']),
+                                            grouped_stats['Std Loss'])
+
+        # Create a new DataFrame with results
+        df_averages = grouped_stats[['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']]
+
+        return df_averages
+    
 class LS_Analysis(General_Analysis):
     """
     The class for Least Squares regression analysis. Child class of General_Analysis
