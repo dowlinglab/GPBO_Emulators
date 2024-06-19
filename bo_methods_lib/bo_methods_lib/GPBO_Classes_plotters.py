@@ -1527,11 +1527,14 @@ class All_CS_Plotter(Plotters):
         y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+1) + padding)
 
         for i in range(len(self.analyzer.meth_val_list)):
-            rects1 = axes[0].barh(y_locs + i*bar_size, df_averages["Avg Time"], align='edge', height=bar_size, color=self.colors[i], 
+            rects1 = axes[0].barh(y_locs + i*bar_size, df_averages["Avg Time"], yerr=df_averages["Std Time"], 
+                                  align='edge', height=bar_size, color=self.colors[i], 
                                   label=self.method_names[i] if i==0 else None)
-            rects2 = axes[1].barh(y_locs + i*bar_size, df_averages["Avg Loss"], align='edge', height=bar_size, color=self.colors[i], 
+            rects2 = axes[1].barh(y_locs + i*bar_size, df_averages["Avg Loss"], yerr=df_averages["Std Loss"], 
+                                  align='edge', height=bar_size, color=self.colors[i], 
                                   label=self.method_names[i] if i==0 else None)
-            rects3 = axes[2].barh(y_locs + i*bar_size, df_averages["Avg Evals"], align='edge', height=bar_size, color=self.colors[i], 
+            rects3 = axes[2].barh(y_locs + i*bar_size, df_averages["Avg Evals"], yerr=df_averages["Std Evals"], 
+                                  align='edge', height=bar_size, color=self.colors[i], 
                                   label=self.method_names[i] if i==0 else None)
             
         axes[0].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)], title = "Average Computational Time")
