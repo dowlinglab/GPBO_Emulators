@@ -1491,7 +1491,6 @@ class All_CS_Plotter(Plotters):
     """
     Plotter for all case study data plots
     """
-
     def __init__(self, analyzer, save_figs = False):
         """
         Parameters
@@ -1504,6 +1503,101 @@ class All_CS_Plotter(Plotters):
         assert isinstance(analyzer, All_CS_Analysis), "analyzer must be an instance of All_CS_Analysis"
         super().__init__(analyzer, save_figs = False)
 
+    def __create_subplots(self, num_subplots, sharex = "row", sharey = 'none'):
+        """
+        Creates Subplots based on the amount of data
+        
+        Parameters
+        ----------
+        num_subplots: int, total number of needed subplots
+        sharex: str, sharex value for subplots
+        sharey: str, sharey value for subplots
+        
+        Returns
+        -------
+        fig: matplotlib.figure, The figure you are plotting
+        axes: matplotlib.axes.Axes, 2D array of axes
+        total_ax_num: int, The number of axes generated total
+        plot_mapping: dict, dictionary mapping plot number to axes
+        """
+
+        assert num_subplots >= 1, "Number of subplots must be at least 1"
+        assert isinstance(num_subplots, int), "Num subplots must be int"
+        #Make figures and define number of subplots  
+        #If you are making more than one figure, sharex is always true
+        if num_subplots == 1:
+            sharex = True
+
+        #Make enough rows and columns and get close to equal number of each
+        row_num = int(np.floor(np.sqrt(num_subplots)))
+        col_num = int(np.ceil(num_subplots/row_num))
+        assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
+        total_ax_num = row_num * col_num
+
+        #Creat subplots
+        gridspec_kw = {'wspace': 0.4, 'hspace': 0.2}
+        fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*12), squeeze = False, sharex = sharex, sharey = sharey)
+
+        #Turn off unused axes
+        for i, axs in enumerate(axes.flatten()):
+            if i >= num_subplots:
+                axs.axis('off')
+
+        #Make plot mapping to map an axes to an iterable value
+        plot_mapping = {}
+        for i in range(row_num):
+            for j in range(col_num):
+                plot_number = i * col_num + j
+                plot_mapping[plot_number] = (i, j)
+
+        return fig, axes, total_ax_num, plot_mapping
+    
+    def __set_subplot_details(self, ax, xlabel, ylabel, title):
+        """
+        Function for setting plot settings
+        
+        Parameters
+        ----------
+        ax: matplotlib.axes.Axes, The axes to set the plot settings for
+        plot_x: ndarray, The x data for plotting
+        plot_y: ndarray, The y data for plotting
+        xlabel: str or None, the label for the x axis
+        ylabel: str or None, the label for the y axis
+        title: str or None, The subplot title
+
+        Returns
+        -------
+        ax: matplotlib.axes.Axes, The axes with the plot settings set
+        """
+        #Group inputs by type
+        none_str_vars = [title, xlabel, ylabel]
+        int_vars = [self.xbins, self.ybins, self.other_fntsz]
+        
+        #Assert Statements
+        assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, and ylabel must be string or None"
+        assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, and fontsize must be int"
+        assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
+        
+        #Set title, label, and axes
+        if title is not None:
+            pad = 6 + 4*title.count("_")
+            ax.set_title(title, fontsize=self.other_fntsz, fontweight='bold', pad = pad)   
+        if xlabel is not None:
+            pad = 6 + 4*xlabel.count("_")
+            ax.set_xlabel(xlabel,fontsize=self.other_fntsz,fontweight='bold', labelpad = pad)
+        if ylabel is not None:
+            pad = 6 + 2*ylabel.count("_")
+            ax.set_ylabel(ylabel,fontsize=self.other_fntsz,fontweight='bold', labelpad = pad)
+            
+        #Turn on tick parameters and bin number
+        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
+        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
+        ax.minorticks_on() # turn on minor ticks
+        ax.tick_params(which="minor",direction="in",top=True, right=True)
+
+
+        return ax
+    
     def make_bar_charts(self):
         """
         Makes a bar chart of computational time/ fxn evaluations for each method and case study
@@ -1515,38 +1609,45 @@ class All_CS_Plotter(Plotters):
         """
         
         #Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = True, sharey = False)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = False, sharey = True)
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
 
-        bar_size = 1/(len(self.analyzer.meth_val_list)+1)
-        padding = 1/(len(self.analyzer.meth_val_list)+1)
+        bar_size = 1/len(self.analyzer.cs_list)
+        padding = 1/len(self.analyzer.cs_list)
 
         #Get jobs associated with the case studies given
-        df_averages = self.analyzer.get_averages
-
+        df_averages = self.analyzer.get_averages()
         y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+1) + padding)
 
-        for i in range(len(self.analyzer.meth_val_list)):
-            rects1 = axes[0].barh(y_locs + i*bar_size, df_averages["Avg Time"], yerr=df_averages["Std Time"], 
-                                  align='edge', height=bar_size, color=self.colors[i], 
-                                  label=self.method_names[i] if i==0 else None)
-            rects2 = axes[1].barh(y_locs + i*bar_size, df_averages["Avg Loss"], yerr=df_averages["Std Loss"], 
-                                  align='edge', height=bar_size, color=self.colors[i], 
-                                  label=self.method_names[i] if i==0 else None)
-            rects3 = axes[2].barh(y_locs + i*bar_size, df_averages["Avg Evals"], yerr=df_averages["Std Evals"], 
-                                  align='edge', height=bar_size, color=self.colors[i], 
-                                  label=self.method_names[i] if i==0 else None)
-            
-        axes[0].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)], title = "Average Computational Time")
-        axes[1].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)], title = "Average " + r"$\mathcal{g}(\theta)$")
-        axes[2].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)], title = "Average Function Evaluations")
+        axes = axes.flatten()
+        methods = df_averages['BO Method'].unique()
+        for i, meth_val in enumerate(self.analyzer.meth_val_list):
+            meth_averages = df_averages.loc[df_averages["BO Method"] == self.method_names[meth_val-1]]
+            rects1 = axes[0].barh(y_locs + i*bar_size, meth_averages['Avg Time']/60, xerr = meth_averages['Std Time']/60,
+                                align='edge', height=bar_size, color=self.colors[meth_val-1], 
+                                label=self.method_names[meth_val-1])
+            rects2 = axes[1].barh(y_locs + i*bar_size, meth_averages["Avg Loss"], xerr=meth_averages["Std Loss"], 
+                                  align='edge', height=bar_size, color=self.colors[meth_val-1], 
+                                  label=self.method_names[meth_val-1])
+            rects3 = axes[2].barh(y_locs + i*bar_size, meth_averages["Avg Evals"], xerr=meth_averages["Std Evals"], 
+                                  align='edge', height=bar_size, color=self.colors[meth_val-1], 
+                                  label=self.method_names[meth_val-1])
+        
+        for ax in axes:
+            ax.set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)])
+        axes[1].set_xscale("log")
+        axes[1].set_xlim([0 - padding, 10**6])
+        #Set plot details
+        self.__set_subplot_details(axes[0], None, None, "Computational \nTime (Min.)")
+        self.__set_subplot_details(axes[1], None, None, "Average " + r"$g(\theta)$")
+        self.__set_subplot_details(axes[2], None, None, "Function Evaluations")
         
         #Add legends and handles from last subplot that is visible
         handles, labels = axes[-1].get_legend_handles_labels()  
                 
         #Plots legend
         if labels:
-            fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.4), 
+            fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.4), 
                        borderaxespad=0)
             
         plt.tight_layout()
