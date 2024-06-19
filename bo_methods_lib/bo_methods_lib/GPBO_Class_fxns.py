@@ -6,6 +6,17 @@ import math
 from .GPBO_Classes_New import Simulator
 from pyomo.environ import *
 
+
+def get_cs_class_from_val(cs_num):
+    """
+    Returns the class associated with the case study value.
+    """
+    cs_class_dict = {1: CS1, 2: CSMuller, 3: CSMuller, 4: CSMuller, 
+                     5: CSMuller, 6: CSMuller, 7: CSMuller, 8: CS8, 
+                     9: CS9, 10: CS10, 11: CS11, 12: CS12, 13: CS13, 
+                     14: CS14, 15: CS15, 16: CS16, 17: CS17}
+    return cs_class_dict[cs_num]
+
 def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
     """
     Sets the model for calculating y based off of the case study identifier.
@@ -65,6 +76,7 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
 
 class CS1:
     def __init__(self):
+        self.name = "Simple Linear"
         self.param_name_str = "t1t2" 
         self.idcs_to_consider = [0,1]
         self.theta_names = ['theta_1', 'theta_2']
@@ -101,6 +113,7 @@ class CSMuller:
         assert 2 <= cs_number <=7 
         self.cs_number = cs_number
         self.__set_param_str()
+        self.name = "Muller " + self.param_name_str
         self.__set_idcs_to_consider()
         self.theta_names = ['x0_1', 'x0_2', 'x0_3', 'x0_4']
         self.theta_names = ['A_1', 'A_2', 'A_3', 'A_4', 'a_1', 'a_2', 'a_3', 'a_4', 'b_1', 'b_2', 'b_3', 'b_4', 'c_1', 
@@ -264,6 +277,7 @@ class CS8:
 class CS10:
     def __init__(self):
         self.param_name_str = "t1t2t3t4t5" 
+        self.name = "Complex Linear"
         self.idcs_to_consider = [0,1,2,3,4]
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4','theta_5']
         self.bounds_x_l = [-2, -3]
@@ -349,6 +363,7 @@ calc_cs4_isotherm = calc_cs9_isotherm
 class CS11:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2']
+        self.name = "BOD Curve"
         self.idcs_to_consider = [0,1]
         self.bounds_x_l = [1]
         self.bounds_x_u = [7]
@@ -381,6 +396,7 @@ def calc_cs11_BOD(true_model_coefficients, x, args = None):
 class CS12:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3']
+        self.name = "Yield-Loss"
         self.idcs_to_consider = [0,1,2]
         self.bounds_x_l = [0]
         self.bounds_x_u = [100]
@@ -413,6 +429,7 @@ def calc_cs12_yield(true_model_coefficients, x, args = None):
 class CS13:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        self.name = "Log Logistic"
         self.idcs_to_consider = [0,1,2,3]
         self.bounds_x_l = [0]
         self.bounds_x_u = [15]
@@ -445,6 +462,7 @@ def calc_cs13_logit(true_model_coefficients, x, args = None):
 class CS14:
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
+        self.name = "2D Log Logistic"
         self.idcs_to_consider = [0,1,2,3]
         self.bounds_x_l = [-5, 0]
         self.bounds_x_u = [ 5, 15]
