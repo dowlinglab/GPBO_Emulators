@@ -1624,7 +1624,7 @@ class All_CS_Plotter(Plotters):
             df_averages = self.analyzer.get_averages_best()
             names = ['Avg Loss', 'Avg Evals', 'Avg Opt Acq']
             std_names = ['Std Loss', 'Std Evals', 'Std Opt Acq']
-            titles = ["Average " + r"$g(\theta^{\prime})$", "Function Evaluations", "Average of Last 10 \n" + r"$\xi(\hat{\theta})$"]
+            titles = ["Average " + r"$g(\theta^{\prime})$", "Function Evaluations", "Average of Last 10 \n" + r"$\Xi(\hat{\theta})$"]
 
         y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+1) + padding)
 

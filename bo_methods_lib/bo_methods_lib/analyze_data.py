@@ -1333,14 +1333,15 @@ class All_CS_Analysis(General_Analysis):
         Get the average acquisition function value for the last 10 iterations of each run
         """
         df_all_jobs = self.get_all_data()
-        #Get the last 1/5 of iterations of each run
-        df_last_10 = df_all_jobs[df_all_jobs['BO Iter'] > (df_all_jobs['Max Evals']*4//5)]
+        #Get the last 10 of iterations of each run
+        df_last_10 = df_all_jobs[df_all_jobs['BO Iter'] > (df_all_jobs['Max Evals'] - 10)]
         #Group by CS Name and BO Method and get the mean of the acquisition function value
         grouped_stats = df_last_10.groupby(["CS Name", "BO Method"]).agg({
         'Opt Acq': ['mean', 'std']}).reset_index()
         # Flatten the MultiIndex columns
         grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Opt Acq', 'Std Opt Acq']
         df_acq_10_avg = grouped_stats[['CS Name', 'BO Method', 'Avg Opt Acq', 'Std Opt Acq']]
+        print(df_acq_10_avg)
         return df_acq_10_avg
     
     def get_averages(self):
@@ -1431,9 +1432,7 @@ class All_CS_Analysis(General_Analysis):
 
         # Create a new DataFrame with results
         df_acq_opt = self.get_acq_last10_avg()
-        print(df_acq_opt.head())
         df_avg_best = grouped_stats[['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Evals', 'Std Evals']]
-        print(df_avg_best.head())
         df_avg_best_w_acq = pd.merge(df_acq_opt, df_avg_best, on=['CS Name', 'BO Method'])
 
         return df_avg_best_w_acq
