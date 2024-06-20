@@ -1647,7 +1647,8 @@ class All_CS_Plotter(Plotters):
                 if i == len(self.analyzer.meth_val_list)-1:
                     axes[j].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)])
                     self.__set_subplot_details(axes[j], None, None, titles[j])
-                    axes[j].set_xlim(left=0)
+                    if (mode == "overall" and j != 1) or (mode == "best" and j != 0):
+                        axes[j].set_xlim(left=0)
 
         if mode == "overall":
             axes[1].set_xscale("log")
