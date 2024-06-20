@@ -1598,16 +1598,15 @@ class All_CS_Plotter(Plotters):
 
         return ax
     
-    def make_bar_charts(self):
+    def make_bar_charts(self, mode):
         """
         Makes a bar chart of computational time/ fxn evaluations for each method and case study
 
         Parameters:
         -----------
-        cs_list: list of str, list of case studies to plot
-        meth_val_list: list of str, list of method name values to plot
+        mode: Whether to make a bar chart for the overall or best case study information
         """
-        
+        assert mode in ["overall", "best"], "mode must be 'overall' or 'best'"
         #Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = False, sharey = True)
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
@@ -1616,31 +1615,45 @@ class All_CS_Plotter(Plotters):
         padding = 1/len(self.analyzer.cs_list)
 
         #Get jobs associated with the case studies given
-        df_averages = self.analyzer.get_averages()
+        if mode == "overall":
+            df_averages = self.analyzer.get_averages()
+            names = ['Avg Time', 'Avg Loss', 'Avg Evals']
+            std_names = ['Std Time', 'Std Loss', 'Std Evals']
+            titles = ["Computational Time (Min.)", "Average " + r"$g(\theta)$", "Function Evaluations"]
+        else:
+            df_averages = self.analyzer.get_averages_best()
+            names = ['Avg Loss', 'Avg Evals', 'Avg Opt Acq']
+            std_names = ['Std Loss', 'Std Evals', 'Std Opt Acq']
+            titles = ["Average " + r"$g(\theta^{\prime})$", "Function Evaluations", "Average of Last 10 \n" + r"$\chi(\hat{\theta})$"]
+
         y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+1) + padding)
 
         axes = axes.flatten()
         methods = df_averages['BO Method'].unique()
         for i, meth_val in enumerate(self.analyzer.meth_val_list):
             meth_averages = df_averages.loc[df_averages["BO Method"] == self.method_names[meth_val-1]]
-            rects1 = axes[0].barh(y_locs + i*bar_size, meth_averages['Avg Time']/60, xerr = meth_averages['Std Time']/60,
+            scl_value = 60 if mode == "overall" else 1
+            for j in range(len(names)):
+                if mode == "overall" and j == 0:
+                    scl_value = 60 
+                else:
+                    scl_value = 1
+                avg_val = meth_averages[names[j]]/scl_value
+                std_val = meth_averages[std_names[j]]/scl_value
+                rects = axes[j].barh(y_locs + i*bar_size, avg_val, xerr = std_val,
                                 align='edge', height=bar_size, color=self.colors[meth_val-1], 
                                 label=self.method_names[meth_val-1])
-            rects2 = axes[1].barh(y_locs + i*bar_size, meth_averages["Avg Loss"], xerr=meth_averages["Std Loss"], 
-                                  align='edge', height=bar_size, color=self.colors[meth_val-1], 
-                                  label=self.method_names[meth_val-1])
-            rects3 = axes[2].barh(y_locs + i*bar_size, meth_averages["Avg Evals"], xerr=meth_averages["Std Evals"], 
-                                  align='edge', height=bar_size, color=self.colors[meth_val-1], 
-                                  label=self.method_names[meth_val-1])
-        
-        for ax in axes:
-            ax.set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)])
-        axes[1].set_xscale("log")
-        axes[1].set_xlim([0 - padding, 10**6])
-        #Set plot details
-        self.__set_subplot_details(axes[0], None, None, "Computational \nTime (Min.)")
-        self.__set_subplot_details(axes[1], None, None, "Average " + r"$g(\theta)$")
-        self.__set_subplot_details(axes[2], None, None, "Function Evaluations")
+                #Set plot details on last iter
+                if i == len(self.analyzer.meth_val_list)-1:
+                    axes[j].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)])
+                    self.__set_subplot_details(axes[j], None, None, titles[j])
+                    axes[j].set_xlim(left=0)
+
+        if mode == "overall":
+            axes[1].set_xscale("log")
+            axes[1].set_xlim([0 - padding, 10**6])
+        else:
+            axes[0].set_xscale("log")
         
         #Add legends and handles from last subplot that is visible
         handles, labels = axes[-1].get_legend_handles_labels()  

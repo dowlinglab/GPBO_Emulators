@@ -147,7 +147,7 @@ class General_Analysis:
         result_dir = "/".join(parts) if is_nested else os.path.join("Results_" + self.mode, "/".join(parts))
         return result_dir
 
-    def get_jobs_from_criteria(self):
+    def get_jobs_from_criteria(self, criteria_dict = None):
         """
         Gets a pointer of all jobs
 
@@ -155,8 +155,11 @@ class General_Analysis:
         -------
         jobs: list, a list of jobs from Signac that fit criteria dict
         """
+        if criteria_dict == None:
+            criteria_dict = self.criteria_dict
+
         #Find all jobs of a certain cs and method type for the criteria in order of job id
-        jobs = sorted(self.project.find_jobs(self.criteria_dict), key=lambda job: job._id)
+        jobs = sorted(self.project.find_jobs(criteria_dict), key=lambda job: job._id)
         jobs = [job for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
 
         return jobs
@@ -184,7 +187,7 @@ class General_Analysis:
         array_from_str = np.array(ast.literal_eval(re.sub(r'\s+', ',',str_no_space1)))
         return array_from_str
 
-    def get_df_all_jobs(self, save_csv = False):
+    def get_df_all_jobs(self, criteria_dict = None, save_csv = False):
         """
         Creates a dataframe of all information for a given experiment
         
@@ -204,7 +207,10 @@ class General_Analysis:
         job_list = []
         
         #Find all jobs of a certain cs and method type for the criteria in order of job id
-        jobs = self.get_jobs_from_criteria()
+        if criteria_dict is None:
+            jobs = self.get_jobs_from_criteria(self.criteria_dict)
+        else:
+            jobs = self.get_jobs_from_criteria(criteria_dict)
         theta_true_data = None
         
         #Loop over each job
@@ -349,6 +355,45 @@ class General_Analysis:
             # df_sorted = df.sort_values(by=["Min Obj GP Cum", 'BO Iter'], ascending=True)
             #Then take only the 1st instance for each method
             df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first').copy()
+            #Calculate the L2 norm of the best runs
+            df_best = self.__calc_l2_norm(df_best, np.array(list(theta_true_data.values())))
+            #Sort df_best
+            df_best = self.__sort_by_meth(df_best)
+
+        #Get list of best jobs
+        job_list_best = self.__get_job_list(df_best)
+
+        #Put in a csv file in a directory based on the job
+        if self.save_csv:
+            self.save_data(df_best, data_best_path)
+
+        return df_best, job_list_best
+
+    def get_best_all_runs(self, criteria_dict = None):
+        """
+        Gets the best (as described from self.mode) performing data for each method in the criteria dict
+    
+        Returns
+        -------
+        df_best: pd.DataFrame, The best data for each method
+        job_list_best: list, a list of jobs from Signac corresponding to the ones in df_best
+        """
+        if self.mode == "act":
+            obj_col = "Min Obj Act Cum"
+        elif self.mode == "acq":
+            obj_col = "Acq Obj Act Cum"
+        elif self.mode == "gp":
+            obj_col = "Min Obj GP Cum"
+        #Get data from Criteria dict if you need it
+        df, jobs, theta_true_data = self.get_df_all_jobs(criteria_dict)
+        # print(df.head())
+        data_best_path = os.path.join(self.study_results_dir, "best_run_results.csv")
+        data_exists, df_best = self.load_data(data_best_path)
+        if not data_exists or self.save_csv:
+            #Start by sorting pd dataframe by lowest obj func value overall, then by BO Iter and Run Number
+            df_sorted = df.sort_values(by=[obj_col, 'BO Iter', 'Run Number'], ascending=True)
+            #Then take only the 1st instance for each method and run
+            df_best = df_sorted.drop_duplicates(subset=['BO Method', 'Run Number'], keep='first').copy()
             #Calculate the L2 norm of the best runs
             df_best = self.__calc_l2_norm(df_best, np.array(list(theta_true_data.values())))
             #Sort df_best
@@ -1283,6 +1328,21 @@ class All_CS_Analysis(General_Analysis):
         df_all_jobs = self.__sort_by_cs_meth(df_all_jobs)
         return df_all_jobs
     
+    def get_acq_last10_avg(self):
+        """
+        Get the average acquisition function value for the last 10 iterations of each run
+        """
+        df_all_jobs = self.get_all_data()
+        #Get the last 1/5 of iterations of each run
+        df_last_10 = df_all_jobs[df_all_jobs['BO Iter'] > (df_all_jobs['Max Evals']*4//5)]
+        #Group by CS Name and BO Method and get the mean of the acquisition function value
+        grouped_stats = df_last_10.groupby(["CS Name", "BO Method"]).agg({
+        'Opt Acq': ['mean', 'std']}).reset_index()
+        # Flatten the MultiIndex columns
+        grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Opt Acq', 'Std Opt Acq']
+        df_acq_10_avg = grouped_stats[['CS Name', 'BO Method', 'Avg Opt Acq', 'Std Opt Acq']]
+        return df_acq_10_avg
+    
     def get_averages(self):
         """
         Get average computational time, max function evaltuations, and sse values for all case studies
@@ -1301,7 +1361,8 @@ class All_CS_Analysis(General_Analysis):
         grouped_stats = df_all_jobs.groupby(["CS Name", "BO Method"]).agg({
         obj_col_sse_min: ['mean', 'std'],
         'Total Run Time': ['mean', 'std'],
-        'Max Evals': ['mean', 'std']}).reset_index()
+        'Max Evals': ['mean', 'std']}
+        ).reset_index()
 
         # Flatten the MultiIndex columns
         grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']
@@ -1319,6 +1380,63 @@ class All_CS_Analysis(General_Analysis):
         df_averages = grouped_stats[['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']]
 
         return df_averages
+    
+    def get_averages_best(self):
+        """
+        Get average computational time, max function evaltuations, and sse values for all case studies
+        """
+        if self.mode == "act":
+            obj_col_sse_min = "Min Obj Act Cum"
+        elif self.mode == "acq":
+            obj_col_sse_min = "Acq Obj Act Cum"
+        elif self.mode == "gp":
+            obj_col_sse_min = "Min Obj GP Cum"
+        
+        count = 0
+        #Loop over each case study
+        for i, cs_name in enumerate(self.cs_list):
+            for j, meth_val in enumerate(self.meth_val_list):
+                #Create a criteria dictionary for the case study
+                criteria_dict = {"cs_name_val" : cs_name,
+                                "meth_name_val": meth_val}
+                # print(criteria_dict)
+                #Evaluate the best run for the case study for each method
+                try:
+                    df_best_runs, job_list_best_runs = self.get_best_all_runs(criteria_dict)
+                    #On iter 1, create the DataFrame df_all_best
+                    if i==0 and j == 0 and len(df_best_runs) > 0:
+                        df_all_best = df_best_runs
+                    #Otherwise, concatenate the DataFrame to df_all_best
+                    else:
+                        df_all_best = pd.concat([df_all_best, df_best_runs], axis = 0)
+                except:
+                    pass
+
+        #Group the data by CS Name and BO Method, and get the mean and std for each group over all runs
+        grouped_stats = df_all_best.groupby(["CS Name", "BO Method"]).agg({
+        obj_col_sse_min: ['mean', 'std'],
+        'BO Iter': ['mean', 'std']}).reset_index()
+
+        # Flatten the MultiIndex columns
+        grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Evals', 'Std Evals']
+
+        # For log loss, exponentiate the average loss and apply error propogaton to std loss
+        grouped_stats['Avg Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
+                                            np.exp(grouped_stats['Avg Loss']),
+                                            grouped_stats['Avg Loss'])
+
+        grouped_stats['Std Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
+                                            grouped_stats['Std Loss'] * np.exp(grouped_stats['Avg Loss']),
+                                            grouped_stats['Std Loss'])
+
+        # Create a new DataFrame with results
+        df_acq_opt = self.get_acq_last10_avg()
+        print(df_acq_opt.head())
+        df_avg_best = grouped_stats[['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Evals', 'Std Evals']]
+        print(df_avg_best.head())
+        df_avg_best_w_acq = pd.merge(df_acq_opt, df_avg_best, on=['CS Name', 'BO Method'])
+
+        return df_avg_best_w_acq
     
 class LS_Analysis(General_Analysis):
     """
