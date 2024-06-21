@@ -1611,35 +1611,40 @@ class All_CS_Plotter(Plotters):
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = False, sharey = True)
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
 
-        bar_size = 1/len(self.analyzer.cs_list)
-        padding = 1/len(self.analyzer.cs_list)
+        bar_size = 1/(len(self.analyzer.cs_list))
+        padding = 1/(len(self.analyzer.cs_list))
 
         #Get jobs associated with the case studies given
         if mode == "overall":
             df_averages = self.analyzer.get_averages()
-            names = ['Avg Time', 'Avg Loss', 'Avg Evals']
-            std_names = ['Std Time', 'Std Loss', 'Std Evals']
-            titles = ["Computational Time (Min.)", "Average " + r"$g(\theta)$", "Function Evaluations"]
+            names = ['Avg Time', 'Median Loss', 'Avg Evals']
+            std_names = ['Std Time', 'IQR Loss', 'Std Evals']
+            titles = ["Avg. Run Time (Min.)", "Median " + r"$g(\theta)$",  "Avg. " + r"$f(\cdot)$" + " Evalulations"]
         else:
             df_averages = self.analyzer.get_averages_best()
             names = ['Avg Loss', 'Avg Evals', 'Avg Opt Acq']
-            std_names = ['Std Loss', 'Std Evals', 'Std Opt Acq']
-            titles = ["Average " + r"$g(\theta^{\prime})$", "Function Evaluations", "Average of Last 10 \n" + r"$\Xi(\hat{\theta})$"]
+            std_names = ['Avg Loss', 'Std Evals', 'Std Opt Acq']
+            titles = ["Avg. " + r"$g(\theta^{\prime})$" +" \n At Termination", 
+                      "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$g(\theta^{\prime})$", 
+                      "Avg. " + r"$\Xi(\hat{\theta})$" + "\n Last 10 Iterartions"]
 
-        y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+1) + padding)
-
+        desired_order = ["BOD Curve", "2D Log Logistic", "Muller x0", "Simple Linear", "Yield-Loss", "Log Logistic", "Muller y0", "Complex Linear"]
+        # Convert the 'Department' column to a categorical type with the specified order
+        df_averages['CS Name'] = pd.Categorical(df_averages['CS Name'], categories=desired_order, ordered=True)
+        df_averages['BO Method'] = pd.Categorical(df_averages['BO Method'], categories=self.method_names, ordered=True)
+        # Sort the DataFrame by the 'Department' column
+        df_averages = df_averages.sort_values(['CS Name', 'BO Method'])
+        t_label_lst = list(df_averages["CS Name"].unique())
+        y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)) + padding)
         axes = axes.flatten()
-        methods = df_averages['BO Method'].unique()
         for i, meth_val in enumerate(self.analyzer.meth_val_list):
             meth_averages = df_averages.loc[df_averages["BO Method"] == self.method_names[meth_val-1]]
-            scl_value = 60 if mode == "overall" else 1
             for j in range(len(names)):
-                if mode == "overall" and j == 0:
-                    scl_value = 60 
-                else:
-                    scl_value = 1
+                scl_value = 60 if names[j] == "Avg Time" else 1
                 avg_val = meth_averages[names[j]]/scl_value
                 std_val = meth_averages[std_names[j]]/scl_value
+                # if mode == "overall" and j == 1:
+                #     std_val = None
                 rects = axes[j].barh(y_locs + i*bar_size, avg_val, xerr = std_val,
                                 align='edge', height=bar_size, color=self.colors[meth_val-1], 
                                 label=self.method_names[meth_val-1])
@@ -1647,14 +1652,17 @@ class All_CS_Plotter(Plotters):
                 if i == len(self.analyzer.meth_val_list)-1:
                     axes[j].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)])
                     self.__set_subplot_details(axes[j], None, None, titles[j])
-                    if (mode == "overall" and j != 1) or (mode == "best" and j != 0):
+                    if (mode == "best" and j == 1) or (mode == "overall" and j ==2):
                         axes[j].set_xlim(left=0)
 
         if mode == "overall":
             axes[1].set_xscale("log")
-            axes[1].set_xlim([0 - padding, 10**6])
+            axes[0].set_xscale("log")
+            # axes[1].set_xlim([0 - padding, 10**6])
         else:
             axes[0].set_xscale("log")
+            axes[0].set_xlim([0 - padding, 10**4])
+            axes[2].set_xscale("log")
         
         #Add legends and handles from last subplot that is visible
         handles, labels = axes[-1].get_legend_handles_labels()  

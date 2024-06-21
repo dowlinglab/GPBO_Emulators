@@ -54,7 +54,7 @@ class General_Analysis:
     get_median
     get_mean
     __get_job_list
-    __sort_by_meth
+    sort_by_meth
     __calc_L2_norm()
     __get_data
     load_data
@@ -358,7 +358,7 @@ class General_Analysis:
             #Calculate the L2 norm of the best runs
             df_best = self.__calc_l2_norm(df_best, np.array(list(theta_true_data.values())))
             #Sort df_best
-            df_best = self.__sort_by_meth(df_best)
+            df_best = self.sort_by_meth(df_best)
 
         #Get list of best jobs
         job_list_best = self.__get_job_list(df_best)
@@ -397,7 +397,7 @@ class General_Analysis:
             #Calculate the L2 norm of the best runs
             df_best = self.__calc_l2_norm(df_best, np.array(list(theta_true_data.values())))
             #Sort df_best
-            df_best = self.__sort_by_meth(df_best)
+            df_best = self.sort_by_meth(df_best)
 
         #Get list of best jobs
         job_list_best = self.__get_job_list(df_best)
@@ -446,7 +446,7 @@ class General_Analysis:
             #Calculate the L2 Norm for the median values
             df_median = self.__calc_l2_norm(df_median, np.array(list(theta_true_data.values())))
             #Sort df
-            df_median = self.__sort_by_meth(df_median)
+            df_median = self.sort_by_meth(df_median)
 
         #Get list of best jobs
         job_list_med = self.__get_job_list(df_median)
@@ -495,7 +495,7 @@ class General_Analysis:
             #Calculate the L2 Norm for the mean values
             df_mean = self.__calc_l2_norm(df_mean, np.array(list(theta_true_data.values())))
             #Sort df
-            df_mean = self.__sort_by_meth(df_mean)
+            df_mean = self.sort_by_meth(df_mean)
 
         #Get list of best jobs
         job_list_mean = self.__get_job_list(df_mean)
@@ -529,7 +529,7 @@ class General_Analysis:
         return job_list
 
 
-    def __sort_by_meth(self, df_data):
+    def sort_by_meth(self, df_data):
         """
         Sorts a dataframe by the method used
 
@@ -1341,8 +1341,27 @@ class All_CS_Analysis(General_Analysis):
         # Flatten the MultiIndex columns
         grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Opt Acq', 'Std Opt Acq']
         df_acq_10_avg = grouped_stats[['CS Name', 'BO Method', 'Avg Opt Acq', 'Std Opt Acq']]
-        print(df_acq_10_avg)
         return df_acq_10_avg
+    
+    def __log_scale_mean(self, series):
+        log_values = np.log(series)
+        mean_log = np.mean(log_values)
+        mean = np.exp(mean_log)
+        return mean_log
+
+    # Custom function to calculate log-scale std
+    def __log_scale_std(self, series):
+        log_values = np.log(series)
+        std_log = np.std(log_values)
+        # std = np.exp(std_log)
+        return std_log
+    
+    def __get_iqr(self, series):
+        q1 = series.quantile(0.25)
+        q3 = series.quantile(0.75)
+        iqr = q3 - q1
+        return iqr
+
     
     def get_averages(self):
         """
@@ -1350,7 +1369,6 @@ class All_CS_Analysis(General_Analysis):
         """
 
         df_all_jobs = self.get_all_data()
-        #For each case study
 
         if self.mode == "act":
             obj_col_sse_min = "Min Obj Act Cum"
@@ -1359,27 +1377,26 @@ class All_CS_Analysis(General_Analysis):
         elif self.mode == "gp":
             obj_col_sse_min = "Min Obj GP Cum"
 
+        #Scale the objective function values for log conv and log indep
+        condition = df_all_jobs['BO Method'].isin(["Log Conventional", "Log Independence"])
+        # Multiply values in column B by 3 where the condition is true
+        df_all_jobs.loc[condition, obj_col_sse_min] = np.exp(df_all_jobs.loc[condition, obj_col_sse_min])
+
         grouped_stats = df_all_jobs.groupby(["CS Name", "BO Method"]).agg({
-        obj_col_sse_min: ['mean', 'std'],
+        obj_col_sse_min: ['median', self.__get_iqr],
         'Total Run Time': ['mean', 'std'],
         'Max Evals': ['mean', 'std']}
         ).reset_index()
+        # for (cs_name, meth_name), group in df_all_jobs.groupby(["CS Name", "BO Method"]):
+        #     if cs_name == "Complex Linear":
+        #         print(meth_name)
+        #         print(group[obj_col_sse_min])
 
         # Flatten the MultiIndex columns
-        grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']
-
-        # For log loss, exponentiate the average loss and apply error propogaton to std loss
-        grouped_stats['Avg Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
-                                            np.exp(grouped_stats['Avg Loss']),
-                                            grouped_stats['Avg Loss'])
-
-        grouped_stats['Std Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
-                                            grouped_stats['Std Loss'] * np.exp(grouped_stats['Avg Loss']),
-                                            grouped_stats['Std Loss'])
+        grouped_stats.columns = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']
 
         # Create a new DataFrame with results
-        df_averages = grouped_stats[['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']]
-
+        df_averages = grouped_stats[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss',  'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']]
         return df_averages
     
     def get_averages_best(self):
@@ -1393,14 +1410,12 @@ class All_CS_Analysis(General_Analysis):
         elif self.mode == "gp":
             obj_col_sse_min = "Min Obj GP Cum"
         
-        count = 0
         #Loop over each case study
         for i, cs_name in enumerate(self.cs_list):
             for j, meth_val in enumerate(self.meth_val_list):
                 #Create a criteria dictionary for the case study
                 criteria_dict = {"cs_name_val" : cs_name,
                                 "meth_name_val": meth_val}
-                # print(criteria_dict)
                 #Evaluate the best run for the case study for each method
                 try:
                     df_best_runs, job_list_best_runs = self.get_best_all_runs(criteria_dict)
@@ -1413,6 +1428,11 @@ class All_CS_Analysis(General_Analysis):
                 except:
                     pass
 
+        #Scale the objective function values for log conv and log indep
+        condition = df_all_best['BO Method'].isin(["Log Conventional", "Log Independence"])
+        # Multiply values in column B by 3 where the condition is true
+        df_all_best.loc[condition, obj_col_sse_min] = np.exp(df_all_best.loc[condition, obj_col_sse_min])
+
         #Group the data by CS Name and BO Method, and get the mean and std for each group over all runs
         grouped_stats = df_all_best.groupby(["CS Name", "BO Method"]).agg({
         obj_col_sse_min: ['mean', 'std'],
@@ -1421,20 +1441,10 @@ class All_CS_Analysis(General_Analysis):
         # Flatten the MultiIndex columns
         grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Evals', 'Std Evals']
 
-        # For log loss, exponentiate the average loss and apply error propogaton to std loss
-        grouped_stats['Avg Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
-                                            np.exp(grouped_stats['Avg Loss']),
-                                            grouped_stats['Avg Loss'])
-
-        grouped_stats['Std Loss'] = np.where(grouped_stats['BO Method'].str.contains('Log'),
-                                            grouped_stats['Std Loss'] * np.exp(grouped_stats['Avg Loss']),
-                                            grouped_stats['Std Loss'])
-
         # Create a new DataFrame with results
         df_acq_opt = self.get_acq_last10_avg()
         df_avg_best = grouped_stats[['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Evals', 'Std Evals']]
         df_avg_best_w_acq = pd.merge(df_acq_opt, df_avg_best, on=['CS Name', 'BO Method'])
-
         return df_avg_best_w_acq
     
 class LS_Analysis(General_Analysis):
