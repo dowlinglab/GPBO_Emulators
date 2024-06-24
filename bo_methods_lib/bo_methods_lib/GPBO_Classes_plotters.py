@@ -1622,9 +1622,9 @@ class All_CS_Plotter(Plotters):
             titles = ["Avg. Run Time (Min.)", "Median " + r"$g(\theta)$",  "Avg. " + r"$f(\cdot)$" + " Evalulations"]
         else:
             df_averages = self.analyzer.get_averages_best()
-            names = ['Avg Loss', 'Avg Evals', 'Avg Opt Acq']
-            std_names = ['Avg Loss', 'Std Evals', 'Std Opt Acq']
-            titles = ["Avg. " + r"$g(\theta^{\prime})$" +" \n At Termination", 
+            names = ['Median Loss', 'Avg Evals', 'Avg Opt Acq']
+            std_names = ['IQR Loss', 'Std Evals', 'Std Opt Acq']
+            titles = ["Median " + r"$g(\theta^{\prime})$" +" \n At Termination", 
                       "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$g(\theta^{\prime})$", 
                       "Avg. " + r"$\Xi(\hat{\theta})$" + "\n Last 10 Iterartions"]
 

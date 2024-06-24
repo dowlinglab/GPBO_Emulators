@@ -34,7 +34,7 @@ for val in [1,11,12,13,10]:
         plotters = Plotters(analyzer, save_figs)
 
         ###Get all data from experiments
-        df_all_jobs, job_list, theta_true_data = analyzer.get_df_all_jobs(save_csv)
+        df_all_jobs, job_list, theta_true_data = analyzer.get_df_all_jobs(criteria_dict, save_csv)
         ### Get Best Data from ep experiment
         df_best, job_list_best = analyzer.get_best_data()
 
