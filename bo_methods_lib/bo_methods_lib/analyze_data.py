@@ -147,7 +147,7 @@ class General_Analysis:
         result_dir = "/".join(parts) if is_nested else os.path.join("Results2_" + self.mode, "/".join(parts))
         return result_dir
 
-    def get_jobs_from_criteria(self, criteria_dict):
+    def get_jobs_from_criteria(self, criteria_dict=None):
         """
         Gets a pointer of all jobs
 
@@ -155,6 +155,7 @@ class General_Analysis:
         -------
         jobs: list, a list of jobs from Signac that fit criteria dict
         """
+        criteria_dict = self.criteria_dict if criteria_dict == None else criteria_dict
         #Find all jobs of a certain cs and method type for the criteria in order of job id
         jobs = sorted(self.project.find_jobs(criteria_dict), key=lambda job: job._id)
         jobs = [job for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
