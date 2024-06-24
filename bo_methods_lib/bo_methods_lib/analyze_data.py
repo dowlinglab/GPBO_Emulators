@@ -144,7 +144,7 @@ class General_Analysis:
                 parts.append(f"{key.replace('$', '')}_{value}")
 
         # result_dir = "/".join(parts) if is_nested else os.path.join("Results_acq", "/".join(parts))
-        result_dir = "/".join(parts) if is_nested else os.path.join("Results_" + self.mode, "/".join(parts))
+        result_dir = "/".join(parts) if is_nested else os.path.join("Results2_" + self.mode, "/".join(parts))
         return result_dir
 
     def get_jobs_from_criteria(self, criteria_dict = None):
