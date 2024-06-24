@@ -147,7 +147,7 @@ class General_Analysis:
         result_dir = "/".join(parts) if is_nested else os.path.join("Results2_" + self.mode, "/".join(parts))
         return result_dir
 
-    def get_jobs_from_criteria(self, criteria_dict = None):
+    def get_jobs_from_criteria(self, criteria_dict):
         """
         Gets a pointer of all jobs
 
@@ -155,9 +155,6 @@ class General_Analysis:
         -------
         jobs: list, a list of jobs from Signac that fit criteria dict
         """
-        if criteria_dict == None:
-            criteria_dict = self.criteria_dict
-
         #Find all jobs of a certain cs and method type for the criteria in order of job id
         jobs = sorted(self.project.find_jobs(criteria_dict), key=lambda job: job._id)
         jobs = [job for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
@@ -207,7 +204,7 @@ class General_Analysis:
         job_list = []
         
         #Find all jobs of a certain cs and method type for the criteria in order of job id
-        if criteria_dict is None:
+        if criteria_dict == None:
             jobs = self.get_jobs_from_criteria(self.criteria_dict)
         else:
             jobs = self.get_jobs_from_criteria(criteria_dict)
@@ -1435,15 +1432,15 @@ class All_CS_Analysis(General_Analysis):
 
         #Group the data by CS Name and BO Method, and get the mean and std for each group over all runs
         grouped_stats = df_all_best.groupby(["CS Name", "BO Method"]).agg({
-        obj_col_sse_min: ['mean', 'std'],
+        obj_col_sse_min: ['median', self.__get_iqr],
         'BO Iter': ['mean', 'std']}).reset_index()
 
         # Flatten the MultiIndex columns
-        grouped_stats.columns = ['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Evals', 'Std Evals']
+        grouped_stats.columns = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']
 
         # Create a new DataFrame with results
         df_acq_opt = self.get_acq_last10_avg()
-        df_avg_best = grouped_stats[['CS Name', 'BO Method', 'Avg Loss', 'Std Loss', 'Avg Evals', 'Std Evals']]
+        df_avg_best = grouped_stats[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']]
         df_avg_best_w_acq = pd.merge(df_acq_opt, df_avg_best, on=['CS Name', 'BO Method'])
         return df_avg_best_w_acq
     
