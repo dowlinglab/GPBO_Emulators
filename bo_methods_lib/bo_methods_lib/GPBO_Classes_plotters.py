@@ -592,18 +592,20 @@ class Plotters:
         emph_iters = df_best["BO Iter"].values
         # emph_iters = (df_best['Max Evals'] / 10).round().astype(int).values
 
-        #Make figures and define number of subplots based on number of different methods
+        #Make figures and define number of subplots based on number of different methods + 1 sse_sim map
         subplots_needed = len(job_list_best)
+        if z_choice == "sse_mean":
+            subplots_needed += 1
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True, sharey = True)
         
         #Define plot levels
         if levels is None:
             tot_lev = None
-        elif len(levels) == 1:
-            tot_lev = levels*len(job_list_best) 
+        elif (isinstance(levels, Iterable) and len(levels) == 1) or isinstance(levels, int):
+            tot_lev = [levels]*(num_subplots)
         else:
             tot_lev = levels
-        assert tot_lev is None or len(tot_lev) == len(job_list_best), "Levels must be None or have the same length as job_list_best"
+        assert tot_lev is None or len(tot_lev) == num_subplots, "Levels must be None or have the same length as number of subplots"
 
         all_z_data = []
         all_sp_data = []
@@ -644,6 +646,13 @@ class Plotters:
             all_theta_opt.append(theta_opt)
             all_theta_next.append(theta_next)
             all_train_theta.append(train_theta)
+
+            if i == len(job_list_best) - 1:
+                z_sim, title3 = self.__get_z_plot_names_hms("sse_sim", sim_sse_var_ei)
+                all_z_data.append(z_sim)
+                all_theta_opt.append(None)
+                all_theta_next.append(None)
+                all_train_theta.append(None)
                     
         #Initialize need_unscale to False
         need_unscale = False
@@ -675,11 +684,15 @@ class Plotters:
 
         #Set plot details
         #Loop over number of subplots
-        for i in range(len(job_list_best)):
-            #Get method value from json file
-            GPBO_method_val = all_sp_data[i]["meth_name_val"]
-            ax_idx = int(GPBO_method_val - 1)  
-            ax_row, ax_col = plot_mapping[ax_idx]
+        for i in range(num_subplots):
+            if i != len(job_list_best):
+                #Get method value from json file
+                GPBO_method_val = all_sp_data[i]["meth_name_val"]
+                ax_idx = int(GPBO_method_val - 1)  
+                ax_row, ax_col = plot_mapping[ax_idx]
+            else:
+                ax_idx = len(job_list_best)
+                ax_row, ax_col = plot_mapping[ax_idx]
             
             z = all_z_data[i]
             theta_opt = all_theta_opt[i]
@@ -687,7 +700,7 @@ class Plotters:
             train_theta = all_train_theta[i]
 
             #Set number format based on magnitude
-            fmt = '%.2e' if np.amax(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000 else '%2.2f'
+            fmt = '%.2e' if np.amin(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000 else '%2.2f'
 
             if np.all(z == z[0]):
                 z =  abs(np.random.normal(scale=1e-14, size=z.shape))
@@ -766,7 +779,11 @@ class Plotters:
                     cbar.formatter.set_powerlimits((0, 0))
 
             #Set plot details
-            self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, self.method_names[ax_idx])
+            if i != len(job_list_best):
+                label_name = self.method_names[ax_idx]
+            else:
+                label_name = title3
+            self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, label_name)
 
         #Get legend information and make colorbar on 1st plot
         handles, labels = ax[0, 0].get_legend_handles_labels() 
@@ -804,7 +821,7 @@ class Plotters:
         
         #Plots legend and title
         fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, 
-                   bbox_to_anchor=(1.0, 0.4), borderaxespad=0)
+                   bbox_to_anchor=(0.98, 0.49), borderaxespad=0)
 
         plt.tight_layout()  
 
@@ -957,7 +974,7 @@ class Plotters:
                                label ="Opt Acq",marker= "^", zorder = 3)
                 if theta_opt is not None:
                     ax.scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", s=150, 
-                               label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, zorder = 4)
+                               label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.5, zorder = 4)
 
                 #Set plot details
                 self.__set_subplot_details(ax, xx, yy, None, None, all_z_titles[i])
