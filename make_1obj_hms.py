@@ -44,7 +44,7 @@ for val in [1,11]:
 
         #Set z_choices and levels
         z_choices = ["sse_sim", "sse_mean", "sse_var", "acq"]
-        levels = [100,100,100, 100, 100, 100,100]
+        levels = 100
 
         #Back out number of parameters
         string_val = df_best["Theta Min Obj"].iloc[0]
