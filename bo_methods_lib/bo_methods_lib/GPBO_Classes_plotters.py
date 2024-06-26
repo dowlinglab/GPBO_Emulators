@@ -647,7 +647,7 @@ class Plotters:
             all_theta_next.append(theta_next)
             all_train_theta.append(train_theta)
 
-            if i == len(job_list_best) - 1:
+            if (i == len(job_list_best) - 1) and z_choice == "sse_mean":
                 z_sim, title3 = self.__get_z_plot_names_hms("sse_sim", sim_sse_var_ei)
                 all_z_data.append(z_sim)
                 all_theta_opt.append(None)
@@ -684,7 +684,7 @@ class Plotters:
 
         #Set plot details
         #Loop over number of subplots
-        for i in range(num_subplots):
+        for i in range(subplots_needed):
             if i != len(job_list_best):
                 #Get method value from json file
                 GPBO_method_val = all_sp_data[i]["meth_name_val"]
