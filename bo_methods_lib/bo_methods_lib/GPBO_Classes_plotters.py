@@ -1668,19 +1668,25 @@ class All_CS_Plotter(Plotters):
                 #Set plot details on last iter
                 if i == len(self.analyzer.meth_val_list)-1:
                     axes[j].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)])
+                    # axes[j].xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=4))
                     self.__set_subplot_details(axes[j], None, None, titles[j])
                     if (mode == "best" and j == 1) or (mode == "overall" and j ==2):
                         axes[j].set_xlim(left=0)
 
+        for ax in axes:
+            ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=4))
+            
         if mode == "overall":
             axes[1].set_xscale("log")
             axes[0].set_xscale("log")
             # axes[1].set_xlim([0 - padding, 10**6])
         else:
             axes[0].set_xscale("log")
-            axes[0].set_xlim([0 - padding, 10**4])
+            # axes[0].set_xlim([0 - padding, 10**4])
             axes[2].set_xscale("log")
+
         
+
         #Add legends and handles from last subplot that is visible
         handles, labels = axes[-1].get_legend_handles_labels()  
                 
