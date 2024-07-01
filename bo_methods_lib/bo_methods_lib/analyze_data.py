@@ -1395,6 +1395,11 @@ class All_CS_Analysis(General_Analysis):
 
         # Create a new DataFrame with results
         df_averages = grouped_stats[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss',  'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']]
+
+        if self.save_csv:
+            save_path = os.path.join(self.study_results_dir, "all_cs_avg_overall.csv")
+            self.save_data(df_averages, save_path)
+
         return df_averages
     
     def get_averages_best(self):
@@ -1468,6 +1473,10 @@ class All_CS_Analysis(General_Analysis):
         df_avg_ls_best = grouped_stats_ls[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']]
         df_avg_best_w_acq = pd.merge(df_acq_opt, df_avg_best, on=['CS Name', 'BO Method'])
         df_avg_all = pd.concat([df_avg_best_w_acq, df_avg_ls_best], axis = 0)
+
+        if self.save_csv:
+            save_path = os.path.join(self.study_results_dir, "all_cs_avg_best.csv")
+            self.save_data(df_avg_all, save_path)
         return df_avg_all
     
 class LS_Analysis(General_Analysis):

@@ -1720,3 +1720,5 @@ class All_CS_Plotter(Plotters):
             plt.show()
             plt.close()
 
+        # return df_averages
+
