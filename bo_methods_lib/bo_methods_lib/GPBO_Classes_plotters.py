@@ -1628,7 +1628,11 @@ class All_CS_Plotter(Plotters):
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = False, sharey = True)
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
 
-        bar_size = 1/(len(self.analyzer.cs_list))
+        if mode == "overall":
+            add_value = 0
+        else:
+            add_value = 1
+        bar_size = 1/(len(self.analyzer.cs_list) + add_value)
         padding = 1/(len(self.analyzer.cs_list))
 
         #Get jobs associated with the case studies given
@@ -1648,14 +1652,23 @@ class All_CS_Plotter(Plotters):
         desired_order = ["BOD Curve", "2D Log Logistic", "Muller x0", "Simple Linear", "Yield-Loss", "Log Logistic", "Muller y0", "Complex Linear"]
         # Convert the 'Department' column to a categorical type with the specified order
         df_averages['CS Name'] = pd.Categorical(df_averages['CS Name'], categories=desired_order, ordered=True)
-        df_averages['BO Method'] = pd.Categorical(df_averages['BO Method'], categories=self.method_names, ordered=True)
+        df_averages['BO Method'] = pd.Categorical(df_averages['BO Method'], categories=self.method_names + ["NLS"], ordered=True)
         # Sort the DataFrame by the 'Department' column
         df_averages = df_averages.sort_values(['CS Name', 'BO Method'])
         t_label_lst = list(df_averages["CS Name"].unique())
-        y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)) + padding)
+        y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+add_value) + padding)
         axes = axes.flatten()
-        for i, meth_val in enumerate(self.analyzer.meth_val_list):
-            meth_averages = df_averages.loc[df_averages["BO Method"] == self.method_names[meth_val-1]]
+        for i in range(len(self.analyzer.meth_val_list)+ add_value):
+            if i < len(self.analyzer.meth_val_list):
+                meth_val = self.analyzer.meth_val_list[i]
+                meth_averages = df_averages.loc[df_averages["BO Method"] == self.method_names[meth_val-1]]
+                label = self.method_names[meth_val-1]
+                color = self.colors[meth_val-1]
+            else:
+                meth_averages = df_averages.loc[df_averages["BO Method"] == "NLS"]
+                label = "NLS"
+                color = "grey"
+                
             for j in range(len(names)):
                 scl_value = 60 if names[j] == "Avg Time" else 1
                 avg_val = meth_averages[names[j]]/scl_value
@@ -1663,10 +1676,10 @@ class All_CS_Plotter(Plotters):
                 # if mode == "overall" and j == 1:
                 #     std_val = None
                 rects = axes[j].barh(y_locs + i*bar_size, avg_val, xerr = std_val,
-                                align='edge', height=bar_size, color=self.colors[meth_val-1], 
-                                label=self.method_names[meth_val-1])
+                                align='edge', height=bar_size, color=color, 
+                                label=label)
                 #Set plot details on last iter
-                if i == len(self.analyzer.meth_val_list)-1:
+                if i == len(self.analyzer.meth_val_list) + add_value - 1:
                     axes[j].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)])
                     # axes[j].xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=4))
                     self.__set_subplot_details(axes[j], None, None, titles[j])

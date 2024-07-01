@@ -1425,6 +1425,25 @@ class All_CS_Analysis(General_Analysis):
                         df_all_best = pd.concat([df_all_best, df_best_runs], axis = 0)
                 except:
                     pass
+            #Add nonlinear least squares results
+            #Get SSE data from least squares
+            #Create a criteria dictionary for the case study
+            criteria_dict_ls = {"cs_name_val" : cs_name,
+                                "meth_name_val": self.meth_val_list}
+            ls_analyzer = LS_Analysis(criteria_dict_ls, self.project, self.save_csv)
+            ls_results = ls_analyzer.least_squares_analysis()
+            #Make a df that is only the iters of the best run
+            df_sorted = ls_results.sort_values(by=['Min Obj Cum.', 'Run', 'Iter'], ascending=True)
+            #Keep only the highest value for each run
+            df_best_ls = df_sorted.groupby(['Run']).first().reset_index()
+            df_best_ls["CS Name"] = get_cs_class_from_val(cs_name).name
+            df_best_ls["BO Method"] = "NLS"
+            df_best_ls.rename(columns={'Iter': 'BO Iter'}, inplace=True)
+            if i==0 and len(df_best_ls) > 0:
+                df_all_ls_best = df_best_ls
+            #Otherwise, concatenate the DataFrame to df_all_best
+            else:
+                df_all_ls_best = pd.concat([df_all_ls_best, df_best_ls], axis = 0)
 
         #Scale the objective function values for log conv and log indep
         condition = df_all_best['BO Method'].isin(["Log Conventional", "Log Independence"])
@@ -1435,15 +1454,21 @@ class All_CS_Analysis(General_Analysis):
         grouped_stats = df_all_best.groupby(["CS Name", "BO Method"]).agg({
         obj_col_sse_min: ['median', self.__get_iqr],
         'BO Iter': ['mean', 'std']}).reset_index()
+        grouped_stats_ls = df_all_ls_best.groupby(["CS Name", "BO Method"]).agg({
+        "Min Obj Cum.": ['median', self.__get_iqr],
+        'BO Iter': ['mean', 'std']}).reset_index()
 
         # Flatten the MultiIndex columns
         grouped_stats.columns = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']
-
+        grouped_stats_ls.columns = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']
+        
         # Create a new DataFrame with results
         df_acq_opt = self.get_acq_last10_avg()
         df_avg_best = grouped_stats[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']]
+        df_avg_ls_best = grouped_stats_ls[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']]
         df_avg_best_w_acq = pd.merge(df_acq_opt, df_avg_best, on=['CS Name', 'BO Method'])
-        return df_avg_best_w_acq
+        df_avg_all = pd.concat([df_avg_best_w_acq, df_avg_ls_best], axis = 0)
+        return df_avg_all
     
 class LS_Analysis(General_Analysis):
     """
