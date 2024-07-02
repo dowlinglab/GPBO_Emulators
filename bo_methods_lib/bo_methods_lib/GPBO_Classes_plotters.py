@@ -411,7 +411,7 @@ class Plotters:
         
         #Break down plot dict and check for correct things
         save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
-        x_label = "BO Iterations"
+        x_label = "Function Evaluations"
         
         #Assert Statements
         assert isinstance(z_choices, (list, str)), "z_choices must be list or string"
