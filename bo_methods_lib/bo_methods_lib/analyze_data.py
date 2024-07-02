@@ -5,6 +5,7 @@ import copy
 import signac
 from ast import literal_eval
 from collections.abc import Iterable
+from sklearn.preprocessing import MinMaxScaler
 
 from .GPBO_Class_fxns import *
 from .GPBO_Classes_New import *
@@ -221,11 +222,13 @@ class General_Analysis:
             # # #See if result data exists, if so add it to df
             tab_data_path = os.path.join(job.fn("analysis_data") , "tabulated_data.csv")
             tab_param_path = os.path.join(job.fn("analysis_data") , "true_param_data.json")
+            tab_bnds_path = os.path.join(job.fn("analysis_data") , "true_bnds_data.pkl")
             found_data1, df_job = self.load_data(tab_data_path)
             found_data2, theta_true_data = self.load_data(tab_param_path)
+            found_data3, theta_bnds_data = self.load_data(tab_bnds_path)
             #If results don't exist or we are overwriting our csvs, create them
-            if save_csv or not found_data1 or not found_data2:
-                df_job, theta_true_data = self.get_study_data_signac(job, save_csv)
+            if save_csv or not found_data1 or not found_data2 or not found_data3:
+                df_job, theta_true_data_w_bnds = self.get_study_data_signac(job, save_csv)
             elif found_data1:
                 try:
                     df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
@@ -240,6 +243,7 @@ class General_Analysis:
                 df_job["CS Name Val"] = job.sp.cs_name_val
                 df_job["CS Name"] = get_cs_class_from_val(job.sp.cs_name_val).name
                 
+            theta_true_data_w_bnds = (theta_true_data, theta_bnds_data)
             #Add job dataframe to dataframe of all jobs
             df_all_jobs = pd.concat([df_all_jobs, df_job], ignore_index=False)
 
@@ -251,9 +255,11 @@ class General_Analysis:
             results = open_file_helper(data_file)
             theta_true = results[0].simulator_class.theta_true
             theta_true_names = results[0].simulator_class.theta_true_names
+            theta_true_bnds = results[0].simulator_class.bounds_theta_reg
             theta_true_data = dict(zip(theta_true_names, theta_true))
+            theta_true_data_w_bnds = (theta_true_data, theta_true_bnds)
             
-        return df_all_jobs, job_list, theta_true_data
+        return df_all_jobs, job_list, theta_true_data_w_bnds
     
     def get_study_data_signac(self, job, save_csv = None):
         """
@@ -294,6 +300,7 @@ class General_Analysis:
         #get theta_true from 1st run since it never changes within a case study
         theta_true = results[0].simulator_class.theta_true
         theta_true_names = results[0].simulator_class.theta_true_names
+        theta_true_bnds = results[0].simulator_class.bounds_theta_reg
         theta_true_data = dict(zip(theta_true_names, theta_true))
 
         #Loop over runs in each job
@@ -322,10 +329,14 @@ class General_Analysis:
         if save_csv:
             all_data_path = os.path.join(job.fn("analysis_data"), "tabulated_data.csv")
             theta_data_path = os.path.join(job.fn("analysis_data"), "true_param_data.json")
+            theta_bnds_path = os.path.join(job.fn("analysis_data"), "true_bnds_data.pkl")
             self.save_data(df_job, all_data_path)
             self.save_data(theta_true_data, theta_data_path)
+            self.save_data(theta_true_bnds, theta_bnds_path)
 
-        return df_job, theta_true_data
+        true_data_w_bnds = (theta_true_data, theta_true_bnds)
+
+        return df_job, true_data_w_bnds
 
     def get_best_data(self):
         """
@@ -343,7 +354,7 @@ class General_Analysis:
         elif self.mode == "gp":
             obj_col = "Min Obj GP Cum"
         #Get data from Criteria dict if you need it
-        df, jobs, theta_true_data = self.get_df_all_jobs()
+        df, jobs, theta_true_data_w_bnds = self.get_df_all_jobs()
         data_best_path = os.path.join(self.study_results_dir, "best_results.csv")
         data_exists, df_best = self.load_data(data_best_path)
         if not data_exists or self.save_csv:
@@ -354,7 +365,7 @@ class General_Analysis:
             #Then take only the 1st instance for each method
             df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first').copy()
             #Calculate the L2 norm of the best runs
-            df_best = self.__calc_l2_norm(df_best, np.array(list(theta_true_data.values())))
+            df_best = self.__calc_l2_norm(df_best, theta_true_data_w_bnds)
             #Sort df_best
             df_best = self.sort_by_meth(df_best)
 
@@ -383,7 +394,7 @@ class General_Analysis:
         elif self.mode == "gp":
             obj_col = "Min Obj GP Cum"
         #Get data from Criteria dict if you need it
-        df, jobs, theta_true_data = self.get_df_all_jobs(criteria_dict)
+        df, jobs, theta_true_data_w_bnds = self.get_df_all_jobs(criteria_dict)
         # print(df.head())
         data_best_path = os.path.join(self.study_results_dir, "best_run_results.csv")
         data_exists, df_best = self.load_data(data_best_path)
@@ -393,7 +404,7 @@ class General_Analysis:
             #Then take only the 1st instance for each method and run
             df_best = df_sorted.drop_duplicates(subset=['BO Method', 'Run Number'], keep='first').copy()
             #Calculate the L2 norm of the best runs
-            df_best = self.__calc_l2_norm(df_best, np.array(list(theta_true_data.values())))
+            df_best = self.__calc_l2_norm(df_best, theta_true_data_w_bnds)
             #Sort df_best
             df_best = self.sort_by_meth(df_best)
 
@@ -422,7 +433,7 @@ class General_Analysis:
         elif self.mode == "gp":
             obj_col = "Min Obj GP"
         #Get data from Criteria dict if you need it
-        df, jobs, theta_true_data = self.get_df_all_jobs()
+        df, jobs, theta_true_data_w_bnds = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "median_results.csv")
         data_exists, df_median = self.load_data(data_path)
         if not data_exists or self.save_csv:
@@ -442,7 +453,7 @@ class General_Analysis:
                 #Add df to median
                 df_median = pd.concat([df_median, med_df])
             #Calculate the L2 Norm for the median values
-            df_median = self.__calc_l2_norm(df_median, np.array(list(theta_true_data.values())))
+            df_median = self.__calc_l2_norm(df_median, theta_true_data_w_bnds)
             #Sort df
             df_median = self.sort_by_meth(df_median)
 
@@ -471,7 +482,7 @@ class General_Analysis:
         elif self.mode == "gp":
             obj_col = "Min Obj GP"
         #Get data from Criteria dict if you need it
-        df, jobs, theta_true_data = self.get_df_all_jobs()
+        df, jobs, theta_true_data_w_bnds = self.get_df_all_jobs()
         data_path = os.path.join(self.study_results_dir, "mean_results.csv")
         data_exists, df_mean = self.load_data(data_path)
         if not data_exists or self.save_csv:
@@ -491,7 +502,7 @@ class General_Analysis:
                 #Add closest point to mean to df
                 df_mean = pd.concat([df_mean, df_closest_to_mean])
             #Calculate the L2 Norm for the mean values
-            df_mean = self.__calc_l2_norm(df_mean, np.array(list(theta_true_data.values())))
+            df_mean = self.__calc_l2_norm(df_mean, theta_true_data_w_bnds)
             #Sort df
             df_mean = self.sort_by_meth(df_mean)
 
@@ -549,7 +560,7 @@ class General_Analysis:
         df_data = df_data.sort_values(by='BO Method')
         return df_data
     
-    def __calc_l2_norm(self, df_data, theta_true):
+    def __calc_l2_norm(self, df_data, theta_true_data):
         """
         Calculates the L2 norm of the theta values in a dataframe
 
@@ -564,13 +575,19 @@ class General_Analysis:
         """
         #Calculate the difference between the true values and the GP best values in the dataframe for each parameter    
         theta_min_obj = np.array(list(df_data['Theta Min Obj'].to_numpy()[:]), dtype=np.float64)
+        theta_true_dict, theta_bounds = theta_true_data
+        theta_true = np.array(list(theta_true_dict.values()), dtype=np.float64)
+        #Create scaler to scale values between 0 and 1 based on the bounds
+        scaler = MinMaxScaler()
+        scaler.fit([theta_bounds[0], theta_bounds[1]])
+        # Calculate change in scaled theta for each row in theta_min_obj
+        del_theta = scaler.transform(theta_min_obj) - scaler.transform(theta_true.reshape(1, -1))
+        theta_L2_norm = np.linalg.norm(del_theta, ord=2, axis=1)
+        # Normalize scaled L2 norm values by number of dimensions
+        num_theta_dims = theta_bounds.shape[1]
+        normalized_L2_norms = theta_L2_norm /num_theta_dims
 
-        del_theta = theta_min_obj - theta_true
-        theta_L2_norm = np.zeros(del_theta.shape[0])
-        for i in range(del_theta.shape[0]):
-            theta_L2_norm[i] = np.linalg.norm(del_theta[i,:], ord = 2)
-            
-        df_data["L2 Norm Theta"] = theta_L2_norm
+        df_data["L2 Norm Theta"] = normalized_L2_norms
 
         return df_data
     
@@ -748,7 +765,8 @@ class General_Analysis:
         found_data2, theta_true_data = self.load_data(true_param_data_path)
 
         if not found_data1 or not found_data2:
-            df_job, theta_true_data = self.get_study_data_signac(job, save_csv = False)
+            df_job, theta_true_data_w_bnds = self.get_study_data_signac(job, save_csv = False)
+            theta_true_data = theta_true_data_w_bnds[0]
         elif found_data1:
             df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(self.str_to_array_df_col)
             df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(self.str_to_array_df_col)
@@ -1539,9 +1557,13 @@ class LS_Analysis(General_Analysis):
         #Append intermediate values to list
         self.iter_param_data.append(theta_guess)
         self.iter_sse_data.append(np.sum(error**2))
-        #Calculate l2
-        del_theta = theta_guess - self.simulator.theta_true
-        theta_l2_norm = np.linalg.norm(del_theta, ord = 2)
+        
+        #Create scaler to scale between 0 and 1
+        scaler = MinMaxScaler()
+        scaler.fit([self.simulator.bounds_theta_reg[0], self.simulator.bounds_theta_reg[1]])
+        #Calculate scaled l2
+        del_theta = scaler.transform(theta_guess.reshape(1,-1)) - scaler.transform(self.simulator.theta_true.reshape(1,-1))
+        theta_l2_norm = np.linalg.norm(del_theta, ord = 2, axis = 1) / len(theta_guess)
         self.iter_l2_norm.append(theta_l2_norm)
         self.iter_count += 1
 
