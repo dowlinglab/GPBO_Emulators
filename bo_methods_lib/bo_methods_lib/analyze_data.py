@@ -585,7 +585,7 @@ class General_Analysis:
         theta_L2_norm = np.linalg.norm(del_theta, ord=2, axis=1)
         # Normalize scaled L2 norm values by number of dimensions
         num_theta_dims = theta_bounds.shape[1]
-        normalized_L2_norms = theta_L2_norm /num_theta_dims
+        normalized_L2_norms = theta_L2_norm /np.sqrt(num_theta_dims)
 
         df_data["L2 Norm Theta"] = normalized_L2_norms
 
@@ -1563,7 +1563,7 @@ class LS_Analysis(General_Analysis):
         scaler.fit([self.simulator.bounds_theta_reg[0], self.simulator.bounds_theta_reg[1]])
         #Calculate scaled l2
         del_theta = scaler.transform(theta_guess.reshape(1,-1)) - scaler.transform(self.simulator.theta_true.reshape(1,-1))
-        theta_l2_norm = np.linalg.norm(del_theta, ord = 2, axis = 1) / len(theta_guess)
+        theta_l2_norm = np.linalg.norm(del_theta, ord = 2, axis = 1) / np.sqrt(len(theta_guess))
         self.iter_l2_norm.append(theta_l2_norm)
         self.iter_count += 1
 
