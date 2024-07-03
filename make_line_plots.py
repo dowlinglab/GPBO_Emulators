@@ -46,7 +46,7 @@ for val in [1,11,12,13,10,2,3,14]:
         # plotters.make_parity_plots()
 
         #Get best plots for all objectives with all 6 methods on each subplot
-        plotters.plot_objs_all_methods(z_choices)
+        # plotters.plot_objs_all_methods(z_choices)
 
         #Get plot with each method on a different subplot for each obj
         # for i in range(len(z_choices)):
