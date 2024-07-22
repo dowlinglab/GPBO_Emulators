@@ -9,6 +9,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
 import json
 from matplotlib import colormaps
 from collections.abc import Iterable
+import string
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -1649,13 +1650,14 @@ class All_CS_Plotter(Plotters):
                       "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$g(\theta^{\prime})$", 
                       "Avg. " + r"$\Xi(\hat{\theta})$" + "\n Last 10 Iterartions"]
 
-        desired_order = ["BOD Curve", "2D Log Logistic", "Muller x0", "Simple Linear", "Yield-Loss", "Log Logistic", "Muller y0", "Complex Linear"]
+        desired_order = ["BOD Curve", "2D Log Logistic", "Muller x0", "Simple Linear", "Yield-Loss", "Log Logistic", "Muller y0", "Complex Linear"][::-1]
         # Convert the 'Department' column to a categorical type with the specified order
         df_averages['CS Name'] = pd.Categorical(df_averages['CS Name'], categories=desired_order, ordered=True)
         df_averages['BO Method'] = pd.Categorical(df_averages['BO Method'], categories=self.method_names + ["NLS"], ordered=True)
         # Sort the DataFrame by the 'Department' column
         df_averages = df_averages.sort_values(['CS Name', 'BO Method'])
         t_label_lst = list(df_averages["CS Name"].unique())
+        t_label_lst[0] = "Large Linear"
         y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+add_value) + padding)
         axes = axes.flatten()
         for i in range(len(self.analyzer.meth_val_list)+ add_value):
@@ -1676,18 +1678,20 @@ class All_CS_Plotter(Plotters):
                 # if mode == "overall" and j == 1:
                 #     std_val = None
                 rects = axes[j].barh(y_locs + i*bar_size, avg_val, xerr = std_val,
-                                align='edge', height=bar_size, color=color, 
+                                align='center', height=bar_size, color=color, 
                                 label=label)
                 #Set plot details on last iter
                 if i == len(self.analyzer.meth_val_list) + add_value - 1:
-                    axes[j].set(yticks=y_locs, yticklabels=t_label_lst, ylim=[0 - padding, len(y_locs)])
+                    axes[j].set(yticks=y_locs + padding*len(self.analyzer.cs_list)/2, yticklabels=t_label_lst, ylim=[0 - padding , len(y_locs)])
                     # axes[j].xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=4))
                     self.__set_subplot_details(axes[j], None, None, titles[j])
                     if (mode == "best" and j == 1) or (mode == "overall" and j ==2):
                         axes[j].set_xlim(left=0)
 
-        for ax in axes:
+        for n,ax in enumerate(axes):
             ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=4))
+            ax.text(-0.1, 1.05, "("+string.ascii_uppercase[n]+")", transform=ax.transAxes, 
+            size=20, weight='bold')
             
         if mode == "overall":
             axes[1].set_xscale("log")
@@ -1705,7 +1709,7 @@ class All_CS_Plotter(Plotters):
                 
         #Plots legend
         if labels:
-            fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.4), 
+            fig.legend(handles, labels, loc= "upper center", ncol=4, fontsize = self.other_fntsz, bbox_to_anchor=(0.55, 1.10), 
                        borderaxespad=0)
             
         plt.tight_layout()
