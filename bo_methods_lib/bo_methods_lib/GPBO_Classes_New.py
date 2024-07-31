@@ -26,6 +26,7 @@ import scipy
 import matplotlib.pyplot as plt
 import gpflow
 import tensorflow_probability as tfp
+from tensorflow_probability import bijectors as tfb
 import tensorflow as tf
 from sklearn.utils.validation import check_is_fitted
 
@@ -1140,6 +1141,10 @@ class GP_Emulator:
         
         return num_gp_data
     
+    # def bounded_parameter(low, high, initial_value):
+    #     sigmoid = tfb.Sigmoid(low=tf.cast(low, dtype=tf.float64), high=tf.cast(high, dtype=tf.float64))
+    #     return gpflow.Parameter(initial_value, transform=sigmoid, dtype=tf.float64)
+    
     def __set_lenscl_guess(self):
         """
         Gets an upper and lower bound for the lengthscales
@@ -2035,7 +2040,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
         """
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed, None)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_covar, exp_data, best_error_metrics, self.seed, None)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_1()
         #Add ei data to validation data class
@@ -2085,7 +2090,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "Error metric must be a tuple of length 3"
-        ei, ei_terms_df = self.eval_ei_misc(self.test_data, exp_data, ep_bias, best_error_metrics)
+        ei, ei_terms_df = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics)
         return ei, ei_terms_df
     
     def eval_ei_val(self, exp_data, ep_bias, best_error_metrics):
@@ -2606,7 +2611,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         else:
             depth = None
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_var, exp_data, best_error_metrics, self.seed, depth)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_covar, exp_data, best_error_metrics, self.seed, depth)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_2(method)
         #Add ei data to validation data class
@@ -2638,9 +2643,9 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "Error metric must be a tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-        ei = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
+        ei, ei_terms_df = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
         
-        return ei
+        return ei, ei_terms_df
     
     def eval_ei_test(self, exp_data, ep_bias, best_error_metrics, method, sg_depth = None):
         """
@@ -2665,10 +2670,10 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "Error metric must be a tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
-        assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-                   
-        ei = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
-        return ei
+        assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"          
+        ei, ei_terms_df = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
+
+        return ei, ei_terms_df
     
     def eval_ei_val(self, exp_data, ep_bias, best_error_metrics, method, sg_depth = None):
         """
@@ -2694,9 +2699,9 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "best_error_metrics must be tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-        ei = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
+        ei, ei_terms_df = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
         
-        return ei
+        return ei, ei_terms_df
         
     def eval_ei_cand(self, exp_data, ep_bias, best_error_metrics, method, sg_depth = None):
         """
@@ -2768,21 +2773,21 @@ class Expected_Improvement():
     __calc_ei_mc(gp_mean, gp_var, y_target)
     __bootstrap(self, pilot_sample, ns=100, alpha=0.05, seed = None)
     """
-    def __init__(self, ep_bias, gp_mean, gp_var, exp_data, best_error_metrics, set_seed, sg_depth = None):
+    def __init__(self, ep_bias, gp_mean, gp_covar, exp_data, best_error_metrics, set_seed, sg_depth = None):
         """
         Parameters
         ----------       
         ep_bias: instance of Exploration_Bias, class with information of exploration bias parameter
         gp_mean: tensor, The GP model's mean evaluated over param_set 
-        gp_var: tensor, The GP model's variance evaluated over param_set
+        gp_covar: tensor, The GP model's covariance evaluated over param_set
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         set_seed: int or None, Determines seed for randomizations. None if seed is random
         sg_depth: int or None, the depth to use for the Tasmanian sparse grid. Only necessary for Sparse Grid method
         """
-        assert len(gp_mean) == len(gp_var), "gp_mean and gp_var must be arrays of the same length"
+        assert len(gp_mean) == len(gp_covar), "gp_mean and gp_covar must be arrays of the same length"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics) == 3, "best_error_metrics must be a tuple of length 3"
-        assert all(isinstance(arr, np.ndarray) for arr in (gp_mean, gp_var, exp_data.y_vals)), "gp_mean, gp_var, and exp_data.y_vals must be ndarrays"
+        assert all(isinstance(arr, np.ndarray) for arr in (gp_mean, gp_covar, exp_data.y_vals)), "gp_mean, gp_var, and exp_data.y_vals must be ndarrays"
         assert isinstance(ep_bias, Exploration_Bias), "ep_bias must be instance of Exploration_Bias"
         assert isinstance(exp_data, Data), "exp_data must be instance of Data"
         assert isinstance(best_error_metrics[0], (float, int)), "best_error_metrics[0] must be float or int. Calculate with GP_Emulator.calc_best_error()"
@@ -2793,18 +2798,19 @@ class Expected_Improvement():
         # Constructor method
         self.ep_bias = ep_bias
         self.gp_mean = gp_mean
-        self.gp_var = gp_var
         self.exp_data = exp_data
+        self.seed = set_seed
+        self.gp_covar = gp_covar
+        self.gp_var = np.diag(gp_covar)
         self.best_error = best_error_metrics[0]
         self.be_theta = best_error_metrics[1]
         self.best_error_x = best_error_metrics[2]
-        self.seed = set_seed
         self.sg_depth = sg_depth
-        self.random_vars = self.__set_rand_vars()
+
+        #Set random variables for MC integration
+        self.random_vars = self.__set_rand_vars(self.gp_mean, self.gp_covar)
         
-        #Set random variables for MC
-        
-    def __set_rand_vars(self):
+    def __set_rand_vars(self, mean = None, covar=None):
         """
         Sets random variables for MC integration
         
@@ -2822,8 +2828,11 @@ class Expected_Improvement():
             np.random.seed(1)
             
         #Get random variables
-        random_vars = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
-            
+        if mean is None or covar is None:
+            random_vars = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
+        else:
+            random_vars = np.random.multivariate_normal(mean, covar, mc_samples)
+
         return random_vars
     
     def type_1(self):
@@ -3118,14 +3127,18 @@ class Expected_Improvement():
             y_target_val = y_target[valid_indices]
             gp_mean_min_y = y_target_val - gp_mean_val
 
-            #Obtain Sparse Grid points and weights
-            points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=self.sg_depth, rule='gauss-hermite', 
-                                                          verbose=False)         
-            # Calculate gp_var multiplied by points_p
-            gp_stdev_points_p = gp_stdev_val * (np.sqrt(2)*points_p)
+            # #Obtain Sparse Grid points and weights
+            # points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=self.sg_depth, rule='gauss-hermite', 
+            #                                               verbose=False)         
+            # # Calculate gp_var multiplied by points_p
+            # gp_stdev_points_p = gp_stdev_val * (np.sqrt(2)*points_p)
+            # # Calculate the SSE for all data points simultaneously
+            # sse_temp = np.sum((gp_mean_min_y[:, np.newaxis].T - gp_stdev_points_p)**2, axis=1)
+            points_p, weights_p = self.__get_sparse_grids(len(y_target), output=0, depth=self.sg_depth, rule='gauss-hermite', 
+                                                           verbose=False) 
             
-            # Calculate the SSE for all data points simultaneously
-            sse_temp = np.sum((gp_mean_min_y[:, np.newaxis].T - gp_stdev_points_p)**2, axis=1)
+            gp_random_vars = self.gp_mean[:, np.newaxis] + np.sqrt(2*self.gp_covar)@points_p.T
+            sse_temp = np.sum((y_target[:, np.newaxis] - (gp_random_vars))**2, axis=0)
 
             # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
             error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp
@@ -3207,21 +3220,23 @@ class Expected_Improvement():
 
         #Assuming all standard deviations are not zero
         if np.any(pos_stdev_mask):
-            valid_indices = np.where(pos_stdev_mask)[0]
-            gp_stdev_val = np.sqrt(gp_var[valid_indices])
-            gp_mean_val = gp_mean[valid_indices]
-            y_target_val = y_target[valid_indices]
-            mean_min_y = y_target_val - gp_mean_val
+            # valid_indices = np.where(pos_stdev_mask)[0]
+            # gp_stdev_val = np.sqrt(gp_var[valid_indices])
+            # gp_mean_val = gp_mean[valid_indices]
+            # y_target_val = y_target[valid_indices]
+            # mean_min_y = y_target_val - gp_mean_val
         
-            # Calculate gp_var multiplied by points_p
-            gp_stdev_rand_var = gp_stdev_val * self.random_vars
+            # # Calculate gp_var multiplied by points_p
+            # gp_stdev_rand_var = gp_stdev_val * self.random_vars
 
-            # Calculate the SSE for all data points simultaneously
-            sse_temp = np.sum((mean_min_y[:, np.newaxis].T - gp_stdev_rand_var)**2, axis=1)
+            # # Calculate the SSE for all data points simultaneously
+            # sse_temp = np.sum((mean_min_y[:, np.newaxis].T - gp_stdev_rand_var)**2, axis=1)
 
-            # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
+            # # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
+            
+            sse_temp = np.sum((y_target[:, np.newaxis].T - self.random_vars)**2)
             error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp 
-            # improvement = np.maximum(error_diff, 0).reshape(-1,1)
+            ## improvement = np.maximum(error_diff, 0).reshape(-1,1)
             #Smooth improvement function
             improvement = (0.5)*(error_diff + np.sqrt(error_diff**2 + 1e-7)).reshape(-1,1)
 
