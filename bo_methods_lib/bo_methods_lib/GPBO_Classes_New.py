@@ -3233,8 +3233,7 @@ class Expected_Improvement():
             # sse_temp = np.sum((mean_min_y[:, np.newaxis].T - gp_stdev_rand_var)**2, axis=1)
 
             # # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
-            
-            sse_temp = np.sum((y_target[:, np.newaxis].T - self.random_vars)**2)
+            sse_temp = np.sum((y_target[:, np.newaxis].T - self.random_vars)**2, axis=1)
             error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp 
             ## improvement = np.maximum(error_diff, 0).reshape(-1,1)
             #Smooth improvement function
