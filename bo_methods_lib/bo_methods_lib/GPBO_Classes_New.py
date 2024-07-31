@@ -3120,6 +3120,7 @@ class Expected_Improvement():
 
         #Assuming all standard deviations are not zero
         if np.any(pos_stdev_mask):
+            ndims = len(y_target)
             #Get indices and values where stdev > 0
             valid_indices = np.where(pos_stdev_mask)[0]
             gp_stdev_val = np.sqrt(gp_var[valid_indices])
@@ -3134,20 +3135,22 @@ class Expected_Improvement():
             # gp_stdev_points_p = gp_stdev_val * (np.sqrt(2)*points_p)
             # # Calculate the SSE for all data points simultaneously
             # sse_temp = np.sum((gp_mean_min_y[:, np.newaxis].T - gp_stdev_points_p)**2, axis=1)
-            points_p, weights_p = self.__get_sparse_grids(len(y_target), output=0, depth=self.sg_depth, rule='gauss-hermite', 
+            points_p, weights_p = self.__get_sparse_grids(ndims, output=0, depth=self.sg_depth, rule='gauss-hermite', 
                                                            verbose=False) 
             
-            gp_random_vars = self.gp_mean[:, np.newaxis] + np.sqrt(2*self.gp_covar)@points_p.T
+            #Diagonalize covariance matrix
+            L = scipy.linalg.cholesky(np.real(self.gp_covar), lower=True)
+            transformed_points = L@points_p.T
+            gp_random_vars = self.gp_mean[:, np.newaxis] + np.sqrt(2)*(transformed_points)
             sse_temp = np.sum((y_target[:, np.newaxis] - (gp_random_vars))**2, axis=0)
-
             # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
             error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp
             # improvement = np.maximum(error_diff, 0)
-            #Smooth improvement function
+            #Smooth max improvement function
             improvement = (0.5)*(error_diff + np.sqrt(error_diff**2 + 1e-7))
 
             # Calculate EI_temp using vectorized operations
-            ei_temp = (1/np.pi)*np.dot(weights_p, improvement)
+            ei_temp = (np.pi**(-ndims/2))*np.dot(weights_p, improvement)
             
         else:
             ei_temp = 0
@@ -3236,7 +3239,7 @@ class Expected_Improvement():
             sse_temp = np.sum((y_target[:, np.newaxis].T - self.random_vars)**2, axis=1)
             error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp 
             ## improvement = np.maximum(error_diff, 0).reshape(-1,1)
-            #Smooth improvement function
+            #Smooth max improvement function
             improvement = (0.5)*(error_diff + np.sqrt(error_diff**2 + 1e-7)).reshape(-1,1)
 
             # Flatten improvement
