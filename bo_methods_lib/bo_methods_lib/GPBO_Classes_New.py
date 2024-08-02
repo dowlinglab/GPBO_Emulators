@@ -2805,11 +2805,31 @@ class Expected_Improvement():
         self.best_error = best_error_metrics[0]
         self.be_theta = best_error_metrics[1]
         self.best_error_x = best_error_metrics[2]
-        self.sg_depth = sg_depth
+        self.samples_mc_sg = 2000
+        
 
         #Set random variables for MC integration
         self.random_vars = self.__set_rand_vars(self.gp_mean, self.gp_covar)
         
+    def __set_sg_def(self, dim):
+        depth = 0
+        num_points = 0
+        # Compute the maximum depth based on the budget
+        while num_points <= self.samples_mc_sg:
+            depth += 1
+            # Generate the global grid with the current depth
+            grid_p = Tasmanian.makeGlobalGrid(dim, 1, depth, "qphyperbolic", 'gauss-hermite-odd')
+            
+            # Get the number of points on the grid
+            num_points = grid_p.getNumPoints()
+
+            # Check if the number of points exceeds the budget
+            if num_points > self.samples_mc_sg:
+                if depth > 1:
+                    depth -= 1
+                break
+        return depth
+    
     def __set_rand_vars(self, mean = None, covar=None):
         """
         Sets random variables for MC integration
@@ -2819,7 +2839,7 @@ class Expected_Improvement():
         random_vars: np.ndarray, array of multivariate normal random variables
         """
         dim = len(self.exp_data.y_vals)
-        mc_samples = 2000 #Set 2000 MC samples
+        mc_samples = self.samples_mc_sg #Set 2000 MC samples
         #Use set seed for integration 
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -3111,8 +3131,6 @@ class Expected_Improvement():
         ei_temp: ndarray, the expected improvement for one term of the GP model
         row_data: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter set
         """
-        assert isinstance(self.sg_depth, int), "self.sg_depth must be positive int for sparse grid"
-        assert self.sg_depth > 0, "self.sg_depth must be positive int for sparse_grid"
         columns = ["best_error", "sse_temp", "improvement", "ei_total"]
 
         #Create a mask for values where pred_stdev >= 0 (Here approximation includes domain stdev >= 0) 
@@ -3135,7 +3153,9 @@ class Expected_Improvement():
             # gp_stdev_points_p = gp_stdev_val * (np.sqrt(2)*points_p)
             # # Calculate the SSE for all data points simultaneously
             # sse_temp = np.sum((gp_mean_min_y[:, np.newaxis].T - gp_stdev_points_p)**2, axis=1)
-            points_p, weights_p = self.__get_sparse_grids(ndims, output=0, depth=self.sg_depth, rule='gauss-hermite', 
+            #Get maximum depth given number of points p
+            sg_depth = self.__set_sg_def(ndims)
+            points_p, weights_p = self.__get_sparse_grids(ndims, output=1, depth=sg_depth, rule='gauss-hermite-odd', 
                                                            verbose=False) 
             
             #Diagonalize covariance matrix
@@ -3162,7 +3182,7 @@ class Expected_Improvement():
             
         return ei_temp, row_data
 
-    def __get_sparse_grids(self, dim, output=0,depth=10, rule="gauss-hermite-odd", verbose = False, alpha = 0):
+    def __get_sparse_grids(self, dim, output=1,depth=10, rule="gauss-hermite-odd", verbose = False, alpha = 0):
         '''
         This function shows the sparse grids generated with different rules
         
@@ -3185,8 +3205,7 @@ class Expected_Improvement():
         A figure shows 2D sparse grids (if verbose = True)
         '''
         #Get grid points and weights
-        grid_p = Tasmanian.SparseGrid()
-        grid_p.makeGlobalGrid(dim,output,depth,"hyperbolic",rule)
+        grid_p = Tasmanian.makeGlobalGrid(dim,output,depth,"qphyperbolic",rule)
         points_p = grid_p.getPoints()
         weights_p = grid_p.getQuadratureWeights()
         if verbose == True:
