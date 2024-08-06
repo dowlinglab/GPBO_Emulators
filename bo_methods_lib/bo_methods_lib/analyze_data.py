@@ -1232,15 +1232,15 @@ class General_Analysis:
             elif method.emulator == False:
                 heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_sse_data, exp_data, ep_bias, 
                                                                 best_error_metrics)[0]
-            #In older data, sparse grid depth is not a set parameter. Therefore, we it's either 10, or a set value
+            #In older data, sparse grid depth is not a set parameter. Therefore, we set the number of points to 2000
+            #This will be irrelevant for non-MC and SG data anyway
             else:
                 try:
-                    sg_depth = loaded_results[run_num].configuration["Sparse Grid Depth"]
-                    heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, 
-                                                                    best_error_metrics, method, sg_depth)[0]
+                    sg_mc_samples = loaded_results[run_num].configuration["MC SG Max Points"]
                 except:
-                    heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_data, exp_data,ep_bias,
-                                                                    best_error_metrics, method,sg_depth =10)[0]  
+                    sg_mc_samples = 2000
+                heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, 
+                                                                    best_error_metrics, method, sg_mc_samples)[0]
 
         #Save data if necessary
         if self.save_csv:
@@ -1979,10 +1979,10 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
             heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics)[0]
         else:
             try:
-                sg_depth = loaded_results[run_num].configuration["Sparse Grid Depth"]
-                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)[0]
+                sg_mc_samples = loaded_results[run_num].configuration["MC SG Max Points"]
             except:
-                heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data,exp_data,ep_bias,best_error_metrics,method,sg_depth =10)[0]  
+                sg_mc_samples = 2000
+            heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)[0] 
     elif not get_ei:
         ei = None
     
