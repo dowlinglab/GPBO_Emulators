@@ -2177,11 +2177,11 @@ class Type_2_GP_Emulator(GP_Emulator):
     eval_gp_sse_var_val(method, exp_data, covar)
     eval_gp_sse_var_cand(method, exp_data, covar)
     calc_best_error(method, exp_data)
-    __eval_gp_ei(sim_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
-    eval_ei_misc(misc_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
-    eval_ei_test(exp_data, ep_bias, best_error_metrics, method, sg_depth)
-    eval_ei_val(exp_data, ep_bias, best_error_metrics, method, sg_depth)
-    eval_ei_cand(exp_data, ep_bias, best_error_metrics, method, sg_depth)
+    __eval_gp_ei(sim_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
+    eval_ei_misc(misc_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
+    eval_ei_test(exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
+    eval_ei_val(exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
+    eval_ei_cand(exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
     add_next_theta_to_train_data(theta_best_data)
     """
     # Class variables and attributes
@@ -2585,7 +2585,7 @@ class Type_2_GP_Emulator(GP_Emulator):
             
         return best_error, be_theta, best_sq_error, org_train_idcs
     
-    def __eval_gp_ei(self, sim_data, exp_data, ep_bias, best_error_metrics, method, sg_depth = None):
+    def __eval_gp_ei(self, sim_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples = 2000):
         """
         Evaluates gp acquisition function. In this case, ei
         
@@ -2596,7 +2596,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias, Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
-        sg_depth: int or None, the depth to use for the Tasmanian sparse grid
+        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches
         
         Returns
         -------
@@ -2605,13 +2605,10 @@ class Type_2_GP_Emulator(GP_Emulator):
         """
         assert 6 >= method.method_name.value >=3, "Must be using method 2A, 2B, 2C, or 2D"
         #Set sparse grid depth if applicable
-        if method.sparse_grid == True:
-            assert isinstance(sg_depth, int) and sg_depth > 0, "sg_depth must be positive int for sparse grid"
-            depth = sg_depth
-        else:
-            depth = None
+        if method.sparse_grid == True or method.mc == True:
+            assert isinstance(sg_mc_samples, int) and sg_mc_samples > 0, "sg_mc_samples must be positive int for sparse grid and Monte Carlo methods"
         #Call instance of expected improvement class
-        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_covar, exp_data, best_error_metrics, self.seed, depth)
+        ei_class = Expected_Improvement(ep_bias, sim_data.gp_mean, sim_data.gp_covar, exp_data, best_error_metrics, self.seed, sg_mc_samples)
         #Call correct method of ei calculation
         ei, ei_terms_df = ei_class.type_2(method)
         #Add ei data to validation data class
@@ -2619,7 +2616,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         
         return ei, ei_terms_df
     
-    def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error_metrics, method, sg_depth = None):
+    def eval_ei_misc(self, misc_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples = 2000):
         """
         Evaluates gp acquisition function. In this case, ei
         
@@ -2630,7 +2627,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias, Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
-        sg_depth: int or None, the depth to use for the Tasmanian sparse grid
+        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches
         
         Returns
         -------
@@ -2643,11 +2640,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "Error metric must be a tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-        ei, ei_terms_df = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
+        ei, ei_terms_df = self.__eval_gp_ei(misc_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
         
         return ei, ei_terms_df
     
-    def eval_ei_test(self, exp_data, ep_bias, best_error_metrics, method, sg_depth = None):
+    def eval_ei_test(self, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples = 2000):
         """
         Evaluates gp acquisition function for testing data. In this case, ei
         
@@ -2658,7 +2655,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias, Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
-        sg_depth: int or None, the depth to use for the Tasmanian sparse grid
+        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches
         
         Returns
         -------
@@ -2671,11 +2668,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "Error metric must be a tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"          
-        ei, ei_terms_df = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
+        ei, ei_terms_df = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
 
         return ei, ei_terms_df
     
-    def eval_ei_val(self, exp_data, ep_bias, best_error_metrics, method, sg_depth = None):
+    def eval_ei_val(self, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples = 2000):
         """
         Evaluates gp acquisition function for validation data. In this case, ei
         
@@ -2686,7 +2683,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias, Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
-        sg_depth: int or None, the depth to use for the Tasmanian sparse grid
+        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches
         
         Returns
         -------
@@ -2699,11 +2696,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "best_error_metrics must be tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-        ei, ei_terms_df = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
+        ei, ei_terms_df = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
         
         return ei, ei_terms_df
         
-    def eval_ei_cand(self, exp_data, ep_bias, best_error_metrics, method, sg_depth = None):
+    def eval_ei_cand(self, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples = 2000):
         """
         Evaluates gp acquisition function for the candidate theta data. In this case, ei
         
@@ -2714,7 +2711,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias, Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
-        sg_depth: int or None, the depth to use for the Tasmanian sparse grid
+        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches
         
         Returns
         -------
@@ -2727,7 +2724,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "best_error_metrics must be tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
         assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
-        ei, ei_terms_df = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error_metrics, method, sg_depth)
+        ei, ei_terms_df = self.__eval_gp_ei(self.cand_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
         
         return ei, ei_terms_df
     
@@ -2773,7 +2770,7 @@ class Expected_Improvement():
     __calc_ei_mc(gp_mean, gp_var, y_target)
     __bootstrap(self, pilot_sample, ns=100, alpha=0.05, seed = None)
     """
-    def __init__(self, ep_bias, gp_mean, gp_covar, exp_data, best_error_metrics, set_seed, sg_depth = None):
+    def __init__(self, ep_bias, gp_mean, gp_covar, exp_data, best_error_metrics, set_seed, sg_mc_samples = 2000):
         """
         Parameters
         ----------       
@@ -2783,7 +2780,7 @@ class Expected_Improvement():
         exp_data: Instance of Data class, the experimental data to evaluate ei with
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         set_seed: int or None, Determines seed for randomizations. None if seed is random
-        sg_depth: int or None, the depth to use for the Tasmanian sparse grid. Only necessary for Sparse Grid method
+        sg_mc_samples: int, The number of points to use for the Tasmanian sparse grid and Monte Carlo
         """
         assert len(gp_mean) == len(gp_covar), "gp_mean and gp_covar must be arrays of the same length"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics) == 3, "best_error_metrics must be a tuple of length 3"
@@ -2793,7 +2790,7 @@ class Expected_Improvement():
         assert isinstance(best_error_metrics[0], (float, int)), "best_error_metrics[0] must be float or int. Calculate with GP_Emulator.calc_best_error()"
         assert isinstance(best_error_metrics[1], np.ndarray), "best_error_metrics[1] must be np.ndarray"
         assert isinstance(best_error_metrics[2], np.ndarray) or best_error_metrics[2] is None, "best_error_metrics[2] must be np.ndarray (type 2 ei) or None (type 1 ei)"
-        assert isinstance(sg_depth, int) or sg_depth is None, "sg_depth must be int (type 2 sparse grid ei) or None (other)"
+        assert isinstance(sg_mc_samples, int) or sg_mc_samples is None, "sg_mc_samples must be int (MC and sparse grid) or None (other)"
         
         # Constructor method
         self.ep_bias = ep_bias
@@ -2805,9 +2802,8 @@ class Expected_Improvement():
         self.best_error = best_error_metrics[0]
         self.be_theta = best_error_metrics[1]
         self.best_error_x = best_error_metrics[2]
-        self.samples_mc_sg = 2000
+        self.samples_mc_sg = sg_mc_samples
         
-
         #Set random variables for MC integration
         self.random_vars = self.__set_rand_vars(self.gp_mean, self.gp_covar)
         
@@ -3053,6 +3049,7 @@ class Expected_Improvement():
 
         #Create a mask for values where pred_stdev > 0 
         pos_stdev_mask = (gp_var > 0)
+        # best_errors_x_all = np.log(self.best_error_x)
 
         #Assuming all standard deviations are not zero
         if np.any(pos_stdev_mask):
@@ -3062,7 +3059,8 @@ class Expected_Improvement():
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
             best_errors_x = self.best_error_x[valid_indices]
-        
+            # best_errors_x = copy.deepcopy(best_errors_x_all)[valid_indices]
+            # best_errors_x[best_errors_x == 0] += 1e-15 #Add a small value to any zero value to avoid problems in ei calculations
             #Important when stdev is close to 0
             with np.errstate(divide = 'warn'):
                 #Creates upper and lower bounds and described by Alex Dowling's Derivation
@@ -3089,6 +3087,7 @@ class Expected_Improvement():
         else:
             ei_temp = 0
             row_data_lists = pd.DataFrame([[self.best_error_x, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
+            # row_data_lists = pd.DataFrame([[best_errors_x_all, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
         
         row_data = row_data_lists.apply(lambda col: col.explode(ignore_index = True), axis=0).reset_index(drop=True)
   
@@ -3635,7 +3634,7 @@ class GPBO_Driver:
         self.gen_meth_theta = gen_meth_theta
         self.bo_iter_term_frac = 0.3 #The fraction of iterations after which to terminate bo if no sse improvement is made
         self.sse_penalty = 1e7 #The penalty the __scipy_opt function gets for choosing nan theta values
-        self.sg_depth = 10 #This can be changed at will
+        self.sg_mc_samples = 2000 #This can be changed at will
 
         self.__min_obj_temp = None
         self.__min_obj_class = None
@@ -3756,7 +3755,7 @@ class GPBO_Driver:
         #Evaluate EI using Sparse Grid or EI (This is relatively quick)
         method_3 = GPBO_Methods(Method_name_enum(3))
         sp_data_ei, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(sp_data, self.exp_data, self.ep_bias, best_error_metrics, 
-                                                                  method_3, self.sg_depth)
+                                                                  method_3)
         
         ##Sort by min(-ei)
         # Create a list of tuples containing indices and values
@@ -3923,10 +3922,10 @@ class GPBO_Driver:
 
             #Calculate objective fxn
             if opt_obj == "sse":
-                #Objective to minimize is log(sse) if using 1B or 2B, and sse for all other methods
+                #Objective to minimize is log(sse) if using 1B, and sse for all other methods
                 obj = cand_sse_mean
             elif opt_obj == "E_sse":
-                #Objective to minimize is log((E)[sse]) if using 1B or 2B, and sse for all other methods
+                #Objective to minimize is (E)[sse] for method ESSE
                 obj = cand_sse_mean + np.sum(cand_sse_var)
             elif opt_obj == "lcb":
                 assert isinstance(beta, (int, float, np.float64)), "beta must be float or int"
@@ -3937,7 +3936,7 @@ class GPBO_Driver:
                 if self.method.emulator == False:
                     ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error_metrics)
                 else:
-                    ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error_metrics, self.method, self.sg_depth)
+                    ei_output = self.gp_emulator.eval_ei_cand(self.exp_data, self.ep_bias, best_error_metrics, self.method, self.sg_mc_samples)
                 obj = -1*ei_output[0]
 
             set_acq_val = True
@@ -4158,9 +4157,8 @@ class GPBO_Driver:
                 val_gp_mean, val_gp_var = self.gp_emulator.eval_gp_sse_var_val(self.method, self.exp_data)
                 
             #Check for ln(sse) values
-            if self.method.obj.value == 2:
-                #For 2B and 1B, propogate errors associated with an unlogged sse value
-                val_gp_var = val_gp_var*np.exp(val_gp_mean)**2             
+            #For 2B and 1B, propogate errors associated with an unlogged sse value
+            val_gp_var = val_gp_var*np.exp(val_gp_mean)**2             
 
             #Set mean of sse variance
             mean_of_var = np.average(val_gp_var)
@@ -4185,7 +4183,7 @@ class GPBO_Driver:
             opt_acq, acq_theta_data = self.__opt_with_scipy("neg_ei")
             if self.method.emulator == True:
                 ei_args = (acq_theta_data, self.exp_data, self.ep_bias, best_error_metrics, 
-                           self.method, self.sg_depth)
+                           self.method, self.sg_mc_samples)
             else:
                 ei_args = (acq_theta_data, self.exp_data, self.ep_bias, best_error_metrics)
         else:
@@ -4466,7 +4464,7 @@ class GPBO_Driver:
                          "Number of Workflow Restarts" : self.cs_params.bo_run_tot,
                          "Seed" : self.cs_params.seed,
                          "Acq Tolerance" : self.cs_params.acq_tol,
-                         "Sparse Grid Depth": self.sg_depth,
+                         "MC SG Max Points": self.sg_mc_samples,
                          "Obj Improvement Tolerance" : self.cs_params.obj_tol,
                          "Theta Generation Enum Value": self.gen_meth_theta.value}
                 
