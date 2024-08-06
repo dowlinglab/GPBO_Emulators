@@ -1053,8 +1053,8 @@ class Plotters:
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
         #Get log or unlogged data values        
         if log_data == False:
-            #Change sse sim, mean, and stdev to not log for 1B and 2B
-            if sp_data["meth_name_val"] in [2,4]:
+            #Change sse sim, mean, and stdev to not log for 1B
+            if sp_data["meth_name_val"] in [2]:
                 #SSE variance is var*(e^((log(sse)))^2
                 sse_mean = np.exp(sse_mean)
                 sse_var = (sse_var*sse_mean**2)      
@@ -1062,8 +1062,8 @@ class Plotters:
 
         #If getting log values
         else:
-            #Get log data from 1A, 2A, 2C, and 2D
-            if not sp_data["meth_name_val"] in [2,4]:            
+            #Get log data from 1A, 2A, 2B, 2C, and 2D
+            if not sp_data["meth_name_val"] in [2]:            
                 #SSE Variance is var/sse**2
                 sse_var = sse_var/sse_mean**2
                 sse_mean = np.log(sse_mean)

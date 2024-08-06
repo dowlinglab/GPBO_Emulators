@@ -2015,7 +2015,7 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
 
     #Get log or unlogged data values        
     if log_data == False:
-        #Change sse sim, mean, and stdev to not log for 1B and 2B
+        #Change sse sim, mean, and stdev to not log for 1B
         if method.obj.value == 2:
             #SSE variance is var*(e^((log(sse)))^2
             sse_mean = np.exp(sse_mean)
@@ -2026,7 +2026,7 @@ def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = F
 
     #If getting log values
     else:
-        #Get log data from 1A, 2A, and 2C
+        #Get log data from 1A, 2A, 2B, 2C, and 2D
         if method.obj.value == 1:            
             #SSE Variance is var/sse**2
             sse_var = sse_var/sse_mean**2

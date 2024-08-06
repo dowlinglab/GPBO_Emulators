@@ -252,7 +252,7 @@ class GPBO_Methods:
         """
         
         #Objective function is ln_obj if it includes the letter B
-        if "B" in self.method_name.name:
+        if self.method_name.name == "1B":
             obj = Obj_enum(2)
         else:
             obj = Obj_enum(1)
@@ -2390,13 +2390,13 @@ class Type_2_GP_Emulator(GP_Emulator):
                 sse_covar = None      
 
         #For Method 2B, make sse and sse_covar data in the log form
-        if method.obj.value == 2:
-            #Propogation of errors: stdev_ln(val) = stdev/val           
-            sse_var = sse_var/float(residuals.T@residuals)
-            if sse_covar is not None:
-                sse_covar = sse_covar/float(residuals.T@residuals)
-            #Set mean to new value
-            sse_mean = np.log(sse_mean)
+        # if method.obj.value == 2:
+        #     #Propogation of errors: stdev_ln(val) = stdev/val           
+        #     sse_var = sse_var/float(residuals.T@residuals)
+        #     if sse_covar is not None:
+        #         sse_covar = sse_covar/float(residuals.T@residuals)
+        #     #Set mean to new value
+        #     sse_mean = np.log(sse_mean)
 
         #Set class parameters
         data.sse = sse_mean
@@ -2577,11 +2577,11 @@ class Type_2_GP_Emulator(GP_Emulator):
         best_error = np.amin(sse_train_vals)
         best_sq_error =  ind_errors[np.argmin(sse_vals)]
 
-        #For method 2B, use a log scaled best error
-        if method.obj.value == 2:
-            best_error = np.log(best_error)
-            best_sq_error[best_sq_error == 0] += 1e-15 #Add a small value to any zero value to avoid problems in ei calculations
-            best_sq_error = np.log(best_sq_error) 
+        ##For method 2B, use a log scaled best error
+        # if method.obj.value == 2:
+        #     best_error = np.log(best_error)
+        #     best_sq_error[best_sq_error == 0] += 1e-15 #Add a small value to any zero value to avoid problems in ei calculations
+        #     best_sq_error = np.log(best_sq_error) 
             
         return best_error, be_theta, best_sq_error, org_train_idcs
     
@@ -3049,7 +3049,7 @@ class Expected_Improvement():
 
         #Create a mask for values where pred_stdev > 0 
         pos_stdev_mask = (gp_var > 0)
-        # best_errors_x_all = np.log(self.best_error_x)
+        best_errors_x_all = np.log(self.best_error_x)
 
         #Assuming all standard deviations are not zero
         if np.any(pos_stdev_mask):
@@ -3058,9 +3058,9 @@ class Expected_Improvement():
             pred_stdev_val = np.sqrt(gp_var[valid_indices])
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
-            best_errors_x = self.best_error_x[valid_indices]
-            # best_errors_x = copy.deepcopy(best_errors_x_all)[valid_indices]
-            # best_errors_x[best_errors_x == 0] += 1e-15 #Add a small value to any zero value to avoid problems in ei calculations
+            # best_errors_x = self.best_error_x[valid_indices]
+            best_errors_x = copy.deepcopy(best_errors_x_all)[valid_indices]
+            best_errors_x[best_errors_x == 0] += 1e-15 #Add a small value to any zero value to avoid problems in ei calculations
             #Important when stdev is close to 0
             with np.errstate(divide = 'warn'):
                 #Creates upper and lower bounds and described by Alex Dowling's Derivation
@@ -3086,8 +3086,8 @@ class Expected_Improvement():
                                   ei_temp]], columns=columns)
         else:
             ei_temp = 0
-            row_data_lists = pd.DataFrame([[self.best_error_x, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
-            # row_data_lists = pd.DataFrame([[best_errors_x_all, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
+            # row_data_lists = pd.DataFrame([[self.best_error_x, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
+            row_data_lists = pd.DataFrame([[best_errors_x_all, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
         
         row_data = row_data_lists.apply(lambda col: col.explode(ignore_index = True), axis=0).reset_index(drop=True)
   
@@ -4157,7 +4157,7 @@ class GPBO_Driver:
                 val_gp_mean, val_gp_var = self.gp_emulator.eval_gp_sse_var_val(self.method, self.exp_data)
                 
             #Check for ln(sse) values
-            #For 2B and 1B, propogate errors associated with an unlogged sse value
+            #For 1B, propogate errors associated with an unlogged sse value
             val_gp_var = val_gp_var*np.exp(val_gp_mean)**2             
 
             #Set mean of sse variance
