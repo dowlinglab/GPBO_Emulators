@@ -1680,7 +1680,7 @@ class LS_Analysis(General_Analysis):
                 #Start timer
                 time_start = time.time()
                 #Find least squares solution
-                Solution = optimize.least_squares(self.__ls_scipy_func, theta_guess[i] ,
+                Solution = optimize.least_squares(self.__ls_scipy_func, theta_guess[i] , jac = '3-point',
                                                   bounds = simulator.bounds_theta_reg, method='trf',
                                                   args=(self.exp_data, self.simulator), verbose = 0, 
                                                   ftol = ftol)
@@ -1689,6 +1689,7 @@ class LS_Analysis(General_Analysis):
                 time_per_run = time_end-time_start
                 #Get sse_min from cost
                 sse_min = 2*Solution.cost
+                # print(Solution.nfev, Solution.njev,self.iter_count, Solution.nfev + len(theta_guess[i])*2*Solution.njev, Solution.nfev + len(theta_guess[i])*Solution.njev)
                 
                 #Get list of iteration, sse, and parameter data
                 iter_list = np.array(range(self.iter_count)) + 1
