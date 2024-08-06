@@ -301,7 +301,7 @@ class CS8:
 class CS10:
     def __init__(self):
         self.param_name_str = "t1t2t3t4t5" 
-        self.name = "Complex Linear"
+        self.name = "Large Linear"
         self.idcs_to_consider = [0,1,2,3,4]
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4','theta_5']
         self.bounds_x_l = [-2, -3]

@@ -3,7 +3,7 @@ import os
 
 project = signac.get_project()
 
-for job in project.find_jobs({"cs_name_val":{"$in": [2,3,10,14]}}):
+for job in project.find_jobs({"meth_name_val":{"$in": [5,6]}}):
     # print(job.fn("signac_statepoint.json"))
 
     if os.path.isfile(job.fn("BO_Results.gz")):
