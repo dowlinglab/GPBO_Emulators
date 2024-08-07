@@ -3098,7 +3098,7 @@ class Expected_Improvement():
         if mean is not None or covar is not None:
             #Use the mvn function directly to get the random variables if matrix is Positive Definite
             if np.all(eigvals > 1e-7):
-                random_vars = rng.multivariate_normal(mean, covar, mc_samples, tol=1e-5, method='eigh')
+                random_vars = rng.multivariate_normal(mean, np.real(covar), mc_samples, tol=1e-5, method='eigh')
                 # print(random_vars[0:3,:])
             #Otherwise, use the LDL decomposition
             else:
