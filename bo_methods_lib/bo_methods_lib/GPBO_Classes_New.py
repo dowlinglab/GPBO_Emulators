@@ -3089,11 +3089,22 @@ class Expected_Improvement():
         #Always use the same seed if one is not set
             np.random.seed(1)
             
+        eigvals, eigvecs = np.linalg.eigh(covar)
+
         #Get random variables
         if mean is None or covar is None:
             random_vars = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
         else:
-            random_vars = np.random.multivariate_normal(mean, covar, mc_samples)
+            # if np.all(eigvals > 0):
+            #     random_vars = np.random.Generator.multivariate_normal(mean, covar, mc_samples, tol=1e-5, method='eigh')
+            # else:
+            random_vars_standard = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
+            lu, d, perm = scipy.linalg.ldl(np.real(covar), lower=True) # Use the upper part
+            L = lu[:, perm]@np.diag(np.sqrt(d))
+            print(random_vars_standard.shape, L.shape)
+            random_vars = mean[:, np.newaxis] + random_vars_standard@L.T
+            # np.save("mean_mc.npy", mean)
+            # np.save("covar_mc.npy", covar)
 
         return random_vars
     
@@ -3404,7 +3415,15 @@ class Expected_Improvement():
                                                            verbose=False) 
             
             #Diagonalize covariance matrix
-            L = scipy.linalg.cholesky(np.real(self.gp_covar), lower=True)  
+            try:
+                #As long as the covariance matrix is positive definite use Cholesky decomposition
+                L = scipy.linalg.cholesky(np.real(self.gp_covar), lower=True)  
+            except:
+                #If it is not, use LDL decomposition instead
+                lu, d, perm = scipy.linalg.ldl(np.real(self.gp_covar), lower=True) # Use the upper part
+                L = lu[:, perm]@np.diag(np.sqrt(d))
+                np.save("covar_sg.npy", self.gp_covar)
+
             transformed_points = L@points_p.T
             gp_random_vars = self.gp_mean[:, np.newaxis] + np.sqrt(2)*(transformed_points)
             sse_temp = np.sum((y_target[:, np.newaxis] - (gp_random_vars))**2, axis=0)
@@ -4090,15 +4109,15 @@ class GPBO_Driver:
             #Initialize L-BFGS-B as default optimization method
             obj_opt_method = "L-BFGS-B"
                 
-            try:
-                #Call scipy method to optimize EI given theta
-                #Using L-BFGS-B instead of BFGS because it allowd for bounds
-                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = obj_opt_method, args=(opt_obj, 
+            # try:
+            #Call scipy method to optimize EI given theta
+            #Using L-BFGS-B instead of BFGS because it allowd for bounds
+            best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = obj_opt_method, args=(opt_obj, 
                                                                                                                         best_error_metrics,
                                                                                                                         beta))
-            except ValueError: 
-                #If the intialized theta causes scipy.optimize to choose nan values, skip it
-                pass
+            # except ValueError: 
+            #     #If the intialized theta causes scipy.optimize to choose nan values, skip it
+            #     pass
         
         best_val = self.__min_obj_class.acq
         best_class = self.__min_obj_class
