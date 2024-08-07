@@ -3091,20 +3091,23 @@ class Expected_Improvement():
             
         eigvals, eigvecs = np.linalg.eigh(covar)
 
-        #Get random variables
-        if mean is None or covar is None:
-            random_vars = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
-        else:
-            # if np.all(eigvals > 0):
-            #     random_vars = np.random.Generator.multivariate_normal(mean, covar, mc_samples, tol=1e-5, method='eigh')
-            # else:
-            random_vars_standard = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
-            lu, d, perm = scipy.linalg.ldl(np.real(covar), lower=True) # Use the upper part
-            L = lu[:, perm]@np.diag(np.sqrt(d))
-            print(random_vars_standard.shape, L.shape)
-            random_vars = mean[:, np.newaxis] + random_vars_standard@L.T
-            # np.save("mean_mc.npy", mean)
-            # np.save("covar_mc.npy", covar)
+        #Get random standard variables
+        rng = np.random.default_rng(self.seed)
+        random_vars_stand = rng.multivariate_normal(np.zeros(dim), np.eye(dim), mc_samples)
+        #If we have a mean and a variance
+        if mean is not None or covar is not None:
+            #Use the mvn function directly to get the random variables if matrix is Positive Definite
+            if np.all(eigvals > 1e-7):
+                random_vars = rng.multivariate_normal(mean, covar, mc_samples, tol=1e-5, method='eigh')
+                # print(random_vars[0:3,:])
+            #Otherwise, use the LDL decomposition
+            else:
+                lu, d, perm = scipy.linalg.ldl(np.real(covar), lower=True) # Use the lower part
+                sqrt_d = np.sqrt(np.diag(d))[:, np.newaxis]
+                random_vars = (mean[:, np.newaxis] + lu[:, perm] @ (sqrt_d * random_vars_stand.T)).T
+                # print(random_vars[0:3,:])
+                np.save("mean_mc.npy", mean)
+                np.save("covar_mc.npy", covar)
 
         return random_vars
     
@@ -3426,7 +3429,7 @@ class Expected_Improvement():
 
             transformed_points = L@points_p.T
             gp_random_vars = self.gp_mean[:, np.newaxis] + np.sqrt(2)*(transformed_points)
-            sse_temp = np.sum((y_target[:, np.newaxis] - (gp_random_vars))**2, axis=0)
+            sse_temp = np.sum((y_target[:, np.newaxis] - gp_random_vars)**2, axis=0)
             # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
             error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp
             # improvement = np.maximum(error_diff, 0)
