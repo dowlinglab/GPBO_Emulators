@@ -1141,11 +1141,43 @@ class GP_Emulator:
         
         return num_gp_data
     
-    # def bounded_parameter(low, high, initial_value):
-    #     sigmoid = tfb.Sigmoid(low=tf.cast(low, dtype=tf.float64), high=tf.cast(high, dtype=tf.float64))
-    #     return gpflow.Parameter(initial_value, transform=sigmoid, dtype=tf.float64)
+    def bounded_parameter(self, low, high, initial_value):
+        sigmoid = tfb.Sigmoid(low=tf.cast(low, dtype=tf.float64), high=tf.cast(high, dtype=tf.float64))
+        return gpflow.Parameter(initial_value, transform=sigmoid, dtype=tf.float64)
     
-    def __set_lenscl_guess(self):
+    # def __set_lenscl_guess(self):
+    #     """
+    #     Gets an upper and lower bound for the lengthscales
+
+    #     Returns:
+    #     --------
+    #     lenscl_guess: ndarray, array of lengthscale guesses
+    #     """
+
+    #     #Set lenscl bounds using the original training data to ensure distance
+    #     #Between min and max lengthscales does not collapse as iterations progress
+    #     assert isinstance(self.train_data_init, np.ndarray), "self.train_data_init must be an array"
+    #     if self.normalize:
+    #         org_scalerX = RobustScaler(unit_variance = True)
+    #         points = org_scalerX.fit_transform(self.train_data_init)
+    #     else:
+    #         points = self.train_data_init
+
+    #     # Compute pairwise differences for each column
+    #     pairwise_diffs = np.abs(points[:, :, None] - points[:, :, None].transpose(0, 2, 1))
+    #     # Compute Euclidean distances
+    #     euclidean_distances = np.sqrt(np.sum(pairwise_diffs ** 2, axis=1))
+    #     # Set diagonal elements (distance between the same point) to infinity
+    #     np.fill_diagonal(euclidean_distances, np.inf)
+    #     euclidean_distances = np.ma.masked_invalid(euclidean_distances)
+    #     # Find the smallest/largest distance for each column
+    #     min_distance = np.min(euclidean_distances, axis=0)
+    #     max_distance = np.max(euclidean_distances, axis=0)
+
+    #     lenscl_guess = np.random.uniform(min_distance, max_distance, size=len(max_distance))
+    #     return lenscl_guess
+
+    def __set_lenscl_guess(self, lb, ub):
         """
         Gets an upper and lower bound for the lengthscales
 
@@ -1170,15 +1202,53 @@ class GP_Emulator:
         # Set diagonal elements (distance between the same point) to infinity
         np.fill_diagonal(euclidean_distances, np.inf)
         euclidean_distances = np.ma.masked_invalid(euclidean_distances)
-        # Find the smallest/largest distance for each column
+        # Find the smallest/largest distance for each column and ensure it is within the bounds
         min_distance = np.min(euclidean_distances, axis=0)
         max_distance = np.max(euclidean_distances, axis=0)
 
-        lenscl_guess = np.random.uniform(min_distance, max_distance, size=len(max_distance))
+        lb_array = np.ones(len(min_distance))*lb
+        ub_array = np.ones(len(max_distance))*ub
+        lower = np.maximum(min_distance, lb_array)
+        upper = np.minimum(max_distance, ub_array)
+
+        lenscl_guess = np.random.uniform(lower, upper, size=len(max_distance))
         return lenscl_guess
         
     
-    def __set_white_kern(self):
+    # def __set_white_kern(self):
+    #     """
+    #     Sets the white kernel value guess or allows gp to tune the noise parameter
+
+    #     Returns:
+    #     --------    
+    #     noise_kern: kernel, the noise kernel of the model
+    #     """
+    #     #Set the noise guess or allow gp to tune the noise parameter
+    #     if self.normalize:
+    #         self.scalerY.fit(self.train_data.y_vals.reshape(-1,1))
+    #         sclr = np.float64(self.scalerY.scale_)
+    #     else:
+    #         sclr = 1.0
+
+    #     if self.noise_std is not None:
+    #         #If we know the noise, use it
+    #         noise_guess = float((self.noise_std/sclr)**2)
+            
+    #     else:
+    #         #Otherwise, set the guess as 5% the taining data mean
+    #         data_mean = np.abs(np.mean(self.gp_sim_data.y_vals))
+    #         noise_guess = np.float64(data_mean*0.05/sclr)**2
+        
+    #     noise_guess_f = np.maximum(1.01e-6, noise_guess)
+
+    #     noise_kern = gpflow.kernels.White(variance = noise_guess_f)
+
+    #     if self.noise_std is not None:
+    #         gpflow.set_trainable(noise_kern.variance, False)
+
+    #     return noise_kern
+
+    def __set_white_kern(self, lb, ub):
         """
         Sets the white kernel value guess or allows gp to tune the noise parameter
 
@@ -1202,81 +1272,118 @@ class GP_Emulator:
             data_mean = np.abs(np.mean(self.gp_sim_data.y_vals))
             noise_guess = np.float64(data_mean*0.05/sclr)**2
         
-        noise_guess_f = np.maximum(1.01e-6, noise_guess)
+        if not lb < noise_guess < ub:
+            noise_guess = 1.0
 
-        noise_kern = gpflow.kernels.White(variance = noise_guess_f)
+        return noise_guess
 
-        if self.noise_std is not None:
-            gpflow.set_trainable(noise_kern.variance, False)
-
-        return noise_kern
-
-    def __set_base_kernel(self, c_guess, set_c_trainable, ls_guess, set_ls_trainable):
-        """
-        Sets the base kernel of the model
+    # def __set_base_kernel(self, c_guess, set_c_trainable, ls_guess, set_ls_trainable):
+    #     """
+    #     Sets the base kernel of the model
         
-        Returns
-        ----------
-        kernel: The base kernel of the model
+    #     Returns
+    #     ----------
+    #     kernel: The base kernel of the model
         
-        """ 
-        #Set the type of kernel
-        if self.kernel.value == 3: #RBF
-            kernel_base = gpflow.kernels.RBF(variance=c_guess, lengthscales = ls_guess)
-        elif self.kernel.value == 2: #Matern 3/2
-            kernel_base = gpflow.kernels.Matern32(variance=c_guess, lengthscales = ls_guess) 
-        else: #Matern 5/2
-            kernel_base = gpflow.kernels.Matern52(variance=c_guess, lengthscales = ls_guess) 
+    #     """ 
+    #     #Set the type of kernel
+    #     if self.kernel.value == 3: #RBF
+    #         kernel_base = gpflow.kernels.RBF(variance=c_guess, lengthscales = ls_guess)
+    #     elif self.kernel.value == 2: #Matern 3/2
+    #         kernel_base = gpflow.kernels.Matern32(variance=c_guess, lengthscales = ls_guess) 
+    #     else: #Matern 5/2
+    #         kernel_base = gpflow.kernels.Matern52(variance=c_guess, lengthscales = ls_guess) 
 
-        #Set scale parameter on base kernel w/ a Half Cauchy Prior w/ mean 1
-        kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(1.0), np.float64(5.0))
+    #     #Set scale parameter on base kernel w/ a Half Cauchy Prior w/ mean 1
+    #     kernel_base.variance.prior = tfp.distributions.HalfCauchy(np.float64(1.0), np.float64(5.0))
 
-        #Set scale values
-        if not set_c_trainable:
-            gpflow.set_trainable(kernel_base.variance, False)
-        if not set_ls_trainable:
-            gpflow.set_trainable(kernel_base.lengthscales, False)
+    #     #Set scale values
+    #     if not set_c_trainable:
+    #         gpflow.set_trainable(kernel_base.variance, False)
+    #     if not set_ls_trainable:
+    #         gpflow.set_trainable(kernel_base.lengthscales, False)
 
-        return kernel_base
+    #     return kernel_base
     
-    def __set_lenscl(self):
-        """
-        Set the original lengthscale of the model and determines whether lengthscale is tunable
+    # def __set_lenscl(self):
+    #     """
+    #     Set the original lengthscale of the model and determines whether lengthscale is tunable
         
-        Returns
-        -------
-        lenscl_guess: ndarray, array of lengthscale guesses
-        set_lenscl_trainable: bool, whether the lengthscale is tunable or not
+    #     Returns
+    #     -------
+    #     lenscl_guess: ndarray, array of lengthscale guesses
+    #     set_lenscl_trainable: bool, whether the lengthscale is tunable or not
 
-        Notes:
-        ------
-        Need to have training data before using this function
-        """
-        set_lenscl_trainable = True
-        if isinstance(self.lenscl, np.ndarray):
-            assert len(self.lenscl) >= self.get_dim_gp_data(), "Length of self.lenscl must be at least self.get_gim_gp_data()!"
-            #Cut the lengthscale to correct length if too long, by cutting the ends
-            if len(self.lenscl) > self.get_dim_gp_data():
-                self.lenscl =  self.lenscl[:self.get_dim_gp_data()]
+    #     Notes:
+    #     ------
+    #     Need to have training data before using this function
+    #     """
+    #     set_lenscl_trainable = True
+    #     if isinstance(self.lenscl, np.ndarray):
+    #         assert len(self.lenscl) >= self.get_dim_gp_data(), "Length of self.lenscl must be at least self.get_gim_gp_data()!"
+    #         #Cut the lengthscale to correct length if too long, by cutting the ends
+    #         if len(self.lenscl) > self.get_dim_gp_data():
+    #             self.lenscl =  self.lenscl[:self.get_dim_gp_data()]
         
-            #Anisotropic but different and set
-            lenscl_guess = self.lenscl
-            set_lenscl_trainable = False
+    #         #Anisotropic but different and set
+    #         lenscl_guess = self.lenscl
+    #         set_lenscl_trainable = False
             
-        #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim,\
-        elif isinstance(self.lenscl, (float, int)):            
-            #Anisotropic but the same
-            lenscl_guess = self.lenscl*np.ones(self.get_dim_gp_data())
-            set_lenscl_trainable = False
+    #     #If setting lengthscale, ensure lengthscale values are fixed and that there is 1 lengthscale/dim,\
+    #     elif isinstance(self.lenscl, (float, int)):            
+    #         #Anisotropic but the same
+    #         lenscl_guess = self.lenscl*np.ones(self.get_dim_gp_data())
+    #         set_lenscl_trainable = False
             
-        #Otherwise initialize them at 1 (lenscl is trained) 
-        else:
-            #Anisotropic but initialized to 1
-            lenscl_guess = self.__set_lenscl_guess()
+    #     #Otherwise initialize them at 1 (lenscl is trained) 
+    #     else:
+    #         #Anisotropic but initialized to 1
+    #         lenscl_guess = self.__set_lenscl_guess()
         
-        return lenscl_guess, set_lenscl_trainable
+    #     return lenscl_guess, set_lenscl_trainable
     
-    def __set_outputscl(self):
+    # def __set_outputscl(self):
+    #     """
+    #     Set the initial outputscale of the model and determines whether it is tunable
+        
+    #     Returns
+    #     -------
+    #     tau_guess: float, initial outputscale guess
+    #     set_c_trainable: bool, whether the outputscale is tunable or not
+
+    #     Notes:
+    #     ------
+    #     Need to have training data before using this function
+    #     """
+    #     set_c_trainable = True
+        
+    #     #Set outputscl kernel to be optimized based on guess if desired
+    #     if self.outputscl == None:
+    #         train_y = self.train_data.y_vals.reshape(-1,1)
+    #         if self.normalize: 
+    #             scl_y = self.scalerY.fit_transform(train_y)
+    #         else:
+    #             scl_y = train_y
+
+    #         c_guess= sum(scl_y.flatten()**2)/len(scl_y)
+    #         tau = c_guess
+    #     elif isinstance(self.outputscl, (float, int, np.float64)):
+    #         assert self.outputscl > 0, "outputscl must be positive int or float"
+    #         tau = self.outputscl
+    #         set_c_trainable = False
+    #     else:
+    #         tau = 1.0
+    #         set_c_trainable = False
+            
+    #     tau_guess_min = 1.01e-6
+    #     if tau_guess_min < tau:
+    #         tau_guess = tau  
+    #     else:
+    #         tau_guess = 1.0
+
+    #     return tau_guess, set_c_trainable
+
+    def __set_outputscl(self, lb, ub):
         """
         Set the initial outputscale of the model and determines whether it is tunable
         
@@ -1289,8 +1396,7 @@ class GP_Emulator:
         ------
         Need to have training data before using this function
         """
-        set_c_trainable = True
-        
+
         #Set outputscl kernel to be optimized based on guess if desired
         if self.outputscl == None:
             train_y = self.train_data.y_vals.reshape(-1,1)
@@ -1301,21 +1407,18 @@ class GP_Emulator:
 
             c_guess= sum(scl_y.flatten()**2)/len(scl_y)
             tau = c_guess
+
         elif isinstance(self.outputscl, (float, int, np.float64)):
             assert self.outputscl > 0, "outputscl must be positive int or float"
             tau = self.outputscl
-            set_c_trainable = False
         else:
             tau = 1.0
-            set_c_trainable = False
             
-        tau_guess_min = 1.01e-6
-        if tau_guess_min < tau:
-            tau_guess = tau  
-        else:
-            tau_guess = 1.0
+        if not lb < tau < ub:
+            tau = 1.0
 
-        return tau_guess, set_c_trainable
+        return tau
+
     
     def set_gp_model_data(self):
         """
@@ -1340,64 +1443,64 @@ class GP_Emulator:
         data = (ft_td_scl, y_td_scl)
         return data
     
-    def __set_gp_kernel(self, edu_guess = True):
-        """
-        Generates the full gp kernel by combining the noise and base kernels
+    # def __set_gp_kernel(self, edu_guess = True):
+    #     """
+    #     Generates the full gp kernel by combining the noise and base kernels
 
-        Parameters
-        ----------
-        edu_guess: bool, whether to use an educated guess for the hyperparameters or not
+    #     Parameters
+    #     ----------
+    #     edu_guess: bool, whether to use an educated guess for the hyperparameters or not
             
-        Returns
-        --------
-        kernel: kernel, the full gp kernel
-        """  
-        #Get tau val
-        c_guess, set_c_trainable = self.__set_outputscl()
-        #Get lescale values
-        ls_guess, set_ls_trainable = self.__set_lenscl()
+    #     Returns
+    #     --------
+    #     kernel: kernel, the full gp kernel
+    #     """  
+    #     #Get tau val
+    #     c_guess, set_c_trainable = self.__set_outputscl()
+    #     #Get lescale values
+    #     ls_guess, set_ls_trainable = self.__set_lenscl()
 
-        if not edu_guess:
-            if set_c_trainable:
-                c_guess = np.exp(np.random.uniform(0. , 5.) )
-                # c_guess = scipy.stats.halfcauchy.rvs(loc = 1.0, scale = 5.0)
-            if set_ls_trainable:
-                ls_guess = np.exp(np.random.uniform(0 , 3, size = len(ls_guess)))
+    #     if not edu_guess:
+    #         if set_c_trainable:
+    #             c_guess = np.exp(np.random.uniform(0. , 5.) )
+    #             # c_guess = scipy.stats.halfcauchy.rvs(loc = 1.0, scale = 5.0)
+    #         if set_ls_trainable:
+    #             ls_guess = np.exp(np.random.uniform(0 , 3, size = len(ls_guess)))
 
-        #Set base kernel
-        kernel_base = self.__set_base_kernel(c_guess, set_c_trainable, ls_guess, set_ls_trainable)
-        #Set Noise kern
-        noise_kern = self.__set_white_kern()
-        #Set whole kernel
-        kernel = kernel_base + noise_kern
+    #     #Set base kernel
+    #     kernel_base = self.__set_base_kernel(c_guess, set_c_trainable, ls_guess, set_ls_trainable)
+    #     #Set Noise kern
+    #     noise_kern = self.__set_white_kern()
+    #     #Set whole kernel
+    #     kernel = kernel_base + noise_kern
         
-        return kernel
+    #     return kernel
     
-    def set_gp_model(self, kernel=None):
-        """
-        Generates the GP model for the process in sklearn
+    # def set_gp_model(self, kernel=None):
+    #     """
+    #     Generates the GP model for the process in sklearn
             
-        Returns
-        --------
-        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor containing kernel, optimizer, etc.
-        """  
-        #Get Data
-        data = self.set_gp_model_data() 
+    #     Returns
+    #     --------
+    #     gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor containing kernel, optimizer, etc.
+    #     """  
+    #     #Get Data
+    #     data = self.set_gp_model_data() 
 
-        if kernel == None:
-            kernel_use = self.__set_gp_kernel(edu_guess = True)
-        else:
-            kernel_use = kernel
+    #     if kernel == None:
+    #         kernel_use = self.__set_gp_kernel(edu_guess = True)
+    #     else:
+    #         kernel_use = kernel
 
-        #Get likelihood noise
-        lik_noise = float(kernel_use.kernels[1].variance.numpy())
+    #     #Get likelihood noise
+    #     lik_noise = float(kernel_use.kernels[1].variance.numpy())
 
-        gp_model = gpflow.models.GPR(data, kernel=kernel, noise_variance = lik_noise)
-        # gpflow.utilities.print_summary(gp_model)
-        return gp_model
-    
+    #     gp_model = gpflow.models.GPR(data, kernel=kernel, noise_variance = lik_noise)
+    #     # gpflow.utilities.print_summary(gp_model)
+    #     return gp_model
+
     # Hyper-parameters initialization
-    def __init_hyper_parameters(self, count_fix):
+    def __init_hyper_parameters(self, retrain_count):
         """
         Initializes the kernel and its hyperparameters for the GP model
 
@@ -1410,60 +1513,200 @@ class GP_Emulator:
         kernel: kernel, the full gp kernel to optimize
         """
         tf.compat.v1.get_default_graph()
-        tf.compat.v1.set_random_seed(count_fix)
-        tf.random.set_seed(count_fix)
+        tf.compat.v1.set_random_seed(retrain_count)
+        tf.random.set_seed(retrain_count)
+        np.random.seed(retrain_count)
         gpflow.config.set_default_float(np.float64)
-        #On the 1st iteration, use initial guesses based on training data values
-        edu_guess = True if count_fix == 0 else False
-        kernel = self.__set_gp_kernel(edu_guess)
+        
+        lenscl_bnds = [0.00001, 1000.0]
+        var_bnds = [0.00001, 100.0]
+        white_var_bnds = [0.00001, 10.0]
+
+        #Get X and Y Data
+        data = self.set_gp_model_data() 
+        x_train, y_train = data
+
+        #On the 1st iteration, use initial guesses initialized to 1
+        if retrain_count == 0:
+            lengthscale_1 = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], 1.0)
+            lenscls = np.ones(x_train.shape[1])*lengthscale_1
+            tau = self.bounded_parameter(var_bnds[0], var_bnds[1], 1.0)
+            white_var = self.bounded_parameter(white_var_bnds[0], white_var_bnds[1], 1.0)
+        #On second iteration, base guesses on initial data values
+        elif retrain_count == 1:
+            initial_lenscls = np.array(self.__set_lenscl_guess(lenscl_bnds[0], lenscl_bnds[1]) , dtype='float64')
+            lenscls = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], initial_lenscls)
+            initial_tau = np.array(self.__set_outputscl(var_bnds[0], var_bnds[1]) , dtype='float64')
+            tau = self.bounded_parameter(var_bnds[0], var_bnds[1], initial_tau)
+            initial_white_var = np.array(self.__set_white_kern(white_var_bnds[0], white_var_bnds[1]), dtype='float64')
+            white_var = self.bounded_parameter(white_var_bnds[0], white_var_bnds[1], initial_white_var)
+        #On all other iterations, use random guesses
+        else:
+            initial_lenscls = np.array(np.random.uniform(0.1, 100.0, x_train.shape[1]), dtype='float64')
+            lenscls = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], initial_lenscls)
+            tau = self.bounded_parameter(var_bnds[0], var_bnds[1], np.array(np.random.lognormal(0.0, 1.0), dtype='float64'))
+            white_var = self.bounded_parameter(white_var_bnds[0], white_var_bnds[1], np.array(np.random.uniform(0.05, 10), dtype='float64'))
 
         # gpflow.utilities.print_summary(kernel)
         
-        return kernel
+        return lenscls, tau, white_var
 
-    def __fit_GP(self, count_fix):
+    def set_gp_model(self, retrain_count):
         """
-        Fit a GP and fix Cholesky decomposition failure and optimization failure by random initialization
-
-        Parameters
-        ----------
-        count_fix: int, the number of times the GP has been retrained
-
+        Generates the GP model for the process in sklearn
+            
         Returns
         --------
-        fit_successed: bool, whether the GP was fit successfully
-        model: instance of gpflow.models.GPR, the trained GP model
-        count_fix: int, the number of times the GP has been retrained
-        """
-        #Randomize Seed
-        np.random.seed(count_fix+1)
-        #Initialize fit_sucess as true
-        fit_successed = True   
-        #Get hyperparam guess list
-        kernel = self.__init_hyper_parameters(count_fix)
-        try:
-            #Make model and optimizer and get results
-            model = self.set_gp_model(kernel)
-            o = gpflow.optimizers.Scipy()
-            res = o.minimize(model.training_loss, variables=model.trainable_variables)
-            # gpflow.utilities.print_summary(model)
-            #If result isn't successful, remake and retrain model w/ different hyperparameters
-            if not(res.success):
-                if count_fix < self.retrain_GP:
-                    count_fix += 1 
-                    fit_successed,model,count_fix = self.__fit_GP(count_fix)
-                else:
-                    fit_successed = False
-        #If an error is thrown becauuse of bad hyperparameters, reoptimize them
-        except tf.errors.InvalidArgumentError as e:
-            if count_fix < self.retrain_GP:
-                count_fix += 1
-                fit_successed,model,count_fix = self.__fit_GP(count_fix)
-            else:
-                fit_successed = False
+        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor containing kernel, optimizer, etc.
+        """  
+        data = self.set_gp_model_data()
+        lenscls, tau, white_var = self.__init_hyper_parameters(retrain_count)
 
-        return fit_successed,model, count_fix
+        if self.kernel.value == 3:
+            gpKernel=gpflow.kernels.SquaredExponential(variance=tau, lengthscales=lenscls)
+        elif self.kernel.value == 2:
+            gpKernel=gpflow.kernels.Matern32(variance=tau, lengthscales=lenscls)
+        else:
+            gpKernel=gpflow.kernels.Matern52(variance=tau, lengthscales=lenscls)
+        # Add White kernel
+        gpKernel=gpKernel+gpflow.kernels.White(variance = white_var)
+                
+        # Build GP model    
+        gp_model=gpflow.models.GPR(data,kernel = gpKernel, noise_variance=10**-5)
+        # model_pretrain = deepcopy(model)
+        # # print(gpflow.utilities.print_summary(model))
+        # condition_number = np.linalg.cond(model.kernel(X_Train))
+        # Select whether the likelihood variance is trained
+        gpflow.utilities.set_trainable(gp_model.likelihood.variance,False)
+        if isinstance(self.lenscl, np.ndarray) or isinstance(self.lenscl, (float, int)):
+            gpflow.utilities.set_trainable(gp_model.kernel.kernel[0].lengthscales,False)
+        if self.outputscl is not None:
+            gpflow.utilities.set_trainable(gp_model.kernel.kernel[0].variance,False)
+
+        return gp_model
+    
+    # # Hyper-parameters initialization
+    # def __init_hyper_parameters(self, count_fix):
+    #     """
+    #     Initializes the kernel and its hyperparameters for the GP model
+
+    #     Parameters
+    #     ----------
+    #     count_fix: int, the number of times the GP has been retrained
+
+    #     Returns
+    #     --------
+    #     kernel: kernel, the full gp kernel to optimize
+    #     """
+    #     tf.compat.v1.get_default_graph()
+    #     tf.compat.v1.set_random_seed(count_fix)
+    #     tf.random.set_seed(count_fix)
+    #     gpflow.config.set_default_float(np.float64)
+    #     #On the 1st iteration, use initial guesses based on training data values
+    #     edu_guess = True if count_fix == 0 else False
+    #     kernel = self.__set_gp_kernel(edu_guess)
+
+    #     # gpflow.utilities.print_summary(kernel)
         
+    #     return kernel
+
+    # def __fit_GP(self, count_fix):
+    #     """
+    #     Fit a GP and fix Cholesky decomposition failure and optimization failure by random initialization
+
+    #     Parameters
+    #     ----------
+    #     count_fix: int, the number of times the GP has been retrained
+
+    #     Returns
+    #     --------
+    #     fit_successed: bool, whether the GP was fit successfully
+    #     model: instance of gpflow.models.GPR, the trained GP model
+    #     count_fix: int, the number of times the GP has been retrained
+    #     """
+    #     #Randomize Seed
+    #     np.random.seed(count_fix+1)
+    #     #Initialize fit_sucess as true
+    #     fit_successed = True   
+    #     #Get hyperparam guess list
+    #     kernel = self.__init_hyper_parameters(count_fix)
+    #     try:
+    #         #Make model and optimizer and get results
+    #         model = self.set_gp_model(kernel)
+    #         o = gpflow.optimizers.Scipy()
+    #         res = o.minimize(model.training_loss, variables=model.trainable_variables)
+    #         # gpflow.utilities.print_summary(model)
+    #         #If result isn't successful, remake and retrain model w/ different hyperparameters
+    #         if not(res.success):
+    #             if count_fix < self.retrain_GP:
+    #                 count_fix += 1 
+    #                 fit_successed,model,count_fix = self.__fit_GP(count_fix)
+    #             else:
+    #                 fit_successed = False
+    #     #If an error is thrown becauuse of bad hyperparameters, reoptimize them
+    #     except tf.errors.InvalidArgumentError as e:
+    #         if count_fix < self.retrain_GP:
+    #             count_fix += 1
+    #             fit_successed,model,count_fix = self.__fit_GP(count_fix)
+    #         else:
+    #             fit_successed = False
+
+    #     return fit_successed,model, count_fix
+        
+    # def train_gp(self):
+    #     """
+    #     Trains the GP given training data. Sets self.trained_hyperparams and self.fit_gp_model
+        
+    #     Notes:
+    #     ------
+    #     Sets the following parameters of self
+    #     self.trained_hyperparams: list, the trained hyperparameters of the GP model
+    #     self.fit_gp_model: instance of gpflow.models.GPR, the trained GP model
+    #     self.posterior: instance of gpflow.mean_field.KFGaussian, the posterior of the GP model 
+    #     """  
+    #     assert isinstance(self.feature_train_data, np.ndarray), "self.feature_train_data must be np.ndarray"
+    #     assert self.feature_train_data is not None, "Must have training data. Run set_train_test_data() to generate"
+
+    #     # Train the model multiple times and keep track of the model with the lowest minimum training loss
+    #     best_minimum_loss = float('inf')
+    #     best_model = None
+
+    #     #Initialize number of counters
+    #     count_fix_tot = 0
+    #     #While you still have retrains left
+    #     while count_fix_tot <= self.retrain_GP:
+    #         #Create and fit the model
+    #         fit_successed, gp_model, count_fix = self.__fit_GP(count_fix_tot)
+    #         #The new counter total is the number of counters used + 1
+    #         count_fix_tot += count_fix + 1
+    #         #If the fit succeeded 
+    #         if fit_successed:
+    #             # Compute the training loss of the model
+    #             training_loss = gp_model.training_loss().numpy()
+    #             # Check if this model has the best minimum training loss
+    #             if training_loss < best_minimum_loss:
+    #                 best_minimum_loss = training_loss
+    #                 best_model = gp_model
+    #         #or we have no good models
+    #         elif count_fix_tot >= self.retrain_GP:
+    #             if best_model is None:
+    #                 best_model = gp_model
+
+    #     # gpflow.utilities.print_summary(best_model)
+        
+    #     #Pull out kernel parameters after GP training
+    #     outputscl_final = float(best_model.kernel.kernels[0].variance.numpy())
+    #     lenscl_final = best_model.kernel.kernels[0].lengthscales.numpy()
+    #     noise_final = float(best_model.kernel.kernels[1].variance.numpy())
+        
+    #     #Put hyperparameters in a list
+    #     trained_hyperparams = [lenscl_final, noise_final, outputscl_final] 
+        
+    #     #Assign self parameters
+    #     self.trained_hyperparams = trained_hyperparams
+    #     self.fit_gp_model = best_model
+    #     self.posterior = self.fit_gp_model.posterior()
+
     def train_gp(self):
         """
         Trains the GP given training data. Sets self.trained_hyperparams and self.fit_gp_model
@@ -1482,29 +1725,33 @@ class GP_Emulator:
         best_minimum_loss = float('inf')
         best_model = None
 
-        #Initialize number of counters
-        count_fix_tot = 0
         #While you still have retrains left
-        while count_fix_tot <= self.retrain_GP:
+        for i in range(self.retrain_GP):
             #Create and fit the model
-            fit_successed, gp_model, count_fix = self.__fit_GP(count_fix_tot)
-            #The new counter total is the number of counters used + 1
-            count_fix_tot += count_fix + 1
-            #If the fit succeeded 
-            if fit_successed:
-                # Compute the training loss of the model
-                training_loss = gp_model.training_loss().numpy()
+            gp_model = self.set_gp_model(i)
+            # Build optimizer
+            optimizer=gpflow.optimizers.Scipy()
+            # Fit GP to training data
+            aux=optimizer.minimize(gp_model.training_loss,
+                                gp_model.trainable_variables,
+                                options={'maxiter':10**9},
+                                method="L-BFGS-B")
+            training_loss = gp_model.training_loss().numpy()
+            if i == 0:
+                first_model = gp_model
+                first_loss = training_loss
+            if aux.success:
                 # Check if this model has the best minimum training loss
                 if training_loss < best_minimum_loss:
                     best_minimum_loss = training_loss
                     best_model = gp_model
-            #or we have no good models
-            elif count_fix_tot >= self.retrain_GP:
-                if best_model is None:
-                    best_model = gp_model
+
+        #If we have no good models, use the first one
+        if best_model is None:
+            best_model = first_model
+            best_minimum_loss = first_loss
 
         # gpflow.utilities.print_summary(best_model)
-        
         #Pull out kernel parameters after GP training
         outputscl_final = float(best_model.kernel.kernels[0].variance.numpy())
         lenscl_final = best_model.kernel.kernels[0].lengthscales.numpy()
@@ -1517,6 +1764,8 @@ class GP_Emulator:
         self.trained_hyperparams = trained_hyperparams
         self.fit_gp_model = best_model
         self.posterior = self.fit_gp_model.posterior()
+
+        # gpflow.utilities.print_summary(best_model)
         
     def __eval_gp_mean_var(self, data):
         """
@@ -2804,9 +3053,6 @@ class Expected_Improvement():
         self.best_error_x = best_error_metrics[2]
         self.samples_mc_sg = sg_mc_samples
         
-        #Set random variables for MC integration
-        self.random_vars = self.__set_rand_vars(self.gp_mean, self.gp_covar)
-        
     def __set_sg_def(self, dim):
         depth = 0
         num_points = 0
@@ -3158,7 +3404,7 @@ class Expected_Improvement():
                                                            verbose=False) 
             
             #Diagonalize covariance matrix
-            L = scipy.linalg.cholesky(np.real(self.gp_covar), lower=True)
+            L = scipy.linalg.cholesky(np.real(self.gp_covar), lower=True)  
             transformed_points = L@points_p.T
             gp_random_vars = self.gp_mean[:, np.newaxis] + np.sqrt(2)*(transformed_points)
             sse_temp = np.sum((y_target[:, np.newaxis] - (gp_random_vars))**2, axis=0)
@@ -3254,6 +3500,8 @@ class Expected_Improvement():
             # sse_temp = np.sum((mean_min_y[:, np.newaxis].T - gp_stdev_rand_var)**2, axis=1)
 
             # # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
+            #Set random variables for MC integration
+            self.random_vars = self.__set_rand_vars(self.gp_mean, self.gp_covar)
             sse_temp = np.sum((y_target[:, np.newaxis].T - self.random_vars)**2, axis=1)
             error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp 
             ## improvement = np.maximum(error_diff, 0).reshape(-1,1)
@@ -3747,6 +3995,8 @@ class GPBO_Driver:
         #Evaluate GP mean and Var (This is the slowest step)
         feat_sp_data = self.gp_emulator.featurize_data(sp_data)
         sp_data.gp_mean, sp_data.gp_var = self.gp_emulator.eval_gp_mean_var_misc(sp_data, feat_sp_data)
+        # print(sp_data.gp_covar)
+        # print(np.linalg.det(sp_data.gp_covar))
 
         #Evaluate GP SSE and SSE_Var (This is the 2nd slowest step)
         sp_data_sse_mean, sp_data_sse_var = self.gp_emulator.eval_gp_sse_var_misc(sp_data, self.method, self.exp_data)
