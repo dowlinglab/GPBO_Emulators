@@ -24,7 +24,7 @@ save_figs = True
 modes = ["act", "gp", "acq"]
 project = signac.get_project("GPBO_Fix")
 
-for val in [1,11,12,13,10,2,3,14]:
+for val in [1, 11, 12, 13]:
     criteria_dict = {"cs_name_val" : val,
                         "ep_enum_val": 1,
                         "gp_package":"gpflow",
@@ -43,19 +43,19 @@ for val in [1,11,12,13,10,2,3,14]:
         titles = ["Min SSE Parameter Values", "Min SSE Parameter Values Overall", "Optimal Acq Func Parameter Values"]
 
         #Make Parity Plots
-        # plotters.make_parity_plots()
+        plotters.make_parity_plots()
 
         #Get best plots for all objectives with all 6 methods on each subplot
-        # plotters.plot_objs_all_methods(z_choices)
+        plotters.plot_objs_all_methods(z_choices)
 
         #Get plot with each method on a different subplot for each obj
-        # for i in range(len(z_choices)):
-        #     plotters.plot_one_obj_all_methods(z_choices[i])    
+        for i in range(len(z_choices)):
+            plotters.plot_one_obj_all_methods(z_choices[i])    
 
         # for i in range(len(job_list_best)):   
-            #Plot hyperparameters
-            # plotters.plot_hypers(job_list_best[i])
+        #     #Plot hyperparameters
+        #     plotters.plot_hypers(job_list_best[i])
             
-            #Plot param values at min_sse, the best theta_values of min_sse overall, and param values at max ei
-            # for j in range(len(z_choices)):
-            #     plotters.plot_thetas(job_list_best[i], z_choices[j], title = titles[j])
+        #     #Plot param values at min_sse, the best theta_values of min_sse overall, and param values at max ei
+        #     for j in range(len(z_choices)):
+        #         plotters.plot_thetas(job_list_best[i], z_choices[j], title = titles[j])
