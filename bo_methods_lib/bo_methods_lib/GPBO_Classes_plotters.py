@@ -1665,9 +1665,8 @@ class All_CS_Plotter(Plotters):
         #Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = False, sharey = True)
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
-
         if mode == "overall":
-            add_value = 0
+            add_value = 1
         else:
             add_value = 1
         bar_size = 1/(len(self.analyzer.cs_list) + add_value)
@@ -1687,14 +1686,14 @@ class All_CS_Plotter(Plotters):
                       "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\theta^{\prime})$", 
                       "Avg. " + r"$\Xi(\theta^*)$" + "\n Last 10 Iterartions"]
 
-        desired_order = ["BOD Curve", "2D Log Logistic", "Muller x0", "Simple Linear", "Yield-Loss", "Log Logistic", "Muller y0", "Complex Linear"][::-1]
+        desired_order = ["Large Linear", "Muller y0", "Log Logistic", "Yield-Loss", "Simple Linear", "Muller x0", "2D Log Logistic", "BOD Curve"]
         # Convert the 'Department' column to a categorical type with the specified order
         df_averages['CS Name'] = pd.Categorical(df_averages['CS Name'], categories=desired_order, ordered=True)
         df_averages['BO Method'] = pd.Categorical(df_averages['BO Method'], categories=self.method_names + ["NLS"], ordered=True)
         # Sort the DataFrame by the 'Department' column
         df_averages = df_averages.sort_values(['CS Name', 'BO Method'])
         t_label_lst = list(df_averages["CS Name"].unique())
-        t_label_lst[0] = "Large Linear"
+
         y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+add_value) + padding)
         axes = axes.flatten()
         for i in range(len(self.analyzer.meth_val_list)+ add_value):

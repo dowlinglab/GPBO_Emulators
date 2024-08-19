@@ -1434,17 +1434,52 @@ class All_CS_Analysis(General_Analysis):
         #         print(meth_name)
         #         print(group[obj_col_sse_min])
 
+        #Add nonlinear least squares results
+        #Loop over each case study
+        for i, cs_name in enumerate(self.cs_list):
+            for j, meth_val in enumerate(self.meth_val_list):
+                #Create a criteria dictionary for the case study
+                criteria_dict_ls = {"cs_name_val" : cs_name,
+                                    "meth_name_val": self.meth_val_list}
+                ls_analyzer = LS_Analysis(criteria_dict_ls, self.project, self.save_csv)
+                df_best_ls = ls_analyzer.least_squares_analysis()
+                df_best_ls["CS Name"] = get_cs_class_from_val(cs_name).name
+                df_best_ls["BO Method"] = "NLS"
+                df_best_ls.rename(columns={'Iter': 'BO Iter'}, inplace=True)
+                if i==0 and len(df_best_ls) > 0:
+                    df_all_ls_best = df_best_ls
+                #Otherwise, concatenate the DataFrame to df_all_best
+                else:
+                    df_all_ls_best = pd.concat([df_all_ls_best, df_best_ls], axis = 0)
+        if 'Max Evals' not in df_all_ls_best.columns:
+            # Compute the maximum 'iter' for each 'run'
+            df_all_ls_best['Max Evals'] = df_all_ls_best.groupby(['CS Name', 'Run'])['BO Iter'].transform('max')
+
+        # print(df_all_ls_best.head())
+        #Group the data by CS Name and BO Method, and get the mean and std for each group over all runs
+        grouped_stats_ls = df_all_ls_best.groupby(["CS Name", "BO Method"]).agg({
+        "Min Obj Cum.": ['median', self.__get_iqr],
+        'Run Time': ['mean', 'std'],
+        'Max Evals': ['mean', 'std']}
+        ).reset_index()
+
         # Flatten the MultiIndex columns
         grouped_stats.columns = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']
+        grouped_stats_ls.columns = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']
 
         # Create a new DataFrame with results
         df_averages = grouped_stats[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss',  'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']]
+        df_avg_ls_best = grouped_stats_ls[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Time', 'Std Time', 'Avg Evals', 'Std Evals']]
+        df_avg_all = pd.concat([df_averages, df_avg_ls_best], axis = 0)
+
 
         if self.save_csv:
             save_path = os.path.join(self.study_results_dir, "all_cs_avg_overall.csv")
-            self.save_data(df_averages, save_path)
+            self.save_data(df_avg_all, save_path)
 
-        return df_averages
+        
+
+        return df_avg_all
     
     def get_averages_best(self):
         """
@@ -1751,6 +1786,7 @@ class LS_Analysis(General_Analysis):
                             iter_df.at[i, 'Theta Min Obj Cum.'] = iter_df['Theta Min Obj Cum.'].iloc[i-1].copy()
                     
                 iter_df["Run Time"] = time_per_run
+                iter_df["Max Evals"] = len(iter_list)
                 iter_df["jac evals"] = Solution.njev
                 iter_df["Termination"] = Solution.status
                 iter_df["Optimality"] = Solution.optimality
@@ -1773,6 +1809,7 @@ class LS_Analysis(General_Analysis):
         elif found_data1:
             ls_results["Theta Min Obj"] = ls_results["Theta Min Obj"].apply(self.str_to_array_df_col)
             ls_results["Theta Min Obj Cum."] = ls_results["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
+
         return ls_results
     
     def categ_min(self, tot_runs = None):
