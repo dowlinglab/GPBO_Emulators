@@ -692,7 +692,8 @@ class Plotters:
             if log_data == True or need_unscale or not mag_diff :
                 norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
                 cbar_ticks = np.linspace(vmin, vmax, self.zbins)
-                new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 12 ticks
+                new_ticks = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks = 4) #Set up to 12 ticks
+                
             else:
                 norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
                 cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
@@ -737,17 +738,15 @@ class Plotters:
                 #Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3 
                 if log_data == True or need_unscale or not mag_diff :
                     norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
-                    locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks = 4) #Set up to 12 ticks
+                    locator = matplotlib.ticker.MaxNLocator(nbins=9, min_n_ticks = 4) #Set up to 12 ticks
                     cbar_ticks = locator.tick_values(vmin, vmax)
 
                 else:
                     norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
-                    locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks=4)
+                    locator = matplotlib.ticker.MaxNLocator(nbins=9, min_n_ticks=4)
                     tick_positions = locator.tick_values(np.log10(vmin), np.log10(vmax))
                     cbar_ticks = 10 ** tick_positions
-                    use_log10 = True
-
-                
+                    use_log10 = True  
 
             #Create a colormap and colorbar for each subplot
             if log_data == True:
@@ -787,8 +786,12 @@ class Plotters:
             if z_choice == "acq":
                 divider1 = make_axes_locatable(ax[ax_row, ax_col])
                 cax1 = divider1.append_axes("right", size="5%", pad="6%")
-                cbar = fig.colorbar(cs_fig, ax = ax[ax_row, ax_col], ticks = cbar_ticks, cax = cax1, use_gridspec=True) #format = fmt
-                # cbar.ax.set_yticklabels([f'{tick:.2e}' for tick in cbar.cbar_ticks]) 
+                # cbar = fig.colorbar(cs_fig, ax = ax[ax_row, ax_col], ticks = cbar_ticks, cax = cax1, use_gridspec=True) #format = fmt
+                cbar = fig.colorbar(cs_fig, ax = ax[ax_row, ax_col], cax = cax1, use_gridspec=True) #format = fmt
+                try:
+                    cbar.ax.locator_params(axis = 'y', numticks=7)
+                except:
+                    cbar.ax.locator_params(axis = 'y', nbins=7)
                 fmt_acq = matplotlib.ticker.FuncFormatter(self.custom_format) 
                 cbar.ax.yaxis.set_major_formatter(fmt_acq)
                 cbar.ax.set_ylabel(title2, fontsize=self.other_fntsz, fontweight='bold')
@@ -812,7 +815,12 @@ class Plotters:
 
         if z_choice != "acq":
             cb_ax = fig.add_axes([1.03,0,0.04,1])
-            cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks, format= fmt)
+            # cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks, format= fmt)
+            cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, format= fmt, use_gridspec=True)
+            try:
+                cbar.ax.locator_params(axis = 'y', numticks=7)
+            except:
+                cbar.ax.locator_params(axis = 'y', nbins=7)
             cbar.ax.tick_params(labelsize=self.other_fntsz)
             cbar.ax.set_ylabel(title2, fontsize=self.other_fntsz, fontweight='bold')
                         
