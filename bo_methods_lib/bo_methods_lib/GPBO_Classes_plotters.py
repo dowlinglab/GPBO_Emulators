@@ -1653,6 +1653,44 @@ class All_CS_Plotter(Plotters):
 
         return ax
     
+    def __save_fig(self, save_path, ext='png', close=True):                
+        """Save a figure from pyplot.
+        Parameters
+        ----------
+        save_path : string
+            The path (and filename, without the extension) to save the
+            figure to.
+        ext : string (default='png')
+            The file extension. This must be supported by the active
+            matplotlib backend (see matplotlib.backends module).  Most
+            backends support 'png', 'pdf', 'ps', 'eps', and 'svg'.
+        close : boolean (default=True)
+            Whether to close the figure after saving.  If you want to save
+            the figure multiple times (e.g., to multiple formats), you
+            should NOT close it in between saves or you will have to
+            re-plot it.
+        """
+        
+        # Extract the directory and filename from the given path
+        directory = os.path.split(save_path)[0]
+        filename = "%s.%s" % (os.path.split(save_path)[1], ext)
+        if directory == '':
+            directory = '.'
+
+        # If the directory does not exist, create it
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # The final path to save to
+        savepath = os.path.join(directory, filename)
+
+        # Actually save the figure
+        plt.savefig(savepath, dpi=300, bbox_inches='tight')
+        
+        # Close it
+        if close:
+            plt.close()
+
     def make_bar_charts(self, mode):
         """
         Makes a bar chart of computational time/ fxn evaluations for each method and case study
@@ -1749,12 +1787,15 @@ class All_CS_Plotter(Plotters):
                        borderaxespad=0)
             
         plt.tight_layout()
+
+        # if self.save_figs:
+        # self.__save_fig("Results/" + str(mode) + "_bar")
             
         #Save or show figure
         if self.save_figs:
             save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
             save_path_dir = os.path.join(save_path)
-            save_path_to = os.path.join(save_path_dir, "time_eval_bar_charts")
+            save_path_to = os.path.join(save_path_dir, str(mode) + "_bar")
             self.__save_fig(save_path_to)
         else:
             plt.show()
