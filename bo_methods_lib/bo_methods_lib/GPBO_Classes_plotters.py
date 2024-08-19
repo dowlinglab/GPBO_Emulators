@@ -200,7 +200,9 @@ class Plotters:
                 bo_space = np.linspace(1,bo_len,bo_len)
                 #Set appropriate notation
                 if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
-                    ax[ax_row, ax_col].yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                    fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
+                    # fmt = matplotlib.ticker.FormatStrFormatter('%.2e')
+                    ax[ax_row, ax_col].yaxis.set_major_formatter(fmt)
                 
                 #Plot data
                 if log_data == True:
@@ -360,7 +362,9 @@ class Plotters:
 
                     #Set appropriate notation
                     if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
-                        ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                        fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
+                        # fmt = matplotlib.ticker.FormatStrFormatter('%.2e')
+                        ax.yaxis.set_major_formatter(fmt)
 
                     #Plot data
                     if log_data == True:
@@ -395,6 +399,16 @@ class Plotters:
         
         return fig
     
+    def custom_format(self, x, pos):
+        """
+        Custom format for 10x notation
+        """
+        if x == 0:
+            return '0'
+        formatted = '{:2.2e}'.format(x)  # Format the value using scientific notation
+        mantissa, exponent = formatted.split('e')
+        return r"${} \times 10^{{{}}}$".format(mantissa, int(exponent))
+    
     def plot_objs_all_methods(self, z_choices, log_data = False, title = None):
         """
         Plots EI, SSE, Min SSE, and EI values vs BO iter for all 6 methods
@@ -409,7 +423,6 @@ class Plotters:
         --------
         None
         """
-        
         #Break down plot dict and check for correct things
         save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
         x_label = "Function Evaluations"
@@ -473,7 +486,9 @@ class Plotters:
 
                         #Set appropriate notation
                         if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
-                            ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2e'))
+                            fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
+                            # fmt = matplotlib.ticker.FormatStrFormatter('%.2e')
+                            ax.yaxis.set_major_formatter(fmt)
 
                         #Plot data
                         if log_data == True:
@@ -700,8 +715,12 @@ class Plotters:
             theta_next = all_theta_next[i]
             train_theta = all_train_theta[i]
 
-            #Set number format based on magnitude
-            fmt = '%.2e' if np.amin(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000 else '%2.2f'
+            use_scientific = np.amin(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000
+            if use_scientific:
+                fmt = matplotlib.ticker.FuncFormatter(self.custom_format) 
+            else:
+                fmt = '%2.2f'
+            # fmt = '%.2e' if np.amin(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000 else '%2.2f'
 
             if np.all(z == z[0]):
                 z =  abs(np.random.normal(scale=1e-14, size=z.shape))
@@ -728,8 +747,7 @@ class Plotters:
                     cbar_ticks = 10 ** tick_positions
                     use_log10 = True
 
-                def custom_format(x, pos):
-                    return '{:2.2e}'.format(x) if x != 0 else '0'
+                
 
             #Create a colormap and colorbar for each subplot
             if log_data == True:
@@ -769,10 +787,9 @@ class Plotters:
             if z_choice == "acq":
                 divider1 = make_axes_locatable(ax[ax_row, ax_col])
                 cax1 = divider1.append_axes("right", size="5%", pad="6%")
-                
                 cbar = fig.colorbar(cs_fig, ax = ax[ax_row, ax_col], ticks = cbar_ticks, cax = cax1, use_gridspec=True) #format = fmt
                 # cbar.ax.set_yticklabels([f'{tick:.2e}' for tick in cbar.cbar_ticks]) 
-                fmt_acq = matplotlib.ticker.FuncFormatter(custom_format) 
+                fmt_acq = matplotlib.ticker.FuncFormatter(self.custom_format) 
                 cbar.ax.yaxis.set_major_formatter(fmt_acq)
                 cbar.ax.set_ylabel(title2, fontsize=self.other_fntsz, fontweight='bold')
                 cbar.ax.tick_params(labelsize=int(self.other_fntsz/2), labelleft = False)
@@ -948,8 +965,6 @@ class Plotters:
                     # new_ticks = matplotlib.ticker.LogLocator(numticks=7) #Set up to 12 ticks
                     # def custom_format(x, pos):
                     #     return f'{eval("10**" + str(int(np.log10(x))))}' if x != 0 else '0'
-                def custom_format(x, pos):
-                    return '{:2.2e}'.format(x) if x != 0 else '0'
 
                 #Create a colormap and colorbar normalization for each subplot
                 cs_fig = ax.contourf(xx, yy, z, levels = self.zbins, cmap = plt.cm.get_cmap(self.cmap), norm = norm)
@@ -981,7 +996,7 @@ class Plotters:
                 self.__set_subplot_details(ax, xx, yy, None, None, all_z_titles[i])
 
                 # Use a custom formatter for the colorbar
-                fmt = matplotlib.ticker.FuncFormatter(custom_format) 
+                fmt = matplotlib.ticker.FuncFormatter(self.custom_format) 
 
                 divider1 = make_axes_locatable(ax)
                 cax1 = divider1.append_axes("right", size="5%", pad="6%")
@@ -1085,7 +1100,7 @@ class Plotters:
         y_label: str, The y label for the plot
         """
         if self.analyzer.mode == "gp":
-            label_g = "\\tilde{\mathscr{L}(\mathbf{"
+            label_g = "\\tilde{\mathscr{L}}(\mathbf{"
         else:
             label_g = "\mathscr{L}(\mathbf{"
         if "sse" == z_choice:
