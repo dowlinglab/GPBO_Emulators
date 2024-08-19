@@ -1019,7 +1019,7 @@ class General_Analysis:
         method = GPBO_Methods(meth_name)
         
         #Otherwise Generate it
-        if not self.save_csv or not found_data1:
+        if self.save_csv or not found_data1:
             #Open file
             results = open_file_helper(job.fn("BO_Results.gz"))
             results_GP = open_file_helper(job.fn("BO_Results_GPs.gz"))
