@@ -10,6 +10,7 @@ import json
 from matplotlib import colormaps
 from collections.abc import Iterable
 import string
+from sklearn.metrics import r2_score, mean_squared_error
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -1500,8 +1501,21 @@ class Plotters:
                 ax.plot(sim_data, sim_data, color = "k")
                 ax.scatter(sim_data, gp_mean, color = "blue", label = "GP Mean")
                 ax.errorbar(sim_data, gp_mean, yerr = 1.96*gp_stdev, alpha=0.3, fmt = 'o', color = "blue")
-                
+
+                RMSE = mean_squared_error(sim_data, gp_mean, squared=False)
+                R2 = r2_score(sim_data, gp_mean)
                 #Set plot details
+                ax.text(0.95, 0.05, 'RMSE: ' + "{:.2f}".format(RMSE),
+                horizontalalignment='right',  # Align text to the right
+                verticalalignment='bottom',   # Align text to the bottom
+                transform=ax.transAxes,       # Use axis coordinates (0 to 1 range)
+                fontsize=self.other_fntsz) 
+                formatted_r2 = "{:.2f}".format(R2)
+                ax.text(0.95, 0.15, f"$R^2 = {formatted_r2}$",
+                horizontalalignment='right',  # Align text to the right
+                verticalalignment='bottom',   # Align text to the bottom
+                transform=ax.transAxes,       # Use axis coordinates (0 to 1 range)
+                fontsize=self.other_fntsz) 
                 self.__set_subplot_details(ax, sim_data, gp_mean, None, None, self.method_names[ax_idxs[i]])
 
 
