@@ -1087,7 +1087,7 @@ class General_Analysis:
         try:
             found_data1, heat_map_data = self.load_data(hm_path_name)
         except:
-            print(job.id, hm_path_name)
+            # print(job.id, hm_path_name)
             found_data1, heat_map_data = False, None
         found_data2, heat_map_sse_data = self.load_data(hm_sse_path_name)
         found_data3, param_info_dict = self.load_data(param_info_path)
@@ -1214,9 +1214,11 @@ class General_Analysis:
             if not method.emulator:
                 heat_map_sse_data.gp_mean = hm_org_mean
                 heat_map_sse_data.gp_var = hm_org_var
+                heat_map_sse_data.gp_covar = heat_map_data_org.gp_covar
             else:
                 heat_map_data.gp_mean = hm_org_mean
                 heat_map_data.gp_var = hm_org_var
+                heat_map_data.gp_covar = heat_map_data_org.gp_covar
 
             #Calculate SSE and SSE var
             if method.emulator == False:
@@ -1239,8 +1241,32 @@ class General_Analysis:
                     sg_mc_samples = loaded_results[run_num].configuration["MC SG Max Points"]
                 except:
                     sg_mc_samples = 2000
-                heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, 
-                                                                    best_error_metrics, method, sg_mc_samples)[0]
+
+                #For SG and MC data, we must get the sse mean and covar for each point individually
+                ei_vals = []
+                for t_val in range(len(heat_map_sse_data.get_unique_theta())):
+                    #Create feature data for candidate point
+                    theta = heat_map_sse_data.theta_vals[t_val]
+                    candidate_theta_vals = np.repeat(theta.reshape(1,-1), exp_data.get_num_x_vals() , axis =0)
+                    candidate = Data(None, exp_data.x_vals, None, None, None, None, None, None, 
+                                     simulator.bounds_theta_reg, simulator.bounds_x, cs_params.sep_fact, 
+                                     cs_params.seed)
+                    candidate.theta_vals = candidate_theta_vals  
+                    gp_emulator.cand_data = candidate
+                    #Set candidate point feature data
+                    gp_emulator.feature_cand_data = gp_emulator.featurize_data(gp_emulator.cand_data)
+                    #Evaluate GP mean/ stdev at theta
+                    cand_mean, cand_var = gp_emulator.eval_gp_mean_var_cand()
+                    #For Type 2 GP, the sse and sse_var are calculated from the gp_mean, gp_var, and experimental data
+                    cand_sse_mean, cand_sse_var = gp_emulator.eval_gp_sse_var_cand(method, exp_data)
+                    #Otherwise objective is ei
+                    ei_output = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)[0]
+                    ei_vals.append(ei_output)
+
+                # heat_map_sse_data.gp_mean, heat_map_sse_data.gp_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data, featurized_hm_data)
+                # heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, 
+                #                                                     best_error_metrics, method, sg_mc_samples)[0]
+                heat_map_sse_data.acq = np.array(ei_vals)
 
         #Save data if necessary
         if self.save_csv:
