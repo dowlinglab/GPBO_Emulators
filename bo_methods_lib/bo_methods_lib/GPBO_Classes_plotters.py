@@ -1085,7 +1085,7 @@ class Plotters:
         y_label: str, The y label for the plot
         """
         if self.analyzer.mode == "gp":
-            label_g = "\tilde{\mathscr{L}(\mathbf{"
+            label_g = "\\tilde{\mathscr{L}(\mathbf{"
         else:
             label_g = "\mathscr{L}(\mathbf{"
         if "sse" == z_choice:

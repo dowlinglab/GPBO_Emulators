@@ -252,7 +252,7 @@ class GPBO_Methods:
         """
         
         #Objective function is ln_obj if it includes the letter B
-        if self.method_name.name == "1B":
+        if self.method_name.name == "B1":
             obj = Obj_enum(2)
         else:
             obj = Obj_enum(1)

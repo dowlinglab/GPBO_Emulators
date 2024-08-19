@@ -707,7 +707,7 @@ class General_Analysis:
             data_names = []
 
             if self.mode == "gp":
-                label_g = "\tilde{\mathscr{L}}(\mathbf{"
+                label_g = "\\tilde{\mathscr{L}}(\mathbf{"
             else:
                 label_g = "\mathscr{L}(\mathbf{"
 
@@ -1004,7 +1004,7 @@ class General_Analysis:
         dir_name = os.path.join(job.fn(""), "analysis_data", "gp_evaluations", 
                                 "run_" + str(run_num), "iter_" + str(bo_iter))
         data_name = os.path.join(dir_name, "test_data.pkl")
-        found_data1, test_data = self.load_data(data_name)
+        found_data1, test_data_obj = self.load_data(data_name)
 
         #Get statepoint_info
         #Get statepoint info
@@ -1019,7 +1019,7 @@ class General_Analysis:
         method = GPBO_Methods(meth_name)
         
         #Otherwise Generate it
-        if self.save_csv or not found_data1:
+        if not self.save_csv or not found_data1:
             #Open file
             results = open_file_helper(job.fn("BO_Results.gz"))
             results_GP = open_file_helper(job.fn("BO_Results_GPs.gz"))
@@ -1041,17 +1041,17 @@ class General_Analysis:
                 test_data_sim = simulator.gen_sim_data(10, use_x, Gen_meth_enum(1), Gen_meth_enum(2), 1.0, simulator.seed, False)
                 if method.emulator == False:
                     test_data_sim = simulator.sim_data_to_sse_sim_data(method, test_data_sim, exp_data, 1.0, False)
-
+                # print(test_data_sim.y_vals)
                 gp_object.test_data = test_data_sim
                 gp_object.feature_test_data = gp_object.featurize_data(gp_object.test_data)
                 gp_object.test_data.gp_mean, gp_object.test_data.gp_var = gp_object.eval_gp_mean_var_test()  
 
-            test_data = gp_object.test_data
+            test_data_obj = gp_object.test_data
             
             if self.save_csv:
-                self.save_data(test_data, data_name)
+                self.save_data(test_data_obj, data_name)
         
-        return test_data
+        return test_data_obj
     
     def analyze_heat_maps(self, job, run_num, bo_iter, pair_id, get_ei = False):
         """
