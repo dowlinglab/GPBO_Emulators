@@ -551,16 +551,16 @@ class Plotters:
         #Fix me: Heat Maps always use just theta: Only the bar labels need to change
         for z_choice in z_choices:
             if "sse_sim" == z_choice:
-                title = r"$g(\mathbf{\theta})$"
+                title = r"$\mathscr{L}(\mathbf{\theta})$"
                 all_z_data.append(sse_sim)
                 all_z_titles.append(title)
             elif "sse_mean" == z_choice:
-                title = r"$\mathcal{M}_g(\mathbf{\theta})$"
+                title = r"$\tilde{\mathscr{L}}(\mathbf{\theta})$"
                 all_z_data.append(sse_mean)
                 all_z_titles.append(title)
             elif "sse_var" == z_choice:
                 all_z_data.append(sse_var)
-                all_z_titles.append(r"$\mathbf{\sigma}^2_{\mathcal{M}_g(\mathbf{\theta})}$")
+                all_z_titles.append(r"$\mathbf{\sigma}^2_{\tilde{\mathscr{L}}(\mathbf{\theta})}$")
             elif "acq" == z_choice:
                 all_z_data.append(ei)
                 all_z_titles.append(r"$\Xi(\mathbf{\theta})$")
