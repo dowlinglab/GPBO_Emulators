@@ -1085,17 +1085,17 @@ class Plotters:
         y_label: str, The y label for the plot
         """
         if self.analyzer.mode == "gp":
-            label_g = "\mathcal{M}_g(\mathbf{"
+            label_g = "\tilde{\mathscr{L}(\mathbf{"
         else:
-            label_g = "g(\mathbf{"
+            label_g = "\mathscr{L}(\mathbf{"
         if "sse" == z_choice:
-            theta = "\\theta}^o" if self.analyzer.mode != "acq" else "\hat{\\theta}}"
+            theta = "\\theta}^o" if self.analyzer.mode != "acq" else "\\theta^*}"
             y_label = label_g + theta + ")"
         if "min_sse" == z_choice:
             theta = "\\theta}^{\prime}" + ")"
             y_label = label_g + theta
         if "acq" == z_choice:
-            y_label = "\Xi(\mathbf{\hat{\\theta}})"
+            y_label = "\Xi(\mathbf{\\theta^*})"
         return r"$" + y_label + "$"
     
     def __get_data_to_bo_iter_term(self, data_all_iters):
@@ -1641,14 +1641,14 @@ class All_CS_Plotter(Plotters):
             df_averages = self.analyzer.get_averages()
             names = ['Avg Time', 'Median Loss', 'Avg Evals']
             std_names = ['Std Time', 'IQR Loss', 'Std Evals']
-            titles = ["Avg. Run Time (Min.)", "Median " + r"$g(\theta)$",  "Avg. " + r"$f(\cdot)$" + " Evalulations"]
+            titles = ["Avg. Run Time (Min.)", "Median " + r"$\mathscr{L}(\theta)$",  "Avg. " + r"$f(\cdot)$" + " Evalulations"]
         else:
             df_averages = self.analyzer.get_averages_best()
             names = ['Median Loss', 'Avg Evals', 'Avg Opt Acq']
             std_names = ['IQR Loss', 'Std Evals', 'Std Opt Acq']
-            titles = ["Median " + r"$g(\theta^{\prime})$" +" \n At Termination", 
-                      "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$g(\theta^{\prime})$", 
-                      "Avg. " + r"$\Xi(\hat{\theta})$" + "\n Last 10 Iterartions"]
+            titles = ["Median " + r"$\mathscr{L}(\theta^{\prime})$" +" \n At Termination", 
+                      "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\theta^{\prime})$", 
+                      "Avg. " + r"$\Xi(\theta^*)$" + "\n Last 10 Iterartions"]
 
         desired_order = ["BOD Curve", "2D Log Logistic", "Muller x0", "Simple Linear", "Yield-Loss", "Log Logistic", "Muller y0", "Complex Linear"][::-1]
         # Convert the 'Department' column to a categorical type with the specified order
