@@ -24,7 +24,7 @@ save_figs = True
 modes = ["act", "gp", "acq"]
 project = signac.get_project("GPBO_Fix")
 
-for val in [1]:
+for val in [1,11,12,13,2,3,10,14]:
     criteria_dict = {"cs_name_val" : val,
                         "ep_enum_val": 1,
                         "gp_package":"gpflow",
@@ -45,7 +45,7 @@ for val in [1]:
         #Make Parity Plots
         plotters.make_parity_plots()
 
-        #Get best plots for all objectives with all 6 methods on each subplot
+        #Get best plots for all objectives with all 7 methods on each subplot
         plotters.plot_objs_all_methods(z_choices)
 
         #Get plot with each method on a different subplot for each obj
