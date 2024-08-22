@@ -155,7 +155,7 @@ class Plotters:
         
         #Set x and y labels and save path for figure
         x_label = "Function Evaluations"
-        y_label = self.__set_ylab_from_z(z_choice)
+        y_label = self.__set_ylab_from_z(z_choice) + "\n"
         save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
         
         #Get all jobs
@@ -636,6 +636,7 @@ class Plotters:
             z_choices = [z_choices]
         all_z_data = []
         all_z_titles = []
+        all_z_titles_pre = []
         #Find z based on z_choice
         #Fix me: Heat Maps always use just theta: Only the bar labels need to change
         for z_choice in z_choices:
@@ -643,22 +644,26 @@ class Plotters:
                 title = r"$\mathscr{L}(\mathbf{\theta})$"
                 all_z_data.append(sse_sim)
                 all_z_titles.append(title)
+                all_z_titles_pre.append("SSE Loss Function, ")
             elif "sse_mean" == z_choice:
                 title = r"$\tilde{\mathscr{L}}(\mathbf{\theta})$"
                 all_z_data.append(sse_mean)
                 all_z_titles.append(title)
+                all_z_titles_pre.append("(Predicted) SSE Loss Function, ")
             elif "sse_var" == z_choice:
                 all_z_data.append(sse_var)
+                all_z_titles_pre.append("Predicted Variance, ")
                 all_z_titles.append(r"$\mathbf{\sigma}^2_{\tilde{\mathscr{L}}(\mathbf{\theta})}$")
             elif "acq" == z_choice:
                 all_z_data.append(ei)
                 all_z_titles.append(r"$\Xi(\mathbf{\theta})$")
+                all_z_titles_pre.append("Aquisition Function, ")
             else:
                 raise Warning("choice must contain 'sim', 'mean', 'var', or 'acq'")
         if len(all_z_data) == 1:
-            return all_z_data[0], all_z_titles[0]
+            return all_z_data[0], all_z_titles[0], all_z_titles_pre[0]
         else:
-            return all_z_data, all_z_titles
+            return all_z_data, all_z_titles, all_z_titles_pre
         
     def plot_hms_all_methods(self, pair, z_choice, levels, log_data = False, title = None):
         '''
@@ -723,7 +728,7 @@ class Plotters:
             train_theta = param_info_dict["train"]
             plot_axis_names = param_info_dict["names"]
             idcs_to_plot = param_info_dict["idcs"]
-            z, title2 = self.__get_z_plot_names_hms(z_choice, sim_sse_var_ei)
+            z, title2, tit2_pre = self.__get_z_plot_names_hms(z_choice, sim_sse_var_ei)
             
             #Get x and y data from test_mesh
             xx , yy = test_mesh #NxN, NxN
@@ -738,7 +743,7 @@ class Plotters:
             all_train_theta.append(train_theta)
 
             if (i == len(job_list_best) - 1) and z_choice == "sse_mean":
-                z_sim, title3 = self.__get_z_plot_names_hms("sse_sim", sim_sse_var_ei)
+                z_sim, title3, tit3_pre = self.__get_z_plot_names_hms("sse_sim", sim_sse_var_ei)
                 all_z_data.append(z_sim)
                 all_theta_opt.append(None)
                 all_theta_next.append(None)
@@ -853,8 +858,8 @@ class Plotters:
                 ax[ax_row, ax_col].scatter(theta_next[idcs_to_plot[0]], theta_next[idcs_to_plot[1]], color="black", 
                                            s=175, label ="Opt Acq",marker = "^", zorder = 3)
             if theta_opt is not None:
-                ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", 
-                                           s=150, label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.3, 
+                ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="darkmagenta", 
+                                           s=160, label = "Min Obj", marker = ".", edgecolor= "magenta", linewidth=0.7, 
                                            zorder = 4)
                 
             if z_choice == "acq":
@@ -868,7 +873,7 @@ class Plotters:
                     cbar.ax.locator_params(axis = 'y', nbins=7)
                 fmt_acq = matplotlib.ticker.FuncFormatter(self.custom_format) 
                 cbar.ax.yaxis.set_major_formatter(fmt_acq)
-                cbar.ax.set_ylabel(title2, fontsize=self.other_fntsz, fontweight='bold')
+                cbar.ax.set_ylabel(tit2_pre + title2, fontsize=self.other_fntsz, fontweight='bold')
                 cbar.ax.tick_params(labelsize=int(self.other_fntsz/2), labelleft = False)
                 if use_log10:
                     cbar.formatter.set_powerlimits((0, 0))
@@ -877,7 +882,7 @@ class Plotters:
             if i != len(job_list_best):
                 label_name = self.method_names[ax_idx]
             else:
-                label_name = title3
+                label_name = tit3_pre + title3 
             self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, label_name)
 
         #Get legend information and make colorbar on 1st plot
@@ -896,7 +901,7 @@ class Plotters:
             except:
                 cbar.ax.locator_params(axis = 'y', nbins=7)
             cbar.ax.tick_params(labelsize=self.other_fntsz)
-            cbar.ax.set_ylabel(title2, fontsize=self.other_fntsz, fontweight='bold')
+            cbar.ax.set_ylabel(tit2_pre + title2, fontsize=self.other_fntsz, fontweight='bold')
                         
         #Print the title
         if title is not None:
@@ -995,7 +1000,7 @@ class Plotters:
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True, sharey = True)
 
         #Find z based on z_choice
-        all_z_data, all_z_titles = self.__get_z_plot_names_hms(z_choices, sim_sse_var_ei)
+        all_z_data, all_z_titles, all_z_titles_pre = self.__get_z_plot_names_hms(z_choices, sim_sse_var_ei)
             
         #Loop over number of subplots
         for i, ax in enumerate(axes.flatten()):
@@ -1071,8 +1076,8 @@ class Plotters:
                     ax.scatter(theta_next[idcs_to_plot[0]],theta_next[idcs_to_plot[1]],color="black",s=175,
                                label ="Opt Acq",marker= "^", zorder = 3)
                 if theta_opt is not None:
-                    ax.scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="white", s=150, 
-                               label = "Min Obj", marker = ".", edgecolor= "k", linewidth=0.5, zorder = 4)
+                    ax.scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="darkmagenta", s=160, 
+                               label = "Min Obj", marker = ".", edgecolor= "magenta", linewidth=0.7, zorder = 4)
 
                 #Set plot details
                 self.__set_subplot_details(ax, xx, yy, None, None, all_z_titles[i])
@@ -1479,8 +1484,8 @@ class Plotters:
                                            color="blue", label = "True", s=200, marker = (5,1), zorder = 2)
             if theta_opt is not None:
                 ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], 
-                                           color="white", s=150, label = "Min Obj", marker = ".", 
-                                           edgecolor= "k", linewidth=0.3, zorder = 4)
+                                           color="darkmagenta", s=160, label = "Min Obj", marker = ".", 
+                                           edgecolor= "magenta", linewidth=0.7, zorder = 4)
 
             #Set plot details
             self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, z_titles[i])
@@ -1634,6 +1639,7 @@ class All_CS_Plotter(Plotters):
         assert isinstance(save_figs, bool), "save_figs must be boolean"
         assert isinstance(analyzer, All_CS_Analysis), "analyzer must be an instance of All_CS_Analysis"
         super().__init__(analyzer, save_figs = False)
+        self.hatches = ['*', '\\', '\\', 'o', 'o', 'o', 'o', 'o']
 
     def __create_subplots(self, num_subplots, sharex = "row", sharey = 'none'):
         """
@@ -1661,14 +1667,14 @@ class All_CS_Plotter(Plotters):
             sharex = True
 
         #Make enough rows and columns and get close to equal number of each
-        row_num = int(np.floor(np.sqrt(num_subplots)))
-        col_num = int(np.ceil(num_subplots/row_num))
+        row_num = 1
+        col_num = num_subplots
         assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
         total_ax_num = row_num * col_num
 
         #Creat subplots
         gridspec_kw = {'wspace': 0.4, 'hspace': 0.2}
-        fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*12), squeeze = False, sharex = sharex, sharey = sharey)
+        fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*16), squeeze = False, sharex = sharex, sharey = sharey)
 
         #Turn off unused axes
         for i, axs in enumerate(axes.flatten()):
@@ -1778,7 +1784,7 @@ class All_CS_Plotter(Plotters):
         """
         assert mode in ["overall", "best"], "mode must be 'overall' or 'best'"
         #Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(4, sharex = False, sharey = True)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = False, sharey = True)
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
         if mode == "overall":
             add_value = 1
@@ -1804,7 +1810,7 @@ class All_CS_Plotter(Plotters):
         desired_order = ["Large Linear", "Muller y0", "Log Logistic", "Yield-Loss", "Simple Linear", "Muller x0", "2D Log Logistic", "BOD Curve"]
         # Convert the 'Department' column to a categorical type with the specified order
         df_averages['CS Name'] = pd.Categorical(df_averages['CS Name'], categories=desired_order, ordered=True)
-        df_averages['BO Method'] = pd.Categorical(df_averages['BO Method'], categories=self.method_names + ["NLS"], ordered=True)
+        df_averages['BO Method'] = pd.Categorical(df_averages['BO Method'], categories=["NLS"] + self.method_names[::-1], ordered=True)
         # Sort the DataFrame by the 'Department' column
         df_averages = df_averages.sort_values(['CS Name', 'BO Method'])
         t_label_lst = list(df_averages["CS Name"].unique())
@@ -1813,7 +1819,8 @@ class All_CS_Plotter(Plotters):
         axes = axes.flatten()
         for i in range(len(self.analyzer.meth_val_list)+ add_value):
             if i < len(self.analyzer.meth_val_list):
-                meth_val = self.analyzer.meth_val_list[i]
+                #loop over methods n reverse order
+                meth_val = self.analyzer.meth_val_list[-1 -i]
                 meth_averages = df_averages.loc[df_averages["BO Method"] == self.method_names[meth_val-1]]
                 label = self.method_names[meth_val-1]
                 color = self.colors[meth_val-1]
@@ -1830,7 +1837,7 @@ class All_CS_Plotter(Plotters):
                 #     std_val = None
                 rects = axes[j].barh(y_locs + i*bar_size, avg_val, xerr = std_val,
                                 align='center', height=bar_size, color=color, 
-                                label=label)
+                                label=label, hatch = self.hatches[-1 -i])
                 #Set plot details on last iter
                 if i == len(self.analyzer.meth_val_list) + add_value - 1:
                     axes[j].set(yticks=y_locs + padding*len(self.analyzer.cs_list)/2, yticklabels=t_label_lst, ylim=[0 - padding , len(y_locs)])
@@ -1860,7 +1867,7 @@ class All_CS_Plotter(Plotters):
                 
         #Plots legend
         if labels:
-            fig.legend(handles, labels, loc= "upper center", ncol=4, fontsize = self.other_fntsz, bbox_to_anchor=(0.55, 1.10), 
+            fig.legend(reversed(handles), reversed(labels), loc= "upper center", ncol=4, fontsize = self.other_fntsz, bbox_to_anchor=(0.55, 1.10), 
                        borderaxespad=0)
             
         plt.tight_layout()
