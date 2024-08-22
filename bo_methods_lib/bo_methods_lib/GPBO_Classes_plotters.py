@@ -6,11 +6,13 @@ import pandas as pd
 import os
 import matplotlib.ticker
 from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
+from matplotlib.collections import PatchCollection
 import json
 from matplotlib import colormaps
 from collections.abc import Iterable
 import string
 from sklearn.metrics import r2_score, mean_squared_error
+from matplotlib.lines import Line2D
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -212,8 +214,10 @@ class Plotters:
                 #For result where run num list is the number of runs, print a solid line 
                 # print(ax_idx, emph_runs[ax_idx], run_number)
                 if emph_run == run_number:
+                    # ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], 
+                    #                         label = label, drawstyle='steps')
                     ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], 
-                                            label = label, drawstyle='steps')
+                                             drawstyle='steps')
                 else:
                     ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 0.2, color = self.colors[ax_idx], 
                                             linestyle='--', drawstyle='steps')
@@ -231,8 +235,9 @@ class Plotters:
                     else:
                         x = [1, data.shape[1]]
                         y = [list(data_true.values())[0], list(data_true.values())[0]]
-                    ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='solid', 
-                                               label = "Least Squares")
+                    # ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='solid', 
+                    #                            label = "Least Squares")
+                    ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='solid')
 
                 #Set plot details 
                 title = self.method_names[ax_idx]
@@ -245,15 +250,83 @@ class Plotters:
                 self.__set_subplot_details(ax[ax_row, ax_col], x_space, data_df_j, None, None, title)
 
         #Set handles and labels and scale axis if necessary
+        #Plot dummy legend
+
+        # define an object that will be used by the legend
+        class MulticolorPatch(object):
+            def __init__(self, cmap, edgecolor = None, linewidth = None, ncolors=100):
+                self.ncolors = ncolors
+                self.edgecolor = edgecolor
+                self.linewidth = linewidth
+                
+                if isinstance(cmap, str):
+                    self.cmap = plt.get_cmap(cmap)
+                else:    
+                    self.cmap = cmap
+                
+        # define a handler for the MulticolorPatch object
+        class MulticolorPatchHandler(object):
+            def legend_artist(self, legend, orig_handle, fontsize, handlebox):
+                n = orig_handle.ncolors
+                width, height = handlebox.width, handlebox.height
+                patches = []
+
+                for i, c in enumerate(orig_handle.cmap(i/n) for i in range(n)):
+                    patches.append(
+                        plt.Rectangle([width / n * i - handlebox.xdescent, 
+                                                -handlebox.ydescent],
+                                    width / n,
+                                    height, 
+                                    facecolor=c, 
+                                    edgecolor=orig_handle.edgecolor,
+                                    linewidth=orig_handle.linewidth))
+                    
+
+                patch = PatchCollection(patches,match_original=True)
+
+                handlebox.add_artist(patch)
+
+                if orig_handle.edgecolor is not None:
+                    linestyle = "--"
+                else:
+                    linestyle = "solid"
+
+                border_rect = plt.Rectangle(
+                    [handlebox.xdescent - 1, -handlebox.ydescent - 1],  # Position slightly offset
+                    width + 2,  # Width slightly larger to fit around the patches
+                    height + 2,  # Height slightly larger to fit around the patches
+                    edgecolor='black',  # Border color
+                    linestyle=linestyle,  # Dashed border style
+                    linewidth=1,  # Border line width
+                    fill=False)  # No fill color
+
+                # Add the border rectangle to handlebox
+                handlebox.add_artist(border_rect)
+
+                return patch
+    
+        # Add a dummy legend
+        ax[0,0].plot([], [], color = "darkslategrey", linestyle='solid', label = "NLS")
         handles, labels = ax[0,0].get_legend_handles_labels()
+        handles_extra = [MulticolorPatch("gist_rainbow"), MulticolorPatch("gist_rainbow", edgecolor = "white", linewidth=0.5)]
+        labels_extra = ["Our Methods (Best)", "Our Methods (Restarts)"]
+        handles += handles_extra
+        labels += labels_extra
+
+        
+        # labels.append("Our Methods")
         for k, axs in enumerate(ax.flatten()):
-            if k+1 < subplots_needed:
-                h, l = axs.get_legend_handles_labels()
-                handles.extend(h)
-                labels.extend(l)
+            # if k+1 < subplots_needed:
+            #     h, l = axs.get_legend_handles_labels()
+            #     handles.extend(h)
+            #     labels.extend(l)
             if log_data == False:
                 axs.set_yscale("log")
-
+        
+        # print(handles, labels)
+        # Display the legend
+        fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.45), 
+                   borderaxespad=0, handler_map={MulticolorPatch: MulticolorPatchHandler()})
         #Plots legend and title
         plt.tight_layout()
         
@@ -1108,10 +1181,13 @@ class Plotters:
         --------
         y_label: str, The y label for the plot
         """
+        
         if self.analyzer.mode == "gp":
             label_g = "\\tilde{\mathscr{L}}(\mathbf{"
+            label_a = "(Predicted) SSE Loss Function, "
         else:
             label_g = "\mathscr{L}(\mathbf{"
+            label_a = "SSE Loss Function, "
         if "sse" == z_choice:
             theta = "\\theta}^o" if self.analyzer.mode != "acq" else "\\theta^*}"
             y_label = label_g + theta + ")"
@@ -1119,8 +1195,9 @@ class Plotters:
             theta = "\\theta}^{\prime}" + ")"
             y_label = label_g + theta
         if "acq" == z_choice:
+            label_a = "Aquisition Function, "
             y_label = "\Xi(\mathbf{\\theta^*})"
-        return r"$" + y_label + "$"
+        return label_a + r"$" + y_label + "$"
     
     def __get_data_to_bo_iter_term(self, data_all_iters):
         """
@@ -1701,7 +1778,7 @@ class All_CS_Plotter(Plotters):
         """
         assert mode in ["overall", "best"], "mode must be 'overall' or 'best'"
         #Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = False, sharey = True)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(4, sharex = False, sharey = True)
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
         if mode == "overall":
             add_value = 1
@@ -1802,4 +1879,5 @@ class All_CS_Plotter(Plotters):
             plt.close()
 
         # return df_averages
+        return df_averages
 
