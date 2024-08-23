@@ -287,7 +287,7 @@ class Plotters:
                 handlebox.add_artist(patch)
 
                 if orig_handle.edgecolor is not None:
-                    linestyle = "--"
+                    linestyle = (0, (5, 5))  # Dashed line style
                 else:
                     linestyle = "solid"
 
@@ -308,7 +308,7 @@ class Plotters:
         # Add a dummy legend
         ax[0,0].plot([], [], color = "darkslategrey", linestyle='solid', label = "NLS")
         handles, labels = ax[0,0].get_legend_handles_labels()
-        handles_extra = [MulticolorPatch("gist_rainbow"), MulticolorPatch("gist_rainbow", edgecolor = "white", linewidth=0.5)]
+        handles_extra = [MulticolorPatch("gist_rainbow"), MulticolorPatch("gist_rainbow", edgecolor = "white", linewidth=0.25)]
         labels_extra = ["Our Methods (Best)", "Our Methods (Restarts)"]
         handles += handles_extra
         labels += labels_extra
@@ -1784,12 +1784,10 @@ class All_CS_Plotter(Plotters):
         """
         assert mode in ["overall", "best"], "mode must be 'overall' or 'best'"
         #Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(3, sharex = False, sharey = True)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(5, sharex = False, sharey = True)
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
-        if mode == "overall":
-            add_value = 1
-        else:
-            add_value = 1
+        
+        add_value = 1
         bar_size = 1/(len(self.analyzer.cs_list) + add_value)
         padding = 1/(len(self.analyzer.cs_list))
 
@@ -1801,11 +1799,12 @@ class All_CS_Plotter(Plotters):
             titles = ["Avg. Run Time (Min.)", "Median " + r"$\mathscr{L}(\theta)$",  "Avg. " + r"$f(\cdot)$" + " Evalulations"]
         else:
             df_averages = self.analyzer.get_averages_best()
-            names = ['Median Loss', 'Avg Evals', 'Avg Opt Acq']
-            std_names = ['IQR Loss', 'Std Evals', 'Std Opt Acq']
-            titles = ["Median " + r"$\mathscr{L}(\theta^{\prime})$" +" \n At Termination", 
-                      "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\theta^{\prime})$", 
-                      "Avg. " + r"$\Xi(\theta^*)$" + "\n Last 10 Iterartions"]
+            names = ['Median Loss', 'Avg Evals', 'Avg Evals Tot', 'Avg Time', 'Avg Opt Acq']
+            std_names = ['IQR Loss', 'Std Evals', 'Std Evals Tot', 'Std Time', 'Std Opt Acq']
+            titles = ["Median " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$" +" \n at Termination", 
+                      "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$", 
+                      "Total " + r"$f(\cdot)$" + " Evalulations", "Avg. Run Time (min)",
+                      "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions"]
 
         desired_order = ["Large Linear", "Muller y0", "Log Logistic", "Yield-Loss", "Simple Linear", "Muller x0", "2D Log Logistic", "BOD Curve"]
         # Convert the 'Department' column to a categorical type with the specified order
@@ -1814,6 +1813,7 @@ class All_CS_Plotter(Plotters):
         # Sort the DataFrame by the 'Department' column
         df_averages = df_averages.sort_values(['CS Name', 'BO Method'])
         t_label_lst = list(df_averages["CS Name"].unique())
+        t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
 
         y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+add_value) + padding)
         axes = axes.flatten()
@@ -1857,8 +1857,9 @@ class All_CS_Plotter(Plotters):
             # axes[1].set_xlim([0 - padding, 10**6])
         else:
             axes[0].set_xscale("log")
+            axes[3].set_xscale("log")
             # axes[0].set_xlim([0 - padding, 10**4])
-            axes[2].set_xscale("log")
+            axes[4].set_xscale("log")
 
         
 
@@ -1872,7 +1873,6 @@ class All_CS_Plotter(Plotters):
             
         plt.tight_layout()
 
-        # if self.save_figs:
         # self.__save_fig("Results/" + str(mode) + "_bar")
             
         #Save or show figure

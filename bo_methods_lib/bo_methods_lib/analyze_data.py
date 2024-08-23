@@ -1528,6 +1528,10 @@ class All_CS_Analysis(General_Analysis):
             #Otherwise, concatenate the DataFrame to df_all_best
             else:
                 df_all_ls_best = pd.concat([df_all_ls_best, df_best_ls], axis = 0)
+        
+        if 'Max Evals' not in df_all_ls_best.columns:
+            # Compute the maximum 'iter' for each 'run'
+            df_all_ls_best['Max Evals'] = df_all_ls_best.groupby(['CS Name', 'Run'])['BO Iter'].transform('max')
 
         #Scale the objective function values for log conv and log indep
         condition = df_all_best['BO Method'].isin(["Log Conventional", "Log Independence"])
@@ -1537,19 +1541,24 @@ class All_CS_Analysis(General_Analysis):
         #Group the data by CS Name and BO Method, and get the mean and std for each group over all runs
         grouped_stats = df_all_best.groupby(["CS Name", "BO Method"]).agg({
         obj_col_sse_min: ['median', self.__get_iqr],
-        'BO Iter': ['mean', 'std']}).reset_index()
+        'BO Iter': ['mean', 'std'],
+        'Max Evals': ['mean', 'std'], 
+        'Total Run Time': ['mean', 'std']}).reset_index()
         grouped_stats_ls = df_all_ls_best.groupby(["CS Name", "BO Method"]).agg({
         "Min Obj Cum.": ['median', self.__get_iqr],
-        'BO Iter': ['mean', 'std']}).reset_index()
+        'BO Iter': ['mean', 'std'],
+        'Max Evals': ['mean', 'std'], 
+        'Run Time': ['mean', 'std']}).reset_index()
 
+        cols = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals', 'Avg Evals Tot', 'Std Evals Tot', 'Avg Time', 'Std Time']
         # Flatten the MultiIndex columns
-        grouped_stats.columns = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']
-        grouped_stats_ls.columns = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']
+        grouped_stats.columns = cols
+        grouped_stats_ls.columns = cols
         
         # Create a new DataFrame with results
         df_acq_opt = self.get_acq_last10_avg()
-        df_avg_best = grouped_stats[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']]
-        df_avg_ls_best = grouped_stats_ls[['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals']]
+        df_avg_best = grouped_stats[cols]
+        df_avg_ls_best = grouped_stats_ls[cols]
         df_avg_best_w_acq = pd.merge(df_acq_opt, df_avg_best, on=['CS Name', 'BO Method'])
         df_avg_all = pd.concat([df_avg_best_w_acq, df_avg_ls_best], axis = 0)
 
@@ -1731,7 +1740,7 @@ class LS_Analysis(General_Analysis):
             #Initialize results dataframe
             column_names = ["Run", "Iter", 'Min Obj Act', 'Theta Min Obj', "Min Obj Cum.", 
                             "Theta Min Obj Cum.",'MSE', 'l2 norm', "jac evals", "Optimality", "Termination", 
-                            "Run Time"]
+                            "Run Time", "Max Evals"]
             column_names_iter = ["Run", "Iter", 'Min Obj Act', 'Theta Min Obj', "Min Obj Cum.", 
                                  "Theta Min Obj Cum.",'MSE', 'l2 norm']
             ls_results = pd.DataFrame(columns=column_names)
