@@ -1784,34 +1784,68 @@ class All_CS_Plotter(Plotters):
         """
         assert mode in ["overall", "best"], "mode must be 'overall' or 'best'"
         #Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(5, sharex = False, sharey = True)
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
         
-        add_value = 1
+        if mode == "overall":
+            add_value = 0
+            fig, axes, num_subplots, plot_mapping = self.__create_subplots(1, sharex = False, sharey = True)
+        else:
+            add_value = 1
+            fig, axes, num_subplots, plot_mapping = self.__create_subplots(5, sharex = False, sharey = True)
+
         bar_size = 1/(len(self.analyzer.cs_list) + add_value)
         padding = 1/(len(self.analyzer.cs_list))
 
         #Get jobs associated with the case studies given
-        if mode == "overall":
-            df_averages = self.analyzer.get_averages()
-            names = ['Avg Time', 'Median Loss', 'Avg Evals']
-            std_names = ['Std Time', 'IQR Loss', 'Std Evals']
-            titles = ["Avg. Run Time (Min.)", "Median " + r"$\mathscr{L}(\theta)$",  "Avg. " + r"$f(\cdot)$" + " Evalulations"]
-        else:
-            df_averages = self.analyzer.get_averages_best()
-            names = ['Median Loss', 'Avg Evals', 'Avg Evals Tot', 'Avg Time', 'Avg Opt Acq']
-            std_names = ['IQR Loss', 'Std Evals', 'Std Evals Tot', 'Std Time', 'Std Opt Acq']
-            titles = ["Median " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$" +" \n at Termination", 
-                      "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$", 
-                      "Total " + r"$f(\cdot)$" + " Evalulations", "Avg. Run Time (min)",
-                      "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions"]
-
+        df_averages = self.analyzer.get_averages_best()
         desired_order = ["Large Linear", "Muller y0", "Log Logistic", "Yield-Loss", "Simple Linear", "Muller x0", "2D Log Logistic", "BOD Curve"]
         # Convert the 'Department' column to a categorical type with the specified order
         df_averages['CS Name'] = pd.Categorical(df_averages['CS Name'], categories=desired_order, ordered=True)
         df_averages['BO Method'] = pd.Categorical(df_averages['BO Method'], categories=["NLS"] + self.method_names[::-1], ordered=True)
+        
         # Sort the DataFrame by the 'Department' column
         df_averages = df_averages.sort_values(['CS Name', 'BO Method'])
+
+        def calculate_new_column(group):
+            # Calculate Avg Evals for NLS in the current group
+            nls_avg_evals = group.loc[group['BO Method'] == 'NLS', 'Avg Evals'].values[0]
+            nls_std_evals = group.loc[group['BO Method'] == 'NLS', 'Std Evals'].values[0]
+            
+            # Calculate the new column
+            group['D'] = nls_avg_evals - group['Avg Evals']
+            group['Std D'] = np.sqrt(nls_std_evals**2 + group['Std Evals']**2)
+
+            # Calculate the new column
+            group['F_Time_Parity'] = (group['Avg Time'] / 60) / group['D']
+            
+            # Calculate the uncertainty in (Avg Time / 60)
+            std_avg_time_div_60 = group['Std Time'] / 60
+            
+            # Calculate the uncertainty in the new column
+            group['F_Par_std'] = group['F_Time_Parity'] * np.sqrt(
+                (std_avg_time_div_60 / (group['Avg Time'] / 60))**2 +
+                (group['Std D'] / group['D'])**2
+            )
+            group = group.drop(columns=['Std D', 'D'])
+            
+            return group
+
+        # Apply the calculation for each group
+        df_averages = df_averages.groupby('CS Name', group_keys=False).apply(calculate_new_column)
+
+        if mode == "best":
+            names = ['Median Loss', 'Avg Evals', 'Avg Evals Tot', 'Avg Time', 'Avg Opt Acq']
+            std_names = ['IQR Loss', 'Std Evals', 'Std Evals Tot', 'Std Time', 'Std Opt Acq']
+            titles = ["Median " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$" +" \n at Termination", 
+                        "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$", 
+                        "Total " + r"$f(\cdot)$" + " Evalulations", "Avg. Run Time (min)",
+                        "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions"]
+        else:
+            names = ['F_Time_Parity']
+            std_names = ['F_Par_std']
+            titles = ["Avg. " + r"$f(\cdot)$" + " Time for Parity"]
+
+        # print(df_averages[0:8])
         t_label_lst = list(df_averages["CS Name"].unique())
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
 
@@ -1835,24 +1869,28 @@ class All_CS_Plotter(Plotters):
                 std_val = meth_averages[std_names[j]]/scl_value
                 # if mode == "overall" and j == 1:
                 #     std_val = None
+                avg_val = np.maximum(avg_val, 0)
+                std_val = np.maximum(std_val, 0)
                 rects = axes[j].barh(y_locs + i*bar_size, avg_val, xerr = std_val,
                                 align='center', height=bar_size, color=color, 
                                 label=label, hatch = self.hatches[-1 -i])
                 #Set plot details on last iter
                 if i == len(self.analyzer.meth_val_list) + add_value - 1:
                     axes[j].set(yticks=y_locs + padding*len(self.analyzer.cs_list)/2, yticklabels=t_label_lst, ylim=[0 - padding , len(y_locs)])
-                    # axes[j].xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=4))
+                    # if mode == "overall":
+                        # axes[j].xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=3))
                     self.__set_subplot_details(axes[j], None, None, titles[j])
                     if (mode == "best" and j == 1) or (mode == "overall" and j ==2):
                         axes[j].set_xlim(left=0)
-
+        
         for n,ax in enumerate(axes):
             ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=4))
-            ax.text(-0.1, 1.05, "("+string.ascii_uppercase[n]+")", transform=ax.transAxes, 
-            size=20, weight='bold')
+            if n > 0:
+                ax.text(-0.1, 1.05, "("+string.ascii_uppercase[n]+")", transform=ax.transAxes, 
+                size=20, weight='bold')
             
         if mode == "overall":
-            axes[1].set_xscale("log")
+            # pass
             axes[0].set_xscale("log")
             # axes[1].set_xlim([0 - padding, 10**6])
         else:
@@ -1868,7 +1906,11 @@ class All_CS_Plotter(Plotters):
                 
         #Plots legend
         if labels:
-            fig.legend(reversed(handles), reversed(labels), loc= "upper center", ncol=4, fontsize = self.other_fntsz, bbox_to_anchor=(0.55, 1.10), 
+            if mode == "overall":
+                fig.legend(reversed(handles), reversed(labels), loc= "upper left", ncol=1, fontsize = self.other_fntsz, bbox_to_anchor=(1.05, 0.95), 
+                       borderaxespad=0)
+            else:
+                fig.legend(reversed(handles), reversed(labels), loc= "upper center", ncol=4, fontsize = self.other_fntsz, bbox_to_anchor=(0.55, 1.10), 
                        borderaxespad=0)
             
         plt.tight_layout()
