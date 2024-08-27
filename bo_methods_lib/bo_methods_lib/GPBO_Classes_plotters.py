@@ -1843,7 +1843,7 @@ class All_CS_Plotter(Plotters):
         else:
             names = ['F_Time_Parity']
             std_names = ['F_Par_std']
-            titles = ["Avg. " + r"$f(\cdot)$" + " Time for Parity"]
+            titles = ["Avg. " + r"$f(\cdot)$" + " Time for Parity (min)"]
 
         # print(df_averages[0:8])
         t_label_lst = list(df_averages["CS Name"].unique())
