@@ -1730,9 +1730,9 @@ class All_CS_Plotter(Plotters):
         #Turn on tick parameters and bin number
         ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
         ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
-        # ax.minorticks_on() # turn on minor ticks
-        # ax.tick_params(which="minor",direction="in",top=True, right=True)
-        # ax.locator_params(axis='x', nbins=self.xbins)
+        ax.minorticks_on() # turn on minor ticks
+        ax.tick_params(which="minor",direction="in",top=True, right=True)
+        ax.locator_params(axis='x', nbins=self.xbins)
 
         return ax
     
