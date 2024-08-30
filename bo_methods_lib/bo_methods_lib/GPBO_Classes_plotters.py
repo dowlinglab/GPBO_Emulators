@@ -1565,7 +1565,7 @@ class Plotters:
         subplots_needed = len(runs)
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False, sharey=False)
         #Print the title and labels as appropriate
-        self.__set_plot_titles(fig, None, "True Values", "Predicted Values")
+        self.__set_plot_titles(fig, None, "True Values, " + r"$\mathbf{y}$", "Predicted Values, " + r"$\mathbf{\mu}$" + "\n")
 
         #Loop over different hyperparameters (number of subplots)
         for i, ax in enumerate(axes.flatten()):
@@ -1606,9 +1606,9 @@ class Plotters:
                 handles, labels = axes[0, -1].get_legend_handles_labels()  
                 
         #Plots legend
-        if labels:
-            fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.4), 
-                       borderaxespad=0)
+        # if labels:
+        #     fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.4), 
+        #                borderaxespad=0)
 
         plt.tight_layout()
             
@@ -1730,9 +1730,9 @@ class All_CS_Plotter(Plotters):
         #Turn on tick parameters and bin number
         ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
         ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
-        ax.minorticks_on() # turn on minor ticks
-        ax.tick_params(which="minor",direction="in",top=True, right=True)
-
+        # ax.minorticks_on() # turn on minor ticks
+        # ax.tick_params(which="minor",direction="in",top=True, right=True)
+        # ax.locator_params(axis='x', nbins=self.xbins)
 
         return ax
     
@@ -1787,11 +1787,11 @@ class All_CS_Plotter(Plotters):
         t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
         
         if mode == "overall":
-            add_value = 0
-            fig, axes, num_subplots, plot_mapping = self.__create_subplots(1, sharex = False, sharey = True)
+            add_value = 1
+            fig, axes, num_subplots, plot_mapping = self.__create_subplots(2, sharex = False, sharey = True)
         else:
             add_value = 1
-            fig, axes, num_subplots, plot_mapping = self.__create_subplots(5, sharex = False, sharey = True)
+            fig, axes, num_subplots, plot_mapping = self.__create_subplots(4, sharex = False, sharey = True)
 
         bar_size = 1/(len(self.analyzer.cs_list) + add_value)
         padding = 1/(len(self.analyzer.cs_list))
@@ -1808,12 +1808,12 @@ class All_CS_Plotter(Plotters):
 
         def calculate_new_column(group):
             # Calculate Avg Evals for NLS in the current group
-            nls_avg_evals = group.loc[group['BO Method'] == 'NLS', 'Avg Evals'].values[0]
-            nls_std_evals = group.loc[group['BO Method'] == 'NLS', 'Std Evals'].values[0]
+            nls_avg_evals = group.loc[group['BO Method'] == 'NLS', 'Avg Evals Tot'].values[0]
+            nls_std_evals = group.loc[group['BO Method'] == 'NLS', 'Std Evals Tot'].values[0]
             
             # Calculate the new column
-            group['D'] = nls_avg_evals - group['Avg Evals']
-            group['Std D'] = np.sqrt(nls_std_evals**2 + group['Std Evals']**2)
+            group['D'] = nls_avg_evals - group['Avg Evals Tot']
+            group['Std D'] = np.sqrt(nls_std_evals**2 + group['Std Evals Tot']**2)
 
             # Calculate the new column
             group['F_Time_Parity'] = (group['Avg Time'] / 60) / group['D']
@@ -1834,16 +1834,16 @@ class All_CS_Plotter(Plotters):
         df_averages = df_averages.groupby('CS Name', group_keys=False).apply(calculate_new_column)
 
         if mode == "best":
-            names = ['Median Loss', 'Avg Evals', 'Avg Evals Tot', 'Avg Time', 'Avg Opt Acq']
-            std_names = ['IQR Loss', 'Std Evals', 'Std Evals Tot', 'Std Time', 'Std Opt Acq']
+            names = ['Median Loss', 'Avg Evals', 'Avg Evals Tot',  'Avg Opt Acq']
+            std_names = ['IQR Loss', 'Std Evals', 'Std Evals Tot',  'Std Opt Acq']
             titles = ["Median " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$" +" \n at Termination", 
                         "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$", 
-                        "Total " + r"$f(\cdot)$" + " Evalulations", "Avg. Run Time (min)",
+                        "Total " + r"$f(\cdot)$" + " Evalulations",
                         "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions"]
         else:
-            names = ['F_Time_Parity']
-            std_names = ['F_Par_std']
-            titles = ["Avg. " + r"$f(\cdot)$" + " Time for Parity (min)"]
+            names = ['Avg Time','F_Time_Parity']
+            std_names = ['Std Time','F_Par_std']
+            titles = ["Avg. Run Time (min)","Estimated " + r"$f(\cdot)$" + " Cost \n for Parity (min)"]
 
         # print(df_averages[0:8])
         t_label_lst = list(df_averages["CS Name"].unique())
@@ -1874,32 +1874,28 @@ class All_CS_Plotter(Plotters):
                 rects = axes[j].barh(y_locs + i*bar_size, avg_val, xerr = std_val,
                                 align='center', height=bar_size, color=color, 
                                 label=label, hatch = self.hatches[-1 -i])
-                #Set plot details on last iter
-                if i == len(self.analyzer.meth_val_list) + add_value - 1:
-                    axes[j].set(yticks=y_locs + padding*len(self.analyzer.cs_list)/2, yticklabels=t_label_lst, ylim=[0 - padding , len(y_locs)])
-                    # if mode == "overall":
-                        # axes[j].xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=3))
+                
+                
+                if i == 0:
+                    #Set plot details on last iter
                     self.__set_subplot_details(axes[j], None, None, titles[j])
-                    if (mode == "best" and j == 1) or (mode == "overall" and j ==2):
-                        axes[j].set_xlim(left=0)
+                    axes[j].set(yticks=y_locs + padding*len(self.analyzer.cs_list)/2, yticklabels=t_label_lst, ylim=[0 - padding , len(y_locs)])
         
-        for n,ax in enumerate(axes):
-            ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=4))
-            if n > 0:
-                ax.text(-0.1, 1.05, "("+string.ascii_uppercase[n]+")", transform=ax.transAxes, 
-                size=20, weight='bold')
-            
+
         if mode == "overall":
             # pass
             axes[0].set_xscale("log")
-            # axes[1].set_xlim([0 - padding, 10**6])
+            axes[1].set_xscale("log")
         else:
             axes[0].set_xscale("log")
             axes[3].set_xscale("log")
-            # axes[0].set_xlim([0 - padding, 10**4])
-            axes[4].set_xscale("log")
 
-        
+        for n,ax in enumerate(axes):
+            # ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=7, min_n_ticks=4))
+            ax.grid()
+            if len(axes) > 1:
+                ax.text(-0.1, 1.05, "("+string.ascii_uppercase[n]+")", transform=ax.transAxes, 
+                size=20, weight='bold')
 
         #Add legends and handles from last subplot that is visible
         handles, labels = axes[-1].get_legend_handles_labels()  
@@ -1915,7 +1911,7 @@ class All_CS_Plotter(Plotters):
             
         plt.tight_layout()
 
-        # self.__save_fig("Results/" + str(mode) + "_bar")
+        # self.__save_fig("Results/" + str(mode) + "_bar_tot")
             
         #Save or show figure
         if self.save_figs:
