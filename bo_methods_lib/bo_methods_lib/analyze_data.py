@@ -1368,6 +1368,12 @@ class All_CS_Analysis(General_Analysis):
         #Sort by method and CS Name
         df_all_jobs, job_list, __ = self.get_df_all_jobs()
         df_all_jobs = self.__sort_by_cs_meth(df_all_jobs)
+
+        if self.save_csv or not os.path.exists(self.study_results_dir + "all_data.csv"):
+            #Save the data to a csv
+            os.makedirs(self.study_results_dir, exist_ok=True)
+            path_save = os.path.join(self.study_results_dir, "all_data.csv")
+            df_all_jobs.to_csv(path_save, index = False)
         return df_all_jobs
     
     def get_acq_last10_avg(self):
@@ -1477,10 +1483,172 @@ class All_CS_Analysis(General_Analysis):
             save_path = os.path.join(self.study_results_dir, "all_cs_avg_overall.csv")
             self.save_data(df_avg_all, save_path)
 
-        
-
         return df_avg_all
     
+    def get_percent_true_found(self):
+
+        if self.mode == "act":
+            obj_col_sse_min = "Min Obj Act Cum"
+        elif self.mode == "acq":
+            obj_col_sse_min = "Acq Obj Act Cum"
+        elif self.mode == "gp":
+            obj_col_sse_min = "Min Obj GP Cum"
+
+        #Loop over each case study
+        for i, cs_name in enumerate(self.cs_list):
+            for j, meth_val in enumerate(self.meth_val_list):
+                #Create a criteria dictionary for the case study
+                criteria_dict = {"cs_name_val" : cs_name,
+                                "meth_name_val": meth_val}
+                #Evaluate the best run for the case study for each method
+                try:
+                    df_best_runs, job_list_best_runs = self.get_best_all_runs(criteria_dict)
+                    #On iter 1, create the DataFrame df_all_best
+                    if i==0 and j == 0 and len(df_best_runs) > 0:
+                        df_all_best = df_best_runs
+                    #Otherwise, concatenate the DataFrame to df_all_best
+                    else:
+                        df_all_best = pd.concat([df_all_best, df_best_runs], axis = 0)
+                except:
+                    pass
+            #Add nonlinear least squares results
+            #Get SSE data from least squares
+            #Create a criteria dictionary for the case study
+            criteria_dict_ls = {"cs_name_val" : cs_name,
+                                "meth_name_val": self.meth_val_list}
+            ls_analyzer = LS_Analysis(criteria_dict_ls, self.project, self.save_csv)
+            ls_results = ls_analyzer.least_squares_analysis()
+            #Make a df that is only the iters of the best run
+            df_sorted = ls_results.sort_values(by=['Min Obj Cum.', 'Run', 'Iter'], ascending=True)
+            #Keep only the highest value for each run
+            df_best_ls = df_sorted.groupby(['Run']).first().reset_index()
+            df_best_ls["CS Name"] = get_cs_class_from_val(cs_name).name
+            df_best_ls["BO Method"] = "NLS"
+            df_best_ls.rename(columns={'Iter': 'BO Iter'}, inplace=True)
+            if i==0 and len(df_best_ls) > 0:
+                df_all_ls_best = df_best_ls
+            #Otherwise, concatenate the DataFrame to df_all_best
+            else:
+                df_all_ls_best = pd.concat([df_all_ls_best, df_best_ls], axis = 0)
+        
+        # print(df_all_ls_best.head())
+        if 'Max Evals' not in df_all_ls_best.columns:
+            # Compute the maximum 'iter' for each 'run'
+            df_all_ls_best['Max Evals'] = df_all_ls_best.groupby(['CS Name', 'Run'])['BO Iter'].transform('max')
+
+        # Methods of interest
+        em_meths = ['Independence', 'Log Independence', 'Sparse Grid', 'Monte Carlo', 'E[SSE]']
+        st_meths = ['Conventional', 'Log Conventional']
+        # em_meths = ['Sparse Grid', 'Monte Carlo', 'Independence', 'E[SSE]', 'Log Independence']
+        # st_meths = ['Conventional', 'Log Conventional']
+        # em_cs = ['Simple Linear', 'BOD Curve', 'Yield-Loss', 'Log Logistic']
+        # em_cs = ['2D Log Logistic', 'Large Linear']
+        em_cs = ['Muller x0']
+
+        #Scale the objective function values for log conv and log indep
+        condition = df_all_best['BO Method'].isin(["Log Conventional", "Log Independence"])
+        # Multiply values in column B by 3 where the condition is true
+        df_all_best.loc[condition, obj_col_sse_min] = np.exp(df_all_best.loc[condition, obj_col_sse_min])
+
+        #Calculate how often the 
+        results = []
+
+        nls_df = df_all_ls_best[(df_all_ls_best['CS Name'].isin(em_cs))]
+        # Calculate the number of rows where L2 Norm Theta < 10^-2
+        try:
+            nls_df['l2 norm'] = nls_df['l2 norm'].str.strip('[]').astype(float)
+        except:
+            pass
+        nls_small_l2 = nls_df[nls_df['l2 norm'].values <= 10**-2]
+        # Calculate the percentage
+        per_nls = (len(nls_small_l2) / len(nls_df)) * 100
+        range_min_specified = nls_df['l2 norm'].min()
+        range_max_specified = nls_df['l2 norm'].max()
+        median_specified = nls_df['l2 norm'].median()
+        # Append NLS results
+        results.append({
+            'Method': 'NLS',
+            'CS Names': str(em_cs),
+            'Type': 'NLS',
+            'Percentage L2 < 10^-2': per_nls,
+            'Range Min': range_min_specified,
+            'Range Max': range_max_specified,
+            'Median': median_specified
+        })
+
+        for method in st_meths:
+            st_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin([method]))]#df_all_best[~df_all_best['BO Method'].isin(em_meths)]
+            # em_df = df_all_best[(df_all_best['CS Name'] != 'Muller y0') & (df_all_best['BO Method'].isin(em_meths))] #df_all_best[df_all_best['BO Method'].isin(em_meths)]
+            # st_df = df_all_best[(df_all_best['CS Name'] != 'Muller y0') & (~df_all_best['BO Method'].isin(em_meths))]#df_all_best[~df_all_best['BO Method'].isin(em_meths)]
+            # Calculate the number of rows where L2 Norm Theta < 10^-2
+            st_small_l2 = st_df[st_df['L2 Norm Theta'] <= 10**-2]
+            # Calculate the percentage
+            per_st = (len(st_small_l2) / len(st_df)) * 100
+            range_min_specified = st_df['L2 Norm Theta'].min()
+            range_max_specified = st_df['L2 Norm Theta'].max()
+            median_specified = st_df['L2 Norm Theta'].median()
+            results.append({
+            'Method': method,
+            'CS Names': str(em_cs),
+            'Type': 'Standard',
+            'Percentage L2 < 10^-2': per_st,
+            'Range Min': range_min_specified,
+            'Range Max': range_max_specified,
+            'Median': median_specified
+        })
+            
+        # Filter rows with these methods
+        for method in em_meths:
+            em_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin([method]))] #df_all_best[df_all_best['BO Method'].isin(em_meths)]
+            em_small_l2 = em_df[em_df['L2 Norm Theta'] <= 10**-2]
+            per_em = (len(em_small_l2) / len(em_df)) * 100
+            range_min_specified = em_df['L2 Norm Theta'].min()
+            range_max_specified = em_df['L2 Norm Theta'].max()
+            median_specified = em_df['L2 Norm Theta'].median()
+            results.append({
+            'Method': method,
+            'CS Names': str(em_cs),
+            'Type': 'Emulator',
+            'Percentage L2 < 10^-2': per_em,
+            'Range Min': range_min_specified,
+            'Range Max': range_max_specified,
+            'Median': median_specified
+            })
+
+        # Convert results list to DataFrame
+        results_df = pd.DataFrame(results)
+        os.makedirs(self.study_results_dir, exist_ok=True)
+        save_path = os.path.join(self.study_results_dir , "percent_true_MulX.csv")
+        # self.save_data(results_df, save_path)
+
+        st_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin(st_meths))]#df_all_best[~df_all_best['BO Method'].isin(em_meths)]
+        # em_df = df_all_best[(df_all_best['CS Name'] != 'Muller y0') & (df_all_best['BO Method'].isin(em_meths))] #df_all_best[df_all_best['BO Method'].isin(em_meths)]
+        # st_df = df_all_best[(df_all_best['CS Name'] != 'Muller y0') & (~df_all_best['BO Method'].isin(em_meths))]#df_all_best[~df_all_best['BO Method'].isin(em_meths)]
+        # Calculate the number of rows where L2 Norm Theta < 10^-2
+        st_small_l2 = st_df[st_df['L2 Norm Theta'] <= 10**-2]
+        # Calculate the percentage
+        per_st = (len(st_small_l2) / len(st_df)) * 100
+        range_min_specified = st_df['L2 Norm Theta'].min()
+        range_max_specified = st_df['L2 Norm Theta'].max()
+        median_specified = st_df['L2 Norm Theta'].median()
+        print("All St")
+        print(per_st)
+        print(range_min_specified, range_max_specified, median_specified)
+
+        em_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin(em_meths))] #df_all_best[df_all_best['BO Method'].isin(em_meths)]
+        em_small_l2 = em_df[em_df['L2 Norm Theta'] <= 10**-2]
+        per_em = (len(em_small_l2) / len(em_df)) * 100
+        range_min_specified = em_df['L2 Norm Theta'].min()
+        range_max_specified = em_df['L2 Norm Theta'].max()
+        median_specified = em_df['L2 Norm Theta'].median()
+        print("All Em")
+        print(per_em)
+        print(range_min_specified, range_max_specified, median_specified)
+
+        # self.save_data(df_all_best, self.study_results_dir+"df_all_best.csv")
+        
+        return None
+
     def get_averages_best(self):
         """
         Get average computational time, max function evaltuations, and sse values for all case studies
@@ -1634,7 +1802,7 @@ class LS_Analysis(General_Analysis):
         #Calculate scaled l2
         del_theta = scaler.transform(theta_guess.reshape(1,-1)) - scaler.transform(self.simulator.theta_true.reshape(1,-1))
         theta_l2_norm = np.linalg.norm(del_theta, ord = 2, axis = 1) / np.sqrt(len(theta_guess))
-        self.iter_l2_norm.append(theta_l2_norm)
+        self.iter_l2_norm.append(float(theta_l2_norm))
         self.iter_count += 1
 
         return error
@@ -1818,7 +1986,7 @@ class LS_Analysis(General_Analysis):
         elif found_data1:
             ls_results["Theta Min Obj"] = ls_results["Theta Min Obj"].apply(self.str_to_array_df_col)
             ls_results["Theta Min Obj Cum."] = ls_results["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
-
+        
         return ls_results
     
     def categ_min(self, tot_runs = None):
