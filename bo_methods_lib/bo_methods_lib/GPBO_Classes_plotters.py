@@ -168,7 +168,7 @@ class Plotters:
         #Initialize list of maximum bo iterations for each method
         meth_bo_max_evals = np.zeros(len(self.method_names))
         #Number of subplots is the length of the best jobs list
-        subplots_needed = len(self.method_names)
+        subplots_needed = len(self.method_names) + 1
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
         
         #Print the title and labels as appropriate
@@ -178,8 +178,9 @@ class Plotters:
         for i in range(len(job_pointer)):
             #Assert job exists, if it does, great,
             #Get data
-            data, data_names, data_true, sp_data = self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
+            data, data_names, data_true, sp_data, data_true_med = self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
             GPBO_method_val = sp_data["meth_name_val"]
+            max_iters = sp_data["bo_iter_tot"]
             shrt_name = GPBO_Methods(Method_name_enum(GPBO_method_val)).report_name
 
             #Get Number of runs in the job
@@ -219,6 +220,8 @@ class Plotters:
                     #                         label = label, drawstyle='steps')
                     ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], 
                                              drawstyle='steps')
+                    ax[-1, -1].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], 
+                                             drawstyle='steps')
                 else:
                     ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 0.2, color = self.colors[ax_idx], 
                                             linestyle='--', drawstyle='steps')
@@ -239,16 +242,33 @@ class Plotters:
                     # ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='solid', 
                     #                            label = "Least Squares")
                     ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='solid')
+                    ax[-1, -1].plot(x, y, color = "darkslategrey", linestyle='solid')
 
+                #Plot median value if applicable
+                ls_xset_med  = False
+                if data_true_med is not None and j == data.shape[0] - 1:
+                    ls_xset_med  = True
+                    data_med_ls = data_true_med[z_choice]
+                    x_med = data_med_ls["Iter"].to_numpy()
+                    if z_choice == "min_sse":
+                        y_med = data_med_ls["Min Obj Cum."].to_numpy()
+                    else:
+                        y_med = data_med_ls["Min Obj Act"].to_numpy()
+                    ax[ax_row, ax_col].plot(x_med, y_med, color = "darkslategrey", linestyle='dotted')
+                    ax[-1, -1].plot(x_med, y_med, color = "darkslategrey", linestyle='dotted')
+                
                 #Set plot details 
                 title = self.method_names[ax_idx]
                 if bo_len > meth_bo_max_evals[ax_idx]:
                     meth_bo_max_evals[ax_idx] = bo_len
-                    x_space = bo_space
-                elif ls_xset and max(x) > meth_bo_max_evals[ax_idx]:
-                    meth_bo_max_evals[ax_idx] = max(x)
-                    x_space = np.linspace(1, max(x), max(x))
+                    x_space = np.linspace(1, max_iters, max_iters)
+                elif ls_xset and ls_xset_med:
+                    max_x_nls = max(max(x), max(x_med))
+                    meth_bo_max_evals[ax_idx] = max_x_nls
+                    x_space = np.linspace(1, max_x_nls, max_x_nls)
+                    
                 self.__set_subplot_details(ax[ax_row, ax_col], x_space, data_df_j, None, None, title)
+            self.__set_subplot_details(ax[-1, -1], x_space, data_df_j, None, None, title)
 
         #Set handles and labels and scale axis if necessary
         #Plot dummy legend
@@ -307,7 +327,8 @@ class Plotters:
                 return patch
     
         # Add a dummy legend
-        ax[0,0].plot([], [], color = "darkslategrey", linestyle='solid', label = "NLS")
+        ax[0,0].plot([], [], color = "darkslategrey", linestyle='solid', label = "NLS (Best)")
+        ax[0,0].plot([], [], color = "darkslategrey", linestyle='dotted', label = "NLS (Median)")
         handles, labels = ax[0,0].get_legend_handles_labels()
         handles_extra = [MulticolorPatch("gist_rainbow"), MulticolorPatch("gist_rainbow", edgecolor = "white", linewidth=0.25)]
         labels_extra = ["Our Methods (Best)", "Our Methods (Restarts)"]
@@ -326,7 +347,7 @@ class Plotters:
         
         # print(handles, labels)
         # Display the legend
-        fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.45), 
+        fig.legend(handles, labels, loc= "upper center", fontsize = self.other_fntsz, bbox_to_anchor=(0.5, 1.05), ncol = len(labels),
                    borderaxespad=0, handler_map={MulticolorPatch: MulticolorPatchHandler()})
         #Plots legend and title
         plt.tight_layout()
@@ -531,7 +552,7 @@ class Plotters:
         #Loop over different methdods (number of subplots)
         for i in range(len(job_pointer)):     
             #Get data
-            data, data_names, data_true, sp_data = self.analyzer.analyze_obj_vals(job_pointer[i], z_choices)
+            data, data_names, data_true, sp_data, data_true_med = self.analyzer.analyze_obj_vals(job_pointer[i], z_choices)
             GPBO_method_val = sp_data["meth_name_val"]
             #Create label based on method #
             label = self.method_names[GPBO_method_val-1] 

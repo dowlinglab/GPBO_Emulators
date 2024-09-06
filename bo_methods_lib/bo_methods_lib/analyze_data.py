@@ -763,7 +763,7 @@ class General_Analysis:
         # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
         found_data1, df_job = self.load_data(tab_data_path)
         found_data2, theta_true_data = self.load_data(true_param_data_path)
-
+        data_median = None
         if not found_data1 or not found_data2:
             df_job, theta_true_data_w_bnds = self.get_study_data_signac(job, save_csv = False)
             theta_true_data = theta_true_data_w_bnds[0]
@@ -789,6 +789,8 @@ class General_Analysis:
             df_sorted = ls_results.sort_values(by=['Min Obj Cum.', 'Iter'], ascending=True)
             best_run = df_sorted["Run"].iloc[0]
             data_true = ls_results[ls_results['Run'] == best_run].copy()
+            median_run = df_sorted["Run"].iloc[len(df_sorted) // 2]
+            data_median = ls_results[ls_results['Run'] == median_run].copy()
             # data_true = min(ls_results["Min Obj Cum."])
             data = np.zeros((tot_runs, max_iters, len(z_choice)))
         elif data_type == "params":
@@ -798,7 +800,7 @@ class General_Analysis:
         #Sort df_job by run and iter
         df_job = df_job.sort_values(by=['Run Number', 'BO Iter'], ascending=True)
 
-        return df_job, data, data_true, sp_data, tot_runs
+        return df_job, data, data_true, sp_data, tot_runs, data_median
     
     def analyze_obj_vals(self, job, z_choices):
         """
@@ -824,8 +826,9 @@ class General_Analysis:
         for i in range(len(z_choices)):
             assert z_choices[i] in ['min_sse','sse','acq'],"z_choices items must be 'min_sse', 'sse', or 'acq'"
 
-        df_job, data, data_true_val, sp_data, tot_runs = self.__preprocess_analyze(job, z_choices, "objs")
+        df_job, data, data_true_val, sp_data, tot_runs, data_true_med_val = self.__preprocess_analyze(job, z_choices, "objs")
         data_true = {}
+        data_true_med = {}
         col_name, data_names = self.__z_choice_helper(z_choices, data_true, "objs")
 
         unique_run_nums = pd.unique(df_job["Run Number"])
@@ -839,15 +842,18 @@ class General_Analysis:
                 #If sse in log choices, the "true data" is sse data from least squares
                 if "sse" in z_choices[z]:
                     data_true[z_choices[z]] = data_true_val
+                    data_true_med[z_choices[z]] = data_true_med_val
                     #If the z_choice is sse and the method has a log objective function value, un logscale data
                     if sp_data["meth_name_val"] in [2,4]:
                         z_data = np.exp(z_data.values.astype(float))
                 else:
                     data_true[z_choices[z]] = None
+                    data_true_med[z_choices[z]] = None
                 #Set data to be where it needs to go in the above data matrix
                 data[i,:len(z_data),z] = z_data
 
-        return data, data_names, data_true, sp_data
+        return data, data_names, data_true, sp_data, data_true_med
+
         
     def analyze_thetas(self, job, z_choice):
         """
@@ -869,7 +875,7 @@ class General_Analysis:
         assert isinstance(z_choice, (str)), "z_choice must be a str"
         assert z_choice in ['min_sse','sse','acq'],"z_choice must be 'min_sse', 'sse', or 'acq'"
 
-        df_job, data, data_true, sp_data, tot_runs = self.__preprocess_analyze(job, z_choice, "params")
+        df_job, data, data_true, sp_data, tot_runs, data_true_med = self.__preprocess_analyze(job, z_choice, "params")
         col_name, data_names = self.__z_choice_helper(z_choice, data_true, "params")
         #Loop over runs
         unique_run_nums = pd.unique(df_job["Run Number"])
