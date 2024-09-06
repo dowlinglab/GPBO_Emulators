@@ -247,26 +247,28 @@ class Plotters:
                 #Plot median value if applicable
                 ls_xset_med  = False
                 if data_true_med is not None and j == data.shape[0] - 1:
-                    ls_xset_med  = True
-                    data_med_ls = data_true_med[z_choice]
-                    x_med = data_med_ls["Iter"].to_numpy()
-                    if z_choice == "min_sse":
-                        y_med = data_med_ls["Min Obj Cum."].to_numpy()
-                    else:
-                        y_med = data_med_ls["Min Obj Act"].to_numpy()
-                    ax[ax_row, ax_col].plot(x_med, y_med, color = "k", linestyle='dotted')
-                    ax[-1, -1].plot(x_med, y_med, color = "k", linestyle='dotted')
+                    if isinstance(data_ls, pd.DataFrame):
+                        ls_xset_med  = True
+                        data_med_ls = data_true_med[z_choice]
+                        x_med = data_med_ls["Iter"].to_numpy()
+                        if z_choice == "min_sse":
+                            y_med = data_med_ls["Min Obj Cum."].to_numpy()
+                        else:
+                            y_med = data_med_ls["Min Obj Act"].to_numpy()
+                        ax[ax_row, ax_col].plot(x_med, y_med, color = "k", linestyle='dotted')
+                        ax[-1, -1].plot(x_med, y_med, color = "k", linestyle='dotted')
                 
                 #Set plot details 
+                max_x = max_iters
                 title = self.method_names[ax_idx]
-                if bo_len > meth_bo_max_evals[ax_idx]:
-                    meth_bo_max_evals[ax_idx] = bo_len
-                    x_space = np.linspace(1, max_iters, max_iters)
-                elif ls_xset and ls_xset_med:
+                if ls_xset and ls_xset_med:
                     max_x_nls = max(max(x), max(x_med))
-                    meth_bo_max_evals[ax_idx] = max_x_nls
-                    x_space = np.linspace(1, max_x_nls, max_x_nls)
-                    
+                    max_x = max(max_x_nls, max_iters)
+                elif ls_xset:
+                    max_x = max(max(x), max_iters)
+                
+                meth_bo_max_evals[ax_idx] = max_x
+                x_space = np.linspace(1, max_x, max_x)
                 self.__set_subplot_details(ax[ax_row, ax_col], x_space, data_df_j, None, None, title)
             self.__set_subplot_details(ax[-1, -1], x_space, data_df_j, None, None, title)
 
@@ -327,8 +329,10 @@ class Plotters:
                 return patch
     
         # Add a dummy legend
-        ax[0,0].plot([], [], color = "darkslategrey", linestyle='solid', label = "NLS (Best)")
-        ax[0,0].plot([], [], color = "k", linestyle='dotted', label = "NLS (Median)")
+        if ls_xset:
+            ax[0,0].plot([], [], color = "darkslategrey", linestyle='solid', label = "NLS (Best)")
+        if ls_xset_med:
+            ax[0,0].plot([], [], color = "k", linestyle='dotted', label = "NLS (Median)")
         handles, labels = ax[0,0].get_legend_handles_labels()
         handles_extra = [MulticolorPatch("gist_rainbow"), MulticolorPatch("gist_rainbow", edgecolor = "white", linewidth=0.25)]
         labels_extra = ["Our Methods (Best)", "Our Methods (Restarts)"]
@@ -554,6 +558,7 @@ class Plotters:
             #Get data
             data, data_names, data_true, sp_data, data_true_med = self.analyzer.analyze_obj_vals(job_pointer[i], z_choices)
             GPBO_method_val = sp_data["meth_name_val"]
+            max_iters = sp_data["bo_iter_tot"]
             #Create label based on method #
             label = self.method_names[GPBO_method_val-1] 
                     
@@ -615,20 +620,22 @@ class Plotters:
                     #Plot median value if applicable
                     ls_xset_med  = False
                     if data_true_med is not None and i == len(job_pointer) - 1:
-                        ls_xset_med  = True
                         data_med_ls = data_true_med[z_choices[k]]
-                        x_med = data_med_ls["Iter"].to_numpy()
-                        if z_choices[k] == "min_sse":
-                            y_med = data_med_ls["Min Obj Cum."].to_numpy()
-                        else:
-                            y_med = data_med_ls["Min Obj Act"].to_numpy()
-                        ax.plot(x_med, y_med, color = "k", linestyle='dotted', label = "NLS (Median)")
+                        if isinstance(data_ls, pd.DataFrame):
+                            ls_xset_med  = True
+                            x_med = data_med_ls["Iter"].to_numpy()
+                            if z_choices[k] == "min_sse":
+                                y_med = data_med_ls["Min Obj Cum."].to_numpy()
+                            else:
+                                y_med = data_med_ls["Min Obj Act"].to_numpy()
+                            ax.plot(x_med, y_med, color = "k", linestyle='dotted', label = "NLS (Median)")
                 
                     #Set plot details 
+                    max_x = max_iters
                     if ls_xset and ls_xset_med:
                         max_x = max(max(x), max(x_med))
-                    else:
-                        max_x = bo_len_max
+                    elif ls_xset:
+                        max_x = max(max_iters,max(x))
 
                     #Set plot details
                     bo_space_org = np.linspace(1,max_x,max_x)
@@ -649,7 +656,7 @@ class Plotters:
 
         #Plots legend and title
         plt.tight_layout()
-        fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.95), 
+        fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.93), 
                    borderaxespad=0)
         
         #save or show figure
