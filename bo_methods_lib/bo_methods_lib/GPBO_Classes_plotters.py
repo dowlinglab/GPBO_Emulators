@@ -170,9 +170,6 @@ class Plotters:
         #Number of subplots is the length of the best jobs list
         subplots_needed = len(self.method_names) + 1
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
-        
-        #Print the title and labels as appropriate
-        self.__set_plot_titles(fig, title, x_label, y_label)
 
         #Loop over different jobs
         for i in range(len(job_pointer)):
@@ -271,6 +268,9 @@ class Plotters:
                 x_space = np.linspace(1, max_x, max_x)
                 self.__set_subplot_details(ax[ax_row, ax_col], x_space, data_df_j, None, None, title)
             self.__set_subplot_details(ax[-1, -1], x_space, data_df_j, None, None, title)
+
+        #Print the title and labels as appropriate
+        self.__set_plot_titles(fig, title, x_label, y_label)
 
         #Set handles and labels and scale axis if necessary
         #Plot dummy legend
@@ -537,7 +537,7 @@ class Plotters:
         
         #Create figure and axes. Number of subplots is 1 for each acq, sse, sse_sim etc.
         subplots_needed = len(z_choices)
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
         
         #Print the title and labels as appropriate
         self.__set_plot_titles(fig, title, None, None)
@@ -631,15 +631,24 @@ class Plotters:
                             ax.plot(x_med, y_med, color = "k", linestyle='dotted', label = "NLS (Median)")
                 
                     #Set plot details 
-                    max_x = max_iters
+                    if i == 0:
+                        max_x = max_iters
                     if ls_xset and ls_xset_med:
-                        max_x = max(max(x), max(x_med))
+                        max_x = max(max(x), max(x_med), max_iters)
                     elif ls_xset:
                         max_x = max(max_iters,max(x))
+                    elif ls_xset_med:
+                        max_x = max(max_iters,max(x_med))
+
+                    # print(max_x, ls_xset, ls_xset_med, k, z_choices[k])
 
                     #Set plot details
-                    bo_space_org = np.linspace(1,max_x,max_x)
-                    self.__set_subplot_details(ax, bo_space_org, None, x_label, rf"${data_names[k]}$", None)
+                    if z_choices[k] == "acq":
+                        bo_space_org = np.linspace(1,max_iters,max_iters)
+                    else:
+                        bo_space_org = np.linspace(1,max_x,max_x)
+                        
+                    self.__set_subplot_details(ax, bo_space_org, None, x_label, rf"${data_names[k]}$", None)         
 
         #Get legend and handles
         handles, labels = axes[0,0].get_legend_handles_labels()

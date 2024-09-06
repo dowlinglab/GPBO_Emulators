@@ -786,7 +786,7 @@ class General_Analysis:
             ls_analyzer = LS_Analysis(self.criteria_dict, self.project, self.save_csv)
             ls_results = ls_analyzer.least_squares_analysis()
             #Make a df that is only the iters of the best run
-            df_sorted = ls_results.sort_values(by=['Min Obj Cum.', 'Iter'], ascending=True)
+            df_sorted = ls_results.sort_values(by=['Min Obj Cum.', 'Iter'], ascending=[True, False])
             best_run = df_sorted["Run"].iloc[0]
             data_true = ls_results[ls_results['Run'] == best_run].copy()
             median_run = df_sorted["Run"].iloc[len(df_sorted) // 2]
@@ -840,6 +840,7 @@ class General_Analysis:
                 df_run = df_job[df_job["Run Number"] == run]  
                 z_data = df_run[col_name[z]]
                 #If sse in log choices, the "true data" is sse data from least squares
+                # print(z_choices[z])
                 if "sse" in z_choices[z]:
                     data_true[z_choices[z]] = data_true_val
                     data_true_med[z_choices[z]] = data_true_med_val
