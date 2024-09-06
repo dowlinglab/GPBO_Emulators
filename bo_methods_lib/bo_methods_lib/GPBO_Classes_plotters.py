@@ -254,8 +254,8 @@ class Plotters:
                         y_med = data_med_ls["Min Obj Cum."].to_numpy()
                     else:
                         y_med = data_med_ls["Min Obj Act"].to_numpy()
-                    ax[ax_row, ax_col].plot(x_med, y_med, color = "darkslategrey", linestyle='dotted')
-                    ax[-1, -1].plot(x_med, y_med, color = "darkslategrey", linestyle='dotted')
+                    ax[ax_row, ax_col].plot(x_med, y_med, color = "k", linestyle='dotted')
+                    ax[-1, -1].plot(x_med, y_med, color = "k", linestyle='dotted')
                 
                 #Set plot details 
                 title = self.method_names[ax_idx]
@@ -328,7 +328,7 @@ class Plotters:
     
         # Add a dummy legend
         ax[0,0].plot([], [], color = "darkslategrey", linestyle='solid', label = "NLS (Best)")
-        ax[0,0].plot([], [], color = "darkslategrey", linestyle='dotted', label = "NLS (Median)")
+        ax[0,0].plot([], [], color = "k", linestyle='dotted', label = "NLS (Median)")
         handles, labels = ax[0,0].get_legend_handles_labels()
         handles_extra = [MulticolorPatch("gist_rainbow"), MulticolorPatch("gist_rainbow", edgecolor = "white", linewidth=0.25)]
         labels_extra = ["Our Methods (Best)", "Our Methods (Restarts)"]
@@ -610,10 +610,28 @@ class Plotters:
                             else:
                                 y = data_ls["Min Obj Act"].to_numpy()
                             ax.plot(x, y, color = "darkslategrey", linestyle='solid', 
-                                                    label = "Least Squares")
+                                                    label = "NLS (Best)")
+
+                    #Plot median value if applicable
+                    ls_xset_med  = False
+                    if data_true_med is not None and i == len(job_pointer) - 1:
+                        ls_xset_med  = True
+                        data_med_ls = data_true_med[z_choices[k]]
+                        x_med = data_med_ls["Iter"].to_numpy()
+                        if z_choices[k] == "min_sse":
+                            y_med = data_med_ls["Min Obj Cum."].to_numpy()
+                        else:
+                            y_med = data_med_ls["Min Obj Act"].to_numpy()
+                        ax.plot(x_med, y_med, color = "k", linestyle='dotted', label = "NLS (Median)")
+                
+                    #Set plot details 
+                    if ls_xset and ls_xset_med:
+                        max_x = max(max(x), max(x_med))
+                    else:
+                        max_x = bo_len_max
 
                     #Set plot details
-                    bo_space_org = np.linspace(1,bo_len_max,100)
+                    bo_space_org = np.linspace(1,max_x,max_x)
                     self.__set_subplot_details(ax, bo_space_org, None, x_label, rf"${data_names[k]}$", None)
 
         #Get legend and handles
@@ -621,10 +639,17 @@ class Plotters:
         if log_data == False:
             for ax in axes.flatten():
                 ax.set_yscale("log")
-        
+
+        #Get correct legend order
+        desired_order = ["NLS (Best)", "NLS (Median)"] + self.method_names
+        order_dict = {label: i for i, label in enumerate(desired_order)}
+        handles_labels = zip(handles, labels)
+        handles_labels_sorted = sorted(handles_labels, key=lambda x: order_dict.get(x[1], float('inf')))
+        handles, labels = zip(*handles_labels_sorted)
+
         #Plots legend and title
         plt.tight_layout()
-        fig.legend(handles, labels, loc= "center left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.60), 
+        fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.95), 
                    borderaxespad=0)
         
         #save or show figure
