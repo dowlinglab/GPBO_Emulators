@@ -4611,10 +4611,10 @@ class GPBO_Driver:
                     obj_counter = 0 
                     
                 #set flag if opt acq. func val is less than the tolerance 3 times in a row
-                if all(results_df["Opt Acq"].tail(3) < self.cs_params.acq_tol) and i > 2:
+                if all(results_df["Opt Acq"].tail(3) < self.cs_params.acq_tol) and i >= 4:
                     acq_flag = True
                 #set flag if small sse progress over 1/3 of total iteration budget
-                if obj_counter >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac) and i > 0:
+                if obj_counter >= int(self.cs_params.bo_iter_tot*self.bo_iter_term_frac) and i >= 4:
                     obj_flag = True
 
                 flags = [acq_flag, obj_flag]
@@ -4630,7 +4630,7 @@ class GPBO_Driver:
                     terminate = True
                     why_term = why_terms[-1]
                     break                    
-                elif obj_counter >= int(self.cs_params.bo_iter_tot*0.5) and self.cs_params.bo_iter_tot > 10:
+                elif obj_counter >= int(self.cs_params.bo_iter_tot*0.5) and self.cs_params.bo_iter_tot >= 10:
                     terminate = True
                     why_term = why_terms[1]
                     break
