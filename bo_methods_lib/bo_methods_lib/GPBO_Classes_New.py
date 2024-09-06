@@ -4630,7 +4630,7 @@ class GPBO_Driver:
                     terminate = True
                     why_term = why_terms[-1]
                     break                    
-                elif obj_counter >= int(self.cs_params.bo_iter_tot*0.5) and self.cs_params.bo_iter_tot >= 10:
+                elif obj_counter >= int(self.cs_params.bo_iter_tot*0.5) and self.cs_params.bo_iter_tot >= 5:
                     terminate = True
                     why_term = why_terms[1]
                     break
