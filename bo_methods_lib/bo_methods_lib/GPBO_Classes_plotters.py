@@ -13,6 +13,7 @@ from collections.abc import Iterable
 import string
 from sklearn.metrics import r2_score, mean_squared_error
 from matplotlib.lines import Line2D
+import sklearn
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -721,7 +722,9 @@ class Plotters:
             sim_sse_var_ei, test_mesh, param_info_dict, sp_data = analysis_list
             #Set correct values based on propagation of errors for gp
             sim_sse_var_ei = self.__scale_z_data(sim_sse_var_ei, sp_data, log_data)
-            
+            MAE = sklearn.metrics.mean_absolute_error(sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten())
+            print(df_best["BO Method"].values[i])
+            print(MAE)
             theta_true = param_info_dict["true"]
             theta_opt = param_info_dict["min_sse"]
             theta_next = param_info_dict["opt_acq"]
@@ -1578,6 +1581,8 @@ class Plotters:
                 sim_data = test_data.y_vals 
                 gp_mean = test_data.gp_mean
                 gp_stdev = np.sqrt(abs(test_data.gp_var))
+                print(test_data.gp_var)
+                print(np.mean(test_data.gp_var))
 
                 #Plot x and y data
                 ax.plot(sim_data, sim_data, color = "k")
