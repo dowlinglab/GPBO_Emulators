@@ -19,17 +19,19 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 
 #Set Stuff
 meth_name_val_list = [1, 2, 3, 4, 5, 6, 7]
-save_csv = True #Set to False if you don't want to save/resave csvs
+save_csv = False #Set to False if you don't want to save/resave csvs
 save_figs = True
 modes = ["act", "gp", "acq"]
 project = signac.get_project("GPBO_Fix")
 
-for val in [1,11,12,13,2,3,10,14]:
+for val in [1,2,3,10,11,12,13,14]:
+    print(val)
     criteria_dict = {"cs_name_val" : val,
                         "ep_enum_val": 1,
                         "gp_package":"gpflow",
                         "meth_name_val": {"$in": meth_name_val_list}}
     for mode in modes:
+        print(mode)
         analyzer = General_Analysis(criteria_dict, project, mode, save_csv)
         plotters = Plotters(analyzer, save_figs)
 
@@ -43,7 +45,7 @@ for val in [1,11,12,13,2,3,10,14]:
         titles = ["Min SSE Parameter Values", "Min SSE Parameter Values Overall", "Optimal Acq Func Parameter Values"]
 
         #Make Parity Plots
-        plotters.make_parity_plots()
+        # plotters.make_parity_plots()
 
         #Get best plots for all objectives with all 7 methods on each subplot
         plotters.plot_objs_all_methods(z_choices)
