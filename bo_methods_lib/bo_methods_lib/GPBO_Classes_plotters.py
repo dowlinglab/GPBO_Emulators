@@ -155,7 +155,7 @@ class Plotters:
         assert isinstance(log_data, bool), "log_data must be boolean:"
         
         #Set x and y labels and save path for figure
-        x_label = "Function Evaluations"
+        x_label = "Loss Evaluations"
         y_label = self.__set_ylab_from_z(z_choice) + "\n"
         save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
         
@@ -171,6 +171,9 @@ class Plotters:
         subplots_needed = len(self.method_names) + 1
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
 
+        #Print the title and labels as appropriate
+        self.__set_plot_titles(fig, title, x_label, y_label)
+        
         #Loop over different jobs
         for i in range(len(job_pointer)):
             #Assert job exists, if it does, great,
@@ -267,10 +270,7 @@ class Plotters:
                 meth_bo_max_evals[ax_idx] = max_x
                 x_space = np.linspace(1, max_x, max_x)
                 self.__set_subplot_details(ax[ax_row, ax_col], x_space, data_df_j, None, None, title)
-            self.__set_subplot_details(ax[-1, -1], x_space, data_df_j, None, None, title)
-
-        #Print the title and labels as appropriate
-        self.__set_plot_titles(fig, title, x_label, y_label)
+            self.__set_subplot_details(ax[-1, -1], x_space, data_df_j, None, None, "All Methods")
 
         #Set handles and labels and scale axis if necessary
         #Plot dummy legend
@@ -525,7 +525,7 @@ class Plotters:
         """
         #Break down plot dict and check for correct things
         save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
-        x_label = "Function Evaluations"
+        x_label = "Loss Evaluations"
         
         #Assert Statements
         assert isinstance(z_choices, (list, str)), "z_choices must be list or string"
@@ -851,6 +851,10 @@ class Plotters:
                 GPBO_method_val = all_sp_data[i]["meth_name_val"]
                 ax_idx = int(GPBO_method_val - 1)  
                 ax_row, ax_col = plot_mapping[ax_idx]
+                # except:
+                #     ax_idx = 0
+                #     ax_row, ax_col = plot_mapping[ax_idx]
+                
             else:
                 ax_idx = len(job_list_best)
                 ax_row, ax_col = plot_mapping[ax_idx]
@@ -952,8 +956,6 @@ class Plotters:
 
         #Get legend information and make colorbar on 1st plot
         handles, labels = ax[0, 0].get_legend_handles_labels() 
-
-        
         if log_data is True and not need_unscale:
             title2 = "log(" + title2 + ")"
 
@@ -990,6 +992,11 @@ class Plotters:
         self.__set_plot_titles(fig, title, None, None)
         
         #Plots legend and title
+        # if len(labels) > 0:
+        #     # fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, 
+        #     #         bbox_to_anchor=(0.2, 0.85), borderaxespad=0)
+        #     fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, 
+        #             bbox_to_anchor=(0.23, 0.87), borderaxespad=0)
         fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, 
                    bbox_to_anchor=(0.98, 0.49), borderaxespad=0)
 
@@ -1705,8 +1712,8 @@ class All_CS_Plotter(Plotters):
         #Asserts
         assert isinstance(save_figs, bool), "save_figs must be boolean"
         assert isinstance(analyzer, All_CS_Analysis), "analyzer must be an instance of All_CS_Analysis"
-        super().__init__(analyzer, save_figs = False)
-        self.hatches = ['*', '\\', '\\', 'o', 'o', 'o', 'o', 'o']
+        super().__init__(analyzer, save_figs)
+        self.hatches = ['*', '\\', '\\', 'o', 'o', 'o', 'o', 'o']    
 
     def __create_subplots(self, num_subplots, sharex = "row", sharey = 'none'):
         """
@@ -1875,12 +1882,12 @@ class All_CS_Plotter(Plotters):
 
         def calculate_new_column(group):
             # Calculate Avg Evals for NLS in the current group
-            nls_avg_evals = group.loc[group['BO Method'] == 'NLS', 'Avg Evals Tot'].values[0]
-            nls_std_evals = group.loc[group['BO Method'] == 'NLS', 'Std Evals Tot'].values[0]
+            nls_avg_evals = group.loc[group['BO Method'] == 'NLS', 'Avg F Evals Tot'].values[0]
+            nls_std_evals = group.loc[group['BO Method'] == 'NLS', 'Std F Evals Tot'].values[0]
             
             # Calculate the new column
-            group['D'] = nls_avg_evals - group['Avg Evals Tot']
-            group['Std D'] = np.sqrt(nls_std_evals**2 + group['Std Evals Tot']**2)
+            group['D'] = nls_avg_evals - group['Avg F Evals Tot']
+            group['Std D'] = np.sqrt(nls_std_evals**2 + group['Std F Evals Tot']**2)
 
             # Calculate the new column
             group['F_Time_Parity'] = (group['Avg Time'] / 60) / group['D']
@@ -1904,8 +1911,8 @@ class All_CS_Plotter(Plotters):
             names = ['Median Loss', 'Avg Evals', 'Avg Evals Tot',  'Avg Opt Acq']
             std_names = ['IQR Loss', 'Std Evals', 'Std Evals Tot',  'Std Opt Acq']
             titles = ["Median " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$" +" \n at Termination", 
-                        "Avg. " + r"$f(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$", 
-                        "Total " + r"$f(\cdot)$" + " Evalulations",
+                        "Avg. " + r"$\mathscr{L}(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$", 
+                        "Total " + r"$\mathscr{L}(\cdot)$" + " Evalulations",
                         "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions"]
         else:
             names = ['Avg Time','F_Time_Parity']
@@ -1942,7 +1949,6 @@ class All_CS_Plotter(Plotters):
                                 align='center', height=bar_size, color=color, 
                                 label=label, hatch = self.hatches[-1 -i])
                 
-                
                 if i == 0:
                     #Set plot details on last iter
                     self.__set_subplot_details(axes[j], None, None, titles[j])
@@ -1955,6 +1961,8 @@ class All_CS_Plotter(Plotters):
             axes[1].set_xscale("log")
         else:
             axes[0].set_xscale("log")
+            # axes[1].set_xscale("log")
+            # axes[2].set_xscale("log")
             axes[3].set_xscale("log")
 
         for n,ax in enumerate(axes):
@@ -1977,14 +1985,13 @@ class All_CS_Plotter(Plotters):
                        borderaxespad=0)
             
         plt.tight_layout()
-
-        # self.__save_fig("Results/" + str(mode) + "_bar_tot")
             
         #Save or show figure
         if self.save_figs:
             save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
             save_path_dir = os.path.join(save_path)
             save_path_to = os.path.join(save_path_dir, str(mode) + "_bar")
+            df_averages.to_csv(save_path_to + ".csv", index=False)
             self.__save_fig(save_path_to)
         else:
             plt.show()

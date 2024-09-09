@@ -1339,6 +1339,14 @@ class All_CS_Analysis(General_Analysis):
 
         self.cs_list = cs_list
         self.meth_val_list = meth_val_list
+        self.cs_x_dict = {"Simple Linear":5,
+                 "Muller x0":25,
+                 "Muller y0":25,
+                 "Yield-Loss":10,
+                 "Large Linear":25,
+                 "BOD Curve":10,
+                 "Log Logistic":10,
+                 "2D Log Logistic":25}
 
     def __sort_by_cs_meth(self, df_data):
         """
@@ -1682,6 +1690,8 @@ class All_CS_Analysis(General_Analysis):
                     #Otherwise, concatenate the DataFrame to df_all_best
                     else:
                         df_all_best = pd.concat([df_all_best, df_best_runs], axis = 0)
+                    df_all_best['F Max Evals'] = df_all_best['Max Evals']*df_all_best['CS Name'].map(self.cs_x_dict)
+                    df_all_best['F Evals'] = df_all_best['BO Iter']*df_all_best['CS Name'].map(self.cs_x_dict)
                 except:
                     pass
             #Add nonlinear least squares results
@@ -1708,6 +1718,9 @@ class All_CS_Analysis(General_Analysis):
             # Compute the maximum 'iter' for each 'run'
             df_all_ls_best['Max Evals'] = df_all_ls_best.groupby(['CS Name', 'Run'])['BO Iter'].transform('max')
 
+        df_all_ls_best['F Max Evals'] = df_all_ls_best['Max Evals']*df_all_ls_best['CS Name'].map(self.cs_x_dict)
+        df_all_ls_best['F Evals'] = df_all_ls_best['BO Iter']*df_all_ls_best['CS Name'].map(self.cs_x_dict)
+
         #Scale the objective function values for log conv and log indep
         condition = df_all_best['BO Method'].isin(["Log Conventional", "Log Independence"])
         # Multiply values in column B by 3 where the condition is true
@@ -1718,14 +1731,19 @@ class All_CS_Analysis(General_Analysis):
         obj_col_sse_min: ['median', self.__get_iqr],
         'BO Iter': ['mean', 'std'],
         'Max Evals': ['mean', 'std'], 
-        'Total Run Time': ['mean', 'std']}).reset_index()
+        'Total Run Time': ['mean', 'std'],
+        'F Evals': ['mean', 'std'],
+        'F Max Evals':['mean', 'std']}).reset_index()
         grouped_stats_ls = df_all_ls_best.groupby(["CS Name", "BO Method"]).agg({
         "Min Obj Cum.": ['median', self.__get_iqr],
         'BO Iter': ['mean', 'std'],
         'Max Evals': ['mean', 'std'], 
-        'Run Time': ['mean', 'std']}).reset_index()
+        'Run Time': ['mean', 'std'],
+        'F Evals': ['mean', 'std'],
+        'F Max Evals':['mean', 'std']}).reset_index()
 
-        cols = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals', 'Avg Evals Tot', 'Std Evals Tot', 'Avg Time', 'Std Time']
+        cols = ['CS Name', 'BO Method', 'Median Loss', 'IQR Loss', 'Avg Evals', 'Std Evals', 'Avg Evals Tot', 'Std Evals Tot', 
+                'Avg Time', 'Std Time', 'Avg F Evals', 'Std F Evals', 'Avg F Evals Tot', 'Std F Evals Tot']
         # Flatten the MultiIndex columns
         grouped_stats.columns = cols
         grouped_stats_ls.columns = cols
