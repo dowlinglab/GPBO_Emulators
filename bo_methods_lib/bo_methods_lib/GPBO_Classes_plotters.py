@@ -542,7 +542,6 @@ class Plotters:
         #Print the title and labels as appropriate
         self.__set_plot_titles(fig, title, None, None)
         bo_len_max = 1
-
         #Get all jobs
         job_pointer = self.analyzer.get_jobs_from_criteria()
         #Get best data for each method
@@ -569,6 +568,8 @@ class Plotters:
     #             for k in range(data.shape[-1]):
                     #The index of the data type is k, and one data type is in the last row of the data
                     one_data_type = data[:,:,k]
+                    miny = 1e-16
+                    maxy = 0
 
                     #Get Number of runs in the job
                     runs_in_job = sp_data["bo_runs_in_job"]
@@ -594,6 +595,10 @@ class Plotters:
                         #Plot data
                         if log_data == True:
                             data_df_j = np.log(data_df_j)
+
+                        if z_choices[k] == "acq":
+                            miny = float(np.maximum(miny, np.min(data_df_j)))
+                            maxy = float(np.maximum(maxy, np.max(data_df_j)))
 
                         #For the best result, print a solid line               
                         if emph_runs[GPBO_method_val -1] == run_number:
@@ -647,8 +652,11 @@ class Plotters:
                         bo_space_org = np.linspace(1,max_iters,max_iters)
                     else:
                         bo_space_org = np.linspace(1,max_x,max_x)
-                        
-                    self.__set_subplot_details(ax, bo_space_org, None, x_label, rf"${data_names[k]}$", None)         
+
+                    if z_choices[k] == "acq":
+                        self.__set_subplot_details(ax, bo_space_org, np.array([miny]), x_label, rf"${data_names[k]}$", None) 
+                    else:
+                        self.__set_subplot_details(ax, bo_space_org, None, x_label, rf"${data_names[k]}$", None)
 
         #Get legend and handles
         handles, labels = axes[0,0].get_legend_handles_labels()
@@ -1436,6 +1444,9 @@ class Plotters:
         if plot_x is not None and not np.isclose(np.min(plot_x), np.max(plot_x), rtol = 1e-6):        
             ax.set_xlim(left = np.min(plot_x), right = np.max(plot_x))
     
+        if plot_y is not None and abs(np.min(plot_y)) <= 1e-16:
+            ax.set_ylim(bottom = 1e-16)
+
         if plot_y is not None and np.min(plot_y) == 0:
             ax.set_ylim(bottom = np.min(plot_y)-0.05, top = np.max(plot_y)+0.05) 
 
