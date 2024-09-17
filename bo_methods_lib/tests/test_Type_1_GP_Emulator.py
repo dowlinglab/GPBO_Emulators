@@ -185,9 +185,9 @@ def test_train_gp(gp_type, sim_data, val_data, lenscl, outputscl, exp_lenscl, ex
     trained_ops = gp_emulator.trained_hyperparams[-1]
     assert gp_emulator.kernel == Kernel_enum.MAT_52
     assert len(trained_lenscl) == gp_emulator.get_dim_gp_data()
-    assert np.all(gp_emulator.lenscl == exp_lenscl)
-    assert trained_ops == exp_ops
-    
+    assert np.all(np.isclose(gp_emulator.lenscl, exp_lenscl, atol=1e-6, rtol=1e-5))
+    assert np.all(np.isclose(trained_ops, exp_ops, atol=1e-6, rtol=1e-5))
+
 #This test function tests whether train_gp checker works correctly (optimizes None parameters between bounds)
                     # emulator class type, sim data, val_data, lenscl, outputscl, exp_ops
 train_gp_opt_list = [[Type_1_GP_Emulator, sim_sse_data1, val_sse_data1, None, 1],
@@ -207,7 +207,7 @@ def test_train_gp_opt(gp_type, sim_data, val_data, lenscl, outputscl):
     assert len(trained_lenscl) == gp_emulator.get_dim_gp_data()
     assert np.all( 1e-5 - tol <= element <= 1e5 + tol for element in trained_lenscl )
     assert 1e-5 - tol <= trained_ops <= 1e2 + tol     
-    
+
 #This test function tests whether train_gp throws correct errors
                   # gp_emulator, feature_train_data
 train_gp_err_list = [[gp_emulator1_s, None],
@@ -411,7 +411,7 @@ def test_set_gp_model_data_err(gp_emulator):
         train_data, test_data = gp_emulator.set_train_test_data(sep_fact, seed) 
         gp_emulator.train_data.y_vals = None
         data = gp_emulator.set_gp_model_data()
-    
+
 #Define small case study
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)
@@ -450,10 +450,10 @@ val_sse_data2 = simulator2.sim_data_to_sse_sim_data(method, val_data2, exp_data2
 gp_emulator2_s = Type_1_GP_Emulator(sim_sse_data2, val_sse_data2, None, None, None, kernel, lenscl, noise_std, outputscl, retrain_GP, seed, normalize, None, None, None, None)
     
 # #This test function tests whether eval_gp_mean_var checker works correctly
-expected_mean1_test = np.array([134.98733609, 219.94528687,  95.80191452,  41.45257602])
-expected_var1_test = np.array([7.7578558 , 4.4906173 , 3.13432255, 1.14432516])
-expected_mean2_test = np.array([8.72047195,  11.32979238, 246.63549223, 102.99333205])
-expected_var2_test = np.array([90.69004406, 35.68491399,  2.31261736, 18.22860729])
+expected_mean1_test = np.array([100.24282692, 135.98039714,  71.01762771,  61.64600428])
+expected_var1_test = np.array([10202.05697245,  9917.82147249,  9527.58557615,  8608.78875639])
+expected_mean2_test = np.array([23.95283024, 30.01293589, 36.52848153, 50.19767961])
+expected_var2_test = np.array([2201.65373605, 1958.23848783, 2247.21264886, 2215.19516712])
                              #gp_emulator, covar, expected_mean, expected_var
 eval_gp_mean_var_test_list = [[gp_emulator1_s, expected_mean1_test, expected_var1_test],
                               [gp_emulator2_s, expected_mean2_test, expected_var2_test]]
@@ -474,35 +474,30 @@ def test_eval_gp_mean_var_test(gp_emulator, expected_mean, expected_var):
     assert gp_covar.shape[0] == gp_covar.shape[1]
         
 
-expected_mean1_val = np.array([
-    173.54135209, 25.36134147, 125.87365461, 56.14387463, 5.34488502,
-41.45257602, 202.27079779, 32.76569702, 134.98733609, 28.98964993,
-63.21347605, 95.80191452, 219.94528687, 14.7587733, 239.75540308,
-54.54156399, 287.23731567, 9.58041045, 99.18733237, 94.84518989
-])
+expected_mean1_val = np.array([137.16501802, 26.28334912, 129.29809631, 60.28970041, 24.82357534, 
+ 61.64600428, 166.50576753, 48.9688545, 100.24282692, 38.59820844, 
+ 80.67352095, 71.01762771, 135.98039714, 37.18172925, 160.13240386, 
+ 68.44368666, 188.25161374, 22.4132505, 113.1800697, 69.44015394]
+)
 
-expected_var1_val = np.array([
-    0.0199705, 0.01997262, 0.01989407, 0.01996566, 0.01989505, 1.14432516,
-0.0199306, 0.01980264, 7.7578558, 0.01989614, 0.01992695, 3.13432255,
-4.4906173, 0.01995677, 0.01997149, 0.01984629, 0.01997265, 0.01986652,
-0.01993344, 0.01997482
-])
+expected_var1_val = np.array([9167.40640821, 8997.00050032, 8154.01907319, 8837.80051459, 
+ 8589.04914073, 8608.78875639, 8490.52341277, 8268.09743853, 
+ 10202.05697245, 8469.79644674, 8337.11229867, 9527.58557615, 
+ 9917.82147249, 8946.32376448, 9149.84124185, 8392.70472609, 
+ 9274.57443785, 8331.33119991, 8506.89239597, 9327.57554819]
+)
 
-expected_mean2_val = np.array([
-   45.03465846, 11.21632513, 7.97333682, 370.00821081, 29.83009596,
-102.99333205, 23.55030999, 66.88653405, 8.72047195, 3.84171336,
-44.93655154, 246.63549223, 11.32979238, 51.64477408, 6.45625408,
-13.54289449, 9.74004805, 93.74429546, 219.61947052, 9.27862412
+expected_mean2_val = np.array([32.80688712, 19.58235213, 19.33791041, 201.07007708, 52.13411713, 
+ 50.19767961, 43.48283458, 57.1623352, 23.95283024, 16.16785103, 
+ 32.10258467, 36.52848153, 30.01293589, 45.01141881, 17.06523779, 
+ 29.32228386, 17.20234858, 96.20342979, 125.00434596, 17.89258104]
+)
 
-])
-
-expected_var2_val = np.array([
-   3.48579951e-03, 3.48592454e-03, 3.48590642e-03, 3.48596309e-03,
-3.48576788e-03, 1.82286073e+01, 3.48584481e-03, 3.48570205e-03,
-9.06900441e+01, 3.48584707e-03, 3.48586594e-03, 2.31261736e+00,
-3.56849140e+01, 3.48570859e-03, 3.48546181e-03, 3.48556887e-03,
-3.48506164e-03, 3.48569320e-03, 3.48593856e-03, 3.48528978e-03
-
+expected_var2_val = np.array([1698.94874584, 1714.60320706, 1666.03346941, 1716.36756758, 
+ 1644.17772403, 2215.19516712, 1676.30624446, 1691.76156054, 
+ 2201.65373605, 1708.27175743, 1709.60311048, 2247.21264886, 
+ 1958.23848783, 1702.35957295, 1693.54053649, 1679.76326966, 
+ 1699.15377815, 1676.43093479, 1658.74128014, 1728.38112734
 ])
 
                              #gp_emulator, expected_mean, expected_var
@@ -524,10 +519,10 @@ def test_eval_gp_mean_var_val(gp_emulator, expected_mean, expected_var):
     assert len(gp_covar.shape) == 2 
     assert gp_covar.shape[0] == gp_covar.shape[1]
     
-expected_mean1 = np.array([173.54135209])
-expected_var1 = np.array([0.0199705])
-expected_mean2 = np.array([45.03465846])
-expected_var2 = np.array([0.0034858])
+expected_mean1 = np.array([137.16501802])
+expected_var1 = np.array([9167.40640821])
+expected_mean2 = np.array([32.80688712])
+expected_var2 = np.array([1698.94874584])
 
                              #gp_emulator, covar, simulator, exp_data, expected_mean, expected_var
 eval_gp_mean_var_misc_list = [[gp_emulator1_s, False, simulator1, exp_data1, expected_mean1, expected_var1],

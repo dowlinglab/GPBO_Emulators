@@ -88,24 +88,25 @@ def test_run_bo_restarts(method):
     driver = GPBO_Driver(cs_params, method, simulator, exp_data, sim_data, sim_sse_data, val_data, val_sse_data, None, 
                          ep_bias, gen_meth_theta)
     
-    restart_bo_results = driver.run_bo_restarts()
-    one_run_bo_results = restart_bo_results[0]
+    gpbo_res_simple, gpbo_res_GP = driver.run_bo_restarts()
+    one_run_bo_results = gpbo_res_simple[0]
+    one_run_gp_results = gpbo_res_GP[0]
     
-    assert len(restart_bo_results) == bo_run_tot
+    assert len(gpbo_res_simple) == len(gpbo_res_GP) == bo_run_tot
     assert isinstance(one_run_bo_results.configuration, dict)
-    assert len(one_run_bo_results.configuration.keys()) == 20
+    assert len(one_run_bo_results.configuration.keys()) == 21
     assert isinstance(one_run_bo_results.simulator_class, Simulator)
     assert isinstance(one_run_bo_results.why_term, str)
     assert isinstance(one_run_bo_results.exp_data_class, Data)
     assert isinstance(one_run_bo_results.results_df, pd.DataFrame) 
-    assert isinstance(one_run_bo_results.max_ei_details_df, pd.DataFrame) or one_run_bo_results.max_ei_details_df is None
+    assert isinstance(one_run_gp_results.max_ei_details_df, pd.DataFrame) or one_run_gp_results.max_ei_details_df is None
     assert len(one_run_bo_results.results_df) == bo_iter_tot
-    assert isinstance(one_run_bo_results.list_gp_emulator_class, list)
+    assert isinstance(one_run_gp_results.list_gp_emulator_class, list)
     if method.emulator == False:
-        assert all(isinstance(var, Type_1_GP_Emulator) for var in one_run_bo_results.list_gp_emulator_class)
+        assert all(isinstance(var, Type_1_GP_Emulator) for var in one_run_gp_results.list_gp_emulator_class)
     else:
-        assert all(isinstance(var, Type_2_GP_Emulator) for var in one_run_bo_results.list_gp_emulator_class)        
-    assert isinstance(one_run_bo_results.heat_map_data_dict, dict)    
+        assert all(isinstance(var, Type_2_GP_Emulator) for var in one_run_gp_results.list_gp_emulator_class)        
+    assert isinstance(one_run_gp_results.heat_map_data_dict, dict)    
     
     
 #This test function tests whether create_heat_map_param_data,  works correctly

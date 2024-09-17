@@ -21,7 +21,7 @@ def test_bo_methods_lib_imported():
 GPBO_Methods_array = [[Method_name_enum(1), "A1", False, "OBJ", False, False],
                       [Method_name_enum(2), "B1", False, "LN_OBJ", False, False],
                       [Method_name_enum(3), "A2", True, "OBJ", False, False],
-                      [Method_name_enum(4), "B2", True, "LN_OBJ", False, False],
+                      [Method_name_enum(4), "B2", True, "OBJ", False, False],
                       [Method_name_enum(5), "C2", True, "OBJ", True, False],
                       [Method_name_enum(6), "D2", True, "OBJ", False, True],
                       [Method_name_enum(7), "A3", True, "OBJ", False, False]]

@@ -46,10 +46,10 @@ ep_bias.set_ep()
 
 #This test function tests whether type_1 works as intended
                ## gp_mean, gp_var, best_error, ei_expected
-type_1_list = [[np.array([1]), np.array([0.05**2]), 0.5, 3.737e-26],
-               [np.array([1]), np.array([0]), 0.5, 0],
-               [np.array([0.4]), np.array([0.01**2]), 0.5, 0.1], #check me
-               [np.array([0.5]), np.array([0.5**2]), 0.2, 0.084336]] #Check me
+type_1_list = [[np.array([1]), np.diag(np.array([0.05**2])), 0.5, 3.737e-26],
+               [np.array([1]), np.diag(np.array([0])), 0.5, 0],
+               [np.array([0.4]), np.diag(np.array([0.01**2])), 0.5, 0.1], #check me
+               [np.array([0.5]), np.diag(np.array([0.5**2])), 0.2, 0.084336]] #Check me
 @pytest.mark.parametrize("gp_mean, gp_var, best_error, ei_expected", type_1_list)
 def test_type_1_list(gp_mean, gp_var, best_error, ei_expected):
     best_error_metrics = tuple([best_error, np.zeros(5), None])
@@ -59,13 +59,13 @@ def test_type_1_list(gp_mean, gp_var, best_error, ei_expected):
     
 #This test function tests whether Expected_Improvement throws the correct errors on initialization
                ## ep_bias, gp_mean, gp_var, exp_data, best_error, method, depth
-ei_init_list = [["ep_bias", np.array([0.5]), np.array([0.02]), exp_data, 0.2, Method_name_enum(3), None],
-               [ep_bias, [0.5], np.array([0.02]), exp_data, 0.2, Method_name_enum(3), 1],
-               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, 0.2, Method_name_enum(7), 1],
-               [ep_bias, np.array([0.5]), np.array([0.02]), "exp_data", 0.2, Method_name_enum(3), 1],
-               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, "best_error", Method_name_enum(3), 1],
-               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, 0.2, 3, 1],
-               [ep_bias, np.array([0.5]), np.array([0.02]), exp_data, 0.2, Method_name_enum(3), 3.2]]
+ei_init_list = [["ep_bias", np.array([0.5]), np.diag(np.array([0.02])), exp_data, 0.2, Method_name_enum(3), None],
+               [ep_bias, [0.5], np.diag(np.array([0.02])), exp_data, 0.2, Method_name_enum(3), 1],
+               [ep_bias, np.array([0.5]), np.diag(np.array([0.02])), exp_data, 0.2, Method_name_enum(7), 1],
+               [ep_bias, np.array([0.5]), np.diag(np.array([0.02])), "exp_data", 0.2, Method_name_enum(3), 1],
+               [ep_bias, np.array([0.5]), np.diag(np.array([0.02])), exp_data, "best_error", Method_name_enum(3), 1],
+               [ep_bias, np.array([0.5]), np.diag(np.array([0.02])), exp_data, 0.2, 3, 1],
+               [ep_bias, np.array([0.5]), np.diag(np.array([0.02])), exp_data, 0.2, Method_name_enum(3), 3.2]]
 @pytest.mark.parametrize("ep_bias, gp_mean, gp_var, exp_data, best_error, method, depth", ei_init_list)
 def test_ei_init_err_list(ep_bias, gp_mean, gp_var, exp_data, best_error, method, depth):
     with pytest.raises((AssertionError, AttributeError, ValueError)):   
@@ -75,14 +75,14 @@ def test_ei_init_err_list(ep_bias, gp_mean, gp_var, exp_data, best_error, method
 
 #This test function tests whether type_2 works as intended
                ## gp_mean, gp_var, best_error, method, ei_expected
-type_2_list = [[np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(3)), 0.98698],
-               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.04**2, 0.5, GPBO_Methods(Method_name_enum(4)), 40.721],
-               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(5)), 1.04117048],
-               [np.array([-14, -3, 0, 1, 6]), np.ones(5)*0.05**2, 0.2, GPBO_Methods(Method_name_enum(6)), 0.18682241],
-               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.2, GPBO_Methods(Method_name_enum(3)), 0],
-               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(4)), 0],
-               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(5)), 2.78127298],
-               [np.array([-14, -3, 0, 1, 6]), np.zeros(5), 0.5, GPBO_Methods(Method_name_enum(6)), 0.49948086]]
+type_2_list = [[np.array([-14, -3, 0, 1, 6]), np.diag(np.ones(5)*0.05**2), 0.2, GPBO_Methods(Method_name_enum(3)), 0.98698],
+               [np.array([-14, -3, 0, 1, 6]), np.diag(np.ones(5)*0.04**2), 0.5, GPBO_Methods(Method_name_enum(4)), 34.756136],
+               [np.array([-14, -3, 0, 1, 6]), np.diag(np.ones(5)*0.05**2), 0.2, GPBO_Methods(Method_name_enum(5)), 0.19948094],
+               [np.array([-14, -3, 0, 1, 6]), np.diag(np.ones(5)*0.05**2), 0.2, GPBO_Methods(Method_name_enum(6)), 0.19747919],
+               [np.array([-14, -3, 0, 1, 6]), np.diag(np.zeros(5)), 0.2, GPBO_Methods(Method_name_enum(3)), 0],
+               [np.array([-14, -3, 0, 1, 6]), np.diag(np.zeros(5)), 0.5, GPBO_Methods(Method_name_enum(4)), 0],
+               [np.array([-14, -3, 0, 1, 6]), np.diag(np.zeros(5)), 0.5, GPBO_Methods(Method_name_enum(5)), 0.49948086],
+               [np.array([-14, -3, 0, 1, 6]), np.diag(np.zeros(5)), 0.5, GPBO_Methods(Method_name_enum(6)), 0.49948086]]
 
 @pytest.mark.parametrize("gp_mean, gp_var, best_error, method, ei_expected", type_2_list)
 def test_type_2_list(gp_mean, gp_var, best_error, method, ei_expected):

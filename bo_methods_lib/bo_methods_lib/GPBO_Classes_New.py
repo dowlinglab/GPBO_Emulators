@@ -305,7 +305,7 @@ class CaseStudyParameters:
         kernel: enum class instance, Determines which GP Kerenel to use
         lenscl: float, np.ndarray, or None, Value of the lengthscale hyperparameter - None if hyperparameters will be trained
         outputscl: float or None, Determines value of outputscale - None if hyperparameters will be updated during training
-        retrain_GP: int, number of times to restart GP training. Note, 0 = 1 optimization
+        retrain_GP: int, number of times to (re)do GP training. Note, if zero, GP will not be trained at all and default hyperparameters will be used
         reoptimize_obj: int, number of times to reoptimize ei/sse with different starting values. Note, 0 = 1 optimization
         gen_heat_map_data: bool, determines whether validation data are generated to create heat maps
         bo_iter_tot: int, maximum number of BO iterations per restart
@@ -1083,7 +1083,7 @@ class GP_Emulator:
         #Outputscl must be >0 if not None
         assert isinstance(outputscl, (float, int)) or outputscl is None, "outputscl must be float, int, or None"
         if outputscl is not None:
-            assert outputscl > 0, "outputscl must be > 0 initially if it is not None"
+            assert 100 > outputscl > 1e-5, "outputscl must be in range [1e-5,1e3] if it is not None"
             
         #Check lenscl, float, int, array, or None
         if isinstance(lenscl, list):
@@ -1091,10 +1091,11 @@ class GP_Emulator:
         assert isinstance(lenscl, (float, int, np.ndarray)) or lenscl is None, "lenscl must be float, int, np.ndarray, or None"
         if lenscl is not None:
             if isinstance(lenscl, (float, int)):
-                assert lenscl > 0, "lenscl must be > 0 initially if lenscl is not None"
+                assert 1000 > lenscl > 1e-5, "lenscl must be in range [1e-5,1e3] if lenscl is not None"
             else:
                 assert all(isinstance(var, (np.int64, np.float64, float, int)) for var in lenscl), "All lenscl elements must float or int"
-                assert all(item > 0 for item in lenscl), "lenscl elements must be > 0 initially if lenscl is not None"
+                assert all(1000 > item > 1e-5 for item in lenscl), "lenscl elements must be in range [1e-5,1e3] if lenscl is not None"
+                lenscl = lenscl.astype(np.float64)
         
         #Check for int
         assert isinstance(retrain_GP, int) == True, "retrain_GP must be int"
@@ -1526,28 +1527,39 @@ class GP_Emulator:
         data = self.set_gp_model_data() 
         x_train, y_train = data
 
+        if isinstance(self.lenscl, np.ndarray):
+            lenscls = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], self.lenscl)
+        elif isinstance(self.lenscl, (int,float)):
+            lenscls = np.ones(x_train.shape[1])*self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], self.lenscl)
+        if self.outputscl is not None:
+            tau = self.bounded_parameter(var_bnds[0], var_bnds[1], self.outputscl)
+
         #On the 1st iteration, use initial guesses initialized to 1
         if retrain_count == 0:
-            lengthscale_1 = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], 1.0)
-            lenscls = np.ones(x_train.shape[1])*lengthscale_1
-            tau = self.bounded_parameter(var_bnds[0], var_bnds[1], 1.0)
+            if self.lenscl is None:
+                lengthscale_1 = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], 1.0)
+                lenscls = np.ones(x_train.shape[1])*lengthscale_1
+            if self.outputscl is None:
+                tau = self.bounded_parameter(var_bnds[0], var_bnds[1], 1.0)
             white_var = self.bounded_parameter(white_var_bnds[0], white_var_bnds[1], 1.0)
         #On second iteration, base guesses on initial data values
         elif retrain_count == 1:
-            initial_lenscls = np.array(self.__set_lenscl_guess(lenscl_bnds[0], lenscl_bnds[1]) , dtype='float64')
-            lenscls = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], initial_lenscls)
-            initial_tau = np.array(self.__set_outputscl(var_bnds[0], var_bnds[1]) , dtype='float64')
-            tau = self.bounded_parameter(var_bnds[0], var_bnds[1], initial_tau)
+            if self.lenscl is None:
+                initial_lenscls = np.array(self.__set_lenscl_guess(lenscl_bnds[0], lenscl_bnds[1]) , dtype='float64')
+                lenscls = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], initial_lenscls)
+            if self.outputscl is None:
+                initial_tau = np.array(self.__set_outputscl(var_bnds[0], var_bnds[1]) , dtype='float64')
+                tau = self.bounded_parameter(var_bnds[0], var_bnds[1], initial_tau)
             initial_white_var = np.array(self.__set_white_kern(white_var_bnds[0], white_var_bnds[1]), dtype='float64')
             white_var = self.bounded_parameter(white_var_bnds[0], white_var_bnds[1], initial_white_var)
         #On all other iterations, use random guesses
         else:
-            initial_lenscls = np.array(np.random.uniform(0.1, 100.0, x_train.shape[1]), dtype='float64')
-            lenscls = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], initial_lenscls)
-            tau = self.bounded_parameter(var_bnds[0], var_bnds[1], np.array(np.random.lognormal(0.0, 1.0), dtype='float64'))
+            if self.lenscl is None:
+                initial_lenscls = np.array(np.random.uniform(0.1, 100.0, x_train.shape[1]), dtype='float64')
+                lenscls = self.bounded_parameter(lenscl_bnds[0], lenscl_bnds[1], initial_lenscls)
+            if self.outputscl is None:
+                tau = self.bounded_parameter(var_bnds[0], var_bnds[1], np.array(np.random.lognormal(0.0, 1.0), dtype='float64'))
             white_var = self.bounded_parameter(white_var_bnds[0], white_var_bnds[1], np.array(np.random.uniform(0.05, 10), dtype='float64'))
-
-        # gpflow.utilities.print_summary(kernel)
         
         return lenscls, tau, white_var
 
@@ -1579,9 +1591,11 @@ class GP_Emulator:
         # Select whether the likelihood variance is trained
         gpflow.utilities.set_trainable(gp_model.likelihood.variance,False)
         if isinstance(self.lenscl, np.ndarray) or isinstance(self.lenscl, (float, int)):
-            gpflow.utilities.set_trainable(gp_model.kernel.kernel[0].lengthscales,False)
+            gpflow.utilities.set_trainable(gp_model.kernel.kernels[0].lengthscales, False)
         if self.outputscl is not None:
-            gpflow.utilities.set_trainable(gp_model.kernel.kernel[0].variance,False)
+            gpflow.utilities.set_trainable(gp_model.kernel.kernels[0].variance, False)
+
+        # print(gpflow.utilities.print_summary(gp_model))
 
         return gp_model
     
@@ -1725,31 +1739,34 @@ class GP_Emulator:
         best_minimum_loss = float('inf')
         best_model = None
 
-        #While you still have retrains left
-        for i in range(self.retrain_GP):
-            #Create and fit the model
-            gp_model = self.set_gp_model(i)
-            # Build optimizer
-            optimizer=gpflow.optimizers.Scipy()
-            # Fit GP to training data
-            aux=optimizer.minimize(gp_model.training_loss,
-                                gp_model.trainable_variables,
-                                options={'maxiter':10**9},
-                                method="L-BFGS-B")
-            training_loss = gp_model.training_loss().numpy()
-            if i == 0:
-                first_model = gp_model
-                first_loss = training_loss
-            if aux.success:
-                # Check if this model has the best minimum training loss
-                if training_loss < best_minimum_loss:
-                    best_minimum_loss = training_loss
-                    best_model = gp_model
+        if self.retrain_GP == 0:
+            best_model = self.set_gp_model(0)
+        else:
+            #While you still have retrains left
+            for i in range(self.retrain_GP):
+                #Create and fit the model
+                gp_model = self.set_gp_model(i)
+                # Build optimizer
+                optimizer=gpflow.optimizers.Scipy()
+                # Fit GP to training data
+                aux=optimizer.minimize(gp_model.training_loss,
+                                    gp_model.trainable_variables,
+                                    options={'maxiter':10**9},
+                                    method="L-BFGS-B")
+                training_loss = gp_model.training_loss().numpy()
+                if i == 0:
+                    first_model = gp_model
+                    first_loss = training_loss
+                if aux.success:
+                    # Check if this model has the best minimum training loss
+                    if training_loss < best_minimum_loss:
+                        best_minimum_loss = training_loss
+                        best_model = gp_model
 
-        #If we have no good models, use the first one
-        if best_model is None:
-            best_model = first_model
-            best_minimum_loss = first_loss
+            #If we have no good models, use the first one
+            if best_model is None:
+                best_model = first_model
+                best_minimum_loss = first_loss
 
         # gpflow.utilities.print_summary(best_model)
         #Pull out kernel parameters after GP training
@@ -2010,7 +2027,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
         noise_std: float, int: The standard deviation of the noise
         outputscl: float or None, Determines value of outputscale
-        retrain_GP: int, number of times to restart GP training
+        retrain_GP: int, number of times to (re)do GP training
         set_seed: int or None, random seed
         normalize: bool, determines whether data is normalized w/ Yeo-Johnson transformation + zero-mean, unit-variance normalization
         feature_train_data: ndarray, the feature data for the training data in ndarray form
@@ -2915,8 +2932,8 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "Error metric must be a tuple of length 3"
-        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
-        assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"          
+        assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods" 
+        assert 4 >= method.method_name.value > 2, "method must be Type 2 and not Sparse Grid or Monte Carlo (Requires Single Sample)"        
         ei, ei_terms_df = self.__eval_gp_ei(self.test_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
 
         return ei, ei_terms_df
@@ -2944,7 +2961,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         assert isinstance(ep_bias, Exploration_Bias),  "ep_bias must be type Exploration_bias"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics)==3, "best_error_metrics must be tuple of length 3"
         assert isinstance(method, GPBO_Methods), "method must be instance of GPBO_Methods"
-        assert 6 >= method.method_name.value > 2, "method must be Type 2. Hint: Must have method.method_name.value > 2"
+        assert 4 >= method.method_name.value > 2, "method must be Type 2 and not Sparse Grid or Monte Carlo (Requires Single Sample)"
         ei, ei_terms_df = self.__eval_gp_ei(self.gp_val_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)
         
         return ei, ei_terms_df
@@ -3032,6 +3049,7 @@ class Expected_Improvement():
         sg_mc_samples: int, The number of points to use for the Tasmanian sparse grid and Monte Carlo
         """
         assert len(gp_mean) == len(gp_covar), "gp_mean and gp_covar must be arrays of the same length"
+        assert len(gp_covar.shape) == 2, "gp_covar must be a 2D array"
         assert isinstance(best_error_metrics, tuple) and len(best_error_metrics) == 3, "best_error_metrics must be a tuple of length 3"
         assert all(isinstance(arr, np.ndarray) for arr in (gp_mean, gp_covar, exp_data.y_vals)), "gp_mean, gp_var, and exp_data.y_vals must be ndarrays"
         assert isinstance(ep_bias, Exploration_Bias), "ep_bias must be instance of Exploration_Bias"
@@ -3427,7 +3445,10 @@ class Expected_Improvement():
                 L = lu[:, perm]@np.diag(np.sqrt(d))
                 np.save("covar_sg.npy", self.gp_covar)
 
-            transformed_points = L@points_p.T
+            try:
+                transformed_points = L@points_p.T
+            except:
+                print(L.shape, points_p.shape)
             gp_random_vars = self.gp_mean[:, np.newaxis] + np.sqrt(2)*(transformed_points)
             sse_temp = np.sum((y_target[:, np.newaxis] - gp_random_vars)**2, axis=0)
             # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
