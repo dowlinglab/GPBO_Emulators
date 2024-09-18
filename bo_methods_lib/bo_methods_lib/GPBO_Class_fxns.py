@@ -11,16 +11,12 @@ def get_cs_class_from_val(cs_num):
     """
     Returns the class associated with the case study value.
     """
-    assert 1 <= cs_num <=17
+    assert cs_num in [1,2,3,10,11,12,13,14], "cs_num must be 1,2,3,10,11,12,13,14"
     #Get class based on cs number
     if cs_num == 1:
         cs_class = CS1()
-    elif 2 <= cs_num <=7:
+    elif 2 <= cs_num <=3:
         cs_class = CSMuller(cs_num)
-    elif cs_num == 8:
-        cs_class = CS8()
-    elif cs_num == 9:
-        cs_class = CS9()
     elif cs_num == 10:
         cs_class = CS10()
     elif cs_num == 11:
@@ -31,14 +27,7 @@ def get_cs_class_from_val(cs_num):
         cs_class = CS13()
     elif cs_num == 14:
         cs_class = CS14()
-    elif cs_num == 15:
-        cs_class = CS15()
-    elif cs_num == 16:
-        cs_class = CS16()
-    elif cs_num == 17:
-        cs_class = CS17()
-    else:
-        raise(ValueError, "cs_num must be from 1 to 17")
+
     return cs_class
 
 def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
@@ -55,16 +44,12 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
     --------
     Simulator(), Simulator() class object
     """
-    assert 1 <= cs_num <=17
+    assert cs_num in [1,2,3,10,11,12,13,14], "cs_num must be 1,2,3,10,11,12,13,14"
     #Get class based on cs number
     if cs_num == 1:
         cs_class = CS1()
-    elif 2 <= cs_num <=7:
+    elif 2 <= cs_num <=3:
         cs_class = CSMuller(cs_num)
-    elif cs_num == 8:
-        cs_class = CS8()
-    elif cs_num == 9:
-        cs_class = CS9()
     elif cs_num == 10:
         cs_class = CS10()
     elif cs_num == 11:
@@ -75,14 +60,6 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
         cs_class = CS13()
     elif cs_num == 14:
         cs_class = CS14()
-    elif cs_num == 15:
-        cs_class = CS15()
-    elif cs_num == 16:
-        cs_class = CS16()
-    elif cs_num == 17:
-        cs_class = CS17()
-    else:
-        raise(ValueError, "cs_num must be from 1 to 17")
     
     return Simulator(cs_class.idcs_to_consider, 
                     cs_class.theta_ref,
@@ -99,6 +76,14 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
 
 
 class CS1:
+    """
+    Class containing constants for Simple Linear Case Study
+
+    Methods:
+    --------
+    __init__(): Initializes the class
+    """
+
     def __init__(self):
         self.name = "Simple Linear"
         self.param_name_str = "t1t2" 
@@ -114,7 +99,7 @@ class CS1:
 
 def calc_cs1_polynomial(true_model_coefficients, x, args = None):
     """
-    Calculates the value of y for case study 1
+    Calculates the value of y for Simple Linear Case Study
     
     Parameters
     ----------
@@ -132,9 +117,18 @@ def calc_cs1_polynomial(true_model_coefficients, x, args = None):
     return y_poly
          
 class CSMuller:
-    
+    """
+    Class containing constants for The Muller x0 and y0 Case Studies
+
+    Methods:
+    --------
+    __init__(): Initializes the class
+    __set_param_str(): Sets the param_name_str based on the cs_number
+    __set_idcs_to_consider(): Sets the idcs_to_consider based on the param_name_str
+    __solve_pyomo_Muller_min(): Creates and Solves a Pyomo model for the minimum of the Muller potential
+    """
     def __init__(self, cs_number):
-        assert 2 <= cs_number <=7 
+        assert 2 <= cs_number <=3 
         self.cs_number = cs_number
         self.__set_param_str()
         self.name = "Muller " + self.param_name_str
@@ -151,22 +145,17 @@ class CSMuller:
         self.calc_y_fxn_args = {"min muller": self.__solve_pyomo_Muller_min()}
 
     def __set_param_str(self):
+        """
+        Sets the param_name_str based on the cs_number"""
         if self.cs_number == 2:
             param_name_str = "x0"
         elif self.cs_number == 3:
             param_name_str = "y0"
-        elif self.cs_number == 4:
-            param_name_str = "x0y0"
-        elif self.cs_number == 5:
-            param_name_str = "Ax0y0"
-        elif self.cs_number == 6:
-            param_name_str = "Ax0"
-        elif self.cs_number == 7:
-            param_name_str = "Ay0"
-
         self.param_name_str = param_name_str
 
     def __set_idcs_to_consider(self):
+        """
+        Sets the idcs_to_consider based on the param_name_str"""
         #Set param_name_str
         indecies_to_consider = []
         all_param_idx = [0,1,2,3, 4,5,6,7, 8,9,10,11, 12,13,14,15, 16,17,18,19, 20,21,22,23]
@@ -183,7 +172,10 @@ class CSMuller:
     def __solve_pyomo_Muller_min(self, verbose = False):
         """
         Creates and Solves a Pyomo model for the Muller potential
-        
+        Parameters:
+        -----------
+        verbose: bool, If True, prints the solver status and termination condition. Default False
+
         Returns:
         --------
         model.obj(): float, The minimum value of the Muller potential for the given sub problem defined by param_name_str
@@ -248,7 +240,7 @@ class CSMuller:
 
 def calc_muller(model_coefficients, x, args):
         """
-        Caclulates the Muller Potential
+        Caclulates the log-scaled and minimum shifted Muller Potential
         
         Parameters
         ----------
@@ -258,7 +250,7 @@ def calc_muller(model_coefficients, x, args):
         
         Returns:
         --------
-            y_mul: float, value of Muller potential
+            y_mul_scl: float, value of log scaled and minimum value shifted Muller potential
         """
         assert "min muller" in list(args.keys())
         
@@ -284,21 +276,12 @@ def calc_muller(model_coefficients, x, args):
         y_mul_scl = np.log(max(y_mul - min_muller + 1e-12, 1e-12))
         
         return y_mul_scl
-
-class CS8:
-    def __init__(self):
-        self.param_name_str = "t1t2t3t4t5" 
-        self.idcs_to_consider = [0,1,2,3,4]
-        self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4','theta_5']
-        self.bounds_x_l = [-5, -5]
-        self.bounds_x_u = [ 5,  5]
-        self.bounds_theta_l = [-300,-5.0,-20, -5.0, -20]
-        self.bounds_theta_u = [   0, 5.0, 20,  5.0,  20]
-        self.theta_ref = np.array([-100, -1.0, 10, -0.1, 10])            
-        self.calc_y_fxn = calc_cs8_10_polynomial
-        self.calc_y_fxn_args = None
-
 class CS10:
+    """
+    Class containing constants for Large Linear Case Study
+    Methods:
+    --------
+    __init__(): Initializes the class"""
     def __init__(self):
         self.param_name_str = "t1t2t3t4t5" 
         self.name = "Large Linear"
@@ -314,17 +297,17 @@ class CS10:
     
 def calc_cs8_10_polynomial(true_model_coefficients, x, args = None):
     """
-    Calculates the value of y for case study 1
+    Caclulates the simulated y-values for the Large Linear case study
     
     Parameters
     ----------
-    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
-    x: ndarray, The list of xs that will be used to generate y
-    args: dict, extra arguments to pass to the function. Default None
+        model_coefficients: ndarray, The array containing the true parameter values
+        x: ndarray, Values of X
+        args: dict, extra arguments to pass to the function.
     
-    Returns
+    Returns:
     --------
-    y_poly: ndarray, The noiseless values of y given theta_true and x
+        y_model: float, value of the model
     """
     assert len(true_model_coefficients) == 5, "true_model_coefficients must be length 5"
     t1, t2, t3, t4, t5 = true_model_coefficients
@@ -339,52 +322,13 @@ def calc_cs8_10_polynomial(true_model_coefficients, x, args = None):
     y_model =  t1*x1 + t2*x2 + t3*x1*x2 + t4*x1**2 + t5*x2**2
     
     return y_model
-    
-calc_cs3_polynomial = calc_cs8_10_polynomial
-
-
-class CS9:
-    def __init__(self):
-        self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
-        self.idcs_to_consider = [0,1,2,3]
-        self.bounds_x_l = [1, 1]
-        self.bounds_x_u = [ 11,  11]
-        self.bounds_theta_l = [1, 1e-2, 1, 1e-3]
-        self.bounds_theta_u = [100, 1, 500,  1e-1]
-        self.theta_ref =  np.array([20,0.2,200,0.02])
-        self.calc_y_fxn = calc_cs9_isotherm
-        self.calc_y_fxn_args = None
-
-def calc_cs9_isotherm(true_model_coefficients, x, args = None):
-    """
-    Calculates the value of y for case study 1
-    
-    Parameters
-    ----------
-    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
-    x: ndarray, The list of xs that will be used to generate y
-    args: dict, extra arguments to pass to the function. Default None
-    
-    Returns
-    --------
-    y_poly: ndarray, The noiseless values of y given theta_true and x
-    """
-    assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
-    t1, t2, t3, t4 = true_model_coefficients
-    
-    #If array is not 2D, give it shape (len(array), 1)
-    if not len(x.shape) > 1:
-        x = x.reshape(-1,1)
-
-    assert x.shape[0] == 2, "Isotherm x_data must be 2 dimensional"
-    x1, x2 = x #Split x into 2 parts by splitting the rows
-
-    y_model =  (t1*t2*x1)/(1+t2*x1) + (t3*t4*x2)/(1+t4*x2)
-    
-    return y_model
-calc_cs4_isotherm = calc_cs9_isotherm
-
 class CS11:
+    """
+    Class containing constants for BOD Curve Case Study
+    
+    Methods:
+    --------
+    __init__(): Initializes the class"""
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2']
         self.name = "BOD Curve"
@@ -399,17 +343,17 @@ class CS11:
 
 def calc_cs11_BOD(true_model_coefficients, x, args = None):
     """
-    Calculates the value of y for case study 1
+    Caclulates the simulated y-values for the BOD Curve case study
     
     Parameters
     ----------
-    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
-    x: ndarray, The list of xs that will be used to generate y
-    args: dict, extra arguments to pass to the function. Default None
+        model_coefficients: ndarray, The array containing the true parameter values
+        x: ndarray, Values of X
+        args: dict, extra arguments to pass to the function.
     
-    Returns
+    Returns:
     --------
-    y_poly: ndarray, The noiseless values of y given theta_true and x
+        y_model: float, value of the model
     """
     assert len(true_model_coefficients) == 2, "true_model_coefficients must be length 2"
     t1, t2 = true_model_coefficients
@@ -418,6 +362,11 @@ def calc_cs11_BOD(true_model_coefficients, x, args = None):
     return y_model
     
 class CS12:
+    """
+    Class containing constants for Yield-Loss Case Study
+    Methods:
+    --------
+    __init__(): Initializes the class"""
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3']
         self.name = "Yield-Loss"
@@ -432,17 +381,17 @@ class CS12:
 
 def calc_cs12_yield(true_model_coefficients, x, args = None):
     """
-    Calculates the value of y for case study 1
+    Caclulates the simulated y-values for the Yield-Loss case study
     
     Parameters
     ----------
-    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
-    x: ndarray, The list of xs that will be used to generate y
-    args: dict, extra arguments to pass to the function. Default None
+        model_coefficients: ndarray, The array containing the true parameter values
+        x: ndarray, Values of X
+        args: dict, extra arguments to pass to the function.
     
-    Returns
+    Returns:
     --------
-    y_poly: ndarray, The noiseless values of y given theta_true and x
+        y_model: float, value of the model
     """
     assert len(true_model_coefficients) == 3, "true_model_coefficients must be length 3"
     t1, t2, t3 = true_model_coefficients
@@ -451,6 +400,11 @@ def calc_cs12_yield(true_model_coefficients, x, args = None):
     return y_model
 
 class CS13:
+    """
+    Class containing constants for Log Logistic Case Study
+    Methods:
+    --------
+    __init__(): Initializes the class"""
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
         self.name = "Log Logistic"
@@ -465,17 +419,17 @@ class CS13:
 
 def calc_cs13_logit(true_model_coefficients, x, args = None):
     """
-    Calculates the value of y for case study 1
+    Caclulates the simulated y-values for the Log Logistic case study
     
     Parameters
     ----------
-    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
-    x: ndarray, The list of xs that will be used to generate y
-    args: dict, extra arguments to pass to the function. Default None
+        model_coefficients: ndarray, The array containing the true parameter values
+        x: ndarray, Values of X
+        args: dict, extra arguments to pass to the function.
     
-    Returns
+    Returns:
     --------
-    y_poly: ndarray, The noiseless values of y given theta_true and x
+        y_model: float, value of the model
     """
     assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
     t1, t2, t3, t4 = true_model_coefficients
@@ -484,6 +438,11 @@ def calc_cs13_logit(true_model_coefficients, x, args = None):
     return y_model
 
 class CS14:
+    """
+    Class containing constants for 2D Log Logistic Case Study
+    Methods:
+    --------
+    __init__(): Initializes the class"""
     def __init__(self):
         self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
         self.name = "2D Log Logistic"
@@ -498,17 +457,17 @@ class CS14:
 
 def calc_cs14_logit2D(true_model_coefficients, x, args = None):
     """
-    Caclulates the Muller Potential
+    Caclulates the simulated y-values for the 2D Log Logistic case study
     
     Parameters
     ----------
-        model_coefficients: ndarray, The array containing the values of Muller constants
+        model_coefficients: ndarray, The array containing the true parameter values
         x: ndarray, Values of X
         args: dict, extra arguments to pass to the function.
     
     Returns:
     --------
-        y_mul: float, value of Muller potential
+        y_model: float, value of the model
     """
     assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
     t1, t2, t3, t4 = true_model_coefficients
@@ -522,111 +481,5 @@ def calc_cs14_logit2D(true_model_coefficients, x, args = None):
 
     t1, t2, t3, t4 = true_model_coefficients
     y_model =  x1*t1**2 + (t2-t1*x1)/(1+(x2/t3)**t4)
-    
-    return y_model
-
-class CS15:
-    def __init__(self):
-        self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4', 'theta_5']
-        self.idcs_to_consider = [0,1,2,3,4]
-        self.bounds_x_l = [-5]
-        self.bounds_x_u = [ 2]
-        self.bounds_theta_l = [1e-1, 1e-4, -5,  1e-4, -5]
-        self.bounds_theta_u = [3,  1, 5, 1, 5]
-        self.theta_ref = np.array([2, 0.4, 0.5, 0.3, -3])  
-        self.calc_y_fxn = calc_cs15_model
-        self.calc_y_fxn_args = None
-
-def calc_cs15_model(true_model_coefficients, x, args = None):
-    """
-    Calculates the value of y for case study 1
-    
-    Parameters
-    ----------
-    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
-    x: ndarray, The list of xs that will be used to generate y
-    args: dict, extra arguments to pass to the function. Default None
-    
-    Returns
-    --------
-    y_poly: ndarray, The noiseless values of y given theta_true and x
-    """
-    t1, t2, t3, t4, t5 = true_model_coefficients
-    y1 = 1 - (1- t2)*np.exp(-t1*(x-t3)**2)
-    y2 = 1 - (1- t4)*np.exp(-t1*(x-t5)**2)
-    y_model =  y1*y2
-    
-    return y_model
-
-class CS16:
-    def __init__(self):
-        self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
-        self.idcs_to_consider = [0,1,2,3]
-        self.bounds_x_l = [0, 0]
-        self.bounds_x_u = [ 2*math.pi, 2*math.pi]
-        self.bounds_theta_l = [-2, -2, -2, -2]
-        self.bounds_theta_u = [ 2, 2, 2, 2]
-        self.theta_ref = np.array([0.75, -1.0, 1.5, -1.0]) 
-        self.calc_y_fxn = calc_cs16_trig
-        self.calc_y_fxn_args = None
-
-def calc_cs16_trig(true_model_coefficients, x, args = None):
-    """
-    Calculates the value of y for case study 1
-    
-    Parameters
-    ----------
-    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
-    x: ndarray, The list of xs that will be used to generate y
-    args: dict, extra arguments to pass to the function. Default None
-    
-    Returns
-    --------
-    y_poly: ndarray, The noiseless values of y given theta_true and x
-    """
-    assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
-    t1, t2, t3, t4 = true_model_coefficients
-    
-    #If array is not 2D, give it shape (len(array), 1)
-    if not len(x.shape) > 1:
-        x = x.reshape(-1,1)
-
-    assert x.shape[0] == 2, "Isotherm x_data must be 2 dimensional"
-    x1, x2 = x #Split x into 2 parts by splitting the rows
-
-    t1, t2, t3, t4 = true_model_coefficients
-    y_model =  np.sin(t1 + t2*x1) + np.cos(t3 + t4*x2)
-    
-    return y_model
-
-
-class CS17:
-    def __init__(self):
-        self.theta_names = ['theta_1', 'theta_2', 'theta_3', 'theta_4']
-        self.idcs_to_consider = [0,1,2,3]
-        self.bounds_x_l = [-math.pi]
-        self.bounds_x_u = [2*math.pi]
-        self.bounds_theta_l = [0, -1, 0, -5]
-        self.bounds_theta_u = [5,  1e-1, 5,  0]
-        self.theta_ref = np.array([3.0,-0.2,1.0,-1.0]) 
-        self.calc_y_fxn = calc_cs17_expcos
-        self.calc_y_fxn_args = None
-
-def calc_cs17_expcos(true_model_coefficients, x, args = None):
-    """
-    Calculates the value of y for case study 1
-    
-    Parameters
-    ----------
-    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
-    x: ndarray, The list of xs that will be used to generate y
-    args: dict, extra arguments to pass to the function. Default None
-    
-    Returns
-    --------
-    y_poly: ndarray, The noiseless values of y given theta_true and x
-    """
-    t1, t2, t3, t4 = true_model_coefficients
-    y_model =  t1*np.exp(t2*x)*np.cos(t3*x+t4)
     
     return y_model

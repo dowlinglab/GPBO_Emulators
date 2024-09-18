@@ -88,7 +88,7 @@ def run_ep_or_sf_exp(job):
         raise Warning("Ep_enum value must be between 1 and 4!")
         
     #Generate Sim (Training) Data (OR Add your own training data here as a Data class object)
-    num_theta_data = len(simulator.indeces_to_consider)*job.sp.num_theta_multiplier
+    num_theta_data = len(simulator.indices_to_consider)*job.sp.num_theta_multiplier
     gen_meth_theta = Gen_meth_enum(job.sp.gen_meth_theta)
     #Note at present, training data is always the same between jobs since we set the data generation seed to 1
     sim_data = simulator.gen_sim_data(num_theta_data, job.sp.num_x_data, gen_meth_theta, gen_meth_x, job.sp.sep_fact, set_seed, False)
