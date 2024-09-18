@@ -2839,13 +2839,11 @@ class Expected_Improvement():
             #Use the mvn function directly to get the random variables if matrix is Positive Definite
             if np.all(eigvals > 1e-7):
                 random_vars = rng.multivariate_normal(mean, np.real(covar), mc_samples, tol=1e-5, method='eigh')
-                # print(random_vars[0:3,:])
             #Otherwise, use the LDL decomposition
             else:
                 lu, d, perm = scipy.linalg.ldl(np.real(covar), lower=True) # Use the lower part
                 sqrt_d = np.sqrt(np.diag(d))[:, np.newaxis]
                 random_vars = (mean[:, np.newaxis] + lu[:, perm] @ (sqrt_d * random_vars_stand.T)).T
-                # print(random_vars[0:3,:])
                 np.save("mean_mc.npy", mean)
                 np.save("covar_mc.npy", covar)
 
@@ -3058,7 +3056,6 @@ class Expected_Improvement():
             pred_stdev_val = np.sqrt(gp_var[valid_indices])
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
-            # best_errors_x = self.best_error_x[valid_indices]
             best_errors_x = copy.deepcopy(best_errors_x_all)[valid_indices]
             best_errors_x[best_errors_x == 0] += 1e-15 #Add a small value to any zero value to avoid problems in ei calculations
             #Important when stdev is close to 0
@@ -3086,7 +3083,6 @@ class Expected_Improvement():
                                   ei_temp]], columns=columns)
         else:
             ei_temp = 0
-            # row_data_lists = pd.DataFrame([[self.best_error_x, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
             row_data_lists = pd.DataFrame([[best_errors_x_all, "N/A", "N/A", "N/A", "N/A", "N/A", ei_temp]], columns=columns)
         
         row_data = row_data_lists.apply(lambda col: col.explode(ignore_index = True), axis=0).reset_index(drop=True)
@@ -3151,12 +3147,6 @@ class Expected_Improvement():
             gp_mean_min_y = y_target_val - gp_mean_val
 
             # #Obtain Sparse Grid points and weights
-            # points_p, weights_p = self.__get_sparse_grids(len(y_target_val), output=0, depth=self.sg_depth, rule='gauss-hermite', 
-            #                                               verbose=False)         
-            # # Calculate gp_var multiplied by points_p
-            # gp_stdev_points_p = gp_stdev_val * (np.sqrt(2)*points_p)
-            # # Calculate the SSE for all data points simultaneously
-            # sse_temp = np.sum((gp_mean_min_y[:, np.newaxis].T - gp_stdev_points_p)**2, axis=1)
             #Get maximum depth given number of points p
             sg_depth = self.__set_sg_def(ndims)
             points_p, weights_p = self.__get_sparse_grids(ndims, output=1, depth=sg_depth, rule='gauss-hermite-odd', 
@@ -3172,15 +3162,11 @@ class Expected_Improvement():
                 L = lu[:, perm]@np.diag(np.sqrt(d))
                 np.save("covar_sg.npy", self.gp_covar)
 
-            try:
-                transformed_points = L@points_p.T
-            except:
-                print(L.shape, points_p.shape)
+            transformed_points = L@points_p.T
             gp_random_vars = self.gp_mean[:, np.newaxis] + np.sqrt(2)*(transformed_points)
             sse_temp = np.sum((y_target[:, np.newaxis] - gp_random_vars)**2, axis=0)
             # Apply max operator (equivalent to max[(best_error*ep) - SSE_Temp,0])
             error_diff = self.best_error*self.ep_bias.ep_curr - sse_temp
-            # improvement = np.maximum(error_diff, 0)
             #Smooth max improvement function
             improvement = (0.5)*(error_diff + np.sqrt(error_diff**2 + 1e-7))
 
@@ -3662,7 +3648,7 @@ class GPBO_Driver:
                 noise_std = self.simulator.noise_std*noise_scl_fact 
             #If using objective ln(sse) guess the noise std
             else:
-                noise_std = None #np.sqrt(float(scipy.special.polygamma(1, (k*self.simulator.noise_std**2)/2)))
+                noise_std = None
 
             gp_emulator = Type_1_GP_Emulator(all_gp_data, all_val_data, None, None, None, self.cs_params.kernel, self.cs_params.lenscl,
                                              noise_std, self.cs_params.outputscl, self.cs_params.retrain_GP, self.cs_params.seed, 
@@ -3750,8 +3736,6 @@ class GPBO_Driver:
         #Evaluate GP mean and Var (This is the slowest step)
         feat_sp_data = self.gp_emulator.featurize_data(sp_data)
         sp_data.gp_mean, sp_data.gp_var = self.gp_emulator.eval_gp_mean_var_misc(sp_data, feat_sp_data)
-        # print(sp_data.gp_covar)
-        # print(np.linalg.det(sp_data.gp_covar))
 
         #Evaluate GP SSE and SSE_Var (This is the 2nd slowest step)
         sp_data_sse_mean, sp_data_sse_var = self.gp_emulator.eval_gp_sse_var_misc(sp_data, self.method, self.exp_data)
@@ -3825,7 +3809,7 @@ class GPBO_Driver:
         assert isinstance(opt_obj, str), "opt_obj must be string!"
         assert opt_obj in ["neg_ei", "E_sse", "sse"], "opt_obj must be 'neg_ei', or 'sse'!"
 
-        #Note add +1 because index 0 counts as 1 reoptimization
+        #Note use > because index 0 counts as 1 reoptimization
         if self.cs_params.reoptimize_obj > 50:
             warnings.warn("The objective will be reoptimized more than 50 times!")
         
@@ -3844,14 +3828,14 @@ class GPBO_Driver:
             #Initialize L-BFGS-B as default optimization method
             obj_opt_method = "L-BFGS-B"
                 
-            # try:
-            #Call scipy method to optimize EI given theta
-            #Using L-BFGS-B instead of BFGS because it allowd for bounds
-            best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = obj_opt_method, args=(opt_obj, 
+            try:
+                #Call scipy method to optimize EI given theta
+                #Using L-BFGS-B instead of BFGS because it allowd for bounds
+                best_result = optimize.minimize(self.__scipy_fxn, theta_guess, bounds=bnds, method = obj_opt_method, args=(opt_obj, 
                                                                                                                         best_error_metrics))
-            # except ValueError: 
-            #     #If the intialized theta causes scipy.optimize to choose nan values, skip it
-            #     pass
+            except ValueError: 
+                #If the intialized theta causes scipy.optimize to choose nan values, skip it
+                pass
         
         best_val = self.__min_obj_class.acq
         best_class = self.__min_obj_class
