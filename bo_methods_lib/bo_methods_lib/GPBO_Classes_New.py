@@ -109,34 +109,6 @@ class Obj_enum(Enum):
     OBJ = 1
     LN_OBJ = 2
     
-class CS_name_enum(Enum):
-    """
-    The base class for any GPBO case study names
-    
-    Notes: 
-    -------
-    1 = CS1 2 Param Polynomial
-    2 = CS2 4 Param 2 State Point (x0) Muller Potential
-    3 = CS3 4 Param 2 State Point (y0) Muller Potential
-    10 = CS10 5 Param Polynomial with same scale parameters
-    11 = CS11 2 Param BOD Example from Bates and Watts
-    Examples from: https://www.statforbiology.com/nonlinearregression/usefulequations
-    12 = CS12 3 Param Yield-Loss Model
-    13 = CS13 4 Param Log Logistic Model
-    14 = CS14 4 Param 2 State Point Log Logistic 2D Model
-    """
-    if Enum in range(1, 18) == False:
-        raise ValueError("There are 16 options for Enum: 1 to 17")
-        
-    CS1 = 1
-    CS2_x0 = 2
-    CS3_y0 = 3
-    CS10 = 10
-    CS11 = 11
-    CS12 = 12
-    CS13 = 13
-    CS14 = 14
-    
 class Ep_enum(Enum):
     """
     The base class for any Method for calculating the decay of the exploration parameter

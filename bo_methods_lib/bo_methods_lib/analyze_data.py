@@ -40,8 +40,7 @@ def open_file_helper(file_path):
     return results
 class General_Analysis:
     """
-    The base class for Gaussian Processes
-    Parameters
+    The base class for GPBO workflow analysis
     
     Methods
     --------------
@@ -106,7 +105,7 @@ class General_Analysis:
         Parameters
         ----------
         dict_to_use: dict, dictionary to use to make directory name
-        is_nested: bool, whether the dictionary is nested or not
+        is_nested: bool, whether the dictionary is nested or not. Default False
 
         Returns
         -------
@@ -144,7 +143,9 @@ class General_Analysis:
     def get_jobs_from_criteria(self, criteria_dict=None):
         """
         Gets a pointer of all jobs
-
+        Parameters
+        ----------
+        criteria_dict: dict or None, dictionary to determine which jobs to analyze. If none, defaults to class value
         Returns
         -------
         jobs: list, a list of jobs from Signac that fit criteria dict
@@ -185,7 +186,7 @@ class General_Analysis:
         
         Parameters
         ----------
-        criteria_dict: dict or None, dictionary to determine which jobs to analyze. If non defaults to class value
+        criteria_dict: dict or None, dictionary to determine which jobs to analyze. If none defaults to class value
         save_csv: bool, whether to save csvs. Default False
         
         Returns
@@ -908,7 +909,7 @@ class General_Analysis:
         ep_enum: Ep_enum, the method used to generate exploration bias values
         """
         method = GPBO_Methods(Method_name_enum(sp_data["meth_name_val"]))
-        cs_name = CS_name_enum(sp_data["cs_name_val"]) if "cs_name_val" in sp_data else "New_CS"
+        cs_name = get_cs_class_from_val(sp_data["cs_name_val"]).name if "cs_name_val" in sp_data else "New_CS"
         ep0 = sp_data["ep0"]
         sep_fact = sp_data["sep_fact"]
         normalize = sp_data["normalize"]
@@ -1248,7 +1249,7 @@ class General_Analysis:
 
 class All_CS_Analysis(General_Analysis):
     """
-    Class for analyzing results from all case studies
+    Class for analyzing GPBO workflow results from all case studies. Child class of General_Analysis
 
     Methods
     -------

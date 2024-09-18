@@ -24,8 +24,8 @@ def test_bo_methods_lib_imported():
     """Sample test, will always pass so long as import statement worked."""
     assert "bo_methods_lib" in sys.modules
 
-cs_name1  = CS_name_enum(1)
-cs_name2  = CS_name_enum(2)
+cs_name1  = "Simple Linear"
+cs_name2  = "Muller x0"
 
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)

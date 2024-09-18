@@ -23,7 +23,7 @@ def test_bo_methods_lib_imported():
     """Sample test, will always pass so long as import statement worked."""
     assert "bo_methods_lib" in sys.modules
 
-cs_name  = CS_name_enum(1)
+cs_name  = "Simple Linear"
 indecies_to_consider = list(range(0, 2)) #This is what changes for different subproblems of CS1
 
 ep0 = 1
@@ -184,7 +184,7 @@ def test_sim_data_to_sse_sim_val_data(method, sim_data, exp_data, gen_val_data, 
     assert y_vals_gen == y_generated 
     
 ## Case Study 2 Tests
-cs_name2  = CS_name_enum(2)
+cs_name2  = "Muller x0"
 indecies_to_consider2 = list(range(16, 24)) #This is what changes for different subproblems of CS2
 simulator2 = simulator_helper_test_fxns(cs_name2.value, noise_mean, noise_std, seed)
 

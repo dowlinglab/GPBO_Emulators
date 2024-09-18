@@ -24,7 +24,7 @@ def test_bo_methods_lib_imported():
     """Sample test, will always pass so long as import statement worked."""
     assert "bo_methods_lib" in sys.modules
 
-CS_name  = CS_name_enum(1)
+CS_name  = "Simple Linear"
 
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2) #Note: Has to be the same for validation and sim data

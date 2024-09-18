@@ -8,7 +8,7 @@ import itertools
 from itertools import combinations
 
 import bo_methods_lib
-from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import CS_name_enum, Method_name_enum
+from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import Method_name_enum
 from bo_methods_lib.bo_methods_lib.analyze_data import General_Analysis
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_plotters import Plotters
 from skimage.transform import resize
