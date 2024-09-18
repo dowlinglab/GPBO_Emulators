@@ -45,29 +45,28 @@ class General_Analysis:
     
     Methods
     --------------
-    __init__
-    make_dir_name_from_criteria
-    get_jobs_from_criteria
-    get_df_all_jobs
-    get_study_data_signac
-    str_to_array_df_col(self, str_arr)
-    get_best
-    get_median
-    get_mean
-    __get_job_list
-    sort_by_meth
-    __calc_L2_norm()
-    __get_data
-    load_data
-    save_data
-    __z_choice_helper
-    __preprocess_analyze
-    analyze_obj_vals
-    analyze_thetas
-    analyze_hypers
-    __rebuild_cs
-    analyze_parity_plot_data
-    analyze_heat_maps
+    __init__(*args, **kwargs): Constructor method
+    make_dir_name_from_criteria(dict_to_use, is_nested = False): Makes a directory string name from a criteria dictionary
+    get_jobs_from_criteria(criteria_dict=None): Gets a pointer of all jobs
+    str_to_array_df_col(str_arr): Used to turn arrays from csvs loaded to pd dataframes from strings into arrays
+    get_df_all_jobs(criteria_dict = None, save_csv = False): Creates a dataframe of all information for a given experiment
+    get_study_data_signac(job, save_csv = None): Get best data from jobs and optionally save the csvs for the data
+    get_best(): Gets the best (as described from self.mode) performing data for each method in the criteria dict
+    get_median(): Gets the median (as described from self.mode) performing data for each method in the criteria dict
+    get_mean(): Gets the mean (as described from self.mode) performing data for each method in the criteria dict
+    __get_job_list(df_data): Helper function to pull best jobs from a dataframe
+    sort_by_meth(df_data): Sorts a dataframe by the GPBO method used
+    __calc_L2_norm(df_data, theta_true_data): Calculates the L2 norm of the theta values in a dataframe
+    load_data(path): Loads data from a file based on the file extension
+    save_data(data, save_path): Saves data to a file based on the file extension
+    __z_choice_helper(z_choices, theta_true_data, data_type): Helper function to get the correct data and data names for plotting
+    __preprocess_analyze(job, z_choice, data_type): Helper function to preprocess data for analysis
+    analyze_obj_vals(job, z_choices): Compiles objective data for plotting
+    analyze_thetas(job, z_choice): Compiles parameter set data for plotting
+    analyze_hypers(job): Compiles hyperparameter data for plotting
+    __rebuild_cs(sp_data): Rebuilds the CaseStudyParameters instance from the job statepoint data
+    analyze_parity_plot_data(job, run_num, bo_iter): Compiles parity plot data for plotting
+    analyze_heat_maps(job, run_num, bo_iter, pair_id, get_ei = False): Compiles heat map data for plotting
     """
     # Class variables and attributes
     
@@ -77,7 +76,7 @@ class General_Analysis:
         ----------
         criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val
         project: signac.project.Project, The signac project to analyze
-        mode: str, the mode to analyze the data in (act, acq, or gp)
+        mode: str, the mode to analyze the data in ('act', 'acq', or 'gp')
         save_csv: bool, whether to save csvs.
         """
         #Asserts
@@ -91,11 +90,6 @@ class General_Analysis:
             statepoint_names.update(job.statepoint().keys())
         key_list = list(statepoint_names)
         self.sp_keys_valid = key_list
-        # print(self.sp_keys_valid)
-        # value = all(key in key_list for key in list(criteria_dict.keys()))
-        # print(value)
-        # print(all(key in key_list for key in list(criteria_dict.keys())))
-        # print(list(criteria_dict.keys()))
         assert all(key in key_list for key in list(criteria_dict.keys())) == True, "All keys in criteria_dict must be in project statepoints"
 
         # Constructor method
@@ -120,7 +114,7 @@ class General_Analysis:
 
         Notes
         -----
-        For proper use, ALWAYS use this function with is_nested = False
+        For proper results, ALWAYS use this function with is_nested = False
         """
         assert isinstance(dict_to_use, dict), "dict_to_use must be a dictionary"
         assert isinstance(is_nested, bool), "is_nested must be a boolean"
@@ -144,8 +138,7 @@ class General_Analysis:
             else:
                 parts.append(f"{key.replace('$', '')}_{value}")
 
-        # result_dir = "/".join(parts) if is_nested else os.path.join("Results_acq", "/".join(parts))
-        result_dir = "/".join(parts) if is_nested else os.path.join("Results2_" + self.mode, "/".join(parts))
+        result_dir = "/".join(parts) if is_nested else os.path.join("Results_" + self.mode, "/".join(parts))
         return result_dir
 
     def get_jobs_from_criteria(self, criteria_dict=None):
@@ -192,13 +185,14 @@ class General_Analysis:
         
         Parameters
         ----------
+        criteria_dict: dict or None, dictionary to determine which jobs to analyze. If non defaults to class value
         save_csv: bool, whether to save csvs. Default False
         
         Returns
         -------
         df_all_jobs: A dataframe of the all of the data for the given dictionary
         job_list: list, a list of jobs from Signac that fit criteria dict for the methods in meth_name_val_list
-        theta_true_data: dict, the true parameter values for the given case study
+        theta_true_data_w_bnds: tuple (dict, np.ndarray), dictionary of true parameter values; bounds for the parameters
         
         """
         #Intialize dataframe and job list for all jobs in criteria_dict
@@ -268,19 +262,15 @@ class General_Analysis:
         Parameters
         ----------
         job: job, The job to get data from
-        save_csv: bool, whether to save csvs. Default None
+        save_csv: bool, whether to save csvs. Default None. save_csv is set to the class default if None.
         
         Returns
         -------
         df_job: pd.DataFrame, The dataframe of the data for the given job
-        theta_true_data: dict, the true parameter values for the given case study
-
-        Notes:
-        ------
-        save_csv is set to the class default when not specified
-        
+        theta_true_data_w_bnds: tuple (dict, np.ndarray), dictionary of true parameter values; bounds for the parameters 
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
+        assert save_csv == None or isinstance(save_csv, bool), "save_csv must be a boolean or None"
         save_csv = self.save_csv if save_csv == None else save_csv
         #Initialize df for a single job
         df_job = pd.DataFrame()
@@ -360,49 +350,8 @@ class General_Analysis:
         if not data_exists or self.save_csv:
             #Start by sorting pd dataframe by lowest obj func value overall
             df_sorted = df.sort_values(by=[obj_col, 'BO Iter'], ascending=True)
-            # df_sorted = df.sort_values(by=["Acq Obj Act Cum", 'BO Iter'], ascending=True)
-            # df_sorted = df.sort_values(by=["Min Obj GP Cum", 'BO Iter'], ascending=True)
             #Then take only the 1st instance for each method
             df_best = df_sorted.drop_duplicates(subset='BO Method', keep='first').copy()
-            #Calculate the L2 norm of the best runs
-            df_best = self.__calc_l2_norm(df_best, theta_true_data_w_bnds)
-            #Sort df_best
-            df_best = self.sort_by_meth(df_best)
-
-        #Get list of best jobs
-        job_list_best = self.__get_job_list(df_best)
-
-        #Put in a csv file in a directory based on the job
-        if self.save_csv:
-            self.save_data(df_best, data_best_path)
-
-        return df_best, job_list_best
-
-    def get_best_all_runs(self, criteria_dict = None):
-        """
-        Gets the best (as described from self.mode) performing data for each method in the criteria dict
-    
-        Returns
-        -------
-        df_best: pd.DataFrame, The best data for each method
-        job_list_best: list, a list of jobs from Signac corresponding to the ones in df_best
-        """
-        if self.mode == "act":
-            obj_col = "Min Obj Act Cum"
-        elif self.mode == "acq":
-            obj_col = "Acq Obj Act Cum"
-        elif self.mode == "gp":
-            obj_col = "Min Obj GP Cum"
-        #Get data from Criteria dict if you need it
-        df, jobs, theta_true_data_w_bnds = self.get_df_all_jobs(criteria_dict)
-        # print(df.head())
-        data_best_path = os.path.join(self.study_results_dir, "best_run_results.csv")
-        data_exists, df_best = self.load_data(data_best_path)
-        if not data_exists or self.save_csv:
-            #Start by sorting pd dataframe by lowest obj func value overall, then by BO Iter and Run Number
-            df_sorted = df.sort_values(by=[obj_col, 'BO Iter', 'Run Number'], ascending=True)
-            #Then take only the 1st instance for each method and run
-            df_best = df_sorted.drop_duplicates(subset=['BO Method', 'Run Number'], keep='first').copy()
             #Calculate the L2 norm of the best runs
             df_best = self.__calc_l2_norm(df_best, theta_true_data_w_bnds)
             #Sort df_best
@@ -419,7 +368,7 @@ class General_Analysis:
     
     def get_median_data(self):
         """
-        Gets the median performing data for each method in the criteria dict
+        Gets the median (as described from self.mode) performing data for each method in the criteria dict
 
         Returns
         -------
@@ -468,7 +417,7 @@ class General_Analysis:
     
     def get_mean_data(self):
         """
-        Gets the mean performing data for each method in the criteria dict
+        Gets the mean (as described from self.mode) performing data for each method in the criteria dict
 
         Returns
         -------
@@ -567,7 +516,7 @@ class General_Analysis:
         Parameters
         ----------
         df_data: pd.DataFrame, The dataframe to calculate the L2 norm for
-        theta_true: np.array, The true theta values to compare to
+        theta_true: tuple (dict, np.ndarray), dictionary of true parameter values; bounds for the parameters 
 
         Returns
         -------
@@ -610,7 +559,6 @@ class General_Analysis:
         #Extract directory name
         dirname = os.path.dirname(path)
         # #Make directory if it doesn't already exist
-        # os.makedirs(dirname, exist_ok=True)
         #Based on extension, save in different ways
         #Check if csv already exists
         if os.path.exists(path):
@@ -638,10 +586,6 @@ class General_Analysis:
         ----------
         data: Object, the data to save
         save_path: str, The file path to save the data
-
-        Returns
-        -------
-        None
         """
         #Split path into parts
         ext = os.path.splitext(save_path)[-1]
@@ -674,8 +618,8 @@ class General_Analysis:
         Parameters
         ----------
         z_choices: list, the choices of data to analyze
-        theta_true_data: dict, the true parameter values for the given case study
-        data_type: str, the type of data to analyze (parameter or objective data)
+        theta_true_data: tuple (dict, np.ndarray), dictionary of true parameter values; bounds for the parameters 
+        data_type: str, the type of data to analyze (parameter or objective data). Either 'objs' or 'params'.
 
         Returns
         -------
@@ -714,11 +658,11 @@ class General_Analysis:
             for z_choice in z_choices:
                 if "sse" == z_choice:
                     theta = "\\theta}^o" if self.mode != "acq" else "\\theta^*}"
-                    col_name += [obj_col_sse] #["Acq Obj Act"] #["Min Obj GP"], 
+                    col_name += [obj_col_sse] 
                     data_names += [label_g + theta + ")"]
                 if "min_sse" == z_choice:
                     theta = "\\theta}^{\prime}"
-                    col_name += [obj_col_sse_min] #["Acq Obj Act Cum"] #["Min Obj GP Cum"], 
+                    col_name += [obj_col_sse_min]  
                     data_names += [label_g + theta + ")"]        
                 if "acq" == z_choice:
                     col_name += ["Opt Acq"]
@@ -729,9 +673,9 @@ class General_Analysis:
             assert any(item == z_choices for item in ["acq", "min_sse", "sse"]), "z_choices must be one of 'min_sse', 'acq', or 'sse'"
             data_names = list(theta_true_data.keys())
             if "min_sse" in z_choices:
-                col_name = param_sse_min #['Theta Acq Act Cum'], ['Theta Obj GP Cum'], ['Theta Obj Act Cum']
+                col_name = param_sse_min 
             elif "sse" == z_choices:
-                col_name = param_sse #['Theta Min Obj'], ['Theta Opt Acq']
+                col_name = param_sse 
             elif "acq" in z_choices:
                 col_name = 'Theta Opt Acq'
             else:
@@ -745,22 +689,22 @@ class General_Analysis:
         Parameters
         ----------
         job: signac.job.Job, the job to analyze
-        z_choice: list or str, the choices of data to analyze
-        data_type: str, the type of data to analyze (parameter or objective data)
+        z_choice: list or str, the choices of data to analyze. One of 'min_sse', 'sse', or 'acq'
+        data_type: str, the type of data to analyze (parameter or objective data). Either 'objs' or 'params'.
 
         Returns
         -------
         df_job: pd.DataFrame, the dataframe of the data for the given job
         data: np.ndarray, the data for plotting
-        data_true: np.ndarray or None, the true values of the data
+        data_true: np.ndarray or None, the reference values of the data
         sp_data: dict, the statepoint data for the job
         tot_runs: int, the total number of runs in the job
+        data_median: np.ndarray or None, the median values of the reference data
         """
         #Look for data if it already exists, if not create it
         #Check if we have theta data and create it if not
         tab_data_path = os.path.join(job.fn("analysis_data") , "tabulated_data.csv")
         true_param_data_path = os.path.join(job.fn("analysis_data") , "true_param_data.json")
-        # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
         found_data1, df_job = self.load_data(tab_data_path)
         found_data2, theta_true_data = self.load_data(true_param_data_path)
         data_median = None
@@ -809,14 +753,15 @@ class General_Analysis:
         Parameters
         ----------
         job: signac.job.Job, the job to analyze
-        z_choices: list or str, the choices of data to analyze
+        z_choices: list or str, the choices of data to analyze. Contains a combination of 'min_sse', 'sse', or 'acq'
         
         Returns
         -------
         data: np.ndarray, The data for plotting
         data_names: list, the names of the data
-        data_true: dict or None, the true values of the data
+        data_true: dict or None, the reference values of the data
         sp_data: dict, the statepoint data for the job
+        data_true_med: dict or None, the median values of the reference data
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert isinstance(z_choices, (Iterable, str)), "z_choices must be Iterable or str"
@@ -863,13 +808,13 @@ class General_Analysis:
         Parameters
         ----------
         job: signac.job.Job, the job to analyze
-        z_choice: str, the choice of data to analyze
+        z_choice: str, the choice of data to analyze. One of 'min_sse', 'sse', or 'acq'
 
         Returns
         -------
         data: np.ndarray, The data for plotting
         data_names: list, the names of the data
-        data_true: dict or None, the true values of the data
+        data_true: dict or None, the reference values of the data
         sp_data: dict, the statepoint data for the job
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
@@ -905,9 +850,10 @@ class General_Analysis:
         -------
         data: np.ndarray, The data for plotting
         data_names: list, the names of the data
-        data_true: None, the true values of the data (None for hyperaprameters)
+        data_true: None, the reference values of the data (None for hyperaprameters)
         sp_data: dict, the statepoint data for the job
         """
+        assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         data_true = None
         #Check for prexisting data
         hp_data_path = os.path.join(job.fn("analysis_data") , "hyperparam_data.npy")
@@ -1000,7 +946,7 @@ class General_Analysis:
 
         Returns
         -------
-        test_data: Data, the evaluated testing data for the given run and iteration
+        test_data_obj: Data, the evaluated testing data for the given run and iteration
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert isinstance(run_num, (np.int64, int)), "run_num must be an int"
@@ -1048,7 +994,6 @@ class General_Analysis:
                 test_data_sim = simulator.gen_sim_data(10, use_x, Gen_meth_enum(1), Gen_meth_enum(2), 1.0, simulator.seed, False)
                 if method.emulator == False:
                     test_data_sim = simulator.sim_data_to_sse_sim_data(method, test_data_sim, exp_data, 1.0, False)
-                # print(test_data_sim.y_vals)
                 gp_object.test_data = test_data_sim
                 gp_object.feature_test_data = gp_object.featurize_data(gp_object.test_data)
                 gp_object.test_data.gp_mean, gp_object.test_data.gp_var = gp_object.eval_gp_mean_var_test()  
@@ -1094,7 +1039,6 @@ class General_Analysis:
         try:
             found_data1, heat_map_data = self.load_data(hm_path_name)
         except:
-            # print(job.id, hm_path_name)
             found_data1, heat_map_data = False, None
         found_data2, heat_map_sse_data = self.load_data(hm_sse_path_name)
         found_data3, param_info_dict = self.load_data(param_info_path)
@@ -1159,9 +1103,6 @@ class General_Analysis:
             train_theta = loaded_results_GPs[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
             
             #Get specific heat map data or generate it
-            # if loaded_results[0].heat_map_data_dict is not None:
-            #     heat_map_data_dict = loaded_results[0].heat_map_data_dict
-            # else:
             num_x = exp_data.get_num_x_vals()
             n_points_set = len(driver.gp_emulator.gp_sim_data.get_unique_theta())
             if num_x*n_points_set**2 >= 5000:
@@ -1270,9 +1211,6 @@ class General_Analysis:
                     ei_output = gp_emulator.eval_ei_cand(exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)[0]
                     ei_vals.append(ei_output)
 
-                # heat_map_sse_data.gp_mean, heat_map_sse_data.gp_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data, featurized_hm_data)
-                # heat_map_sse_data.acq = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, 
-                #                                                     best_error_metrics, method, sg_mc_samples)[0]
                 heat_map_sse_data.acq = np.array(ei_vals)
 
         #Save data if necessary
@@ -1311,15 +1249,25 @@ class General_Analysis:
 class All_CS_Analysis(General_Analysis):
     """
     Class for analyzing results from all case studies
+
+    Methods
+    -------
+    __init__(cs_list, meth_val_list, project, mode, save_csv): Initializes the class
+    __sort_by_cs_meth(df_data): Sorts a dataframe by the method used
+    get_all_data(): Gets all data for all case studies
+    get_acq_last10_avg(): Get the average acquisition function value for the last 10 iterations of each run
+    get_averages(): Get average computational time, max function evaltuations, and sse values for all case studies
+    get_percent_true_found(): Get the percentage of how often the true parameter value was found
+    get_averages_best(): Get the average computational time, max function evaltuations, and sse values for the best run
     """
     def __init__(self, cs_list, meth_val_list, project, mode, save_csv):
         """
         Parameters
         ----------
-        cs_list: list, the list of case studies to analyze
+        cs_list: list, the list of case studies (by number marker) to analyze
         meth_val_list: list, the list of methods to analyze
         project: signac.project.Project, The signac project to analyze
-        mode: str, the mode to analyze the data in (act, acq, or gp)
+        mode: str, the mode to analyze the data in ('act', 'acq', or 'gp')
         save_csv: bool, whether to save csvs.
         """
         if len(cs_list) == 1:
@@ -1361,8 +1309,6 @@ class All_CS_Analysis(General_Analysis):
         df_data: pd.DataFrame, The sorted dataframe
         """
         #Put rows in order of method
-        # row_order = sorted([Method_name_enum[meth].value for meth in df_data['BO Method'].unique()])
-        # order = [Method_name_enum(num).name for num in row_order]
         order = ["Conventional", "Log Conventional", "Independence", "Log Independence", "Sparse Grid", "Monte Carlo", "E[SSE]"]
         # Reindex the DataFrame with the specified row order
         df_data['BO Method'] = pd.Categorical(df_data['BO Method'], categories=order, ordered=True)
@@ -1377,8 +1323,6 @@ class All_CS_Analysis(General_Analysis):
         Returns
         -------
         df_all_jobs: pd.DataFrame, The dataframe of all of the data for the given dictionary
-        job_list: list, a list of jobs from Signac that fit criteria dict for the methods in meth_name_val_list
-        theta_true_data: dict, the true parameter values for the given case study
         """
         #Sort by method and CS Name
         df_all_jobs, job_list, __ = self.get_df_all_jobs()
@@ -1394,6 +1338,10 @@ class All_CS_Analysis(General_Analysis):
     def get_acq_last10_avg(self):
         """
         Get the average acquisition function value for the last 10 iterations of each run
+
+        Returns
+        -------
+        df_acq_10_avg: pd.DataFrame, The dataframe of the average acquisition function value for the last 10 iterations of
         """
         df_all_jobs = self.get_all_data()
         #Get the last 10 of iterations of each run
@@ -1429,6 +1377,10 @@ class All_CS_Analysis(General_Analysis):
     def get_averages(self):
         """
         Get average computational time, max function evaltuations, and sse values for all case studies
+
+        Returns
+        -------
+        df_avg_all: pd.DataFrame, The dataframe of the average computational time, max function evaltuations, and sse values for all case studies
         """
 
         df_all_jobs = self.get_all_data()
@@ -1450,10 +1402,6 @@ class All_CS_Analysis(General_Analysis):
         'Total Run Time': ['mean', 'std'],
         'Max Evals': ['mean', 'std']}
         ).reset_index()
-        # for (cs_name, meth_name), group in df_all_jobs.groupby(["CS Name", "BO Method"]):
-        #     if cs_name == "Complex Linear":
-        #         print(meth_name)
-        #         print(group[obj_col_sse_min])
 
         #Add nonlinear least squares results
         #Loop over each case study
@@ -1476,7 +1424,6 @@ class All_CS_Analysis(General_Analysis):
             # Compute the maximum 'iter' for each 'run'
             df_all_ls_best['Max Evals'] = df_all_ls_best.groupby(['CS Name', 'Run'])['BO Iter'].transform('max')
 
-        # print(df_all_ls_best.head())
         #Group the data by CS Name and BO Method, and get the mean and std for each group over all runs
         grouped_stats_ls = df_all_ls_best.groupby(["CS Name", "BO Method"]).agg({
         "Min Obj Cum.": ['median', self.__get_iqr],
@@ -1500,8 +1447,19 @@ class All_CS_Analysis(General_Analysis):
 
         return df_avg_all
     
-    def get_percent_true_found(self):
+    def get_percent_true_found(self, cs_nums):
+        """
+        Gets the percentage of how often the true parameter value was found
 
+        Returns
+        -------
+        results: list, the list of results
+        """
+        assert all(item in [1,2,3,10,11,12,13,14] for item in cs_nums), "cs_nums must be a list of case study numbers [1,2,3,10,11,12,13,14]"
+        assert isinstance(cs_nums, list), "cs_nums must be a list"
+        em_cs = [get_cs_class_from_val(cs_val).name for cs_val in cs_nums]
+        
+        
         if self.mode == "act":
             obj_col_sse_min = "Min Obj Act Cum"
         elif self.mode == "acq":
@@ -1554,11 +1512,6 @@ class All_CS_Analysis(General_Analysis):
         # Methods of interest
         em_meths = ['Independence', 'Log Independence', 'Sparse Grid', 'Monte Carlo', 'E[SSE]']
         st_meths = ['Conventional', 'Log Conventional']
-        # em_meths = ['Sparse Grid', 'Monte Carlo', 'Independence', 'E[SSE]', 'Log Independence']
-        # st_meths = ['Conventional', 'Log Conventional']
-        # em_cs = ['Simple Linear', 'BOD Curve', 'Yield-Loss', 'Log Logistic']
-        # em_cs = ['2D Log Logistic', 'Large Linear']
-        em_cs = ['Muller x0']
 
         #Scale the objective function values for log conv and log indep
         condition = df_all_best['BO Method'].isin(["Log Conventional", "Log Independence"])
@@ -1592,9 +1545,7 @@ class All_CS_Analysis(General_Analysis):
         })
 
         for method in st_meths:
-            st_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin([method]))]#df_all_best[~df_all_best['BO Method'].isin(em_meths)]
-            # em_df = df_all_best[(df_all_best['CS Name'] != 'Muller y0') & (df_all_best['BO Method'].isin(em_meths))] #df_all_best[df_all_best['BO Method'].isin(em_meths)]
-            # st_df = df_all_best[(df_all_best['CS Name'] != 'Muller y0') & (~df_all_best['BO Method'].isin(em_meths))]#df_all_best[~df_all_best['BO Method'].isin(em_meths)]
+            st_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin([method]))]
             # Calculate the number of rows where L2 Norm Theta < 10^-2
             st_small_l2 = st_df[st_df['L2 Norm Theta'] <= 10**-2]
             # Calculate the percentage
@@ -1614,7 +1565,7 @@ class All_CS_Analysis(General_Analysis):
             
         # Filter rows with these methods
         for method in em_meths:
-            em_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin([method]))] #df_all_best[df_all_best['BO Method'].isin(em_meths)]
+            em_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin([method]))]
             em_small_l2 = em_df[em_df['L2 Norm Theta'] <= 10**-2]
             per_em = (len(em_small_l2) / len(em_df)) * 100
             range_min_specified = em_df['L2 Norm Theta'].min()
@@ -1632,13 +1583,8 @@ class All_CS_Analysis(General_Analysis):
 
         # Convert results list to DataFrame
         results_df = pd.DataFrame(results)
-        os.makedirs(self.study_results_dir, exist_ok=True)
-        save_path = os.path.join(self.study_results_dir , "percent_true_MulX.csv")
-        # self.save_data(results_df, save_path)
 
-        st_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin(st_meths))]#df_all_best[~df_all_best['BO Method'].isin(em_meths)]
-        # em_df = df_all_best[(df_all_best['CS Name'] != 'Muller y0') & (df_all_best['BO Method'].isin(em_meths))] #df_all_best[df_all_best['BO Method'].isin(em_meths)]
-        # st_df = df_all_best[(df_all_best['CS Name'] != 'Muller y0') & (~df_all_best['BO Method'].isin(em_meths))]#df_all_best[~df_all_best['BO Method'].isin(em_meths)]
+        st_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin(st_meths))]
         # Calculate the number of rows where L2 Norm Theta < 10^-2
         st_small_l2 = st_df[st_df['L2 Norm Theta'] <= 10**-2]
         # Calculate the percentage
@@ -1650,7 +1596,7 @@ class All_CS_Analysis(General_Analysis):
         print(per_st)
         print(range_min_specified, range_max_specified, median_specified)
 
-        em_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin(em_meths))] #df_all_best[df_all_best['BO Method'].isin(em_meths)]
+        em_df = df_all_best[(df_all_best['CS Name'].isin(em_cs)) & (df_all_best['BO Method'].isin(em_meths))]
         em_small_l2 = em_df[em_df['L2 Norm Theta'] <= 10**-2]
         per_em = (len(em_small_l2) / len(em_df)) * 100
         range_min_specified = em_df['L2 Norm Theta'].min()
@@ -1660,13 +1606,21 @@ class All_CS_Analysis(General_Analysis):
         print(per_em)
         print(range_min_specified, range_max_specified, median_specified)
 
-        # self.save_data(df_all_best, self.study_results_dir+"df_all_best.csv")
+        if self.save_csv:
+            os.makedirs(self.study_results_dir, exist_ok=True)
+            save_path = os.path.join(self.study_results_dir , "percent_true.csv")
+            self.save_data(results_df, save_path)
+            self.save_data(df_all_best, self.study_results_dir+"df_all_best.csv")
         
         return None
 
     def get_averages_best(self):
         """
-        Get average computational time, max function evaltuations, and sse values for all case studies
+        Get median/average data for multiple properties for all case studies. Used to reporduce Figure 2 in the paper
+
+        Returns
+        -------
+        df_avg_all: pd.DataFrame, The dataframe of the median/average data for multiple properties for all case studies. Data used in Figure 2 in the paper
         """
         if self.mode == "act":
             obj_col_sse_min = "Min Obj Act Cum"
@@ -1766,16 +1720,11 @@ class LS_Analysis(General_Analysis):
 
     Methods:
     --------
-    __init__(self, criteria_dict, project, save_csv, exp_data=None, simulator=None)
-        Initializes the class
-    __ls_scipy_func(self, theta_guess, exp_data, simulator)
-        Function to define regression function for least-squares fitting
-    __get_simulator_exp_data(self)
-        Gets the simulator and experimental data from the job
-    least_squares_analysis(self, tot_runs = None)
-        Performs least squares regression on the problem equal to what was done with BO
-    categ_min(self, tot_runs = None)
-        Categorizes the number of unique minima through multiple restarts of nonlinear least squares
+    __init__(criteria_dict, project, save_csv, exp_data=None, simulator=None): Initializes the class
+    __ls_scipy_func(theta_guess, exp_data, simulator): Function to define regression function for least-squares fitting
+    __get_simulator_exp_data(): Gets the simulator and experimental data from the job
+    least_squares_analysis(tot_runs = None): Performs least squares regression on the problem equal to what was done with BO
+    categ_min(tot_runs = None): Categorizes the number of unique minima through multiple restarts of nonlinear least squares
     """
     #Inherit objects from General_Analysis
     def __init__(self, criteria_dict, project, save_csv, exp_data=None, simulator=None):
@@ -1879,8 +1828,19 @@ class LS_Analysis(General_Analysis):
             tot_runs_cs = 5
             #Create simulator and exp Data class objects
             simulator = simulator_helper_test_fxns(self.criteria_dict["cs_name_val"], 0, None, self.seed)
+
+            #Get criteria dict name from cs number
+            cs_name_dict = get_cs_class_from_val(self.criteria_dict["cs_name_val"]).name
             #Set num_x based off cs number
-            #DO THIS
+            self.cs_x_dict = {"Simple Linear":5,
+                 "Muller x0":25,
+                 "Muller y0":25,
+                 "Yield-Loss":10,
+                 "Large Linear":25,
+                 "BOD Curve":10,
+                 "Log Logistic":10,
+                 "2D Log Logistic":25}
+            self.num_x = self.cs_x_dict[cs_name_dict]
             exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
             ftol = 1e-7
 
@@ -1912,7 +1872,6 @@ class LS_Analysis(General_Analysis):
         tot_runs_str = str(tot_runs) if tot_runs is not None else "cs_runs"
         cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
         ls_data_path = os.path.join(self.make_dir_name_from_criteria(cs_name_dict) , "ls_" + tot_runs_str + ".csv")
-        # print([data_file_path for data_file_path in [data_file, data_name_file, data_true_file]])
         found_data1, ls_results = self.load_data(ls_data_path)
 
         if self.save_csv or not found_data1:
@@ -1925,7 +1884,7 @@ class LS_Analysis(General_Analysis):
             #Set seed
             np.random.seed(self.seed)
             ## specify initial guesses
-            #Note: As of now, I am not necessarily using the same starting points as with GPBO. 
+            #Note: We do not use the same starting points as with GPBO. 
             #MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
             #Note: Starting points for optimization are saved in the driver, which is not saved in BO_Results.gz
             theta_guess = self.simulator.gen_theta_vals(num_restarts)
@@ -1952,7 +1911,6 @@ class LS_Analysis(General_Analysis):
                 time_per_run = time_end-time_start
                 #Get sse_min from cost
                 sse_min = 2*Solution.cost
-                # print(Solution.nfev, Solution.njev,self.iter_count, Solution.nfev + len(theta_guess[i])*2*Solution.njev, Solution.nfev + len(theta_guess[i])*Solution.njev)
                 
                 #Get list of iteration, sse, and parameter data
                 iter_list = np.array(range(self.iter_count)) + 1
@@ -1964,20 +1922,6 @@ class LS_Analysis(General_Analysis):
                 ls_iter_res = [i + 1, iter_list, sse_list, param_list, None , None, sse_list/len_x, l2_norm_list]
                 iter_df = pd.DataFrame([ls_iter_res], columns = column_names_iter)
                 iter_df = iter_df.apply(lambda col: col.explode(), axis=0).reset_index(drop=True).copy(deep =True)
-
-                #Add Theta min obj and theta_sse obj
-                #Loop over each iteration to create the min obj columns
-                
-                # for j in range(len(iter_df)):
-                #     min_sse = iter_df.loc[j, "Min Obj Act"].copy()
-                #     if j == 0 or min_sse < iter_df["Min Obj Act"].iloc[j-1]:
-                #         min_param = iter_df["Theta Min Obj"].iloc[j].copy()
-                #     else:
-                #         min_sse = iter_df["Min Obj Cum."].iloc[j-1].copy()
-                #         min_param = iter_df["Theta Min Obj Cum."].iloc[j-1].copy()
-
-                #     iter_df.loc[j, "Min Obj Cum."] = min_sse
-                #     iter_df.at[j, "Theta Min Obj Cum."] = min_param
 
                 iter_df['Theta Min Obj Cum.'] = iter_df['Theta Min Obj']
                 iter_df["Min Obj Cum."] = np.minimum.accumulate(iter_df['Min Obj Act'])
@@ -2047,7 +1991,6 @@ class LS_Analysis(General_Analysis):
             #Drop all except best iteration for each run
             ls_results_sort = ls_results.sort_values(by=['Min Obj Cum.', 'Iter'], ascending=True)
             ls_results = ls_results_sort.drop_duplicates(subset="Run", keep='first')
-            # ls_results = ls_results[ls_results['Iter'] != 1] #Can go through all and not just best
 
             #Set save csv to True so that best restarts csv data is saved
             self.save_csv = save_csv_org
@@ -2106,475 +2049,3 @@ class LS_Analysis(General_Analysis):
             local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
 
         return local_min_sets
-
-#Outdated functions below
-def analyze_heat_maps(file_path, run_num, bo_iter, pair_id, log_data, get_ei = False, save_csv =False):
-    """
-    Gets the heat map data necessary for plotting heat maps
-    
-    Parameters
-    ----------
-    file_path: str, The file path of the data
-    run_num: int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-    bo_iter: int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
-    pair_id: int or str, The pair of data parameters
-    log_data: bool, Wheteher to log transform data
-    get_ei: bool, default False: Determines whether to calculate EI
-    
-    Returns
-    -------
-    all_data: ndarray, containing sse_sim, sse_mean, sse_var, and ei data 
-    test_mesh: The meshgrid over which all_data was evaluated
-    theta_true: ndarray, The true parameter values
-    theta_opt: ndarray, the parameter values at the lowest sse over all bo iters
-    theta_next: ndarray, the parameter value at the maximum ei
-    train_theta: ndarray, Training parameter values
-    param_names: list, The names of the parameters
-    """
-    #Check if data already exists, if so, just use it
-    org_dir_name = os.path.dirname(file_path)
-    dir_name = os.path.join(org_dir_name, "analysis_data", "gp_evaluations", "run_" + str(run_num), "pair_" + str(pair_id))
-    
-    #save heat_map_data as a pickle file instead of sse_sim, sse_mean, sse_var, and ei. Skip Ei gen step if ei isn't none
-    hm_data_file = os.path.join(dir_name, "hm_data.gz")
-    hm_sse_data_file = os.path.join(dir_name, "hm_sse_data.gz")
-    param_info_file = os.path.join(dir_name, "param_info.npy")
-
-    data_file_list = [hm_data_file, hm_sse_data_file, param_info_file]
-    
-    # print([file_name for file_name in data_file_list])
-    
-    if not all(os.path.exists(data_file_path) for data_file_path in data_file_list):
-        run_num -= 1
-        bo_iter -= 1
-        loaded_results = open_file_helper(file_path)
-        
-        #If there is only 1 run, set run num to 0
-        if len(loaded_results) == 1:
-            run_num = 0
-
-        #Create Heat Map Data for a run and iter
-        #Regeneate simulator, gp_emulator, exerimental data, best error, true theta, lowest obj theta, and highest ei theta
-        gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
-        exp_data = loaded_results[run_num].exp_data_class
-        simulator = loaded_results[run_num].simulator_class
-
-        enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
-        enum_ep = Ep_enum(loaded_results[run_num].configuration["Exploration Bias Method Value"])
-        ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
-        ep_bias = Exploration_Bias(None, ep_at_iter, enum_ep, None, None, None, None, None, None, None)
-
-        cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
-
-        if loaded_results[run_num].heat_map_data_dict is not None:
-            heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
-        else:
-            driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, ep_bias, gen_meth_theta)
-            loaded_results[run_num].heat_map_data_dict = driver.create_heat_map_param_data()
-            heat_map_data_dict = loaded_results[run_num].heat_map_data_dict
-
-        #Get pair ID
-        if isinstance(pair_id, str):
-            param_names = pair_id
-        elif isinstance(pair_id, int):
-            param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[pair_id]
-        else:
-            raise Warning("Invalid pair_id!")
-
-        heat_map_data = heat_map_data_dict[param_names]    
-
-        #Get index of param set
-        idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]   
-        best_error =  loaded_results[run_num].results_df["Best Error"].iloc[bo_iter]
-        if method.emulator == False:
-            #Type 1 best error is inferred from training data 
-            best_error, be_theta, train_idcs = gp_emulator.calc_best_error()
-            best_errors_x = None
-        else:
-            #Type 2 best error must be calculated given the experimental data
-            best_error, be_theta, best_errors_x, train_idcs = gp_emulator.calc_best_error(method, exp_data)
-        best_error_metrics = (best_error, be_theta, best_errors_x)
-        theta_true = loaded_results[run_num].simulator_class.theta_true
-        theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
-        theta_next = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
-        train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
-        sep_fact = loaded_results[run_num].configuration["Separation Factor"]
-        seed = loaded_results[run_num].configuration["Seed"]    
-        meth_name = Method_name_enum(enum_method)
-        method = GPBO_Methods(meth_name)    
-
-        #Calculate GP mean and var for heat map data
-        featurized_hm_data = gp_emulator.featurize_data(heat_map_data)
-        heat_map_data.gp_mean, heat_map_data.gp_var = gp_emulator.eval_gp_mean_var_misc(heat_map_data, featurized_hm_data)
-
-        #If not in emulator form, rearrange the data such that y_sim can be calculated
-        if method.emulator == False:
-            #Rearrange the data such that it is in emulator form
-            n_points = int(np.sqrt(heat_map_data.get_num_theta())) #Since meshgrid data is always in grid form this gets num_points/param
-            repeat_x = n_points**2 #Square because only 2 values at a time change
-            x_vals = np.vstack([exp_data.x_vals]*repeat_x) #Repeat x_vals n_points**2 number of times
-            repeat_theta = exp_data.get_num_x_vals() #Repeat theta len(x) number of times
-            theta_vals =  np.repeat(heat_map_data.theta_vals, repeat_theta , axis =0) #Create theta data repeated
-            #Generate full data class
-            heat_map_data = Data(theta_vals, x_vals, None,heat_map_data.gp_mean,heat_map_data.gp_var,None,None,None,
-                                 simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
-
-        #Calculate y and sse values
-        heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0 , 0)
-        heat_map_sse_data = simulator.sim_data_to_sse_sim_data(method, heat_map_data, exp_data, sep_fact, gen_val_data = False)
-
-        #Calculate SSE, SSE var, and EI with GP
-        if method.emulator == False:
-            heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data)            
-        else:
-            heat_map_data.sse, heat_map_data.sse_var = gp_emulator.eval_gp_sse_var_misc(heat_map_data, method, exp_data)
-
-    else:
-        heat_map_data = open_file_helper(hm_data_file)
-        heat_map_sse_data = open_file_helper(hm_sse_data_file)
-        param_info_dict = np.load(param_info_file)
-        theta_true = param_info_dict["true"]
-        theta_opt = param_info_dict["min_sse"]
-        theta_next = param_info_dict["max_ei"]
-        train_theta = param_info_dict["train"]
-        param_names = param_info_dict["names"]
-        idcs_to_plot = param_info_dict["idcs"]
-           
-    if get_ei and heat_map_data.ei is None:
-        if method.emulator == False:
-            heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics)[0]
-        else:
-            try:
-                sg_mc_samples = loaded_results[run_num].configuration["MC SG Max Points"]
-            except:
-                sg_mc_samples = 2000
-            heat_map_data.ei = gp_emulator.eval_ei_misc(heat_map_data, exp_data, ep_bias, best_error_metrics, method, sg_mc_samples)[0] 
-    elif not get_ei:
-        ei = None
-    
-    #Define original theta_vals (for restoration later)
-    org_theta = heat_map_data.theta_vals
-    #Redefine the theta_vals in the given Data class to be only the 2D (varying) parts you want to plot
-    heat_map_data.theta_vals = heat_map_data.theta_vals[:,idcs_to_plot]
-    #Create a meshgrid with x and y values fron the uniwue theta values of that array
-    unique_theta = heat_map_data.get_unique_theta()
-    theta_pts = int(np.sqrt(len(unique_theta)))
-    test_mesh = unique_theta.reshape(theta_pts,theta_pts,-1).T
-    heat_map_data.theta_vals = org_theta
-    
-    param_info_dict = {"true":theta_true, "min_sse":theta_opt, "max_ei":theta_next, "train":train_theta, "names":param_names, "idcs":idcs_to_plot}
-    
-    if save_csv:
-        os.makedirs(dir_name, exist_ok=True)
-        fileObj = gzip.open(hm_data_file, 'wb', compresslevel  = 1)
-        pickled_results = pickle.dump(heat_map_data, fileObj)
-        fileObj.close()
-        fileObj = gzip.open(hm_sse_data_file, 'wb', compresslevel  = 1)
-        pickled_results = pickle.dump(heat_map_data, fileObj)
-        fileObj.close()
-        np.save(param_info_file, param_info_dict)
-        
-    #Define sse_sim, sse_gp_mean, and sse_gp_var, and ei based on whether to report log scaled data
-    sse_sim = heat_map_sse_data.y_vals
-    sse_var = heat_map_data.sse_var
-    sse_mean = heat_map_data.sse
-
-    #Get log or unlogged data values        
-    if log_data == False:
-        #Change sse sim, mean, and stdev to not log for 1B
-        if method.obj.value == 2:
-            #SSE variance is var*(e^((log(sse)))^2
-            sse_mean = np.exp(sse_mean)
-            sse_var = (sse_var*sse_mean**2)      
-            sse_sim = np.exp(sse_sim)
-        if get_ei:
-            ei = heat_map_data.ei.reshape(theta_pts,theta_pts).T
-
-    #If getting log values
-    else:
-        #Get log data from 1A, 2A, 2B, 2C, and 2D
-        if method.obj.value == 1:            
-            #SSE Variance is var/sse**2
-            sse_var = sse_var/sse_mean**2
-            sse_mean = np.log(sse_mean)
-            sse_sim = np.log(sse_sim)
-        if get_ei:
-            ei = np.log(heat_map_data.ei).reshape(theta_pts,theta_pts).T
-
-    #Reshape data to correct shape and add to list to return
-    reshape_list = [sse_sim, sse_mean, sse_var]     
-#     all_data = [var.reshape(theta_pts,theta_pts,-1).T for var in reshape_list] + [ei]
-    all_data = [var.reshape(theta_pts,theta_pts).T for var in reshape_list] + [ei]
-    
-    return all_data, test_mesh, param_info_dict
-
-def analyze_train_test(file_path, run_num, bo_iter):
-    """
-    Gets the data into an array for thetas corresponding to the minimum sse at each iteration
-    
-    Parameters
-    ----------
-    file_path: str, The file path of the data
-    run_num: int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-    bo_iter: int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
-    
-    Returns
-    -------
-    train_data: np.ndarray, The training parameter values for plotting
-    test_data: np.ndarray, The testing parameter values for plotting
-    val_data: np.ndarray, The validation parameter values for plotting
-    data_names_names: str, the names of the parameter values
-    data_true: np.ndarray or None, the true parameter values
-    
-    """
-    run_num -= 1
-    bo_iter -= 1
-    loaded_results = open_file_helper(file_path)
-    
-    x_exp = loaded_results[run_num].exp_data_class.x_vals
-    dim_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].get_dim_gp_data() #dim training data
-    data_true = loaded_results[run_num].simulator_class.theta_true
-
-    param_names = loaded_results[run_num].simulator_class.theta_true_names
-    x_names = [f"Xexp_{i}" for i in range(1, x_exp.shape[1]+1)]
-    data_names = param_names+x_names
-
-    train_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].feature_train_data
-    test_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].feature_test_data
-    if loaded_results[run_num].list_gp_emulator_class[bo_iter].gp_val_data is not None:
-        val_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].feature_val_data
-    else:
-        val_data = None
-    
-    return train_data, test_data, val_data, x_exp, data_names, data_true
-
-def analyze_xy_plot(file_path, run_num, bo_iter, x_lin_pts):
-    """
-    Gets the data necessary for plotting x vs y. Type 2 GP Only
-    
-    Parameters
-    ----------
-    file_path: str, The file path of the data
-    run_num: int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-    bo_iter: int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
-    pair_id: int or str, The pair of data parameters
-    
-    Returns
-    -------
-    theta_opt_data: Instance of Data, class containing data relavent to theta_opt, the parameter value at the lowest sse over all bo iters
-    exp_data: Instance of Data, Class containing experimental data
-    train_data: Instance of Data, Class containing GP training data
-    test_data Instance of Data, Class containing GP testing data
-    """ 
-    run_num -= 1
-    bo_iter -= 1
-    loaded_results = open_file_helper(file_path)
-    
-    #get exp_data and theta_opt
-    exp_data = loaded_results[run_num].exp_data_class
-    gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
-    simulator = loaded_results[run_num].simulator_class
-    sep_fact = loaded_results[run_num].configuration["Separation Factor"]
-    seed = loaded_results[run_num].configuration["Seed"]
-    theta_opt =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
-    
-    #Make a Data class instance with just the values you want to plot
-    #Generate exp_data that is pretty
-    gen_meth_x = Gen_meth_enum(2)
-    exp_data_lin = simulator.gen_exp_data(x_lin_pts, gen_meth_x)
-
-    #Repeat the theta best array once for each x value
-    #Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
-    theta_opt_repeated = np.repeat(theta_opt.reshape(1,-1), exp_data_lin.get_num_x_vals() , axis =0)
-    #Add instance of Data class to theta_best
-    theta_opt_data = Data(theta_opt_repeated, exp_data_lin.x_vals, None, None, None, None, None, None, 
-                          simulator.bounds_theta_reg, simulator.bounds_x, sep_fact, seed)
-    #Calculate y values and sse for theta_best with noise
-    theta_opt_data.y_vals = simulator.gen_y_data(theta_opt_data, simulator.noise_mean, simulator.noise_std)  
-    #Calculate GP mean and var for heat map data
-    featurized_to_data = gp_emulator.featurize_data(theta_opt_data)
-    theta_opt_data.gp_mean, theta_opt_data.gp_var = gp_emulator.eval_gp_mean_var_misc(theta_opt_data, featurized_to_data)
-    train_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data
-    test_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].test_data
-    
-    return theta_opt_data, exp_data, train_data, test_data
-
-def get_driver_dependencies_from_results(loaded_results, run_num):
-    """
-    builds instance of CaseStudyParameters from saved file data
-    """
-    simulator = loaded_results[run_num].simulator_class
-    configuration = loaded_results[run_num].configuration
-    method = GPBO_Methods(Method_name_enum(configuration["Method Name Enum Value"]))
-    cs_name = configuration["Case Study Name"]
-    ep0 = loaded_results[run_num].results_df["Exploration Bias"].iloc[0]
-    sep_fact = configuration["Separation Factor"]
-    normalize = configuration["Normalize"]
-    kernel = configuration["Initial Kernel"]
-    lenscl = configuration["Initial Lengthscale"]
-    outputscl = configuration["Initial Outputscale"]
-    retrain_GP = configuration["Retrain GP"]
-    reoptimize_obj = configuration["Reoptimize Obj"]
-    gen_heat_map_data = configuration["Heat Map Points Generated"]
-    bo_iter_tot = configuration["Max BO Iters"]
-    bo_run_tot = configuration["Number of Workflow Restarts"]
-    save_data = False
-    DateTime = configuration["DateTime String"]
-    seed = configuration["Seed"]
-    obj_tol = configuration["Obj Improvement Tolerance"]
-    ei_tol = configuration["EI Tolerance"]
-    if "Theta Generation Enum Value" in configuration.keys():
-        gen_meth_theta = Gen_meth_enum(configuration["Theta Generation Enum Value"])
-    else:
-        gen_meth_theta = Gen_meth_enum(1)
-    
-    cs_params = CaseStudyParameters(cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, seed, obj_tol, ei_tol)
-    
-    return cs_params, method, gen_meth_theta
-    
-def compare_muller_heat_map(file_path, run_num, bo_iter, x_val_num, theta_choice, seed, gen_meth_theta = Gen_meth_enum(1)):
-    """
-    Compares simulation and GP data for the Muller potential over a heat map
-    
-    Parameters
-    ----------
-    file_path: str, The file path of the data
-    run_num: int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-    bo_iter: int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
-    x_val_num: int, The number of x values to make heat maps over in each dimension of x data
-    theta_choice: 1D ndarray, or None, the theta_value to evaluate the heat map at. If none, chosen based off seed
-    seed: int, the seed for theta_choice if applicable
-    
-    Returns
-    -------
-    test_mesh: ndarray, meshgrid of x values to generate the heat map 
-    y_sim: ndarray, The simulated values for test_mesh
-    gp_mean: ndarray, The gp mean values for test_mesh
-    gp_var: ndarray, The gp variance values for test_mesh
-    theta_value: ndarray, the parameter set evaluated
-    exp_data.x_vals: ndarray, experimental x data
-    idcs_to_plot: list of str, all parameter names
-    
-    """
-    run_num -= 1
-    bo_iter -= 1
-    loaded_results = open_file_helper(file_path)
-    #get exp_data and theta_opt
-    exp_data = loaded_results[run_num].exp_data_class
-    gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
-    simulator = loaded_results[run_num].simulator_class
-    sep_fact = loaded_results[run_num].configuration["Separation Factor"]
-    method = GPBO_Methods(Method_name_enum(loaded_results[run_num].configuration["Method Name Enum Value"]))
-    
-    enum_ep = Ep_enum(loaded_results[run_num].configuration["Exploration Bias Method Value"])
-    ep_at_iter = loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
-    ep_bias = Exploration_Bias(None, ep_at_iter, enum_ep, None, None, None, None, None, None, None)
-    
-    theta_obj_min =  loaded_results[run_num].results_df["Theta Min Obj Cum."].iloc[bo_iter]
-    theta_ei_max = loaded_results[run_num].results_df["Theta Max EI"].iloc[bo_iter]
-    train_theta = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data.theta_vals
-    
-    if loaded_results[run_num].heat_map_data_dict is not None:
-        param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[0]
-    else:
-        cs_params, method, gen_meth_theta = get_driver_dependencies_from_results(loaded_results, run_num)
-        driver = GPBO_Driver(cs_params, method, simulator, exp_data, gp_emulator.gp_sim_data, gp_emulator.gp_sim_data, gp_emulator.gp_val_data, gp_emulator.gp_val_data, gp_emulator, ep_bias, gen_meth_theta)
-        loaded_results[run_num].heat_map_data_dict = driver.create_heat_map_param_data()
-        param_names = list(loaded_results[run_num].heat_map_data_dict.keys())[0]
-        
-    idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]
-    idcs_to_plot = [loaded_results[run_num].simulator_class.theta_true_names.index(name) for name in param_names]
-    
-    #Generate simulation data for x given 1 theta
-    simulator.seed = seed
-    sim_data_x = simulator.gen_sim_data(1, x_val_num, Gen_meth_enum(1), Gen_meth_enum(2), sep_fact, False)
-    if theta_choice is not None:
-        sim_data_x.theta_vals[:] = theta_choice
-        sim_data_x.y_vals = simulator.gen_y_data(sim_data_x, 0, 0)
-    
-    theta_value = sim_data_x.theta_vals[0]        
-    featurized_sim_x_data = gp_emulator.featurize_data(sim_data_x)
-    
-    sim_data_x.gp_mean, sim_data_x.gp_var = gp_emulator.eval_gp_mean_var_misc(sim_data_x, featurized_sim_x_data)
-    
-    #Create a meshgrid with x and y values fron the uniwue theta values of that array
-    test_mesh = sim_data_x.x_vals.reshape(x_val_num, x_val_num,-1).T
-
-    #Calculate valus
-    y_sim = sim_data_x.y_vals.reshape(x_val_num, x_val_num).T
-    gp_mean = sim_data_x.gp_mean.reshape(x_val_num, x_val_num).T
-    gp_var = sim_data_x.gp_var.reshape(x_val_num, x_val_num).T
-    
-    if method.emulator == False and method.obj.value ==2:
-        gp_mean = np.exp(sim_data_x.gp_mean.reshape(x_val_num, x_val_num).T)
-        gp_var  =  np.exp(sim_data_x.gp_var.reshape(x_val_num, x_val_num).T)
-    
-    return test_mesh, y_sim, gp_mean, gp_var, theta_value, exp_data.x_vals, idcs_to_plot
-
-#NOTE: DO NOT USE THIS FXN UNTIL THE NORMALIZATION ISSUE IS FIXED IN IT
-def analyze_param_sens(file_path, run_num, bo_iter, param_id, n_points):
-    """
-    Analyzes Parameter Sensitivity
-    
-    Parameters
-    ----------
-    file_path: str, The file path of the data
-    run_num: int, The run you want to analyze. Note, run_num 1 corresponds to index 0
-    bo_iter: int, The BO iteration you want to analyze. Note, bo_iter 1 corresponds to index 0
-    param_id: int or str, The parameter name/index
-    n_points: int, The number of points to evaluate the parameter over
-    
-    Returns
-    -------
-    param_data: Instance of Data, Class containing the data for the parameter sensitivity analysis
-    param_idx: int, The index of the parameter being analyzed w.r.t theta_true
-    param_name: str, The name of the parameter being analyzed
-    data_name: str, The name contiaing the marker of how many training data were used for this analysis
-    exp_data: Instance of Data, Class containing experimental data
-    train_data: Instance of Data, Class containing GP training data
-    test_data Instance of Data, Class containing GP testing data
-    """
-    run_num -= 1
-    bo_iter -= 1
-    loaded_results = open_file_helper(file_path)
-        
-    #get exp_data and theta_opt
-    exp_data = loaded_results[run_num].exp_data_class
-    gp_emulator = loaded_results[run_num].list_gp_emulator_class[bo_iter]
-    simulator = loaded_results[run_num].simulator_class
-    theta_true = loaded_results[run_num].simulator_class.theta_true
-    train_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].train_data
-    test_data = loaded_results[run_num].list_gp_emulator_class[bo_iter].test_data
-    enum_method = loaded_results[run_num].configuration["Method Name Enum Value"]
-    meth_name = Method_name_enum(enum_method)
-    method = GPBO_Methods(meth_name)
-    sep_fact = loaded_results[run_num].configuration["Separation Factor"]
-    seed = loaded_results[run_num].configuration["Seed"]
-
-    #Find this paramete's index in theta_true
-    if isinstance(param_id, str):
-        param_idx = simulator.theta_true_names.index(param_id)
-    elif isinstance(param_id, int):
-        param_idx = param_id
-    else:
-        raise Warning("Invalid param_id!")
-    bounds_param = simulator.bounds_theta_reg[:,param_idx]
-    param_name = simulator.theta_true_names[param_idx]
-
-    #Create new theta true array of n_points
-    array_of_vals = np.tile(np.array(simulator.theta_true), (n_points, 1))
-    #Change the value of the parameter you want to vary to a linspace of n_points between the parameter bounds
-    varying_theta = np.linspace(bounds_param[0], bounds_param[1], n_points)
-    array_of_vals[:,param_idx] = varying_theta
-    #Give an x_value to evaluate at
-    x_val = exp_data.x_vals[0] 
-    x_data = np.vstack([x_val]*n_points)
-    bounds_x = simulator.bounds_x
-    #Create instance of Data Class
-    param_data = Data(array_of_vals, x_data, None, None, None, None, None, None, bounds_param, bounds_x, sep_fact, seed)
-    feat_param_data = gp_emulator.featurize_data(param_data)
-    param_data.y_vals = simulator.gen_y_data(param_data, simulator.noise_mean, simulator.noise_std)  
-    param_data.gp_mean, param_data.gp_var = gp_emulator.eval_gp_mean_var_misc(param_data, feat_param_data)
-    data_name = "TP_" + str(train_data.get_num_theta())
-    
-    return param_data, param_idx, param_name, data_name, exp_data, train_data, test_data
