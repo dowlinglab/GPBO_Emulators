@@ -582,7 +582,7 @@ class Simulator:
         ----------
         num_x_data: int, number of experiments
         gen_meth_x: bool: Whether to generate X data with LHS or grid method
-        set_seed: int or None, Seed with which t0 generate experimental data. None sets the seed to the class seed
+        set_seed: int or None, Seed with which t0 generate experimental data. None sets the seed to the class seed. Default None
 
         Returns:
         --------
@@ -2504,7 +2504,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias: Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
         method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches
+        sg_mc_samples: Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches. Default 2000
         
         Returns
         -------
@@ -2539,7 +2539,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias: Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
         method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches
+        sg_mc_samples: Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches. Default 2000
         
         Returns
         -------
@@ -2576,7 +2576,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias: Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
         method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches
+        sg_mc_samples: Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches. Default 2000
         
         Returns
         -------
@@ -2611,7 +2611,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias, Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches
+        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches. Default 2000
         
         Returns
         -------
@@ -2644,7 +2644,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ep_bias, Instance of Exploration_Bias, The exploration bias class
         best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
         method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches
+        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches. Default 2000
         
         Returns
         -------
@@ -2915,7 +2915,7 @@ class Expected_Improvement():
         
         return ei, ei_term_df 
         
-    def __calc_ei_emulator(self, gp_mean, gp_var, y_target): #Will need obj toggle soon
+    def __calc_ei_emulator(self, gp_mean, gp_var, y_target):
         """ 
         Calculates the expected improvement of the emulator approach with an independence approximation (2A)
         
@@ -3162,9 +3162,9 @@ class Expected_Improvement():
         Parameters:
         -----------
         dim: int, sparse grids dimension
-        output: int, output level for function that would be interpolated. Default is 1
+        output: int, output level for function that would be interpolated. Default 1
         depth: int, depth level. Controls density of abscissa points. Uses qphyperbolic level system. Default 10
-        rule: str, quadrature rule. Default is 'gauss-hermite-odd'
+        rule: str, quadrature rule. Default 'gauss-hermite-odd'
         verbose: bool, determines Whether or not plot of sparse grid is shown. Default False
         alpha: int, specifies $\alpha$ parameter for the integration weight $\rho(x)$. Default 0
 
@@ -4037,7 +4037,7 @@ class GPBO_Driver:
         Parameters
         ----------
         theta_array: np.ndarray, Array of parameter values to turn into an instance of Data
-        get_y: bool, Whether to calculate y values for theta_array
+        get_y: bool, Whether to calculate y values for theta_array. Default True
         
         Returns
         --------
