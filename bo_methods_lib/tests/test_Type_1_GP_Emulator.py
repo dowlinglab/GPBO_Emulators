@@ -166,6 +166,44 @@ def test_get_num_gp_data(gp_emulator, expected):
     assert gp_emulator.get_num_gp_data() == expected
 
 
+# This test function tests whether bounded_parameter throws correct errors
+# lb, ub, init_value
+bounded_parameter_err_list = [[2, 4, 3]]
+
+
+@pytest.mark.parametrize("lb, ub, init_value", bounded_parameter_err_list)
+def bounded_parameter_err(lb, ub, init_value):
+    bound_param = gp_emulator1_s.bounded_parameter(lb, ub, init_value)
+    assert isinstance(bound_param, gpflow.Parameter)
+
+
+# This test function tests whether bounded_parameter throws correct errors
+# lb, ub, init_value
+bounded_parameter_err_list = [
+    [4, 2, 3],
+    ["a", 2, 3],
+    [2, "a", 3],
+    [2, 3, "a"],
+]
+
+
+@pytest.mark.parametrize("lb, ub, init_value", bounded_parameter_err_list)
+def bounded_parameter_err(lb, ub, init_value):
+    with pytest.raises((AssertionError, AttributeError, ValueError)):
+        gp_emulator1_s.bounded_parameter(lb, ub, init_value)
+
+
+# This test function tests whether set_gp_model throws correct errors
+# retrain_count
+set_gp_model_err_list = [-1.0, 0.5, "0"]
+
+
+@pytest.mark.parametrize("retrain_count", set_gp_model_err_list)
+def bounded_parameter_err(retrain_count):
+    with pytest.raises((AssertionError, AttributeError, ValueError)):
+        gp_emulator1_s.set_gp_model(retrain_count)
+
+
 # This test function tests whether get_num_gp_data throws correct errors
 # sim_data
 get_num_gp_data_err_list = ["sim_data", None, 1]

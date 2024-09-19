@@ -42,7 +42,7 @@ class Method_name_enum(Enum):
     """
     The base class for any GPBO Method names
 
-    Notes:
+    Notes
     -------
     1 = A1 (Conventional GPBO, no obj scaling)
     2 = B1 (Conventional GPBO, ln obj scaling)
@@ -72,7 +72,7 @@ class Kernel_enum(Enum):
     """
     Base class for kernel choices
 
-    Notes:
+    Notes
     -------
     1 = Matern 52
     2 = Matern 32
@@ -92,7 +92,7 @@ class Gen_meth_enum(Enum):
     """
     The base class for any GPBO Method names
 
-    Notes:
+    Notes
     -------
     1 = LHS
     2 = Meshgrid
@@ -110,7 +110,7 @@ class Obj_enum(Enum):
     """
     The base class for any objective function
 
-    Notes:
+    Notes
     -------
     1 = SSE
     2 = ln(SSE)
@@ -128,7 +128,7 @@ class Ep_enum(Enum):
     """
     The base class for any Method for calculating the decay of the exploration parameter
 
-    Notes:
+    Notes
     -------
     1 = Constant
     2 = Decay
@@ -181,7 +181,7 @@ class GPBO_Methods:
         """
         Gets the shorthand name of the method that appears in the manuscript
 
-        Returns:
+        Returns
         -------
         report_name: str, The shorthand name of the method that appears in the manuscript
         """
@@ -206,7 +206,7 @@ class GPBO_Methods:
         """
         Function to get emulator status based on method name
 
-        Returns:
+        Returns
         --------
         emulator: bool, Status of whether the GP emulates the function directly
         """
@@ -222,7 +222,7 @@ class GPBO_Methods:
         """
         Function to get objective function status based on method name
 
-        Returns:
+        Returns
         --------
         obj: class instance, Determines whether log scaling is used in the objective function
         """
@@ -238,7 +238,7 @@ class GPBO_Methods:
         """
         Function to get sparse grid and Monte Carlo status based on method name
 
-        Returns:
+        Returns
         --------
         sparse_grid: bool, Determines whether a sparse grid is used to evaluate the EI integral
         mc: bool, Determines whether an mc is used to evaluate the EI integral
@@ -265,7 +265,7 @@ class CaseStudyParameters:
 
     Methods
     --------------
-    __init__(*): Constructor method
+    __init__(*) : Constructor method
 
     """
 
@@ -294,28 +294,54 @@ class CaseStudyParameters:
         """
         Parameters
         ----------
-        cs_name: string, The name associated with the case study being evaluated
-        ep0: float, The starting value for exploration bias parameter alpha
-        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        normalize: bool, Determines whether feature data will be standardized (using sklearn RobustScaler)
-        kernel: enum class instance, Determines which GP Kerenel to use
-        lenscl: float, np.ndarray, or None, Value of the lengthscale hyperparameter - None if hyperparameters will be trained
-        outputscl: float or None, Determines value of outputscale - None if hyperparameters will be updated during training
-        retrain_GP: int, number of times to (re)do GP training. Note, if zero, GP will not be trained at all and default hyperparameters will be used
-        reoptimize_obj: int, number of times to reoptimize ei/sse with different starting values. Note, 0 = 1 optimization
-        gen_heat_map_data: bool, determines whether validation data are generated to create heat maps
-        bo_iter_tot: int, maximum number of BO iterations per restart
-        bo_run_tot: int, total number of BO algorithm restarts
-        save_data: bool, Determines whether ei data for argmax(ei) theta will be saved
-        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
-        set_seed: int or None, Determines seed for randomizations. None if seed is random
-        obj_tol: float, objective difference at which to terminate algorithm (rho_1)
-        acq_tol: float, acquisition function value at which to terminate algorithm (rho_2)
+        cs_name: string
+            The name associated with the case study being evaluated
+        ep0: float or int
+            The starting value for exploration bias parameter alpha
+        sep_fact: float or int
+            The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+        normalize: bool
+            Determines whether feature data will be standardized (using sklearn RobustScaler)
+        kernel: Kernel_enum
+            Determines which GP Kerenel to use
+        lenscl: float, np.ndarray, or None
+            Value of the lengthscale hyperparameter - None if hyperparameters will be trained
+        outputscl: float or None
+            Determines value of outputscale - None if hyperparameters will be updated during training
+        retrain_GP: int
+            Number of times to (re)do GP training. Note, if zero, GP will not be trained at all and default/initial hyperparameters will be used
+        reoptimize_obj: int
+            Number of times to reoptimize ei/sse with different starting values. Note, 0 = 1 optimization
+        gen_heat_map_data: bool
+            Determines whether validation data are generated to create heat maps
+        bo_iter_tot: int
+            Maximum number of BO iterations per restart
+        bo_run_tot: int
+            Total number of BO algorithm restarts
+        save_data: bool
+            Determines whether ei data for argmax(ei) theta will be saved
+        DateTime: str or None
+            Determines the date and time for the run
+        set_seed: int or None
+            Determines seed for randomizations. None if seed is random
+        obj_tol: float
+            Objective difference at which to terminate algorithm (rho_1)
+        acq_tol: float
+            Acquisition function value at which to terminate algorithm (rho_2)
+
+        Raises
+        ------
+        AssertionError
+            If any of the inputs (except cs_name) are not of the correct type
+        Warning
+            If cs_name is not a string
         """
         # Assert statements
         # Check for strings
-        # if not isinstance(cs_name, (str, CS_name_enum)) == True:
-        #     warnings.warn("cs_name will be converted to string if it is not an instance of CS_name_enum")
+        if not isinstance(cs_name, str) == True:
+            warnings.warn(
+                "cs_name will be converted to string if it is not an instance of CS_name_enum"
+            )
         # Check for enum
         assert (
             isinstance(kernel, (Enum)) == True
@@ -461,18 +487,35 @@ class Simulator:
         """
         Parameters
         ----------
-        indices_to_consider: list of int, The indices corresponding to which parameters are being guessed
-        theta_ref: ndarray, The array containing the true values of problem constants
-        theta_names: list, list of names of each parameter that will be plotted named by index w.r.t Theta_True
-        bounds_theta_l: list, lower bounds of theta
-        bounds_x_l: list, lower bounds of x
-        bounds_theta_u: list, upper bounds of theta
-        bounds_x_u: list, upper bounds of x
-        noise_mean:float, int: The mean of the noise
-        noise_std: float, int: The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
-        set_seed: int or None, Determines seed for randomizations. None if seed is random
-        calc_y_fxn: function, The function to calculate ysim data with
-        calc_y_fxn_args: dict, dictionary of arguments other than parameters and x to pass to calc_y_fxn
+        indices_to_consider: list(int)
+            The indices corresponding to which parameters are being guessed
+        theta_ref: ndarray
+            The array containing the true values of problem constants
+        theta_names: list
+            List of names of each parameter that will be plotted named by index w.r.t Theta_True
+        bounds_theta_l: list
+            Lower bounds of theta
+        bounds_x_l: list
+            Lower bounds of x
+        bounds_theta_u: list
+            Upper bounds of theta
+        bounds_x_u: list
+            Upper bounds of x
+        noise_mean: float, int
+            The mean of the noise
+        noise_std: float, int
+            The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
+        set_seed: int or None
+            Determines seed for randomizations. None if seed is random
+        calc_y_fxn: function
+            The function to calculate ysim data with
+        calc_y_fxn_args: dict
+            Dictionary of arguments other than parameters and x to pass to calc_y_fxn
+
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
         """
         # Check for float/int
         assert isinstance(noise_mean, (float, int)), "noise_mean must be int or float"
@@ -540,8 +583,10 @@ class Simulator:
 
         Returns
         -------
-        true_params: ndarray, The true parameter of the model
-        true_param_names: list of string, The names of the true parameter of the model
+        true_params: ndarray
+            The true parameter of the model
+        true_param_names: list(str)
+            The names of the true parameter of the model
         """
         # Define theta_true and theta_true_names from theta_ref, theta_names, and indeces to consider
         true_params = self.theta_ref[self.indices_to_consider]
@@ -555,12 +600,15 @@ class Simulator:
 
         Parameters
         ----------
-        num_points: int, number of points to generate in each dimension, should be greater than # of dimensions
-        bounds: ndarray, array containing upper and lower bounds of elements in each dimension.
+        num_points: int
+            Number of points to generate in each dimension, should be greater than # of dimensions
+        bounds: ndarray
+            Array containing upper and lower bounds of elements in each dimension.
 
-        Returns:
+        Returns
         ----------
-        grid_data: ndarray, (num_points)**bounds.shape[1] grid sample of data
+        grid_data: np.ndarray
+            (num_points)**bounds.shape[1] grid sample of data
 
         """
         # Generate mesh_grid data for theta_set in 2D
@@ -584,13 +632,17 @@ class Simulator:
 
         Parameters
         ----------
-        num_points: int, number of points in LHS, should be greater than # of dimensions
-        bounds: ndarray, array containing upper and lower bounds of elements in LHS sample
-        set_seed: int, seed of random generation
+        num_points: int
+            Number of points in LHS, should be greater than # of dimensions
+        bounds: np.ndarray
+            Array containing upper and lower bounds of elements in LHS sample
+        set_seed: int
+            Seed of random generation
 
         Returns
         -------
-        lhs_data: ndarray, array of LHS sampling points with length (num_points)
+        lhs_data: np.ndarray
+            Array of LHS sampling points with length (num_points)
         """
         # Define number of dimensions
         dimensions = bounds.shape[1]
@@ -611,17 +663,26 @@ class Simulator:
 
         Parameters
         ----------
-        num_points: int, number of data to generate
-        bounds: array, array of parameter bounds
-        gen_meth: class (Gen_meth_enum), ("LHS", "Meshgrid"). Determines whether data will be generated with an LHS or meshgrid
-        set_seed: int, seed of random generation
+        num_points: int
+            Number of data to generate
+        bounds: np.ndarray
+            Array of parameter bounds
+        gen_meth: Gen_meth_enum
+            ("LHS", "Meshgrid"). Determines whether data will be generated with an LHS or meshgrid
+        set_seed: int
+            Seed of random generation
 
-        Returns:
+        Returns
         --------
-        data: ndarray, an array of data
+        data: np.ndarray
+            An array of data
 
+        Raises
+        ------
+        ValueError
+            If gen_meth.value is not 1 or 2
 
-        Notes:
+        Notes
         ------
         Meshgrid generated data will output num_points in each dimension, LHS generates num_points of data
         """
@@ -649,11 +710,13 @@ class Simulator:
 
         Parameters
         ----------
-        array: ndarray, n dimensions
+        array: np.ndarray
+            Array of n dimensions
 
         Returns
         -------
-        array: ndarray,  if n > 1, return original array. Otherwise, return 2D array with shape (-1,n)
+        array: np.ndarray
+            If n > 1, return original array. Otherwise, return 2D array with shape (-1,n)
         """
         # If array is not 2D, give it shape (len(array), 1)
         if not len(array.shape) > 1:
@@ -666,13 +729,16 @@ class Simulator:
 
         Parameters
         ----------
-        data: Instance of Data, Parameter sets to generate y data for
-        noise_mean: float, int, The mean of the noise
-        noise_std: float, int, None, The standard deviation of the noise
+        data: Data
+            Parameter sets to generate y data for
+        noise_mean: float, int
+            The mean of the noise
+        noise_std: float, int, None
+            The standard deviation of the noise
 
         Returns
         -------
-        y_data: ndarray, The simulated y training data
+        y_data: np.ndarray The simulated y training data
         """
         # Set seed
         if self.seed is not None:
@@ -718,13 +784,24 @@ class Simulator:
 
         Parameters
         ----------
-        num_x_data: int, number of experiments
-        gen_meth_x: bool: Whether to generate X data with LHS or grid method
-        set_seed: int or None, Seed with which t0 generate experimental data. None sets the seed to the class seed. Default None
+        num_x_data: int
+            Number of experiments
+        gen_meth_x: bool
+            Whether to generate X data with LHS or grid method
+        set_seed: int or None, default None
+            Seed with which t0 generate experimental data. None sets the seed to the class seed
 
-        Returns:
+        Returns
         --------
-        exp_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        exp_data: Data
+            Experimental x and y data along with parameter bounds
+
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
+        ValueError
+            If num_x_data is not a positive integer
         """
         assert (
             isinstance(set_seed, int) or set_seed is None
@@ -780,17 +857,34 @@ class Simulator:
 
         Parameters
         ----------
-        num_theta_data: int, number of parameter sets
-        num_x_data: int, number of experiments
-        gen_meth_theta: bool: Whether to generate theta data with LHS or grid method
-        gen_meth_x: bool: Whether to generate X data with LHS or grid method
-        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        set_seed: int or None, seed to generate initial training data with. If None, seed will be the seed of the class. Default None
-        gen_val_data: bool, Whether validation data (no y vals) or simulation data (has y vals) will be generated. Default False
+        num_theta_data: int
+            Number of parameter sets
+        num_x_data: int
+            Number of experiments
+        gen_meth_theta: bool
+            Whether to generate theta data with LHS or grid method
+        gen_meth_x: bool
+            Whether to generate X data with LHS or grid method
+        sep_fact: float or int
+            The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+        set_seed: int or None, default None
+            Seed to generate initial training data with. If None, seed will be the seed of the class
+        gen_val_data: bool, default False
+            Whether validation data (no y vals) or simulation data (has y vals) will be generated
 
-        Returns:
+        Returns
         --------
-        sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        sim_data: Data
+            Simulated x and y data along with parameter bounds
+
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
+        ValueError
+            If num_theta_data or num_x_data are not a positive integer or gen_val is not a boolean
+        Warning
+            If more than 5000 points are generated
         """
         assert isinstance(
             sep_fact, (float, int)
@@ -882,20 +976,25 @@ class Simulator:
 
         Parameters
         ----------
-        num_theta_data: int, number of parameter sets
+        num_theta_data: int
+            Number of parameter sets
 
-        Returns:
+        Returns
         --------
-        theta_vals: ndarray, Generated parameter sets
+        theta_vals: np.ndarray
+            Generated parameter sets
+
+        Raises
+        ------
+        AssertionError
+            If num_theta_data is not a positive integer
+        Warning
+            If more than 5000 points are generated
         """
         assert (
             isinstance(num_theta_data, int) and num_theta_data > 0
         ), "num_theta_data must be int > 0"
         gen_meth_theta = Gen_meth_enum(1)
-
-        # Chck that num_data > 0
-        if num_theta_data <= 0 or isinstance(num_theta_data, int) == False:
-            raise ValueError("num_theta_data must be a positive integer")
 
         # Warn user if >5000 pts generated
         if num_theta_data > 5000:
@@ -918,15 +1017,28 @@ class Simulator:
 
         Parameters
         ----------
-        method: GPBO_Methods, fully defined methods class which determines which method will be used
-        sim_data: Data, Class containing at least the theta_vals, x_vals, and y_vals for simulation
-        exp_data: Data, Class containing at least the x_data and y_data for the experimental data
-        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        gen_val_data: bool, Whether validation data (no y vals) or simulation data (has y vals) will be generated. Default False
+        method: GPBO_Methods
+            Fully defined methods class which determines which method will be used
+        sim_data: Data
+            Class containing at least the theta_vals, x_vals, and y_vals for simulation
+        exp_data: Data
+            Class containing at least the x_data and y_data for the experimental data
+        sep_fact: float or int
+            The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+        gen_val_data: bool, default False
+            Whether validation data (no y vals) or simulation data (has y vals) will be generated
 
-        Returns:
+        Returns
         --------
-        sim_sse_data: ndarray, objective function data generated from y_vals
+        sim_sse_data: np.ndarray
+            Objective function data generated from y_vals
+
+        Raises
+        ------
+        AssertionError
+            If sep_fact is not between 0 and 1
+        ValueError
+            If gen_val_data is not a boolean
         """
 
         assert isinstance(
@@ -1025,18 +1137,35 @@ class Data:
         """
         Parameters
         ----------
-        theta_vals: ndarray, The array of parameter sets
-        x_vals: ndarray, experimental state points (x data)
-        y_vals: ndarray, experimental y data
-        gp_mean: ndarray, GP mean prediction values associated with theta_vals and x_vals
-        gp_var: ndarray, GP variance prediction values associated with theta_vals and x_vals
-        sse: ndarray, GP based sum of squared error values associated with theta_vals and x_vals
-        sse_var: ndarray, GP based variance of sum of squared error values associated with theta_vals and x_vals
-        acq: ndarray, acquisition function values associated with theta_vals and x_vals
-        bounds_theta: ndarray, bounds of theta
-        bounds_x: ndarray, bounds of x
-        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        set_seed: int or None, Determines seed for randomizations. None if seed is random
+        theta_vals: np.ndarray
+            The array of parameter sets
+        x_vals: np.ndarray
+            Experimental state points (x data)
+        y_vals: np.ndarray
+            Experimental y data
+        gp_mean: np.ndarray
+            GP mean prediction values associated with theta_vals and x_vals
+        gp_var: np.ndarray
+            GP variance prediction values associated with theta_vals and x_vals
+        sse: np.ndarray
+            GP based sum of squared error values associated with theta_vals and x_vals
+        sse_var: np.ndarray
+            GP based variance of sum of squared error values associated with theta_vals and x_vals
+        acq: np.ndarray
+            Acquisition function values associated with theta_vals and x_vals
+        bounds_theta: np.ndarray
+            Bounds of theta
+        bounds_x: np.ndarray
+            Bounds of x
+        sep_fact: float or int
+            The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+        set_seed: int or None
+            Determines seed for randomizations. None if seed is random
+
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
         """
         list_vars = [theta_vals, x_vals, y_vals, gp_mean, gp_var, sse, acq]
         assert all(
@@ -1070,13 +1199,15 @@ class Data:
         """
         Gets unique instances of a certain type of data
 
-        Parameters:
+        Parameters
         -----------
-        all_vals: ndarray, array of parameters with duplicates
+        all_vals: np.ndarray
+            Array of parameters with duplicates
 
-        Returns:
+        Returns
         --------
-        unique_vals: ndarray, array of parameters without duplicates
+        unique_vals: np.ndarray
+            Array of parameters without duplicates
         """
         # Get unique indecies and use them to get the values
         unique_indexes = np.unique(all_vals, axis=0, return_index=True)[1]
@@ -1090,11 +1221,13 @@ class Data:
 
         Parameters
         ----------
-        array: ndarray, n dimensions
+        array: np.ndarray
+            Array of n dimensions
 
         Returns
         -------
-        array: ndarray,  if n > 1, return original array. Otherwise, return 2D array with shape (-1,n)
+        array: np.ndarray
+            If n > 1, return original array. Otherwise, return 2D array with shape (-1,n)
         """
         # If array is not 2D, give it shape (len(array), 1)
         if not len(array.shape) > 1:
@@ -1105,9 +1238,15 @@ class Data:
         """
         Defines the unique parameter sets from self.theta_vals
 
-        Returns:
+        Returns
         --------
-        unique_theta_vals: ndarray, array of unique parameter sets
+        unique_theta_vals: np.ndarray
+            Array of unique parameter sets
+
+        Raises
+        ------
+        AssertionError
+            If any self.theta_vals is not defined
         """
         assert self.theta_vals is not None, "self.theta_vals must be defined"
         # Get unique indecies and use them to get the values
@@ -1118,9 +1257,15 @@ class Data:
         """
         Defines the unique state point data from self.x_vals
 
-        Returns:
+        Returns
         --------
-        unique_x_vals: ndarray, array of unique state points
+        unique_x_vals: np.ndarray
+            Array of unique state points
+
+        Raises
+        ------
+        AssertionError
+            If self.x_vals is not defined
         """
         assert self.x_vals is not None, "self.x_vals must be defined"
         # Get unique indecies and use them to get the values
@@ -1133,7 +1278,13 @@ class Data:
 
         Returns
         -------
-        num_theta_data: int, the number of parameter sets (self.theta_vals)
+        num_theta_data: int
+            The number of parameter sets (self.theta_vals)
+
+        Raises
+        ------
+        AssertionError
+            If self.theta_vals is not defined
         """
         assert self.theta_vals is not None, "theta_vals must be defined"
         num_theta_data = len(self.theta_vals)
@@ -1146,7 +1297,13 @@ class Data:
 
         Returns
         -------
-        dim_theta_data: int, the cardinality of the parameter sets (self.theta_vals)
+        dim_theta_data: int
+            The cardinality of the parameter sets (self.theta_vals)
+
+        Raises
+        ------
+        AssertionError
+            If self.theta_vals is not defined
         """
         assert self.theta_vals is not None, "self.theta_vals must be defined"
         if len(self.theta_vals) == 1:
@@ -1164,7 +1321,13 @@ class Data:
 
         Returns
         -------
-        num_x_data: int, the number of state points (self.x_vals)
+        num_x_data: int
+            The number of state points (self.x_vals)
+
+        Raises
+        ------
+        AssertionError
+            If self.x_vals is not defined
         """
         assert self.x_vals is not None, "self.x_vals must be defined"
         # Length is the number of data
@@ -1178,7 +1341,13 @@ class Data:
 
         Returns
         -------
-        dim_x_data: int, the cardinality of state point data (self.x_vals)
+        dim_x_data: int
+            The cardinality of state point data (self.x_vals)
+
+        Raises
+        ------
+        AssertionError
+            If self.x_vals is not defined
         """
         assert self.x_vals is not None, "x_vals must be defined"
         # Get dim of x data
@@ -1190,10 +1359,17 @@ class Data:
         """
         Splits data indices into training and testing indices
 
-        Returns:
+        Returns
         --------
-        train_idx: ndarray, The training theta data identifiers
-        test_idx: ndarray, The testing theta data identifiers
+        train_idx: np.ndarray
+            The training theta data identifiers
+        test_idx: np.ndarray
+            The testing theta data identifiers
+
+        Raises
+        ------
+        AssertionError
+            If self.sep_fact or self.theta_vals are not defined
 
         Notes
         -----
@@ -1224,8 +1400,6 @@ class Data:
         test_idx = all_idx[len_train_idc:]
 
         return train_idx, test_idx
-
-
 class GP_Emulator:
     """
     The base class for Gaussian Processes used in this workflow
@@ -1270,20 +1444,39 @@ class GP_Emulator:
         """
         Parameters
         ----------
-        gp_sim_data: instance of Data class, all simulation data for the GP
-        gp_val_data: instance of Data class, the validation data for the GP. None if not saving validation data
-        cand_data: instance of Data class, candidate theta value for evaluation with GPBO_Driver.opt_with_scipy()
-        kernel: enum class instance, Determines which GP Kerenel to use
-        lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
-        noise_std: float, int: The standard deviation of the noise
-        outputscl: float or None, Determines value of outputscale
-        retrain_GP: int, number of times to (re)do GP training. If 0, no training is done and default values are used
-        set_seed: int or None, random seed
-        normalize: bool, determines whether data is standardized (using the sklearn RobustScaler)
-        __feature_train_data: ndarray, the feature data for the training data in ndarray form
-        __feature_test_data: ndarray, the feature data for the testing data in ndarray form
-        __feature_val_data: ndarray, the feature data for the validation data in ndarray form
-        __feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
+        gp_sim_data: Data
+            All simulation data for the GP
+        gp_val_data: Data
+            The validation data for the GP. None if not saving validation data
+        cand_data: Data
+            Candidate theta value for evaluation with GPBO_Driver.opt_with_scipy()
+        kernel: Kernel_enum
+            Determines which GP Kerenel to use
+        lenscl: float or None
+            Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        noise_std: float, int
+            The standard deviation of the noise
+        outputscl: float or None
+            Determines value of outputscale
+        retrain_GP: int
+            Number of times to (re)do GP training. If 0, no training is done and default/initial values are used
+        set_seed: int or None
+            Random seed
+        normalize: bool
+            Determines whether data is standardized (using the sklearn RobustScaler)
+        __feature_train_data: np.ndarray
+            The feature data for the training data in ndarray form
+        __feature_test_data: np.ndarray
+            The feature data for the testing data in ndarray form
+        __feature_val_data: np.ndarray
+            The feature data for the validation data in ndarray form
+        __feature_cand_data: np.ndarray
+            The feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
+
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
         """
         # Assert statements
         # Check for int/float
@@ -1358,7 +1551,13 @@ class GP_Emulator:
 
         Returns
         -------
-        num_data: int, the number of data the GP will have access to
+        num_data: int
+            The number of data the GP will have access to
+
+        Raises
+        ------
+        AssertionError
+            If self.gp_sim_data is not an instance of the Data class
         """
         assert isinstance(
             self.gp_sim_data, Data
@@ -1374,14 +1573,29 @@ class GP_Emulator:
 
         Parameters
         ----------
-        low: float, int, lower bound of the parameter
-        high: float, int, upper bound of the parameter
-        initial_value: float, int, initial value of the parameter
+        low: float, int
+            Lower bound of the parameter
+        high: float, int
+            Upper bound of the parameter
+        initial_value: float, int
+            Initial value of the parameter
 
         Returns
         -------
-        parameter: gpflow.Parameter, the bounded parameter
+        parameter: gpflow.Parameter
+            The bounded parameter
+
+        Raises
+        ------
+        AssertionError
+            If the lower bound is higher than the upper bound
         """
+        assert isinstance(low, (float, int)), "low must be float or int"
+        assert isinstance(high, (float, int)), "low must be float or int"
+        assert isinstance(
+            initial_value, (float, int)
+        ), "initial_value must be float or int"
+        assert low < high, "low must be less than high"
         sigmoid = tfb.Sigmoid(
             low=tf.cast(low, dtype=tf.float64), high=tf.cast(high, dtype=tf.float64)
         )
@@ -1393,12 +1607,20 @@ class GP_Emulator:
 
         Parameters
         ----------
-        lb: float, int, lower bound of the lengthscale
-        ub: float, int, upper bound of the lengthscale
+        lb: float, int
+            Lower bound of the lengthscale
+        ub: float, int
+            Upper bound of the lengthscale
 
-        Returns:
+        Returns
         --------
-        lenscl_guess: ndarray, The intial lengthscale of the GP model
+        lenscl_guess: np.ndarray
+            The intial lengthscale of the GP model
+
+        Raises
+        ------
+        AssertionError
+            If self.train_data_init is not an array
         """
 
         # Set lenscl bounds using the original training data to ensure distance
@@ -1439,12 +1661,15 @@ class GP_Emulator:
 
         Parameters
         ----------
-        lb: float, int, lower bound of the white kernel
-        ub: float, int, upper bound of the white kernel
+        lb: float, int
+            Lower bound of the white kernel
+        ub: float, int
+            Upper bound of the white kernel
 
-        Returns:
+        Returns
         --------
-        noise_guess: float, the initial white noise variance for the GP model
+        noise_guess: float
+            The initial white noise variance for the GP model
         """
         # Set the noise guess or allow gp to tune the noise parameter
         if self.normalize:
@@ -1473,14 +1698,17 @@ class GP_Emulator:
 
         Parameters
         ----------
-        lb: float, int, lower bound of the output scale
-        ub: float, int, upper bound of the output scale
+        lb: float, int
+            Lower bound of the output scale
+        ub: float, int
+            Upper bound of the output scale
 
         Returns
         -------
-        tau: float, initial output scale guess for the GP model
+        tau: float
+            Initial output scale guess for the GP model
 
-        Notes:
+        Notes
         ------
         Need to have training data before using this function
         """
@@ -1513,7 +1741,13 @@ class GP_Emulator:
 
         Returns
         -------
-        data: tuple or 2 np.ndarrays, the feature and output training data for the GP model
+        data: tuple(np.ndarrays, len=2)
+            The feature and output training data for the GP model
+
+        Raises
+        ------
+        AssertionError
+            If self.feature_train_data or self.train_data.y_vals are not defined
         """
         assert (
             self.feature_train_data is not None
@@ -1540,13 +1774,17 @@ class GP_Emulator:
 
         Parameters
         ----------
-        retrain_count: int, the number of times the GP will be (re)trained
+        retrain_count: int
+            The number of times the GP will be (re)trained
 
         Returns
         --------
-        lenscls: ndarray, the initial lengthscale of the GP model
-        tau: float, the initial output scale guess for the GP model
-        white_var: float, the initial white noise variance for the GP model
+        lenscls: np.ndarray
+            The initial lengthscale of the GP model
+        tau: float
+            The initial output scale guess for the GP model
+        white_var: float
+            The initial white noise variance for the GP model
         """
         tf.compat.v1.get_default_graph()
         tf.compat.v1.set_random_seed(retrain_count)
@@ -1637,12 +1875,22 @@ class GP_Emulator:
 
         Parameters
         ----------
-        retrain_count: int, the number of times the GP will be (re)trained
+        retrain_count: int
+            The number of times the GP will be (re)trained
 
         Returns
         --------
-        gp_model: Instance of gpflow.models.GPR, the GP model
+        gp_model: gpflow.models.GPR
+            The untrained GP model with all hyperparameters set
+
+        Raises
+        ------
+        AssertionError
+            If retrains are not an integer greater than or equal to 0
         """
+        assert (
+            isinstance(retrain_count, int) and retrain_count >= 0
+        ), "retrain_count must be an int greater than or equal to 0"
         data = self.set_gp_model_data()
         lenscls, tau, white_var = self.__init_hyper_parameters(retrain_count)
 
@@ -1677,12 +1925,17 @@ class GP_Emulator:
         """
         Trains the GP with restarts given training data.
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If self.feature_train_data is not an np.ndarray or is undefined
+
+        Notes
         ------
         Sets the following parameters of self
         self.trained_hyperparams: list, the trained hyperparameters of the GP model
-        self.fit_gp_model: instance of gpflow.models.GPR, the trained GP model
-        self.posterior: instance of gpflow.mean_field.KFGaussian, the posterior of the GP model
+        self.fit_gp_model:  gpflow.models.GPR, the trained GP model
+        self.posterior:  gpflow.mean_field.KFGaussian, the posterior of the GP model
         """
         assert isinstance(
             self.feature_train_data, np.ndarray
@@ -1747,15 +2000,19 @@ class GP_Emulator:
         """
         Calculates the GP mean and variance for a given input set and adds it to the instance of the data class
 
-        Parameters:
+        Parameters
         -----------
-        data: instance of the Data class, data to evaluate GP for containing at least parameter sets (data.theta_vals) and state points (data.x_vals)
+        data: Data
+            Data to evaluate GP for containing at least parameter sets (data.theta_vals) and state points (data.x_vals)
 
-        Returns:
+        Returns
         -------
-        gp_mean: ndarray, GP mean prediction for the data set
-        gp_var: ndarray, GP variance prediction for the data set
-        gp_covar: ndarray, GP covariance prediction for the data set
+        gp_mean: np.ndarray 
+            GP mean prediction for the data set
+        gp_var: np.ndarray 
+            GP variance prediction for the data set
+        gp_covar: np.ndarray 
+            GP covariance prediction for the data set
 
         """
         # Get data in vector form into array form
@@ -1807,18 +2064,28 @@ class GP_Emulator:
         """
         Evaluate the GP mean and variance for a heat map set
 
-        Parameters:
+        Parameters
         -----------
-        misc_data: instance of the Data class, data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
-        featurized_misc_data: ndarray, featurized data to evaluate. Hint: Run featurize_data() to generate
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        misc_data: Data 
+            Data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
+        featurized_misc_data: np.ndarray 
+            Featurized data to evaluate. Hint: Run featurize_data() to generate
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
-        Returns:
+        Returns
         -------
-        misc_gp_mean: ndarray, GP mean prediction for the data set
-        misc_var_return: ndarray, GP (co)variance prediction for the data set
+        misc_gp_mean: np.ndarray 
+            GP mean prediction for the data set
+        misc_var_return: np.ndarray 
+            GP (co)variance prediction for the data set
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
+
+        Notes
         ------
         Populates misc_data.gp_mean and misc_data.gp_var with the GP mean and variance
         Also calculates the gp covariance matrix for the misc. data as a class object stored in misc_data.gp_covar
@@ -1852,17 +2119,26 @@ class GP_Emulator:
         """
         Evaluate the GP mean and variance for a heat map set
 
-        Parameters:
+        Parameters
         -----------
-        test_data: instance of the Data class, data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        test_data: Data 
+            Data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
-        Returns:
+        Returns
         -------
-        test_gp_mean: ndarray, GP mean prediction for the test set
-        test_var_return: ndarray, GP (co)variance prediction for the test set
+        test_gp_mean: np.ndarray 
+            GP mean prediction for the test set
+        test_var_return: np.ndarray 
+            GP (co)variance prediction for the test set
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
+
+        Notes
         ------
         Populates test_data.gp_mean and test_data.gp_var with the GP mean and variance
         Also calculates the gp covariance matrix for the misc. data as a class object stored in test_data.gp_covar
@@ -1896,17 +2172,26 @@ class GP_Emulator:
         """
         Evaluate the GP mean and variance for a heat map set
 
-        Parameters:
+        Parameters
         -----------
-        val_data: instance of the Data class, data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        val_data: Data 
+            Data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
-        Returns:
+        Returns
         -------
-        val_gp_mean: ndarray, GP mean prediction for the test set
-        val_var_return: ndarray, GP (co)variance prediction for the test set
+        val_gp_mean: np.ndarray 
+            GP mean prediction for the test set
+        val_var_return: np.ndarray 
+            GP (co)variance prediction for the test set
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
+
+        Notes
         ------
         Populates val_data.gp_mean and val_data.gp_var with the GP mean and variance
         Also calculates the gp covariance matrix for the misc. data as a class object stored in val_data.gp_covar
@@ -1944,17 +2229,26 @@ class GP_Emulator:
         """
         Evaluate the GP mean and variance for a heat map set
 
-        Parameters:
+        Parameters
         -----------
-        cand_data: instance of the Data class, data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        cand_data: Data 
+            Data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
-        Returns:
+        Returns
         -------
-        cand_gp_mean: ndarray, GP mean prediction for the test set
-        cand_var_return: ndarray, GP (co)variance prediction for the test set
+        cand_gp_mean: np.ndarray 
+            GP mean prediction for the test set
+        cand_var_return: np.ndarray 
+            GP (co)variance prediction for the test set
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
+
+        Notes
         ------
         Populates cand_data.gp_mean and cand_data.gp_var with the GP mean and variance
         Also calculates the gp covariance matrix for the misc. data as a class object stored in cand_data.gp_covar
@@ -2034,22 +2328,43 @@ class Type_1_GP_Emulator(GP_Emulator):
         """
         Parameters
         ----------
-        gp_sim_data: instance of Data class, all simulation data for the GP
-        gp_val_data: instance of Data class, the validation data for the GP. None if not saving validation data
-        cand_data: instance of Data class, candidate theta value for evaluation with GPBO_Driver.opt_with_scipy()
-        train_data: instance of Data class, the training data for the GP
-        test_data: instance of Data class, the testing data for the GP
-        kernel: enum class instance, Determines which GP Kerenel to use
-        lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
-        noise_std: float, int: The standard deviation of the noise
-        outputscl: float or None, Determines value of outputscale - None if hyperparameters will be updated during training
-        retrain_GP: int, number of times to (re)train the GP. If 0, the GP is not trained and default/initial hyperparameters are used
-        set_seed: int or None, random seed
-        normalize: bool, determines whether data is standardized (with sklearn RobustScaler) before training
-        feature_train_data: ndarray, the feature data for the training data in ndarray form
-        feature_test_data: ndarray, the feature data for the testing data in ndarray form
-        feature_val_data: ndarray, the feature data for the validation data in ndarray form
-        feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
+        gp_sim_data: Data 
+            All simulation data for the GP
+        gp_val_data: Data 
+            The validation data for the GP. None if not saving validation data
+        cand_data: Data 
+            Candidate theta value for evaluation with GPBO_Driver.opt_with_scipy()
+        train_data: Data 
+            The training data for the GP
+        test_data: Data 
+            The testing data for the GP
+        kernel: Kernel_enum
+            Determines which GP Kerenel to use
+        lenscl: float or None
+            Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        noise_std: float, int
+            The standard deviation of the noise
+        outputscl: float or None
+            Determines value of outputscale - None if hyperparameters will be updated during training
+        retrain_GP: int
+            Number of times to (re)train the GP. If 0, the GP is not trained and default/initial hyperparameters are used
+        set_seed: int or None
+            Random seed
+        normalize: bool
+            Determines whether data is standardized (with sklearn RobustScaler) before training
+        feature_train_data: np.ndarray 
+            The feature data for the training data in ndarray form
+        feature_test_data: np.ndarray 
+            The feature data for the testing data in ndarray form
+        feature_val_data: np.ndarray 
+            The feature data for the validation data in ndarray form
+        feature_cand_data: np.ndarray 
+            The feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
+
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or value
         """
         # Constructor method
         # Inherit objects from GP_Emulator Base Class
@@ -2082,7 +2397,8 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Returns
         -------
-        dim_gp_data: int, the dimensions of the input data that the GP will use
+        dim_gp_data: int
+            The dimensions of the input data that the GP will use
         """
         assert np.all(
             self.gp_sim_data.theta_vals is not None
@@ -2097,13 +2413,20 @@ class Type_1_GP_Emulator(GP_Emulator):
         """
         Collects the features (parameter set values) of the GP into ndarray form from an instance of the Data class
 
-        Parameters:
+        Parameters
         -----------
-        data: instance of the Data class, data to evaluate GP for containing at least parameter sets (data.theta_vals)
+        data: Data 
+            Data to evaluate GP for containing at least parameter sets (data.theta_vals)
 
-        Returns:
+        Returns
         -------
-        feature_eval_data: ndarray, The feature data for the GP
+        feature_eval_data: np.ndarray 
+            The feature data for the GP
+
+        Raises
+        ------
+        AssertionError
+            If any of the inputs are not of the correct type or not defined
 
         """
         assert isinstance(data, Data), "data must be an instance of Data"
@@ -2122,13 +2445,22 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        set_seed: int or None, Determines seed for randomizations. None if seed is random
+        sep_fact: float or int
+            The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+        set_seed: int or None
+            Determines seed for randomizations. None if seed is random
 
         Returns
         -------
-        train_data: Instance of data class. Contains all input/output data and bounds for training data
-        test_data: Instance of data class. Contains all input/output data and bounds for testing data
+        train_data: Data
+            Contains all input/output data and bounds for training data
+        test_data: Data
+            Contains all input/output data and bounds for testing data
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
         -----
@@ -2228,15 +2560,24 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        data, instance of Data class, parameter sets you want to evaluate the sse and sse variance for
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        data: Data 
+            Parameter sets you want to evaluate the sse and sse variance for
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        data.sse: np.ndarray, The sse derived from gp_mean evaluated over the data
-        var_return: np.ndarray, The sse (co)variance derived from the GP model's (co)variance evaluated over the data
+        data.sse: np.ndarray
+            The sse derived from gp_mean evaluated over the data
+        var_return: np.ndarray
+            The sse (co)variance derived from the GP model's (co)variance evaluated over the data
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If covar is not a boolean
+
+        Notes
         ------
         Populates data.sse, data.sse_var, and data.sse_covar with the GP mean, variance, and covariance (standard GPBO emulates objecive function)
         """
@@ -2259,15 +2600,24 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        misc_data, instance of Data class, parameter sets you want to evaluate the sse and sse variance for
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        misc_data: Data
+            Parameter sets you want to evaluate the sse and sse variance for
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        misc_sse_mean: np.ndarray, The sse derived from gp_mean evaluated over the data
-        misc_sse_var: np.ndarray, The sse (co)variance derived from the GP model's (co)variance evaluated over the data
+        misc_sse_mean: np.ndarray
+            The sse derived from gp_mean evaluated over the data
+        misc_sse_var: np.ndarray
+            The sse (co)variance derived from the GP model's (co)variance evaluated over the data
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+        
+        Notes
         ------
         Populates data.sse, data.sse_var, and data.sse_covar with the GP mean, variance, and covariance (standard GPBO emulates objecive function)
         """
@@ -2290,14 +2640,22 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        test_sse_mean: np.ndarray, The sse derived from gp_mean evaluated over the data
-        test_sse_var: np.ndarray, The sse (co)variance derived from the GP model's (co)variance evaluated over the data
+        test_sse_mean: np.ndarray
+            The sse derived from gp_mean evaluated over the data
+        test_sse_var: np.ndarray
+            The sse (co)variance derived from the GP model's (co)variance evaluated over the data
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
         ------
         Populates data.sse, data.sse_var, and data.sse_covar with the GP mean, variance, and covariance (standard GPBO emulates objecive function)
         """
@@ -2320,14 +2678,22 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        val_sse_mean: np.ndarray, The sse derived from gp_mean evaluated over the data
-        val_sse_var: np.ndarray, The sse (co)variance derived from the GP model's (co)variance evaluated over the data
+        val_sse_mean: np.ndarray
+            The sse derived from gp_mean evaluated over the data
+        val_sse_var: np.ndarray
+            The sse (co)variance derived from the GP model's (co)variance evaluated over the data
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
         ------
         Populates data.sse, data.sse_var, and data.sse_covar with the GP mean, variance, and covariance (standard GPBO emulates objecive function)
         """
@@ -2350,14 +2716,22 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        cand_sse_mean: np.ndarray, The sse derived from gp_mean evaluated over the data
-        cand_sse_var: np.ndarray, The sse (co)variance derived from the GP model's (co)variance evaluated over the data
+        cand_sse_mean: np.ndarray
+            The sse derived from gp_mean evaluated over the data
+        cand_sse_var: np.ndarray
+            The sse (co)variance derived from the GP model's (co)variance evaluated over the data
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
         ------
         Populates data.sse, data.sse_var, and data.sse_covar with the GP mean, variance, and covariance (standard GPBO emulates objecive function)
         """
@@ -2380,9 +2754,17 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Returns
         -------
-        best_error: float, the best error of the method
-        be_theta: np.ndarray, the parameter set associated with the best error of the method
-        train_idc: int, the index of the best error in the training data
+        best_error: float
+            The best error of the method
+        be_theta: np.ndarray
+            The parameter set associated with the best error of the method
+        train_idc: int
+            The index of the best error in the training data
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         """
         assert self.train_data is not None, "self.train_data must exist!"
@@ -2407,15 +2789,21 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data: Instance of Data class, sim data to evaluate ei for
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias: Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error, best error parameter set, and best_error_x values of the method. Hint use calc_best_error()
+        sim_data: Data 
+            Simulated data to evaluate ei for
+        exp_data: Data 
+            Experimental data to evaluate ei with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error, best error parameter set, and best_error_x values of the method. Hint use calc_best_error()
 
         Returns
         -------
-        ei: np.ndarray, The expected improvement of all the data in test_data
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray
+            The expected improvement of all the data in test_data
+        ei_terms_df: pd.DataFrame
+            pandas dataframe containing the values of calculations associated with ei for the parameter sets
 
         Notes
         -----
@@ -2444,15 +2832,26 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        misc_data: Instance of Data class, data to evaluate ei for
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias: Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error, best error parameter set, and  best_error_x values of the method. Hint: use calc_best_error()
+        misc_data: Data 
+            Data to evaluate ei for
+        exp_data: Data 
+            The experimental data to evaluate ei with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error, best error parameter set, and  best_error_x values of the method. Hint: use calc_best_error()
 
         Returns
         -------
-        ei: np.ndarray, The expected improvement of all the data in test_data
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray
+            The expected improvement of all the data in test_data
+        ei_terms_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter sets
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(misc_data, Data), "misc_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
@@ -2473,14 +2872,24 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias: Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error, best error parameter set, and  best_error_x values of the method. Hint: use calc_best_error()
+        exp_data: Data 
+            The experimental data to evaluate ei with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray) 
+            The best error, best error parameter set, and  best_error_x values of the method. Hint: use calc_best_error()
 
         Returns
         -------
-        ei: np.ndarray, The expected improvement of all the data in test_data
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray
+            The expected improvement of all the data in test_data
+        ei_terms_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter sets
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(self.test_data, Data), "self.test_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
@@ -2501,14 +2910,24 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias: Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error, best error parameter set, and  best_error_x values of the method. Hint: use calc_best_error()
+        exp_data: Data 
+            The experimental data to evaluate ei with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error, best error parameter set, and  best_error_x values of the method. Hint: use calc_best_error()
 
         Returns
         -------
-        ei: np.ndarray, The expected improvement of all the data in gp_val_data
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray
+            The expected improvement of all the data in gp_val_data
+        ei_terms_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter sets
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(self.gp_val_data, Data), "self.gp_val_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
@@ -2530,14 +2949,24 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias: Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error, best error parameter set, and  best_error_x values of the method. Hint: use calc_best_error()
+        exp_data: Data 
+            The experimental data to evaluate ei with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error, best error parameter set, and  best_error_x values of the method. Hint: use calc_best_error()
 
         Returns
         -------
-        ei: np.ndarray, The expected improvement of all the data in gp_val_data
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray
+            The expected improvement of all the data in gp_val_data
+        ei_terms_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter sets
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(self.cand_data, Data), "self.cand_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
@@ -2559,9 +2988,15 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        theta_best_sse_data: Instance of Data, The class containing the data relavent to argmin(acq. func.) for a Type 1 (standard) GP
+        theta_best_sse_data: Data
+            The class containing the data relavent to argmin(acq. func.) for a Type 1 (standard) GP
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
         ------
         This function updates self.train_data.theta_vals, self.train_data.y_vals, and self.feature_train_data
         """
@@ -2637,22 +3072,43 @@ class Type_2_GP_Emulator(GP_Emulator):
         """
         Parameters
         ----------
-        gp_sim_data: instance of Data class, all simulation data for the GP
-        gp_val_data: instance of Data class, the validation data for the GP. None if not saving validation data
-        cand_data: instance of Data class, candidate theta value for evaluation with GPBO_Driver.opt_with_scipy()
-        train_data: instance of Data class, the training data for the GP
-        testing_data: instance of Data class, the testing data for the GP
-        kernel: enum class instance, Determines which GP Kerenel to use
-        lenscl: float or None, Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
-        noise_std: float, int: The standard deviation of the noise
-        outputscl: float or None, Determines value of outputscale - None if hyperparameters will be updated during training
-        retrain_GP: int, number of times to (re)train the GP. If 0, the GP is not trained and default/initial hyperparameters are used
-        set_seed: int or None, random seed
-        normalize: bool, determines whether data is standardized (with sklearn RobustScaler) before training
-        feature_train_data: ndarray, the feature data for the training data in ndarray form
-        feature_test_data: ndarray, the feature data for the testing data in ndarray form
-        feature_val_data: ndarray, the feature data for the validation data in ndarray form
-        feature_cand_data: ndarray, the feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
+        gp_sim_data: Data,
+            All simulation data for the GP
+        gp_val_data: Data 
+            The validation data for the GP. None if not saving validation data
+        cand_data: Data 
+            Candidate theta value for evaluation with GPBO_Driver.opt_with_scipy()
+        train_data: Data 
+            The training data for the GP
+        testing_data: Data 
+            The testing data for the GP
+        kernel: Kernel_enum
+            Determines which GP Kerenel to use
+        lenscl: float or None
+            Value of the lengthscale hyperparameter - None if hyperparameters will be updated during training
+        noise_std: float, int
+            The standard deviation of the noise
+        outputscl: float or None
+            Determines value of outputscale - None if hyperparameters will be updated during training
+        retrain_GP: int
+            Number of times to (re)train the GP. If 0, the GP is not trained and default/initial hyperparameters are used
+        set_seed: int or None
+            Random seed
+        normalize: bool
+            Determines whether data is standardized (with sklearn RobustScaler) before training
+        feature_train_data: np.ndarray 
+            The feature data for the training data in ndarray form
+        feature_test_data: np.ndarray 
+            The feature data for the testing data in ndarray form
+        feature_val_data: np.ndarray 
+            The feature data for the validation data in ndarray form
+        feature_cand_data: np.ndarray 
+            The feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         # Constructor method
         # Inherit objects from GP_Emulator Base Class
@@ -2692,7 +3148,13 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Returns
         -------
-        dim_gp_data: int, the cardinality of GP input data
+        dim_gp_data: int
+            Tthe cardinality of GP input data
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(
             self.gp_sim_data, Data
@@ -2715,13 +3177,20 @@ class Type_2_GP_Emulator(GP_Emulator):
         """
         Collects the features of the GP into ndarray form from an instance of the Data class
 
-        Parameters:
+        Parameters
         -----------
-        data: instance of the Data class, data to evaluate GP for containing at least data.theta_vals and data.x_vals
+        data: Data 
+            Data to evaluate GP for containing at least data.theta_vals and data.x_vals
 
-        Returns:
+        Returns
         --------
-        feature_eval_data: ndarray, The feature data for the GP
+        feature_eval_data: np.ndarray 
+            The feature data for the GP
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         """
         assert isinstance(data, Data), "data must be instance of Data"
@@ -2743,13 +3212,22 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        set_seed: int or None, Determines seed for randomizations. None if seed is random
+        sep_fact: float or int
+            The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+        set_seed: int or None
+            Determines seed for randomizations. None if seed is random
 
         Returns
         -------
-        train_data: Instance of data class. Contains all input/output data and bounds for GP training data
-        test_data: Instance of data class. Contains all input/output data and bounds for GP testing data
+        train_data: Data
+            Contains all input/output data and bounds for GP training data
+        test_data: Data
+            Contains all input/output data and bounds for GP testing data
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
         -----
@@ -2859,17 +3337,28 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        data, instance of Data class, parameter sets you want to evaluate the sse and sse variance for
-        method, Instance of GPBO_Methods, containing data for methods
-        exp_data, instance of the Data class, The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        data: Data
+            Parameter sets you want to evaluate the sse and sse variance for
+        method: GPBO_Methods
+            Contains data for methods
+        exp_data: Data 
+            The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        sse_mean: tensor, The sse derived from gp_mean evaluated over all state points
-        var_return: tensor, The sse (co)variance derived from the GP model's variance evaluated over all state points
+        sse_mean: tensor
+            The sse derived from gp_mean evaluated over all state points
+        var_return: tensor
+            The sse (co)variance derived from the GP model's variance evaluated over all state points
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If covar is not a boolean
+        
+        Notes
         ------
         Also populates data.sse, data.sse_var, and data.sse_covar
 
@@ -2938,15 +3427,26 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        misc_data, instance of Data class, parameter sets you want to evaluate the sse and sse variance for
-        method, Instance of GPBO_Methods, containing data for methods
-        exp_data, instance of the Data class, The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        misc_data:
+            Data parameter sets you want to evaluate the sse and sse variance for
+        method: GPBO_Methods
+            Contains data for methods
+        exp_data: Data 
+            The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        misc_sse_mean: tensor, The sse derived from gp_mean evaluated over all state points
-        misc_sse_var: tensor, The sse (co)variance derived from the GP model's variance evaluated over all state points
+        misc_sse_mean: tensor
+            The sse derived from gp_mean evaluated over all state points
+        misc_sse_var: tensor
+            The sse (co)variance derived from the GP model's variance evaluated over all state points
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(
             method, GPBO_Methods
@@ -2985,14 +3485,19 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        method, Instance of GPBO_Methods, containing data for methods
-        exp_data, instance of the Data class, The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        method: GPBO_Methods
+            Contains data for methods
+        exp_data: Data 
+            The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        test_sse_mean: tensor, The sse derived from gp_mean evaluated over all state points
-        test_sse_var: tensor, The sse (co)variance derived from the GP model's variance evaluated over all state points
+        test_sse_mean: tensor
+            The sse derived from gp_mean evaluated over all state points
+        test_sse_var: tensor
+            The sse (co)variance derived from the GP model's variance evaluated over all state points
         """
 
         assert isinstance(
@@ -3032,14 +3537,24 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        method, Instance of GPBO_Methods, containing data for methods
-        exp_data, instance of the Data class, The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        method: GPBO_Methods
+            Contains data for methods
+        exp_data: Data 
+            The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        val_sse_mean: tensor, The sse derived from gp_mean evaluated over all state points
-        val_sse_var: tensor, The sse (co)variance derived from the GP model's variance evaluated over all state points
+        val_sse_mean: tensor
+            The sse derived from gp_mean evaluated over all state points
+        val_sse_var: tensor
+            The sse (co)variance derived from the GP model's variance evaluated over all state points
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(
             method, GPBO_Methods
@@ -3078,14 +3593,19 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        method, Instance of GPBO_Methods, containing data for methods
-        exp_data, instance of the Data class, The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
-        covar: bool, determines whether covariance (True) or variance (False) of sse is returned with the gp mean. Default False
+        method: GPBO_Methods
+            Contains data for methods
+        exp_data: Data 
+            The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
+        covar: bool, default False
+            Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         --------
-        cand_sse_mean: tensor, The sse derived from gp_mean evaluated over all state points
-        cand_sse_var: tensor, The sse (co)variance derived from the GP model's variance evaluated over all state points
+        cand_sse_mean: tensor
+            The sse derived from gp_mean evaluated over all state points
+        cand_sse_var: tensor
+            The sse (co)variance derived from the GP model's variance evaluated over all state points
         """
         assert isinstance(
             method, GPBO_Methods
@@ -3124,15 +3644,26 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        method: Instance of GPBO_Methods, Class containing method information
-        exp_data: Instance of Data class, Experimental data. Must contain exp_data.x_vals, exp_data.theta_vals, and exp_data.y_vals
+        method: GPBO_Methods
+            Class containing method information
+        exp_data: Data 
+            Experimental data. Must contain exp_data.x_vals, exp_data.theta_vals, and exp_data.y_vals
 
         Returns
         -------
-        best_error: float, the best error (sse) of the method
-        be_theta: np.ndarray, The parameter set associated with the best error value
-        best_sq_error: np.ndarray, array of squared errors for each value of x
-        org_train_idcs: list, the original training indices of be_theta
+        best_error: float
+            The best error (sse) of the method
+        be_theta: np.ndarray
+            The parameter set associated with the best error value
+        best_sq_error: np.ndarray
+            Array of squared errors for each value of x
+        org_train_idcs: list(int)
+            The original training indices of be_theta
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(
             method, GPBO_Methods
@@ -3198,17 +3729,29 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data: Instance of Data class, data to evaluate ei for
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias: Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
-        method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches. Default 2000
+        sim_data: Data 
+            Data to evaluate ei for
+        exp_data: Data 
+            The experimental data to evaluate ei with
+        ep_bias: Exploration_Bias, The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray) 
+            the best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
+        method: Method class
+            Method for GP Emulation
+        sg_mc_samples: int, default 2000
+            Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches
 
         Returns
         -------
-        ei: np.ndarray, The expected improvement of all the data in sim_data
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray
+            The expected improvement of all the data in sim_data
+        ei_terms_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter sets
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Note:
         -----
@@ -3253,19 +3796,32 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data: Instance of Data class, data to evaluate ei for
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias: Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
-        method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches. Default 2000
+        sim_data: Data 
+            Data to evaluate ei for
+        exp_data: Data 
+            The experimental data to evaluate ei with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
+        method: Method class
+            Method for GP Emulation
+        sg_mc_samples: int, default 2000
+            Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches
 
         Returns
         -------
-        ei: np.ndarray, The expected improvement of all the data in misc_data
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray
+            The expected improvement of all the data in misc_data
+        ei_terms_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter sets
 
-        Note:
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
         -----
         This function will fail for the sparse grid and Monte Carlo methods when more than one parameter set is used since it requires a single sample covariance matrix
         """
@@ -3304,19 +3860,32 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data: Instance of Data class, data to evaluate ei for
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias: Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
-        method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches. Default 2000
+        sim_data: Data 
+            Data to evaluate ei for
+        exp_data: Data 
+            The experimental data to evaluate ei with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
+        method: Method class
+            Method for GP Emulation
+        sg_mc_samples: int, default 2000
+            Number of samples to use for the Tasmanian sparse grid or Monte Carlo approaches
 
         Returns
         -------
-        ei: np.ndarray, The expected improvement of all the data in misc_data
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray
+            The expected improvement of all the data in misc_data
+        ei_terms_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter sets
 
-        Note:
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
         -----
         This function will fail for the sparse grid and Monte Carlo methods when more than one parameter set is used since it requires a single sample covariance matrix
         """
@@ -3353,17 +3922,30 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data, Instance of Data class, sim data to evaluate ei for
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
-        method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches. Default 2000
+        sim_data: Data
+            Simualted data to evaluate ei for
+        exp_data: Data 
+            The experimental data to evaluate ei with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error (sse), best error parameter set, and best_error_x (squared error) values of the method
+        method: Method class
+            Method for GP Emulation
+        sg_mc_samples: int, default 2000
+            Number of to use for the Tasmanian sparse grid or MC approaches
 
         Returns
         -------
-        ei: The expected improvement of all the data in gp_val_data
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray,
+            The expected improvement of all the data in gp_val_data
+        ei_terms_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter sets
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(self.gp_val_data, Data), "self.gp_val_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
@@ -3405,17 +3987,30 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data, Instance of Data class, sim data to evaluate ei for
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        ep_bias, Instance of Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple, the best error (sse), best error parameter set, and best_error_x (squared error) values of the method
-        method: instance of Method class, method for GP Emulation
-        sg_mc_samples: Number of to use for the Tasmanian sparse grid or MC approaches. Default 2000
+        sim_data: Data
+            Simualted data to evaluate ei for
+        exp_data: Data 
+            The experimental data to evaluate ei with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error (sse), best error parameter set, and best_error_x (squared error) values of the method
+        method: Method class
+            Method for GP Emulation
+        sg_mc_samples: int, default 2000
+            Number of to use for the Tasmanian sparse grid or MC approaches
 
         Returns
         -------
-        ei: The expected improvement of all the data in candidate feature
-        ei_terms_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter sets
+        ei: np.ndarray
+            The expected improvement of all the data in candidate feature
+        ei_terms_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter sets
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(self.cand_data, Data), "self.cand_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
@@ -3450,9 +4045,15 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        theta_best_data: Instance of Data, The class containing the data relavent to argmin(acq. func.) for a Type 1 (standard) GP
+        theta_best_data: Data
+            The class containing the data relavent to argmin(acq. func.) for a Type 1 (standard) GP
 
-        Notes:
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
         ------
         This function updates self.train_data.theta_vals, self.train_data.x_vals, self.train_data.y_vals, and self.feature_train_data
         """
@@ -3519,13 +4120,20 @@ class Expected_Improvement:
         """
         Parameters
         ----------
-        ep_bias: instance of Exploration_Bias, class with information of exploration bias parameter
-        gp_mean: tensor, The GP model's mean
-        gp_covar: tensor, The GP model's covariance
-        exp_data: Instance of Data class, the experimental data to evaluate ei with
-        best_error_metrics: tuple, the best error, best error parameter set, and best_error_x values of the method. Hint: use calc_best_error()
-        set_seed: int or None, Determines seed for randomizations. None if seed is random
-        sg_mc_samples: int, The number of points to use for the Tasmanian sparse grid and Monte Carlo. Default 2000
+        ep_bias: Exploration_Bias
+            Class with information of exploration bias parameter
+        gp_mean: tensor
+            The GP model's mean
+        gp_covar: tensor
+            The GP model's covariance
+        exp_data: Data
+            The experimental data to evaluate ei with
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error, best error parameter set, and best_error_x values of the method. Hint: use calc_best_error()
+        set_seed: int or None
+            Determines seed for randomizations. None if seed is random
+        sg_mc_samples: int, default 2000
+            The number of points to use for the Tasmanian sparse grid and Monte Carlo
         """
         assert len(gp_mean) == len(
             gp_covar
@@ -3573,11 +4181,13 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        dim: int, The number of dimensions in the sparse grid
+        dim: int
+            The number of dimensions in the sparse grid
 
         Returns
         -------
-        depth: int, The depth of the sparse grid
+        depth: int
+            The depth of the sparse grid
         """
         depth = 0
         num_points = 0
@@ -3605,12 +4215,15 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        mean: np.ndarray or None, The mean of the random variables
-        covar: np.ndarray or None, The covariance of the random variables
+        mean: np.ndarray or None, default None 
+            The mean of the random variables
+        covar: np.ndarray or None, default None
+            The covariance of the random variables
 
-        Returns:
+        Returns
         ---------
-        random_vars: np.ndarray, array of multivariate normal random variables
+        random_vars: np.ndarray
+            Array of multivariate normal random variables
         """
         dim = len(self.exp_data.y_vals)
         mc_samples = self.samples_mc_sg  # Set 2000 MC samples
@@ -3655,8 +4268,10 @@ class Expected_Improvement:
 
         Returns
         -------
-        ei: ndarray, The expected improvement of the parameter set
-        ei_term_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter set
+        ei: np.ndarray 
+            The expected improvement of the parameter set
+        ei_term_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter set
         """
         columns = ["best_error", "z", "cdf", "pdf", "ei_term_1", "ei_term_2", "ei"]
         ei_term_df = pd.DataFrame(columns=columns)
@@ -3719,12 +4334,20 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        method: class, fully defined methods class which determines which method will be used
+        method: GPBO_Methods
+            Fully defined methods class which determines which method will be used
 
         Returns
         -------
-        ei: ndarray, The expected improvement of the parameter set
-        ei_term_df: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter set
+        ei: np.ndarray 
+            The expected improvement of the parameter set
+        ei_term_df: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter set
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         ei_term_df = pd.DataFrame()
         assert isinstance(
@@ -3785,14 +4408,20 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        gp_mean: ndarray, model mean at state points (x) for a given parameter set
-        gp_variance: ndarray, model variance at state points (x) for a given parameter set
-        y_target: ndarray, the expected value of the function from data or other source
+        gp_mean: np.ndarray 
+            Model mean at state points (x) for a given parameter set
+        gp_variance: np.ndarray 
+            Model variance at state points (x) for a given parameter set
+        y_target: np.ndarray 
+            The expected value of the function from data or other source
 
         Returns
         -------
-        ei_temp: ndarray, the expected improvement for one parameter set
-        row_data: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter set
+        ei_temp: np.ndarray 
+            The expected improvement for one parameter set
+        row_data: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter set
+
         """
         # Create column names
         columns = [
@@ -3924,14 +4553,19 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        gp_mean: ndarray, model mean at state points (x) for a given parameter set
-        gp_variance: ndarray, model variance at state points (x) for a given parameter set
-        y_target: ndarray, the expected value of the function from data or other source
+        gp_mean: np.ndarray 
+            Model mean at state points (x) for a given parameter set
+        gp_variance: np.ndarray 
+            Model variance at state points (x) for a given parameter set
+        y_target: np.ndarray 
+            The expected value of the function from data or other source
 
         Returns
         -------
-        ei_temp: ndarray, the expected improvement for one parameter set
-        row_data: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter set
+        ei_temp: np.ndarray 
+            The expected improvement for one parameter set
+        row_data: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter set
         """
         columns = [
             "best_error",
@@ -4036,14 +4670,19 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        epsilon: The random variable over which we integrate
-        gp_mean: ndarray, GP model mean
-        gp_stdev: ndarray, GP model stdev
-        y_target: ndarray, the expected value of the function from data or other source
+        epsilon: float
+            The random variable over which we integrate
+        gp_mean: np.ndarray 
+            GP model mean
+        gp_stdev: np.ndarray 
+            GP model stdev
+        y_target: np.ndarray 
+            The expected value of the function from data or other source
 
         Returns
         -------
-        ei_term_2_integral: ndarray, the expected improvement for term 2 of the GP model for method 2B
+        ei_term_2_integral: np.ndarray 
+            The expected improvement for term 2 of the GP model for method 2B
         """
         # Define inside term as the maximum of 1e-14 or abs((y_target - gp_mean - gp_stdev*epsilon))
         inside_term = max(1e-14, abs((y_target - gp_mean - gp_stdev * epsilon)))
@@ -4058,19 +4697,25 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        gp_mean: ndarray, model mean at state points (x) for a given parameter set
-        gp_var: ndarray, model variance at state points (x) for a given parameter set
-        y_target: ndarray, the expected value of the function from data or other source
+        gp_mean: np.ndarray 
+            Model mean at state points (x) for a given parameter set
+        gp_var: np.ndarray 
+            Model variance at state points (x) for a given parameter set
+        y_target: np.ndarray 
+            The expected value of the function from data or other source
 
         Returns
         -------
-        ei_temp: ndarray, the expected improvement for one parameter set
-        row_data: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter set
+        ei_temp: np.ndarray 
+            The expected improvement for one parameter set
+        row_data: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter set
 
-        Note
+        Notes
         -----
         To apply the sparse grid method on multiple parameter sets you must loop over each parameter set, calculate the posterior mean and variance, and then
         apply the sparse grid method to calculate EI for each parameter set.
+        If the covariance matrix is not positive definite, the LDL decomposition is used instead of Cholesky factorization.
         """
         columns = ["best_error", "sse_temp", "improvement", "ei_total"]
 
@@ -4139,23 +4784,31 @@ class Expected_Improvement:
         """
         This function builds a sparse grid
 
-        Parameters:
+        Parameters
         -----------
-        dim: int, sparse grids dimension
-        output: int, output level for function that would be interpolated. Default 1
-        depth: int, depth level. Controls density of abscissa points. Uses qphyperbolic level system. Default 10
-        rule: str, quadrature rule. Default 'gauss-hermite-odd'
-        verbose: bool, determines Whether or not plot of sparse grid is shown. Default False
-        alpha: int, specifies $\alpha$ parameter for the integration weight $\rho(x)$. Default 0
+        dim: int
+            Sparse grids dimension
+        output: int, default 1
+            Output level for function that would be interpolated
+        depth: int, default 10
+            Depth level. Controls density of abscissa points. Uses qphyperbolic level system
+        rule: str, default 'gauss-hermite-odd'
+            Quadrature rule
+        verbose: bool, default False
+            Determines Whether or not plot of sparse grid is shown
+        alpha: int, default 0
+            Specifies $\alpha$ parameter for the integration weight $\rho(x)$
 
-        Returns:
+        Returns
         --------
-        points_p: ndarray, The sparse grid points
-        weights_p: ndarray, The Gauss-Legendre Quadrature Rule Weights
+        points_p: np.ndarray 
+            The sparse grid points
+        weights_p: np.ndarray 
+            The Gauss-Hermite Quadrature Rule Weights
 
-        Other:
+        Notes
         ------
-        A figure shows 2D sparse grids (if verbose = True)
+        A figure shows a 2D sparse grid if verbose = True
         """
         # Get grid points and weights
         grid_p = Tasmanian.makeGlobalGrid(dim, output, depth, "qphyperbolic", rule)
@@ -4177,14 +4830,19 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        gp_mean: ndarray, model mean at state points x for a given parameter set
-        gp_variance: ndarray, model variance at state points x for a given parameter set
-        y_target: ndarray, the expected value of the function from data or other source
+        gp_mean: np.ndarray 
+            Model mean at state points x for a given parameter set
+        gp_variance: np.ndarray 
+            Model variance at state points x for a given parameter set
+        y_target: np.ndarray 
+            The expected value of the function from data or other source
 
         Returns
         -------
-        ei_mean: ndarray, the expected improvement for one parameter set
-        row_data: pd.DataFrame, pandas dataframe containing the values of calculations associated with ei for the parameter set
+        ei_mean: np.ndarray 
+            The expected improvement for one parameter set
+        row_data: pd.DataFrame
+            Pandas dataframe containing the values of calculations associated with ei for the parameter set
 
         Note
         -----
@@ -4251,14 +4909,19 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        pilot_sample: np.ndarray (n_samples x dim param set), the samples to perform bootstrapping on
-        ns: int, number of bootstrapping samples. Default 100
-        alpha: float, On interval (0,1). The level of significance associated with the bootstrapping. Default 0.05
-        set_seed: int or None, seed associated with bootstrapping. Default None
+        pilot_sample: np.ndarray (n_samples x dim param set)
+            The samples to perform bootstrapping on
+        ns: int, default 100
+            Number of bootstrapping samples
+        alpha: float, default 0.05
+            On interval (0,1). The level of significance associated with the bootstrapping
+        set_seed: int or None, default None
+            Seed associated with bootstrapping
 
-        Returns:
+        Returns
         --------
-        ci_percentile: np.ndarray, The confidence interval of the MC samples
+        ci_percentile: np.ndarray
+            The confidence interval of the MC samples
         """
         # pilot_sample has one column per rv, one row per observation
         # alpha is the level of significance; 0.05 for 95% confidence interval
@@ -4321,16 +4984,31 @@ class Exploration_Bias:
         """
         Parameters
         ----------
-        ep0: float, the original exploration parameter value
-        ep_curr: float, the current exploration parameter value
-        ep_enum: Enum, whether Boyle, Jasrasaria, Constant, or Decay ep method will be used
-        bo_iter: int, The number of the current BO iteration
-        bo_iter_max: int, The maximum number of BO iterations
-        e_inc: float, the increment for the Boyle's method for calculating exploration parameter: Recommendation is 1.5
-        ep_f: float, The final exploration parameter value: Recommendation is 0
-        improvement: Bool, Determines whether last objective was an improvement. Default False
-        best_error: float, The lowest error objective value in the training data
-        mean_of_var: float, The value of the average of all posterior variances
+        ep0: float
+            The original exploration parameter value
+        ep_curr: float
+            The current exploration parameter value
+        ep_enum: Enum
+            Whether Boyle, Jasrasaria, Constant, or Decay ep method will be used
+        bo_iter: int
+            The number of the current BO iteration
+        bo_iter_max: int
+            The maximum number of BO iterations
+        e_inc: float
+            The increment for the Boyle's method for calculating exploration parameter: Recommendation is 1.5
+        ep_f: float
+            The final exploration parameter value: Recommendation is 0
+        improvement: bool
+            Determines whether last objective was an improvement
+        best_error: float
+            The lowest error objective value in the training data
+        mean_of_var: float
+            The value of the average of all posterior variances
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
         ------
@@ -4371,11 +5049,13 @@ class Exploration_Bias:
 
         Parameters
         ----------
-        ep_val: int or float, the value of the exploration parameter
+        ep_val: int or float
+            The value of the exploration parameter
 
-        Returns:
+        Returns
         --------
-        ep_val: int or float, the value of the exploration parameter within self.ep_min and self.ep_max
+        ep_val: int or float
+            The value of the exploration parameter within self.ep_min and self.ep_max
         """
         assert isinstance(ep_val, (float, int)), "ep_val must be float or int!"
         if ep_val > self.ep_max:
@@ -4394,6 +5074,11 @@ class Exploration_Bias:
     def set_ep(self):
         """
         Updates value of exploration parameter based on one of the four alpha heuristics
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
         --------
@@ -4433,7 +5118,8 @@ class Exploration_Bias:
 
         Returns
         --------
-        ep: The exploration parameter for the iteration
+        ep: float
+            The exploration parameter for the iteration
         """
         ep = self.ep0
 
@@ -4441,11 +5127,21 @@ class Exploration_Bias:
 
     def __set_ep_decay(self):
         """
-        Creates a value for the exploration parameter based off of a decay heuristic. Note. Full decay by 1/2 max BO iters
+        Creates a value for the exploration parameter based off of a decay heuristic. 
 
         Returns
         --------
-        ep: The exploration parameter for the iteration
+        ep: float
+            The exploration parameter for the iteration
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
+        -----
+        Full decay is reached by 1/2 of the maximum number of BO iters
         """
         assert self.bo_iter is not None
         assert self.bo_iter_max - 1 >= self.bo_iter >= 0
@@ -4467,12 +5163,17 @@ class Exploration_Bias:
 
         Returns
         --------
-        ep: The exploration parameter for the iteration
+        ep: float
+            The exploration parameter for the iteration
 
         Notes
         -----
-        Based on Heuristic from Boyle, P., Gaussian Processes for regression and Optimisation, Ph.D, Victoria University of Wellington, Wellington, New Zealand, 2007
+        Based on Heuristic from Boyle, P., Gaussian Processes for regression and Optimisation
         For these parameters, ep gets normalized between 0 and 2 given a neutral value of 1 as the starting point
+
+        References
+        ----------
+        Boyle, P., Gaussian Processes for regression and Optimisation, Ph.D, Victoria University of Wellington, Wellington, New Zealand, 2007
         """
         # Set ep_curr as ep0 if it is not set
         if self.ep_curr is None:
@@ -4501,10 +5202,11 @@ class Exploration_Bias:
 
         Returns
         --------
-        ep: The exploration parameter for the iteration
+        ep: float
+            The exploration parameter for the iteration
 
-        Notes
-        -----
+        References
+        ----------
         Heuristic from Jasrasaria, D., & Pyzer-Knapp, E. O. (2018). Dynamic Control of Explore/Exploit Trade-Off In Bayesian Optimization. http://arxiv.org/abs/1807.01279
         """
         assert self.best_error is not None
@@ -4546,14 +5248,22 @@ class BO_Results:
         """
         Parameters
         ----------
-        configuration: dict, dictionary containing the configuration of the BO algorithm
-        simulator_class: Instance of Simulator class, class containing the Simulator class information
-        exp_data_class: Instance of Data class, The experimental data for the workflow
-        list_gp_emulator_class: list of GP_Emulator instances, contains all gp_emulator information at each BO iter
-        results_df: pd.DataFrame, dataframe including the values pertinent to BO for all BO runs
-        max_ei_details_df: pd.DataFrame, dataframe including ei components of the best EI at each iter
-        why_term: str, string detailing the reason for algorithm termination
-        heat_map_data_dict: dict, heat map data for each set of 2 parameters indexed by parameter names "param_1-param_2"
+        configuration: dict
+            Dictionary containing the configuration of the BO algorithm
+        simulator_class: Simulator
+            Class containing the Simulator class information
+        exp_data_class: Data 
+            The experimental data for the workflow
+        list_gp_emulator_class: list(GP_Emulator)
+            Contains all gp_emulator information at each BO iter
+        results_df: pd.DataFrame    
+            Dataframe including the values pertinent to BO for all BO runs
+        max_ei_details_df: pd.DataFrame
+            Dataframe including ei components of the best EI at each iter
+        why_term: str
+            String detailing the reason for algorithm termination
+        heat_map_data_dict: dict
+            Heat map data for each set of 2 parameters indexed by parameter names "param_1-param_2"
         """
         # Constructor method
         self.configuration = configuration
@@ -4608,17 +5318,33 @@ class GPBO_Driver:
         """
         Parameters
         ----------
-        cs_params: Instance of CaseStudyParameters class, class containing the values associated with CaseStudyParameters
-        method: Instance of GPBO_Methods class, Class containing GPBO method information
-        simulator: Instance of Simulator class, class containing values of simulation parameters
-        exp_data: Instance of Data class, Experimental data containing at least exp_data.theta_vals, exp_data.x_vals, and exp_data.y_vals
-        sim_data: Instance of Data class, Simulated data containing at least sim_data.theta_vals, sim_data.x_vals, and sim_data.y_vals
-        sim_sse_data: Instance of Data class, Simulated Objective data containing at least sim_sse_data.theta_vals, sim_sse_data.x_vals, and sim_sse_data.y_vals
-        val_data: Instance of Data class or None, Validation data containing at least val_data.theta_vals, val_data.x_vals, and val_data.y_vals
-        val_sse_data: Instance of Data class or None, Validation data containing at least val_sse_data.theta_vals, val_sse_data.x_vals, and val_sse_data.y_vals
-        gp_emulator: Instance of GP_Emulator class, class containing gp_emulator data (set after training)
-        ep_bias: Instance of Exploration_Bias class, class containing exploration parameter info
-        gen_meth_theta: Instance of Gen_meth_enum or None: The method by which simulation data is generated. For heat map making
+        cs_params: CaseStudyParameters
+            Class containing the values associated with CaseStudyParameters
+        method: GPBO_Methods
+            Class containing GPBO method information
+        simulator: Simulator
+            Class containing values of simulation parameters
+        exp_data: Data 
+            Experimental data containing at least exp_data.theta_vals, exp_data.x_vals, and exp_data.y_vals
+        sim_data: Data 
+            Simulated data containing at least sim_data.theta_vals, sim_data.x_vals, and sim_data.y_vals
+        sim_sse_data: Data 
+            Simulated objective data containing at least sim_sse_data.theta_vals, sim_sse_data.x_vals, and sim_sse_data.y_vals
+        val_data: Data or None
+            Validation data containing at least val_data.theta_vals, val_data.x_vals, and val_data.y_vals
+        val_sse_data: Data or None
+            Validation data containing at least val_sse_data.theta_vals, val_sse_data.x_vals, and val_sse_data.y_vals
+        gp_emulator: GP_Emulator
+            Class containing gp_emulator data (set after training)
+        ep_bias: Exploration_Bias class
+            Class containing exploration parameter info
+        gen_meth_theta: Gen_meth_enum or None
+            The method by which simulation data is generated. For heat map making
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(
             cs_params, CaseStudyParameters
@@ -4671,9 +5397,10 @@ class GPBO_Driver:
         """
         Sets GP Emulator class with training data and validation data based on the method class instance
 
-        Returns:
+        Returns
         --------
-        gp_emulator: Instance of the GP_Emulator class. Class for the GP emulator
+        gp_emulator: GP_Emulator
+            Class for the GP emulator
         """
         # Determine Emulator Status, set gp_data data, and ininitalize correct GP_Emulator child class
         if self.method.emulator == False:
@@ -4739,8 +5466,10 @@ class GPBO_Driver:
 
         Returns
         -------
-        be_data: Instance of Data class, contains best_error as an instance of the data class
-        be_metrics: tuple of (float, np.ndarray, np.ndarray). The min_SSE, param at min_SSE, and squared residuals
+        be_data: Data 
+            Contains best_error as an instance of the data class
+        be_metrics: tuple(float, np.ndarray, np.ndarray)
+            The min_SSE, param at min_SSE, and squared residuals
         """
 
         if self.method.emulator == False:
@@ -4773,13 +5502,15 @@ class GPBO_Driver:
         """
         Makes starting point for optimization with scipy
 
-        Parameters:
+        Parameters
         -----------
-        best_error_metrics: tuple, the best error, best error parameter set, and best_error_x values of the method. Hint: Use self.__get_best_error()
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error, best error parameter set, and best_error_x values of the method. Hint: Use self.__get_best_error()
 
-        Returns:
+        Returns
         --------
-        starting_pts: np.ndarray, array of parameter set initializations for self.__opt_with_scipy
+        starting_pts: np.ndarray
+            Array of parameter set initializations for self.__opt_with_scipy
         """
         # Note: Could make this generate 2 sets of starting points based on whether you want to optimize sse or ei
         # For sparse grid and mc methods
@@ -4794,13 +5525,15 @@ class GPBO_Driver:
         """
         Makes starting point for optimization with scipy if using sparse grid or Monte Carlo methods
 
-        Parameters:
+        Parameters
         -----------
-        best_error_metrics: tuple, the best error, best error parameter set, and best_error_x values of the method
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error, best error parameter set, and best_error_x values of the method
 
-        Returns:
+        Returns
         --------
-        starting_pts: np.ndarray, array of parameter set initializations for self.__opt_with_scipy
+        starting_pts: np.ndarray
+            Array of parameter set initializations for self.__opt_with_scipy
         """
         # Generate n LHS Theta vals
         num_mc_theta = 500
@@ -4865,9 +5598,10 @@ class GPBO_Driver:
         """
         Makes starting point for optimization with scipy if not using sparse grid or Monte Carlo methods
 
-        Returns:
+        Returns
         --------
-        starting_pts: np.ndarray, array of parameter set initializations for self.__opt_with_scipy
+        starting_pts: np.ndarray
+            Array of parameter set initializations for self.__opt_with_scipy
         """
         # If validation data doesn't exist or is shorter than the number of times you want to retrain
         if (
@@ -4903,12 +5637,20 @@ class GPBO_Driver:
 
         Parameters
         ----------
-        opt_obj: str, which objective to calculate. neg_ei, E[SSE], or SSE
+        opt_obj: str
+            Which objective to calculate. neg_ei, E[SSE], or SSE
 
-        Returns:
+        Returns
         --------
-        best_val: float, The optimized value of the function
-        best_theta: ndarray, The parameter set corresponding to best_val
+        best_val: float
+            The optimized value of the function
+        best_theta: np.ndarray
+            The parameter set corresponding to best_val
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         self.__min_obj_class = None
 
@@ -4970,13 +5712,20 @@ class GPBO_Driver:
 
         Parameters
         -----------
-        theta: ndarray, the array of theta values to optimize
-        opt_obj: str, which objective to calculate. 'neg_ei', 'E_sse', or 'sse'
-        best_error_metrics: tuple, the best error, best error parameter set, and best_error_x values of the method. Hint: Use self.__get_best_error()
+        theta: np.ndarray
+            Array of theta values to optimize
+        opt_obj: str
+            Which objective to calculate. 'neg_ei', 'E_sse', or 'sse'
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
+            The best error, best error parameter set, and best_error_x values of the method. Hint: Use self.__get_best_error()
 
-        Returns:
+        Returns
         --------
         obj: float, the value of the specified objective function for the given candidate parameter set
+        
+        Notes
+        -----
+        If there are nan values in theta, the objective function is set to 1 for neg_ei and self.sse_penalty for sse and E_sse
 
         """
         # Set seed
@@ -5120,13 +5869,15 @@ class GPBO_Driver:
         """
         Creates parameter sets that can be used to generate heat maps of data at any given iteration
 
-        Parameters:
+        Parameters
         -----------
-        n_points_set: int or None, the number of points to use per axis for creating heat maps. Default None. If None, the number of unique simulation points is used
+        n_points_set: int or None, default None
+            The number of points to use per axis for creating heat maps. If None, the number of unique simulation points is used
 
-        Returns:
+        Returns
         --------
-        heat_map_data_dict: dict, heat map data for each set of 2 parameters indexed by parameter name tuple ("param_1,param_2")
+        heat_map_data_dict: dict
+            Heat map data for each set of 2 parameters indexed by parameter name tuple ("param_1,param_2")
         """
         assert isinstance(
             self.gp_emulator, (Type_1_GP_Emulator, Type_2_GP_Emulator)
@@ -5263,7 +6014,8 @@ class GPBO_Driver:
 
         Parameters
         ----------
-        theta_best_data: Instance of Data class, The parameter set data associated with the optimal acquisition function value
+        theta_best_data: Data 
+            The parameter set data associated with the optimal acquisition function value
         """
         # Augment training theta, x, and y/sse data
         self.gp_emulator.add_next_theta_to_train_data(theta_best_data)
@@ -5274,12 +6026,20 @@ class GPBO_Driver:
 
         Parameters
         ----------
-        theta_array: np.ndarray, Array of parameter values to turn into an instance of Data
-        get_y: bool, Whether to calculate y values for theta_array. Default True
+        theta_array: np.ndarray
+            Array of parameter values to turn into an instance of Data
+        get_y: bool, default True
+            Whether to calculate y values for theta_array
 
         Returns
         --------
-        theta_arr_data: instance of Data, Data class instance for the theta_array
+        theta_arr_data: Data
+            Data class instance for the theta_array
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(theta_array, np.ndarray), "theta_array must be np.ndarray"
         assert len(theta_array.shape) == 1, "theta_array must be 1D"
@@ -5333,11 +6093,14 @@ class GPBO_Driver:
         ----------
         iteration: int, The iteration of BO in progress
 
-        Returns:
+        Returns
         --------
-        iter_df: pd.DataFrame, Dataframe containing the results from the GPBO Workflow for iteration
-        iter_max_ei_terms: pd.DataFrame or None, contains ei calculation terms for max ei parameter set if self.cs_params.save_data
-        gp_emulator_curr: Instance of GP_Emulator, The class used for this iteration of the GPBO workflow
+        iter_df: pd.DataFrame
+            Dataframe containing the results from the GPBO Workflow for iteration
+        iter_max_ei_terms: pd.DataFrame or None
+            Contains ei calculation terms for max ei parameter set if self.cs_params.save_data
+        gp_emulator_curr: GP_Emulator
+            The class used for this iteration of the GPBO workflow
         """
         # Start timer
         # Initialize iter_max_ei df to None
@@ -5522,14 +6285,23 @@ class GPBO_Driver:
 
         Params:
         -------
-        gp_model: Instance of sklearn.gaussian_process.GaussianProcessRegressor, GP emulator for workflow
+        gp_model: gpflow.models.GPR, GP emulator for workflow
 
-        Returns:
+        Returns
         --------
-        iter_df: pd.DataFrame, Dataframe containing the results from the GPBO Workflow for all iterations
-        max_ei_details_df: pd.DataFrame, contains ei data for max ei parameter sets for each bo iter if self.cs_params.save_data
-        list_gp_emulator_class: list of instances of GP_Emulator, The classes used for all iterations of the GPBO workflow
-        why_term: str, string containing reasons for bo algorithm termination
+        iter_df: pd.DataFrame
+            Dataframe containing the results from the GPBO Workflow for all iterations
+        max_ei_details_df: pd.DataFrame
+            Contains ei data for max ei parameter sets for each bo iter if self.cs_params.save_data
+        list_gp_emulator_class: list(GP_Emulator)
+            The classes used for all iterations of the GPBO workflow
+        why_term: str
+            String containing reasons for bo algorithm termination
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert (
             0 < self.bo_iter_term_frac <= 1
@@ -5709,12 +6481,14 @@ class GPBO_Driver:
         """
         Runs a GPBO method through all bo iterations and reports the data for that run of the method
 
-        Returns:
+        Returns
         --------
-        bo_results_res: Instance of BO_Results class, Includes table of results, exp_data class, and why term for the GPBO workflow
-        bo_results_GPs: Instance of BO_Results class, Includes the GP emulator classes used and max ei details for each iteration of the BO workflow
+        bo_results_res: BO_Results
+            Includes table of results, exp_Data and why term for the GPBO workflow
+        bo_results_GPs: BO_Results
+            Includes the GP emulator classes used and max ei details for each iteration of the BO workflow
 
-        Notes:
+        Notes
         ------
         Two instances of BO_Results are used since opening the GP files is often tedious and we may not need to open them to analyze the results
         """
@@ -5758,11 +6532,16 @@ class GPBO_Driver:
         """
         Runs multiple GPBO restarts
 
-        Returns:
+        Returns
         --------
-        gpbo_res_simple: list of instances of BO_Results, Includes the results related to a set of BO iters for all restarts
-            Includes: Configuration, Simulator class, Experiment Data class, Results DataFrame, and termination criteria results
-        gpbo_res_GP: list of instances of BO_Results, Includes the GP emulator classes used and max ei details for each iteration of the BO workflow
+        gpbo_res_simple: list(BO_Results)
+            Includes the most relevant results related to a set of BO iters for all restarts
+        gpbo_res_GP: list(BO_Results)
+            Includes the GP emulator classes used and max ei details for each iteration of the BO workflow
+
+        Notes
+        ------
+        gpbo_res_simple includes the Configuration, Simulator class, Experiment Data Results DataFrame, and termination criteria results
         """
         gpbo_res_simple = []
         gpbo_res_GP = []

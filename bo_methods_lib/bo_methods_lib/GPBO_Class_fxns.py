@@ -46,14 +46,24 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
     Sets the model for calculating y based off of the case study identifier.
     Parameters
     ----------
-    cs_num: The number associated with the case study value.
-    noise_mean:float, int: The mean of the noise
-    noise_std: float, int: The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
-    seed: int or None, Determines seed for randomizations. None if seed is random
+    cs_num: int
+        The number associated with the case study value.
+    noise_mean:float, int
+        The mean of the noise
+    noise_std: float, int
+        The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
+    seed: int or None
+        Determines seed for randomizations. None if seed is random
 
     Returns
     --------
-    Simulator(), Simulator() class object
+    Simulator(): Simulator
+        Simulator() class object
+
+    Raises
+    ------
+    AssertionError
+        If any of the required parameters are missing or not of the correct type or value
     """
     assert cs_num in [
         1,
@@ -126,14 +136,25 @@ def calc_cs1_polynomial(true_model_coefficients, x, args=None):
 
     Parameters
     ----------
-    true_model_coefficients: ndarray, The array containing the true values of Theta1 and Theta2
-    x: ndarray, The list of xs that will be used to generate y
-    args: dict, extra arguments to pass to the function. Default None
+    true_model_coefficients: np.ndarray
+        The array containing the true values of Theta1 and Theta2
+    x: np.ndarray
+        The list of xs that will be used to generate y
+    args: dict, default None
+        Extra arguments to pass to the function
 
     Returns
     --------
-    y_poly: ndarray, The noiseless values of y given theta_true and x
+    y_poly: np.ndarray
+        The noiseless values of y given theta_true and x
+
+    Raises
+    ------
+    AssertionError
+        If true_model_coefficients is not of length 2
     """
+
+    assert len(true_model_coefficients) == 2, "true_model_coefficients must be length 2"
 
     y_poly = true_model_coefficients[0] * x + true_model_coefficients[1] * x**2 + x**3
 
@@ -325,11 +346,13 @@ class CSMuller:
         Creates and Solves a Pyomo model for the Muller potential
         Parameters:
         -----------
-        verbose: bool, If True, prints the solver status and termination condition. Default False
+        verbose: bool
+            If True, prints the solver status and termination condition. Default False
 
         Returns:
         --------
-        model.obj(): float, The minimum value of the Muller potential for the given sub problem defined by param_name_str
+        model.obj(): float
+            The minimum value of the Muller potential for the given sub problem defined by param_name_str
         """
         # Create Model
         model = ConcreteModel()
@@ -429,13 +452,22 @@ def calc_muller(model_coefficients, x, args):
 
     Parameters
     ----------
-        model_coefficients: ndarray, The array containing the values of Muller constants
-        x: ndarray, Values of X
-        args: dict, extra arguments to pass to the function.
+    model_coefficients: np.ndarray
+        The array containing the values of Muller constants
+    x: np.ndarray
+        Values of X
+    args: dict
+        Extra arguments to pass to the function.
 
     Returns:
     --------
-        y_mul_scl: float, value of log scaled and minimum value shifted Muller potential
+    y_mul_scl: float
+        Value of log scaled and minimum value shifted Muller potential
+
+    Raises
+    ------
+    AssertionError
+        If "min muller" is not in args keys
     """
     assert "min muller" in list(args.keys())
 
@@ -490,13 +522,22 @@ def calc_cs8_10_polynomial(true_model_coefficients, x, args=None):
 
     Parameters
     ----------
-        model_coefficients: ndarray, The array containing the true parameter values
-        x: ndarray, Values of X
-        args: dict, extra arguments to pass to the function.
+    model_coefficients: np.ndarray
+        The array containing the true parameter values
+    x: np.ndarray
+        Values of X
+    args: dict
+        Extra arguments to pass to the function.
 
     Returns:
     --------
-        y_model: float, value of the model
+    y_model: float
+        Value of the model
+
+    Raises
+    ------
+    AssertionError
+        If true_model_coefficients is not of length 5
     """
     assert len(true_model_coefficients) == 5, "true_model_coefficients must be length 5"
     t1, t2, t3, t4, t5 = true_model_coefficients
@@ -540,13 +581,22 @@ def calc_cs11_BOD(true_model_coefficients, x, args=None):
 
     Parameters
     ----------
-        model_coefficients: ndarray, The array containing the true parameter values
-        x: ndarray, Values of X
-        args: dict, extra arguments to pass to the function.
+    model_coefficients: np.ndarray
+        The array containing the true parameter values
+    x: np.ndarray
+        Values of X
+    args: dict
+        Extra arguments to pass to the function.
 
     Returns:
     --------
-        y_model: float, value of the model
+    y_model: float
+        Value of the model
+
+    Raises
+    ------
+    AssertionError
+        If true_model_coefficients is not of length 2
     """
     assert len(true_model_coefficients) == 2, "true_model_coefficients must be length 2"
     t1, t2 = true_model_coefficients
@@ -581,13 +631,22 @@ def calc_cs12_yield(true_model_coefficients, x, args=None):
 
     Parameters
     ----------
-        model_coefficients: ndarray, The array containing the true parameter values
-        x: ndarray, Values of X
-        args: dict, extra arguments to pass to the function.
+    model_coefficients: np.ndarray
+        The array containing the true parameter values
+    x: np.ndarray
+        Values of X
+    args: dict
+        Extra arguments to pass to the function.
 
     Returns:
     --------
-        y_model: float, value of the model
+    y_model: float
+        Value of the model
+
+    Raises
+    ------
+    AssertionError
+        If true_model_coefficients is not of length 3
     """
     assert len(true_model_coefficients) == 3, "true_model_coefficients must be length 3"
     t1, t2, t3 = true_model_coefficients
@@ -622,13 +681,22 @@ def calc_cs13_logit(true_model_coefficients, x, args=None):
 
     Parameters
     ----------
-        model_coefficients: ndarray, The array containing the true parameter values
-        x: ndarray, Values of X
-        args: dict, extra arguments to pass to the function.
+    model_coefficients: np.ndarray
+        The array containing the true parameter values
+    x: np.ndarray
+        Values of X
+    args: dict
+        Extra arguments to pass to the function.
 
     Returns:
     --------
-        y_model: float, value of the model
+    y_model: float
+        Value of the model
+
+    Raises
+    ------
+    AssertionError
+        If true_model_coefficients is not of length 4
     """
     assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
     t1, t2, t3, t4 = true_model_coefficients
@@ -663,13 +731,22 @@ def calc_cs14_logit2D(true_model_coefficients, x, args=None):
 
     Parameters
     ----------
-        model_coefficients: ndarray, The array containing the true parameter values
-        x: ndarray, Values of X
-        args: dict, extra arguments to pass to the function.
+    model_coefficients: np.ndarray
+        The array containing the true parameter values
+    x: np.ndarray
+        Values of X
+    args: dict
+        Extra arguments to pass to the function.
 
     Returns:
     --------
-        y_model: float, value of the model
+    y_model: float
+        Value of the model
+
+    Raises
+    ------
+    AssertionError
+        If true_model_coefficients is not of length 4
     """
     assert len(true_model_coefficients) == 4, "true_model_coefficients must be length 4"
     t1, t2, t3, t4 = true_model_coefficients

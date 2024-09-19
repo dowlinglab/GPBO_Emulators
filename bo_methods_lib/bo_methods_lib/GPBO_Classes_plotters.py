@@ -59,8 +59,15 @@ class Plotters:
         """
         Parameters
         ----------
-        analyzer: General_Analysis, an instance of the General_Analysis class
-        save_figs: bool, save figures to file if True. Default False
+        analyzer: General_Analysis
+            An instance of the General_Analysis class
+        save_figs: bool, default False
+            Save figures to file if True.
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         # Asserts
         assert isinstance(save_figs, bool), "save_figs must be boolean"
@@ -108,12 +115,20 @@ class Plotters:
 
         Parameters
         -----------
-        z_choice: str, one of "min_sse", "sse", or "acq". The values that will be plotted
-        log_data: bool, plots data on natural log scale if True. Default False
-        title: str or None, Title of plot. Default None
+        z_choice: str
+            One of "min_sse", "sse", or "acq". The values that will be plotted
+        log_data: bool, default False
+            Plots data on natural log scale if True
+        title: str or None, default None
+            Title of plot
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
-        -----------
+        -----
         This function plots one objective value for all methods at the best runs. Each method is displayed in a different subplot.
 
         """
@@ -383,8 +398,10 @@ class Plotters:
 
         Parameters
         -----------
-        job: Job, The job to analyze
-        title: str or None, Title of plot. Default None
+        job: signac.job.Job
+            The job to analyze
+        title: str or None, default None
+            Title of plot
         """
         data, data_names, data_true, sp_data = self.analyzer.analyze_hypers(job)
         y_label = "Value"
@@ -404,9 +421,12 @@ class Plotters:
 
         Parameters
         -----------
-        job: Job, The job to analyze
-        z_choice: str, one of "min_sse", "sse", or "acq". The values that will be plotted
-        title: str or None, Title of plot. Default None
+        job: signac.job.Job
+            The job to analyze
+        z_choice: str
+            One of "min_sse", "sse", or "acq". The values that will be plotted
+        title: str or None, default None
+            Title of plot
         """
         data, data_names, data_true, sp_data = self.analyzer.analyze_thetas(
             job, z_choice
@@ -436,12 +456,18 @@ class Plotters:
 
         Parameters
         -----------
-        data: ndarray (n_runs x n_iters x n_params), Array of data from bo workflow runs
-        data_names: list of str, List of data names
-        data_true: list/ndarray of float/int or None, The true/reference values of each parameter
-        y_label: str, The y label of the plot
-        title: str, The title of the plot
-        log_data: bool, plots data on natural log scale if True
+        data:np.ndarray (n_runs x n_iters x n_params)
+            Array of data from bo workflow runs
+        data_names: list(str)
+            List of data names
+        data_true: list/ndarray(float/int) or None,
+            The true/reference values of each parameter
+        y_label: str
+            The y label of the plot
+        title: str
+            The title of the plot
+        log_data: bool
+            Plots data on natural log scale if True
 
         Returns
         --------
@@ -531,8 +557,18 @@ class Plotters:
 
         Parameters
         -----------
-        x: float, The value to format
-        pos: int, The position of the value
+        x: float
+            The value to format
+        pos: int
+            The position of the value
+
+        Returns
+        --------
+        str: The formatted value
+
+        Notes
+        ------
+        Returns 0 if x is 0 and formats the value using scientific notation otherwise
         """
         if x == 0:
             return "0"
@@ -546,9 +582,17 @@ class Plotters:
 
         Parameters
         -----------
-        z_choices:  list of str, list of strings "sse_sim", "sse_mean", "sse_var", and/or "acq". The values that will be plotted
-        log_data: bool, plots data on natural log scale if True. Default False
-        title: str or None, Title of plot. Default None
+        z_choices:  list(str)
+            list(str)ings "sse_sim", "sse_mean", "sse_var", and/or "acq". The values that will be plotted
+        log_data: bool, default False
+            Plots data on natural log scale if True
+        title: str or None, default None
+            Title of plot
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
         --------
@@ -783,14 +827,24 @@ class Plotters:
 
         Parameters
         -----------
-        z_choices: str, one of "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
-        sim_sse_var_ei: tuple, tuple of the data from the self.analyzer.analyze_heat_maps() method
+        z_choices: str
+            One of "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
+        sim_sse_var_ei: tuple(np.ndarray, len=4) or tuple(np.ndarray, np.ndarray, np.ndarray, None)
+            Tuple of the data from the self.analyzer.analyze_heat_maps() method
 
         Returns
         --------
-        all_z_data: list of ndarray, list of z data for each objective to plot
-        all_z_titles: list of str, mathematical titles for each objective to plot
-        all_z_titles_pre: list of str, string titles for each objective to plot
+        all_z_data: list(np.ndarray)
+            List of z data for each objective to plot
+        all_z_titles: list(str)
+            Mathematical titles for each objective to plot
+        all_z_titles_pre: list(str)
+            Titles for each objective to plot
+
+        Raises
+        ------
+        ValueError
+            If z_choice is not one of "sse_sim", "sse_mean", "sse_var", or "acq"
         """
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
         if isinstance(z_choices, str):
@@ -822,7 +876,7 @@ class Plotters:
                 all_z_titles.append(r"$\Xi(\mathbf{\theta})$")
                 all_z_titles_pre.append("Aquisition Function, ")
             else:
-                raise Warning("choice must contain 'sim', 'mean', 'var', or 'acq'")
+                raise ValueError("choice must contain 'sim', 'mean', 'var', or 'acq'")
         if len(all_z_data) == 1:
             return all_z_data[0], all_z_titles[0], all_z_titles_pre[0]
         else:
@@ -833,12 +887,21 @@ class Plotters:
         Plots comparison of y_sim, GP_mean, GP_stdev, and the acquisition function values for all methods
         Parameters
         ----------
-        pair: int, The pair of data parameters. pair 0 is the 1st pair
-        z_choice: str, "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
-        levels: int, list of int, or None, Number of zbins to skip when drawing contour lines
-        log_data: bool, plots data on natural log scale if True. Default False
-        title: str or None, Title of plot. Default None
+        pair: int
+            The pair of data parameters. pair 0 is the 1st pair
+        z_choice: str
+            "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
+        levels: int, list(int), or None
+            Number of zbins to skip when drawing contour lines
+        log_data: bool, default False
+            Plots data on natural log scale if True
+        title: str or None, default None
+            Title of plot
 
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         Notes
         -------
         For this function, each method is its own subplot. Each plot must be generated separately for each objective function choice.
@@ -1212,18 +1275,31 @@ class Plotters:
         Plots comparison of y_sim, GP_mean, and GP_stdev
         Parameters
         ----------
-        job: Signac Job, The job to analyze
-        run_num: int, The run number to analyze
-        bo_iter: int, The bo iteration to analyze
-        pair: int, The pair of data parameters. pair 0 is the 1st pair
-        z_choices: str, list of str, one of "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
-        levels: int, list of int, or None, Number of zbins to skip when drawing contour lines
-        log_data: bool, plots data on natural log scale if True. Default False
-        title: str or None, Title of plot. Default None
+        job: signac.job.Job
+            The job to analyze
+        run_num: int
+            The run number to analyze
+        bo_iter: int
+            The bo iteration to analyze
+        pair: int
+            The pair of data parameters. pair 0 is the 1st pair
+        z_choices: str, list(str),
+            One of "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
+        levels: int, list(int), or None
+            Number of zbins to skip when drawing contour lines
+        log_data: bool, default False
+            Plots data on natural log scale if True
+        title: str or None, default None
+            Title of plot
 
         Returns
         -------
         plt.show(), A heat map of test_mesh and z
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
         -------
@@ -1493,13 +1569,17 @@ class Plotters:
 
         Parameters
         -----------
-        sim_sse_var_ei: tuple, tuple of the data from the self.analyzer.analyze_heat_maps() method
-        sp_data: dict, dictionary of the data from the json file
-        log_data: bool, plots data on natural log scale if True
+        sim_sse_var_ei: tuple(np.ndarray, len=4) or tuple(np.ndarray, np.ndarray, np.ndarray, None)
+            Tuple of the data from the self.analyzer.analyze_heat_maps() method
+        sp_data: dict
+            Dictionary of the data from the json file
+        log_data: bool
+            Plots data on natural log scale if True
 
         Returns
         --------
-        sim_sse_var_ei: tuple, tuple of the data from the analysis with correct scaling for plots
+        sim_sse_var_ei: tuple(np.ndarray, len=4) or tuple(np.ndarray, np.ndarray, np.ndarray, None)
+            tuple of the data from the analysis with correct scaling for plots
         """
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
         # Get log or unlogged data values
@@ -1529,11 +1609,13 @@ class Plotters:
 
         Parameters
         -----------
-        z_choice: str, one of "sse", "min_sse", or "acq"
+        z_choice: str
+            One of "sse", "min_sse", or "acq"
 
         Returns
         --------
-        y_label: str, The y label for the plot
+        y_label: str
+            The y label for the plot
         """
 
         if self.analyzer.mode == "gp":
@@ -1560,11 +1642,13 @@ class Plotters:
 
         Parameters
         -----------
-        data_all_iters: ndarray, data from all iterations
+        data_all_iters: np.ndarray
+            Data from all iterations
 
         Returns
         --------
-        data_df_j: ndarray, data that is not numerically 0
+        data_df_j:np.ndarray
+            Data that is not numerically 0
         """
         # Remove elements that are numerically 0
         data_df_run = pd.DataFrame(data=data_all_iters)
@@ -1622,16 +1706,29 @@ class Plotters:
 
         Parameters
         ----------
-        num_subplots: int, total number of needed subplots
-        sharex: str, sharex values for subplots. Default is "row"
-        sharey: str, sharey value for subplots. Default is "none"
+        num_subplots: int
+            Total number of needed subplots
+        sharex: str, default "row"
+            sharex values for subplots
+        sharey: str, default "none"
+            sharey value for subplots
 
         Returns
         -------
-        fig: matplotlib.figure, The matplotlib figure object
-        axes: matplotlib.axes.Axes, 2D array of axes
-        total_ax_num: int, The number of axes generated total
-        plot_mapping: dict, dictionary mapping plot number to axes
+        fig: matplotlib.figure
+            The matplotlib figure object
+        axes: matplotlib.axes.Axes
+            2D array of axes
+        total_ax_num: int
+            The number of axes generated total
+        plot_mapping: dict
+            Dictionary mapping plot number to axes
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
         """
 
         assert num_subplots >= 1, "Number of subplots must be at least 1"
@@ -1680,16 +1777,28 @@ class Plotters:
 
         Parameters
         ----------
-        ax: matplotlib.axes.Axes, The axes to set the plot settings for
-        plot_x: ndarray, The x data for plotting
-        plot_y: ndarray, The y data for plotting
-        xlabel: str or None, the label for the x axis
-        ylabel: str or None, the label for the y axis
-        title: str or None, The subplot title
+        ax: matplotlib.axes.Axes
+            The axes to set the plot settings for
+        plot_x: np.ndarray
+            The x data for plotting
+        plot_y: np.ndarray
+            The y data for plotting
+        xlabel: str or None
+            The label for the x axis
+        ylabel: str or None
+            The label for the y axis
+        title: str or None
+            The subplot title
 
         Returns
         -------
-        ax: matplotlib.axes.Axes, The axes with the plot settings set
+        ax: matplotlib.axes.Axes
+            The axes with the plot settings set
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         # Group inputs by type
         none_str_vars = [title, xlabel, ylabel]
@@ -1756,10 +1865,14 @@ class Plotters:
 
         Parameters
         ----------
-        fig: matplotlib.figure, The figure to set the title and labels for
-        title: str or None, The title of the figure
-        x_label: str or None, The x label of the figure
-        y_label: str or None, The y label of the figure
+        fig: matplotlib.figure
+            The figure to set the title and labels for
+        title: str or None
+            The title of the figure
+        x_label: str or None
+            The x label of the figure
+        y_label: str or None
+            The y label of the figure
         """
         if self.title_fntsz is not None:
             fig.suptitle(title, weight="bold", fontsize=self.title_fntsz)
@@ -1889,8 +2002,15 @@ class All_CS_Plotter(Plotters):
         """
         Parameters
         ----------
-        analyzer: General_Analysis, an instance of the General_Analysis class
-        save_figs: bool, save figures to file if True. Default False
+        analyzer: General_Analysis
+            An instance of the General_Analysis class
+        save_figs: bool, default False
+            Save figures to file if True
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         # Asserts
         assert isinstance(save_figs, bool), "save_figs must be boolean"
@@ -1906,16 +2026,28 @@ class All_CS_Plotter(Plotters):
 
         Parameters
         ----------
-        num_subplots: int, total number of needed subplots
-        sharex: str, sharex value for subplots. Default is "row"
-        sharey: str, sharey value for subplots. Default is "none"
+        num_subplots: int
+            Total number of needed subplots
+        sharex: str, default "row"
+            sharex value for subplots
+        sharey: str, default "none"
+            sharey value for subplots
 
         Returns
         -------
-        fig: matplotlib.figure, The matplotlib figure object
-        axes: matplotlib.axes.Axes, 2D array of axes
-        total_ax_num: int, The number of axes generated total
-        plot_mapping: dict, dictionary mapping plot number to axes
+        fig: matplotlib.figure
+            The matplotlib figure object
+        axes: matplotlib.axes.Axes
+            2D array of axes
+        total_ax_num: int
+            The number of axes generated total
+        plot_mapping: dict
+            Dictionary which maps plot numbers to axes
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
 
         assert num_subplots >= 1, "Number of subplots must be at least 1"
@@ -1964,16 +2096,28 @@ class All_CS_Plotter(Plotters):
 
         Parameters
         ----------
-        ax: matplotlib.axes.Axes, The axes to set the plot settings for
-        plot_x: ndarray, The x data for plotting
-        plot_y: ndarray, The y data for plotting
-        xlabel: str or None, the label for the x axis
-        ylabel: str or None, the label for the y axis
-        title: str or None, The subplot title
+        ax: matplotlib.axes.Axes
+            The axis to set the plot settings for
+        plot_x:np.ndarray
+            The x data for plotting
+        plot_y:np.ndarray
+            The y data for plotting
+        xlabel: str or None
+            The label for the x axis
+        ylabel: str or None
+            The label for the y axis
+        title: str or None
+            The subplot title
 
         Returns
         -------
-        ax: matplotlib.axes.Axes, The axes with the plot settings set
+        ax: matplotlib.axes.Axes
+            The axis with the plot settings set
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         # Group inputs by type
         none_str_vars = [title, xlabel, ylabel]
@@ -2058,7 +2202,17 @@ class All_CS_Plotter(Plotters):
 
         Parameters:
         -----------
-        mode: Whether to make a bar chart for the objective or time information for the case studies. Options "objs" or "time"
+        mode: str
+            Whether to make a bar chart for the objective or time information for the case studies
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
+        -----
+        Options for mode are "objs" or "time"
         """
         assert mode in ["time", "objs"], "mode must be 'time' or 'objs'"
         # Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))

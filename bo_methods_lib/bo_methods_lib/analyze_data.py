@@ -23,12 +23,22 @@ def open_file_helper(file_path):
 
     Parameters
     ----------
-    file_path: str, The file path of the data
+    file_path: str
+        The file path of the data
 
     Returns
     -------
-    results: pickled object, The results stored in the .pickle or .gz file
+    results: pickled object
+        The results stored in the .pickle or .gz file
+
+    Raises
+    ------
+    AssertionError
+        If the file path is not a string
+    ValueError
+        If the file type is not .gz or .pickle
     """
+    assert isinstance(file_path, str), "file_path must be a string"
     if file_path.endswith(".pickle") or file_path.endswith(".pkl"):
         with open(file_path, "rb") as fileObj:
             results = pickle.load(fileObj)
@@ -36,7 +46,7 @@ def open_file_helper(file_path):
         with gzip.open(file_path, "rb") as fileObj:
             results = pickle.load(fileObj)
     else:
-        raise Warning("File type must be .gz or .pickle!")
+        raise ValueError("File type must be .gz or .pickle!")
 
     return results
 
@@ -77,10 +87,19 @@ class General_Analysis:
         """
         Parameters
         ----------
-        criteria_dict: dict, Signac statepoints to consider for the job. Should include minimum of cs_name_val
-        project: signac.project.Project, The signac project to analyze
-        mode: str, the mode to analyze the data in ('act', 'acq', or 'gp')
-        save_csv: bool, whether to save csvs.
+        criteria_dict: dict
+            Signac statepoints to consider for the job. Should include minimum of cs_name_val
+        project: signac.project.Project
+            The signac project to analyze
+        mode: str
+            The mode to analyze the data in ('act', 'acq', or 'gp')
+        save_csv: bool
+            Whether to save csvs
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         # Asserts
         assert isinstance(criteria_dict, dict), "criteria_dict must be a dictionary"
@@ -114,12 +133,20 @@ class General_Analysis:
 
         Parameters
         ----------
-        dict_to_use: dict, dictionary to use to make directory name
-        is_nested: bool, whether the dictionary is nested or not. Default False
+        dict_to_use: dict
+            Dictionary to use to make directory name
+        is_nested: bool, default False
+            Whether the dictionary is nested or not
 
         Returns
         -------
-        result_dir: str, the directory name from the dictionary
+        result_dir: str
+            The directory name from the dictionary
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
         -----
@@ -164,10 +191,13 @@ class General_Analysis:
         Gets a pointer of all jobs
         Parameters
         ----------
-        criteria_dict: dict or None, dictionary to determine which jobs to analyze. If none, defaults to class value
+        criteria_dict: dict or None, default None
+            Dictionary to determine which jobs to analyze. If none, defaults to class value
+
         Returns
         -------
-        jobs: list, a list of jobs from Signac that fit criteria dict
+        jobs: list(siganc.job.Job)
+            A list of jobs from Signac that fit criteria dict
         """
         criteria_dict = self.criteria_dict if criteria_dict == None else criteria_dict
         # Find all jobs of a certain cs and method type for the criteria in order of job id
@@ -182,11 +212,13 @@ class General_Analysis:
 
         Parameters
         ----------
-        str_arr: str, the string to turn into an array
+        str_arr: str
+            The string to turn into an array
 
         Returns
         -------
-        array_from_str: np.ndarray, the array from the string
+        array_from_str: np.ndarray
+            The array from the string
         """
         # Find the index of the first space
         first_space_index = str_arr.index(" ")
@@ -207,14 +239,23 @@ class General_Analysis:
 
         Parameters
         ----------
-        criteria_dict: dict or None, dictionary to determine which jobs to analyze. If none defaults to class value
-        save_csv: bool, whether to save csvs. Default False
-
+        criteria_dict: dict or None, default None
+            Dictionary to determine which jobs to analyze. If none defaults to class value
+        save_csv: bool, default False
+            Whether to save csvs
         Returns
         -------
-        df_all_jobs: A dataframe of the all of the data for the given dictionary
-        job_list: list, a list of jobs from Signac that fit criteria dict for the methods in meth_name_val_list
-        theta_true_data_w_bnds: tuple (dict, np.ndarray), dictionary of true parameter values; bounds for the parameters
+        df_all_jobs: pd.DataFrame
+            A dataframe of the all of the data for the given dictionary
+        job_list: list(siganc.job.Job)
+            Jobs from Signac that fit criteria dict for the methods in meth_name_val_list
+        theta_true_data_w_bnds: tuple(dict, np.ndarray)
+            Tuple of a dictionary of true parameter values and bounds for the parameters
+
+        Raises
+        ------
+        AssertionError
+            If job BO.Results.gz file does not exist
 
         """
         # Intialize dataframe and job list for all jobs in criteria_dict
@@ -297,13 +338,22 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: job, The job to get data from
-        save_csv: bool, whether to save csvs. Default None. save_csv is set to the class default if None.
+        job: signac.job.Job
+            The job to get data from
+        save_csv: bool, default None
+            Whether to save csvs. Set to the class default if None.
 
         Returns
         -------
-        df_job: pd.DataFrame, The dataframe of the data for the given job
-        theta_true_data_w_bnds: tuple (dict, np.ndarray), dictionary of true parameter values; bounds for the parameters
+        df_job: pd.DataFrame
+            The dataframe of the data for the given job
+        theta_true_data_w_bnds: tuple(dict, np.ndarray)
+            Tuple of a dictionary of true parameter values and bounds for the parameters
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert save_csv == None or isinstance(
@@ -376,8 +426,10 @@ class General_Analysis:
 
         Returns
         -------
-        df_best: pd.DataFrame, The best data for each method
-        job_list_best: list, a list of jobs from Signac corresponding to the ones in df_best
+        df_best: pd.DataFrame
+            The best data for each method
+        job_list_best: list(signac.job.Job)
+            Alist of jobs from Signac corresponding to the ones in df_best
         """
         if self.mode == "act":
             obj_col = "Min Obj Act Cum"
@@ -414,8 +466,10 @@ class General_Analysis:
 
         Returns
         -------
-        df_median: pd.DataFrame, The median data for each method
-        job_list_med: list, a list of jobs from Signac corresponding to the ones in df_median
+        df_median: pd.DataFrame
+            The median data for each method
+        job_list_med: list(signac.job.Job)
+            A list of jobs from Signac corresponding to the ones in df_median
         """
         if self.mode == "act":
             obj_col = "Min Obj Act"
@@ -466,8 +520,10 @@ class General_Analysis:
 
         Returns
         -------
-        df_mean: pd.DataFrame, The mean data for each method
-        job_list_mean: list, a list of jobs from Signac corresponding to the ones in df_mean
+        df_mean: pd.DataFrame
+            The mean data for each method
+        job_list_mean: list(signac.job.Job)
+            A list of jobs from Signac corresponding to the ones in df_mean
         """
         if self.mode == "act":
             obj_col = "Min Obj Act"
@@ -521,7 +577,8 @@ class General_Analysis:
 
         Returns
         -------
-        job_list: list, a list of jobs from Signac corresponding to the ones in df_data
+        job_list: list(signac.job.Job)
+            A list of jobs from Signac corresponding to the ones in df_data
         """
         # Get list of best jobs
         job_list = []
@@ -538,15 +595,15 @@ class General_Analysis:
 
         Parameters
         ----------
-        df_data: pd.DataFrame, The dataframe to sort
+        df_data: pd.DataFrame
+            The dataframe to sort
 
         Returns
         -------
-        df_data: pd.DataFrame, The sorted dataframe
+        df_data: pd.DataFrame
+            The sorted dataframe
         """
         # Put rows in order of method
-        # row_order = sorted([Method_name_enum[meth].value for meth in df_data['BO Method'].unique()])
-        # order = [Method_name_enum(num).name for num in row_order]
         order = [
             "Conventional",
             "Log Conventional",
@@ -570,12 +627,15 @@ class General_Analysis:
 
         Parameters
         ----------
-        df_data: pd.DataFrame, The dataframe to calculate the L2 norm for
-        theta_true: tuple (dict, np.ndarray), dictionary of true parameter values; bounds for the parameters
+        df_data: pd.DataFrame
+            The dataframe to calculate the L2 norm for
+        theta_true: tuple(dict, np.ndarray)
+            Tuple of a dictionary of true parameter values and bounds for the parameters
 
         Returns
         -------
-        df_data: pd.DataFrame, The dataframe with the L2 norm values added
+        df_data: pd.DataFrame
+            The dataframe with the L2 norm values added
         """
         # Calculate the difference between the true values and the GP best values in the dataframe for each parameter
         theta_min_obj = np.array(
@@ -609,8 +669,14 @@ class General_Analysis:
 
         Returns
         -------
-        found_data: bool, whether the data was found
-        data: np.ndarray or pd.DataFrame or None, the data from the file or None
+        found_data: bool
+            Whether the data was found
+        data: np.ndarray or pd.DataFrame or None
+            The data from the file or None
+
+        Raises
+        ------
+        ValueError: If the file type is not .gz, .pickle, .npy, .csv, or .json
         """
         assert isinstance(path, str), "path_end must be str"
         # Split path into parts
@@ -643,8 +709,14 @@ class General_Analysis:
 
         Parameters
         ----------
-        data: Object, the data to save
-        save_path: str, The file path to save the data
+        data: Object
+            The data to save
+        save_path: str
+            The file path to save the data
+
+        Raises
+        ------
+        ValueError: If the file type is not .gz, .pickle, .npy, .csv, or .json
         """
         # Split path into parts
         ext = os.path.splitext(save_path)[-1]
@@ -676,14 +748,24 @@ class General_Analysis:
 
         Parameters
         ----------
-        z_choices: list, the choices of data to analyze
-        theta_true_data: tuple (dict, np.ndarray), dictionary of true parameter values; bounds for the parameters
-        data_type: str, the type of data to analyze (parameter or objective data). Either 'objs' or 'params'.
+        z_choices: list(str)
+            The choices of data to analyze
+        theta_true_data: tuple(dict, np.ndarray)
+            Tuples of a dictionary of true parameter values and bounds for the parameters
+        data_type: str
+            The type of data to analyze (parameter or objective data). Either 'objs' or 'params'.
 
         Returns
         -------
-        col_name: list, the column names for the data
-        data_names: list, the names of the data
+        col_name: list(str)
+            The column names for the data
+        data_names: list(str)
+            The names of the data
+
+        Raises
+        ------
+        AssertionError
+            If the z_choices are not of the correct type
 
         """
         if self.mode == "act":
@@ -753,18 +835,27 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.job.Job, the job to analyze
-        z_choice: list or str, the choices of data to analyze. One of 'min_sse', 'sse', or 'acq'
-        data_type: str, the type of data to analyze (parameter or objective data). Either 'objs' or 'params'.
+        job: signac.job.Job
+            The job to analyze
+        z_choice: list(str) or str
+            The choices of data to analyze. One of 'min_sse', 'sse', or 'acq'
+        data_type: str
+            The type of data to analyze (parameter or objective data). Either 'objs' or 'params'.
 
         Returns
         -------
-        df_job: pd.DataFrame, the dataframe of the data for the given job
-        data: np.ndarray, the data for plotting
-        data_true: np.ndarray or None, the reference values of the data
-        sp_data: dict, the statepoint data for the job
-        tot_runs: int, the total number of runs in the job
-        data_median: np.ndarray or None, the median values of the reference data
+        df_job: pd.DataFrame
+            The dataframe of the data for the given job
+        data: np.ndarray
+            The data for plotting
+        data_true: np.ndarray or None
+            The reference values of the data
+        sp_data: dict
+            The statepoint data for the job
+        tot_runs: int
+            The total number of runs in the job
+        data_median: np.ndarray or None
+            The median values of the reference data
         """
         # Look for data if it already exists, if not create it
         # Check if we have theta data and create it if not
@@ -833,16 +924,28 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.job.Job, the job to analyze
-        z_choices: list or str, the choices of data to analyze. Contains a combination of 'min_sse', 'sse', or 'acq'
+        job: signac.job.Job
+            The job to analyze
+        z_choices: list(str) or str
+            The choices of data to analyze. Contains a combination of 'min_sse', 'sse', or 'acq'
 
         Returns
         -------
-        data: np.ndarray, The data for plotting
-        data_names: list, the names of the data
-        data_true: dict or None, the reference values of the data
-        sp_data: dict, the statepoint data for the job
-        data_true_med: dict or None, the median values of the reference data
+        data: np.ndarray
+            The data for plotting
+        data_names: list(str)
+            The names of the data
+        data_true: dict or None
+            The reference values of the data
+        sp_data: dict
+            The statepoint data for the job
+        data_true_med: dict or None
+            The median values of the reference data
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert isinstance(
@@ -897,15 +1000,26 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.job.Job, the job to analyze
-        z_choice: str, the choice of data to analyze. One of 'min_sse', 'sse', or 'acq'
+        job: signac.job.Job
+            The job to analyze
+        z_choice: str
+            The choice of data to analyze. One of 'min_sse', 'sse', or 'acq'
 
         Returns
         -------
-        data: np.ndarray, The data for plotting
-        data_names: list, the names of the data
-        data_true: dict or None, the reference values of the data
-        sp_data: dict, the statepoint data for the job
+        data: np.ndarray
+            The data for plotting
+        data_names: list(str)
+            The names of the data
+        data_true: dict or None
+            The reference values of the data
+        sp_data: dict
+            The statepoint data for the job
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert isinstance(z_choice, (str)), "z_choice must be a str"
@@ -942,14 +1056,24 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.job.Job, the job to analyze
+        job: signac.job.Job
+            The job to analyze
 
         Returns
         -------
-        data: np.ndarray, The data for plotting
-        data_names: list, the names of the data
-        data_true: None, the reference values of the data (None for hyperaprameters)
-        sp_data: dict, the statepoint data for the job
+        data: np.ndarray
+            The data for plotting
+        data_names: list(str)
+            The names of the data
+        data_true: None
+            The reference values of the data (None for hyperaprameters)
+        sp_data: dict
+            The statepoint data for the job
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         data_true = None
@@ -1002,14 +1126,19 @@ class General_Analysis:
 
         Parameters
         ----------
-        sp_data: dict, the statepoint data for the job
+        sp_data: dict
+            The statepoint data for the job
 
         Returns
         -------
-        cs_params: CaseStudyParameters, the case study parameters
-        method: GPBO_Methods, the method used
-        gen_meth_theta: Gen_meth_enum, the method used to generate theta values
-        ep_enum: Ep_enum, the method used to generate exploration bias values
+        cs_params: CaseStudyParameters
+            The case study parameters
+        method: GPBO_Methods
+            The method used
+        gen_meth_theta: Gen_meth_enum
+            The method used to generate theta values
+        ep_enum: Ep_enum
+            The method used to generate exploration bias values
         """
         method = GPBO_Methods(Method_name_enum(sp_data["meth_name_val"]))
         cs_name = (
@@ -1064,13 +1193,22 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.job.Job, the job to analyze
-        run_num: int, the run number to analyze
-        bo_iter: int, the bo iteration to analyze
+        job: signac.job.Job
+            The job to analyze
+        run_num: int
+            The run number to analyze
+        bo_iter: int
+            The bo iteration to analyze
 
         Returns
         -------
-        test_data_obj: Data, the evaluated testing data for the given run and iteration
+        test_data_obj: Data
+            The evaluated testing data for the given run and iteration
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert isinstance(run_num, (np.int64, int)), "run_num must be an int"
@@ -1160,18 +1298,32 @@ class General_Analysis:
 
         Parameters
         ----------
-        job: signac.job.Job, the job to analyze
-        run_num: int, the run number to analyze
-        bo_iter: int, the bo iteration to analyze
-        pair_id: int or str, the pair of parameters to analyze
-        get_ei: bool, whether to calculate the acquisition function. Default is False
+        job: signac.job.Job
+            The job to analyze
+        run_num: int
+            The run number to analyze
+        bo_iter: int
+            The bo iteration to analyze
+        pair_id: int or str
+            The pair of parameters to analyze
+        get_ei: bool, default False
+            Whether to calculate the acquisition function
 
         Returns
         -------
-        all_data: np.ndarray, the data for plotting
-        test_mesh: np.ndarray, the meshgrid for the testing data
-        param_info_dict: dict, the parameter information for the given pair
-        sp_data: dict, the statepoint data for the job
+        all_data: np.ndarray
+            The data for plotting
+        test_mesh: np.ndarray
+            The meshgrid for the testing data
+        param_info_dict: dict
+            The parameter information for the given pair
+        sp_data: dict
+            The statepoint data for the job
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert isinstance(run_num, (np.int64, int)), "run_num must be an int"
@@ -1514,11 +1666,16 @@ class All_CS_Analysis(General_Analysis):
         """
         Parameters
         ----------
-        cs_list: list, the list of case studies (by number marker) to analyze
-        meth_val_list: list, the list of methods to analyze
-        project: signac.project.Project, The signac project to analyze
-        mode: str, the mode to analyze the data in ('act', 'acq', or 'gp')
-        save_csv: bool, whether to save csvs.
+        cs_list: list(int)
+            The list of case studies (by number marker) to analyze
+        meth_val_list: list(int)
+            The list of methods (by number marker) to analyze
+        project: signac.project.Project
+            The signac project to analyze
+        mode: str
+            The mode to analyze the data in ('act', 'acq', or 'gp')
+        save_csv: bool
+            Whether to save csvs.
         """
         if len(cs_list) == 1:
             cs_name_val = cs_list[0]
@@ -1556,11 +1713,13 @@ class All_CS_Analysis(General_Analysis):
 
         Parameters
         ----------
-        df_data: pd.DataFrame, The dataframe to sort
+        df_data: pd.DataFrame
+            The dataframe to sort
 
         Returns
         -------
-        df_data: pd.DataFrame, The sorted dataframe
+        df_data: pd.DataFrame
+            The sorted dataframe
         """
         # Put rows in order of method
         order = [
@@ -1586,7 +1745,8 @@ class All_CS_Analysis(General_Analysis):
 
         Returns
         -------
-        df_all_jobs: pd.DataFrame, The dataframe of all of the data for the given dictionary
+        df_all_jobs: pd.DataFrame
+            The dataframe of all of the data for the given dictionary
         """
         # Sort by method and CS Name
         df_all_jobs, job_list, __ = self.get_df_all_jobs()
@@ -1605,7 +1765,8 @@ class All_CS_Analysis(General_Analysis):
 
         Returns
         -------
-        df_acq_10_avg: pd.DataFrame, The dataframe of the average acquisition function value for the last 10 iterations of
+        df_acq_10_avg: pd.DataFrame
+            The dataframe of the average acquisition function value for the last 10 iterations of
         """
         df_all_jobs = self.get_all_data()
         # Get the last 10 of iterations of each run
@@ -1625,20 +1786,21 @@ class All_CS_Analysis(General_Analysis):
         ]
         return df_acq_10_avg
 
-    def __log_scale_mean(self, series):
-        log_values = np.log(series)
-        mean_log = np.mean(log_values)
-        mean = np.exp(mean_log)
-        return mean_log
-
-    # Custom function to calculate log-scale std
-    def __log_scale_std(self, series):
-        log_values = np.log(series)
-        std_log = np.std(log_values)
-        # std = np.exp(std_log)
-        return std_log
-
     def __get_iqr(self, series):
+        """
+        Get the interquartile range of a series
+
+        Parameters
+        ----------
+        series: pd.Series
+            The series to get the interquartile range of
+
+        Returns
+        -------
+        iqr: float
+            The interquartile range of the series
+        """
+
         q1 = series.quantile(0.25)
         q3 = series.quantile(0.75)
         iqr = q3 - q1
@@ -1650,7 +1812,8 @@ class All_CS_Analysis(General_Analysis):
 
         Returns
         -------
-        df_avg_all: pd.DataFrame, The dataframe of the average computational time, max function evaltuations, and sse values for all case studies
+        df_avg_all: pd.DataFrame
+            The dataframe of the average computational time, max function evaltuations, and sse values for all case studies
         """
 
         df_all_jobs = self.get_all_data()
@@ -1782,7 +1945,13 @@ class All_CS_Analysis(General_Analysis):
 
         Returns
         -------
-        results: list, the list of results
+        results_df: pd.DataFrame
+            The dataframe of the percentage of how often the true parameter value was found
+
+        Raises
+        ------
+        AssertionError
+            If the cs_nums is not a list of case study numbers in [1,2,3,10,11,12,13,14]
         """
         assert all(
             item in [1, 2, 3, 10, 11, 12, 13, 14] for item in cs_nums
@@ -1977,7 +2146,7 @@ class All_CS_Analysis(General_Analysis):
             self.save_data(results_df, save_path)
             self.save_data(df_all_best, self.study_results_dir + "df_all_best.csv")
 
-        return None
+        return results_df
 
     def get_averages_best(self):
         """
@@ -1985,7 +2154,8 @@ class All_CS_Analysis(General_Analysis):
 
         Returns
         -------
-        df_avg_all: pd.DataFrame, The dataframe of the median/average data for multiple properties for all case studies. Data used in Figure 2 in the paper
+        df_avg_all: pd.DataFrame
+            The dataframe of the median/average data for multiple properties for all case studies. Data used in Figure 2 in the paper
         """
         if self.mode == "act":
             obj_col_sse_min = "Min Obj Act Cum"
@@ -2144,6 +2314,25 @@ class LS_Analysis(General_Analysis):
 
     # Inherit objects from General_Analysis
     def __init__(self, criteria_dict, project, save_csv, exp_data=None, simulator=None):
+        """
+        Parameters
+        ----------
+        criteria_dict: dict
+            The criteria dictionary to analyze
+        project: signac.project.Project
+            The signac project to analyze
+        save_csv: bool
+            Whether to save csvs
+        exp_data: Data, default None
+            The experimental data to evaluate
+        simulator: Simulator, default None
+            The simulator object to evaluate
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+        """
         assert (
             isinstance(exp_data, Data) or exp_data == None
         ), "exp_data must be type Data or None"
@@ -2167,13 +2356,17 @@ class LS_Analysis(General_Analysis):
         Function to define regression function for least-squares fitting
         Parameters
         ----------
-        theta_guess: np.ndarray, the theta values to evaluate
-        exp_data: Data, the experimental data to evaluate
-        simulator: Simulator, the simulator object to evaluate
+        theta_guess: np.ndarray
+            The parameter set values to evaluate
+        exp_data: Data
+            The experimental data to evaluate
+        simulator: Simulator
+            The simulator object to evaluate
 
         Returns
         -------
-        error: np.ndarray, the error between the experimental data and the simulated data
+        error: np.ndarray
+            The error between the experimental data and the simulated data
         """
         # Repeat the theta best array once for each x value
         # Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
@@ -2229,10 +2422,14 @@ class LS_Analysis(General_Analysis):
 
         Returns
         -------
-        simulator: Simulator, the simulator object to evaluate
-        exp_data: Data, the experimental data to evaluate
-        tot_runs_cs: int, the total number of runs in the case study
-        ftol: float, the tolerance for the objective function
+        simulator: Simulator
+            The simulator object to evaluate
+        exp_data: Data
+            The experimental data to evaluate
+        tot_runs_cs: int
+            The total number of runs in the case study
+        ftol: float
+            The tolerance for the objective function
 
         Notes
         -----
@@ -2307,11 +2504,18 @@ class LS_Analysis(General_Analysis):
 
         Parameters
         ----------
-        tot_runs: int or None, the total number of runs to perform. Default is None
+        tot_runs: int or None, default None
+            The total number of runs to perform
 
         Returns
         -------
-        ls_results: pd.DataFrame, the results of the least squares regression
+        ls_results: pd.DataFrame
+            The results of the least squares regression
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
         -----
@@ -2471,11 +2675,18 @@ class LS_Analysis(General_Analysis):
 
         Parameters
         ----------
-        tot_runs: int or None, the total number of runs to perform. Default is None
+        tot_runs: int or None, default None
+            The total number of runs to perform
 
         Returns
         -------
-        local_min_sets: pd.DataFrame, the local minima found by least squares
+        local_min_sets: pd.DataFrame
+            The local minima found by least squares
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
 
         Notes
         -----
