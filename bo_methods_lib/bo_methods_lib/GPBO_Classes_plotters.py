@@ -19,15 +19,18 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.ticker as ticker
 from .GPBO_Classes_New import Data, Method_name_enum
-from.analyze_data import *
+from .analyze_data import *
 from .GPBO_Class_fxns import get_cs_class_from_val
 
 import warnings
+
 np.warnings = warnings
+
+
 class Plotters:
     """
     The base class for Plotting functions
-    
+
     Methods
     --------------
     __init__(analyzer, save_figs = False): Constructor method
@@ -49,16 +52,17 @@ class Plotters:
     __set_plot_titles(fig, title, x_label, y_label): Sets the title and labels of the plot
     make_parity_plots(): Makes parity plots for all methods
     """
+
     # Class variables and attributes
-    
-    def __init__(self, analyzer, save_figs = False):
+
+    def __init__(self, analyzer, save_figs=False):
         """
         Parameters
         ----------
         analyzer: General_Analysis, an instance of the General_Analysis class
         save_figs: bool, save figures to file if True. Default False
         """
-        #Asserts
+        # Asserts
         assert isinstance(save_figs, bool), "save_figs must be boolean"
 
         # Constructor method
@@ -70,22 +74,38 @@ class Plotters:
         self.zbins = 900
         self.title_fntsz = 24
         self.other_fntsz = 24
-        self.colors = ["red", "blue", "green", "purple", "darkorange", "deeppink", "teal"]
-        self.method_names = ["Conventional", "Log Conventional", "Independence", "Log Independence", 
-                             "Sparse Grid", "Monte Carlo", "E[SSE]"]
-        self.gpbo_meth_dict = {"Conventional":1,
-                 "Log Conventional":2,
-                 "Independence":3,
-                 "Log Independence":4,
-                 "Sparse Grid":5,
-                 "Monte Carlo":6,
-                 "E[SSE]":7}
+        self.colors = [
+            "red",
+            "blue",
+            "green",
+            "purple",
+            "darkorange",
+            "deeppink",
+            "teal",
+        ]
+        self.method_names = [
+            "Conventional",
+            "Log Conventional",
+            "Independence",
+            "Log Independence",
+            "Sparse Grid",
+            "Monte Carlo",
+            "E[SSE]",
+        ]
+        self.gpbo_meth_dict = {
+            "Conventional": 1,
+            "Log Conventional": 2,
+            "Independence": 3,
+            "Log Independence": 4,
+            "Sparse Grid": 5,
+            "Monte Carlo": 6,
+            "E[SSE]": 7,
+        }
 
-    
-    def plot_one_obj_all_methods(self, z_choice, log_data = False, title = None):
+    def plot_one_obj_all_methods(self, z_choice, log_data=False, title=None):
         """
         Plots SSE, Min SSE, or acquisition function values vs BO iter for all BO Methods at the best runs
-        
+
         Parameters
         -----------
         z_choice: str, one of "min_sse", "sse", or "acq". The values that will be plotted
@@ -95,84 +115,112 @@ class Plotters:
         Notes
         -----------
         This function plots one objective value for all methods at the best runs. Each method is displayed in a different subplot.
-            
+
         """
-        #Assert Statements
+        # Assert Statements
         assert isinstance(z_choice, str), "z_choices must be str"
-        assert z_choice in ['min_sse','sse','acq'], "z_choices must be one of 'min_sse', 'sse', or 'acq'"
+        assert z_choice in [
+            "min_sse",
+            "sse",
+            "acq",
+        ], "z_choices must be one of 'min_sse', 'sse', or 'acq'"
         assert isinstance(title, str) or title is None, "title must be a string or None"
         assert isinstance(log_data, bool), "log_data must be boolean:"
-        
-        #Set x and y labels and save path for figure
+
+        # Set x and y labels and save path for figure
         x_label = "Loss Evaluations"
         y_label = self.__set_ylab_from_z(z_choice) + "\n"
-        save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
-        
-        #Get all jobs
-        job_pointer = self.analyzer.get_jobs_from_criteria()
-        #Get best data for each method
-        df_best, job_list_best = self.analyzer.get_best_data()
-        #Back out best runs from job_list_best
-        emph_runs = df_best["Run Number"].values
-        #Initialize list of maximum bo iterations for each method
-        meth_bo_max_evals = np.zeros(len(self.method_names))
-        #Number of subplots is the length of the best jobs list
-        subplots_needed = len(self.method_names) + 1
-        fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
+        save_path = self.analyzer.make_dir_name_from_criteria(
+            self.analyzer.criteria_dict
+        )
 
-        #Print the title and labels as appropriate
+        # Get all jobs
+        job_pointer = self.analyzer.get_jobs_from_criteria()
+        # Get best data for each method
+        df_best, job_list_best = self.analyzer.get_best_data()
+        # Back out best runs from job_list_best
+        emph_runs = df_best["Run Number"].values
+        # Initialize list of maximum bo iterations for each method
+        meth_bo_max_evals = np.zeros(len(self.method_names))
+        # Number of subplots is the length of the best jobs list
+        subplots_needed = len(self.method_names) + 1
+        fig, ax, num_subplots, plot_mapping = self.__create_subplots(
+            subplots_needed, sharex=False
+        )
+
+        # Print the title and labels as appropriate
         self.__set_plot_titles(fig, title, x_label, y_label)
-        
-        #Loop over different jobs
+
+        # Loop over different jobs
         for i in range(len(job_pointer)):
-            #Assert job exists, if it does, great,
-            #Get data
-            data, data_names, data_true, sp_data, data_true_med = self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
+            # Assert job exists, if it does, great,
+            # Get data
+            data, data_names, data_true, sp_data, data_true_med = (
+                self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
+            )
             GPBO_method_val = sp_data["meth_name_val"]
             max_iters = sp_data["bo_iter_tot"]
             shrt_name = GPBO_Methods(Method_name_enum(GPBO_method_val)).report_name
 
-            #Get Number of runs in the job
+            # Get Number of runs in the job
             runs_in_job = sp_data["bo_runs_in_job"]
 
-            #Set subplot index to the corresponding method value number
+            # Set subplot index to the corresponding method value number
             ax_idx = int(GPBO_method_val - 1)
-            #Find the run corresponding to the best row for that job
-            emph_run = df_best.loc[df_best['BO Method'] == shrt_name, 'Run Number'].iloc[0]
+            # Find the run corresponding to the best row for that job
+            emph_run = df_best.loc[
+                df_best["BO Method"] == shrt_name, "Run Number"
+            ].iloc[0]
             ax_row, ax_col = plot_mapping[ax_idx]
 
-            #Loop over all runs
+            # Loop over all runs
             for j in range(runs_in_job):
-                #Find job Number
+                # Find job Number
                 run_number = sp_data["bo_run_num"] + j
-                #Create label based on run #
-                label = "Run: "+ str() 
-                #Get data until termination
+                # Create label based on run #
+                label = "Run: " + str()
+                # Get data until termination
                 data_df_j = self.__get_data_to_bo_iter_term(data[j])
-                #Define x axis
+                # Define x axis
                 bo_len = len(data_df_j)
-                bo_space = np.linspace(1,bo_len,bo_len)
-                #Set appropriate notation
+                bo_space = np.linspace(1, bo_len, bo_len)
+                # Set appropriate notation
                 if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
                     fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
                     ax[ax_row, ax_col].yaxis.set_major_formatter(fmt)
-                
-                #Plot data
+
+                # Plot data
                 if log_data == True:
                     data_df_j = np.log(data_df_j)
 
-                #For result where run num list is the number of runs, print a solid line 
+                # For result where run num list is the number of runs, print a solid line
                 # print(ax_idx, emph_runs[ax_idx], run_number)
                 if emph_run == run_number:
-                    ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], 
-                                             drawstyle='steps')
-                    ax[-1, -1].plot(bo_space, data_df_j, alpha = 1, color = self.colors[ax_idx], 
-                                             drawstyle='steps')
+                    ax[ax_row, ax_col].plot(
+                        bo_space,
+                        data_df_j,
+                        alpha=1,
+                        color=self.colors[ax_idx],
+                        drawstyle="steps",
+                    )
+                    ax[-1, -1].plot(
+                        bo_space,
+                        data_df_j,
+                        alpha=1,
+                        color=self.colors[ax_idx],
+                        drawstyle="steps",
+                    )
                 else:
-                    ax[ax_row, ax_col].plot(bo_space, data_df_j, alpha = 0.2, color = self.colors[ax_idx], 
-                                            linestyle='--', drawstyle='steps')
-                ls_xset  = False
-                #Plot true value if applicable
+                    ax[ax_row, ax_col].plot(
+                        bo_space,
+                        data_df_j,
+                        alpha=0.2,
+                        color=self.colors[ax_idx],
+                        linestyle="--",
+                        drawstyle="steps",
+                    )
+                ls_xset = False
+                # Plot true value if applicable
                 if data_true is not None and j == data.shape[0] - 1:
                     data_ls = data_true[z_choice]
                     if isinstance(data_ls, pd.DataFrame):
@@ -185,24 +233,28 @@ class Plotters:
                     else:
                         x = [1, data.shape[1]]
                         y = [list(data_true.values())[0], list(data_true.values())[0]]
-                    ax[ax_row, ax_col].plot(x, y, color = "darkslategrey", linestyle='solid')
-                    ax[-1, -1].plot(x, y, color = "darkslategrey", linestyle='solid')
+                    ax[ax_row, ax_col].plot(
+                        x, y, color="darkslategrey", linestyle="solid"
+                    )
+                    ax[-1, -1].plot(x, y, color="darkslategrey", linestyle="solid")
 
-                #Plot median value if applicable
-                ls_xset_med  = False
+                # Plot median value if applicable
+                ls_xset_med = False
                 if data_true_med is not None and j == data.shape[0] - 1:
                     if isinstance(data_ls, pd.DataFrame):
-                        ls_xset_med  = True
+                        ls_xset_med = True
                         data_med_ls = data_true_med[z_choice]
                         x_med = data_med_ls["Iter"].to_numpy()
                         if z_choice == "min_sse":
                             y_med = data_med_ls["Min Obj Cum."].to_numpy()
                         else:
                             y_med = data_med_ls["Min Obj Act"].to_numpy()
-                        ax[ax_row, ax_col].plot(x_med, y_med, color = "k", linestyle='dotted')
-                        ax[-1, -1].plot(x_med, y_med, color = "k", linestyle='dotted')
-                
-                #Set plot details 
+                        ax[ax_row, ax_col].plot(
+                            x_med, y_med, color="k", linestyle="dotted"
+                        )
+                        ax[-1, -1].plot(x_med, y_med, color="k", linestyle="dotted")
+
+                # Set plot details
                 max_x = max_iters
                 title = self.method_names[ax_idx]
                 if ls_xset and ls_xset_med:
@@ -210,26 +262,30 @@ class Plotters:
                     max_x = max(max_x_nls, max_iters)
                 elif ls_xset:
                     max_x = max(max(x), max_iters)
-                
+
                 meth_bo_max_evals[ax_idx] = max_x
                 x_space = np.linspace(1, max_x, max_x)
-                self.__set_subplot_details(ax[ax_row, ax_col], x_space, data_df_j, None, None, title)
-            self.__set_subplot_details(ax[-1, -1], x_space, data_df_j, None, None, "All Methods")
+                self.__set_subplot_details(
+                    ax[ax_row, ax_col], x_space, data_df_j, None, None, title
+                )
+            self.__set_subplot_details(
+                ax[-1, -1], x_space, data_df_j, None, None, "All Methods"
+            )
 
-        #Set handles and labels and scale axis if necessary
-        #Plot dummy legend
+        # Set handles and labels and scale axis if necessary
+        # Plot dummy legend
         # define an object that will be used by the legend
         class MulticolorPatch(object):
-            def __init__(self, cmap, edgecolor = None, linewidth = None, ncolors=100):
+            def __init__(self, cmap, edgecolor=None, linewidth=None, ncolors=100):
                 self.ncolors = ncolors
                 self.edgecolor = edgecolor
                 self.linewidth = linewidth
-                
+
                 if isinstance(cmap, str):
                     self.cmap = plt.get_cmap(cmap)
-                else:    
+                else:
                     self.cmap = cmap
-                
+
         # define a handler for the MulticolorPatch object
         class MulticolorPatchHandler(object):
             def legend_artist(self, legend, orig_handle, fontsize, handlebox):
@@ -237,18 +293,19 @@ class Plotters:
                 width, height = handlebox.width, handlebox.height
                 patches = []
 
-                for i, c in enumerate(orig_handle.cmap(i/n) for i in range(n)):
+                for i, c in enumerate(orig_handle.cmap(i / n) for i in range(n)):
                     patches.append(
-                        plt.Rectangle([width / n * i - handlebox.xdescent, 
-                                                -handlebox.ydescent],
-                                    width / n,
-                                    height, 
-                                    facecolor=c, 
-                                    edgecolor=orig_handle.edgecolor,
-                                    linewidth=orig_handle.linewidth))
-                    
+                        plt.Rectangle(
+                            [width / n * i - handlebox.xdescent, -handlebox.ydescent],
+                            width / n,
+                            height,
+                            facecolor=c,
+                            edgecolor=orig_handle.edgecolor,
+                            linewidth=orig_handle.linewidth,
+                        )
+                    )
 
-                patch = PatchCollection(patches,match_original=True)
+                patch = PatchCollection(patches, match_original=True)
 
                 handlebox.add_artist(patch)
 
@@ -258,26 +315,35 @@ class Plotters:
                     linestyle = "solid"
 
                 border_rect = plt.Rectangle(
-                    [handlebox.xdescent - 1, -handlebox.ydescent - 1],  # Position slightly offset
+                    [
+                        handlebox.xdescent - 1,
+                        -handlebox.ydescent - 1,
+                    ],  # Position slightly offset
                     width + 2,  # Width slightly larger to fit around the patches
                     height + 2,  # Height slightly larger to fit around the patches
-                    edgecolor='black',  # Border color
+                    edgecolor="black",  # Border color
                     linestyle=linestyle,  # Dashed border style
                     linewidth=1,  # Border line width
-                    fill=False)  # No fill color
+                    fill=False,
+                )  # No fill color
 
                 # Add the border rectangle to handlebox
                 handlebox.add_artist(border_rect)
 
                 return patch
-    
+
         # Add a dummy legend
         if ls_xset:
-            ax[0,0].plot([], [], color = "darkslategrey", linestyle='solid', label = "NLS (Best)")
+            ax[0, 0].plot(
+                [], [], color="darkslategrey", linestyle="solid", label="NLS (Best)"
+            )
         if ls_xset_med:
-            ax[0,0].plot([], [], color = "k", linestyle='dotted', label = "NLS (Median)")
-        handles, labels = ax[0,0].get_legend_handles_labels()
-        handles_extra = [MulticolorPatch("gist_rainbow"), MulticolorPatch("gist_rainbow", edgecolor = "white", linewidth=0.25)]
+            ax[0, 0].plot([], [], color="k", linestyle="dotted", label="NLS (Median)")
+        handles, labels = ax[0, 0].get_legend_handles_labels()
+        handles_extra = [
+            MulticolorPatch("gist_rainbow"),
+            MulticolorPatch("gist_rainbow", edgecolor="white", linewidth=0.25),
+        ]
         labels_extra = ["Our Methods (Best)", "Our Methods (Restarts)"]
         handles += handles_extra
         labels += labels_extra
@@ -285,14 +351,22 @@ class Plotters:
         for k, axs in enumerate(ax.flatten()):
             if log_data == False:
                 axs.set_yscale("log")
-        
+
         # Display the legend
-        fig.legend(handles, labels, loc= "upper center", fontsize = self.other_fntsz, bbox_to_anchor=(0.5, 1.05), ncol = len(labels),
-                   borderaxespad=0, handler_map={MulticolorPatch: MulticolorPatchHandler()})
-        #Plots legend and title
+        fig.legend(
+            handles,
+            labels,
+            loc="upper center",
+            fontsize=self.other_fntsz,
+            bbox_to_anchor=(0.5, 1.05),
+            ncol=len(labels),
+            borderaxespad=0,
+            handler_map={MulticolorPatch: MulticolorPatchHandler()},
+        )
+        # Plots legend and title
         plt.tight_layout()
-        
-        #save or show figure
+
+        # save or show figure
         if self.save_figs:
             save_path_dir = os.path.join(save_path, "line_plots", "all_meth_1_obj")
             save_path_to = os.path.join(save_path_dir, z_choice)
@@ -300,10 +374,10 @@ class Plotters:
         else:
             plt.show()
             plt.close()
-            
-        return  
-    
-    def plot_hypers(self, job, title = None):
+
+        return
+
+    def plot_hypers(self, job, title=None):
         """
         Plots hyperparameters vs BO Iter for all methods
 
@@ -316,7 +390,7 @@ class Plotters:
         y_label = "Value"
         title = "Hyperparameter Values"
         fig = self.__plot_2D_general(data, data_names, data_true, y_label, title, False)
-        #save or show figure
+        # save or show figure
         if self.save_figs:
             save_path_to = os.path.join(job.fn(""), "line_plots", "hyperparams")
             self.__save_fig(save_path_to)
@@ -324,7 +398,7 @@ class Plotters:
             plt.show()
             plt.close()
 
-    def plot_thetas(self, job, z_choice, title = None):
+    def plot_thetas(self, job, z_choice, title=None):
         """
         Plots parameter sets vs BO Iter for all methods for a give z_choice (min_sse, sse, or acq)
 
@@ -334,10 +408,12 @@ class Plotters:
         z_choice: str, one of "min_sse", "sse", or "acq". The values that will be plotted
         title: str or None, Title of plot. Default None
         """
-        data, data_names, data_true, sp_data = self.analyzer.analyze_thetas(job, z_choice)
+        data, data_names, data_true, sp_data = self.analyzer.analyze_thetas(
+            job, z_choice
+        )
         GPBO_method_val = sp_data["meth_name_val"]
-        #Create label based on method #
-        meth_label = self.method_names[GPBO_method_val-1]
+        # Create label based on method #
+        meth_label = self.method_names[GPBO_method_val - 1]
         y_label = self.__set_ylab_from_z(z_choice)
 
         if title != None:
@@ -346,7 +422,7 @@ class Plotters:
             title = meth_label + " Parameter Values"
 
         fig = self.__plot_2D_general(data, data_names, data_true, y_label, title, False)
-        #save or show figure
+        # save or show figure
         if self.save_figs:
             save_path_to = os.path.join(job.fn(""), "line_plots", "params_" + z_choice)
             self.__save_fig(save_path_to)
@@ -357,7 +433,7 @@ class Plotters:
     def __plot_2D_general(self, data, data_names, data_true, y_label, title, log_data):
         """
         Plots 2D values of the same data type (ei, sse, min sse) on multiple subplots
-        
+
         Parameters
         -----------
         data: ndarray (n_runs x n_iters x n_params), Array of data from bo workflow runs
@@ -372,68 +448,83 @@ class Plotters:
         fig: plt.figure, The figure object
         """
 
-        #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
+        # Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
         subplots_needed = data.shape[-1]
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True)
-        #Print the title and labels as appropriate
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+            subplots_needed, sharex=True
+        )
+        # Print the title and labels as appropriate
         self.__set_plot_titles(fig, title, None, None)
         x_label = "BO Iterations"
 
-        #Loop over different hyperparameters (number of subplots)
+        # Loop over different hyperparameters (number of subplots)
         for i, ax in enumerate(axes.flatten()):
-            #Only plot data if axis is visible
+            # Only plot data if axis is visible
             if i < subplots_needed:
-                #The index of the data is i, and one data type is in the last row of the data
-                one_data_type = data[:,:,i]
+                # The index of the data is i, and one data type is in the last row of the data
+                one_data_type = data[:, :, i]
 
-                #Loop over all runs
+                # Loop over all runs
                 for j in range(one_data_type.shape[0]):
-                    #Create label based on run #
-                    label = "Run: "+str(j+1) 
+                    # Create label based on run #
+                    label = "Run: " + str(j + 1)
                     data_df_j = self.__get_data_to_bo_iter_term(one_data_type[j])
 
-                    #Define x axis
+                    # Define x axis
                     bo_len = len(data_df_j)
-                    bo_space = np.linspace(1,bo_len,bo_len)
+                    bo_space = np.linspace(1, bo_len, bo_len)
 
-                    #Set appropriate notation
+                    # Set appropriate notation
                     if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
                         fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
                         ax.yaxis.set_major_formatter(fmt)
 
-                    #Plot data
+                    # Plot data
                     if log_data == True:
                         data_df_j = np.log(data_df_j)
-                    ax.step(bo_space, data_df_j, label = label)
+                    ax.step(bo_space, data_df_j, label=label)
 
-                    #Plot true value if applicable
+                    # Plot true value if applicable
                     if data_true is not None and j == one_data_type.shape[0] - 1:
-                        ax.axhline(y=list(data_true.values())[i], color = "red", linestyle='--', label = "True Value")
-                    
-                    #Set plot details 
-                    title = r'$'+ data_names[i]+ '$'
-                    self.__set_subplot_details(ax, bo_space, data_df_j, None, None, title)
-                    
+                        ax.axhline(
+                            y=list(data_true.values())[i],
+                            color="red",
+                            linestyle="--",
+                            label="True Value",
+                        )
+
+                    # Set plot details
+                    title = r"$" + data_names[i] + "$"
+                    self.__set_subplot_details(
+                        ax, bo_space, data_df_j, None, None, title
+                    )
+
                 if not log_data and data_true is None:
                     ax.set_yscale("log")
 
-            #Add legends and handles from last subplot that is visible
-            if i == subplots_needed -1:
-                handles, labels = axes[0, -1].get_legend_handles_labels()  
-        
+            # Add legends and handles from last subplot that is visible
+            if i == subplots_needed - 1:
+                handles, labels = axes[0, -1].get_legend_handles_labels()
+
         for axs in axes[-1]:
-            axs.set_xlabel(x_label, fontsize = self.other_fntsz)
+            axs.set_xlabel(x_label, fontsize=self.other_fntsz)
 
         for axs in axes[:, 0]:
-            axs.set_ylabel(y_label, fontsize = self.other_fntsz)
+            axs.set_ylabel(y_label, fontsize=self.other_fntsz)
 
-        #Plots legend and title
+        # Plots legend and title
         plt.tight_layout()
-        fig.legend(handles, labels, loc= "center left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.60), 
-                   borderaxespad=0)
-        
+        fig.legend(
+            handles,
+            labels,
+            loc="center left",
+            fontsize=self.other_fntsz,
+            bbox_to_anchor=(1.0, 0.60),
+            borderaxespad=0,
+        )
+
         return fig
-    
+
     def custom_format(self, x, pos):
         """
         Custom format for 10x notation
@@ -444,15 +535,15 @@ class Plotters:
         pos: int, The position of the value
         """
         if x == 0:
-            return '0'
-        formatted = '{:2.2e}'.format(x)  # Format the value using scientific notation
-        mantissa, exponent = formatted.split('e')
+            return "0"
+        formatted = "{:2.2e}".format(x)  # Format the value using scientific notation
+        mantissa, exponent = formatted.split("e")
         return r"${} \times 10^{{{}}}$".format(mantissa, int(exponent))
-    
-    def plot_objs_all_methods(self, z_choices, log_data = False, title = None):
+
+    def plot_objs_all_methods(self, z_choices, log_data=False, title=None):
         """
-        Plots EI, SSE, Min SSE, and EI values vs BO iter for all 7 methods. 
-        
+        Plots EI, SSE, Min SSE, and EI values vs BO iter for all 7 methods.
+
         Parameters
         -----------
         z_choices:  list of str, list of strings "sse_sim", "sse_mean", "sse_var", and/or "acq". The values that will be plotted
@@ -463,75 +554,92 @@ class Plotters:
         --------
         Each method is displayed in a different plot and each objective in a different subplot.
         """
-        #Break down plot dict and check for correct things
-        save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
+        # Break down plot dict and check for correct things
+        save_path = self.analyzer.make_dir_name_from_criteria(
+            self.analyzer.criteria_dict
+        )
         x_label = "Loss Evaluations"
-        
-        #Assert Statements
+
+        # Assert Statements
         assert isinstance(z_choices, (list, str)), "z_choices must be list or string"
         if isinstance(z_choices, str):
             z_choices = list(z_choices)
-        assert all(isinstance(item, str) for item in z_choices), "z_choices elements must be str"
+        assert all(
+            isinstance(item, str) for item in z_choices
+        ), "z_choices elements must be str"
         for i in range(len(z_choices)):
-            assert z_choices[i] in ['min_sse','sse','acq'],"z_choices items must be 'min_sse', 'sse', or 'acq'"
-        
-        #Create figure and axes. Number of subplots is 1 for each acq, sse, sse_sim etc.
+            assert z_choices[i] in [
+                "min_sse",
+                "sse",
+                "acq",
+            ], "z_choices items must be 'min_sse', 'sse', or 'acq'"
+
+        # Create figure and axes. Number of subplots is 1 for each acq, sse, sse_sim etc.
         subplots_needed = len(z_choices)
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False)
-        
-        #Print the title and labels as appropriate
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+            subplots_needed, sharex=False
+        )
+
+        # Print the title and labels as appropriate
         self.__set_plot_titles(fig, title, None, None)
         bo_len_max = 1
-        #Get all jobs
+        # Get all jobs
         job_pointer = self.analyzer.get_jobs_from_criteria()
-        #Get best data for each method
+        # Get best data for each method
         df_best, job_list_best = self.analyzer.get_best_data()
-        #Back out best runs from job_list_best
+        # Back out best runs from job_list_best
         emph_runs = list(df_best["Run Number"].values)
         methods = df_best["BO Method"].values
-        indices_to_insert = [i for i, name in enumerate(self.method_names) if name not in methods]
+        indices_to_insert = [
+            i for i, name in enumerate(self.method_names) if name not in methods
+        ]
         for index in sorted(indices_to_insert):
             emph_runs.insert(index, 0)
-        #Loop over different methdods (number of subplots)
-        for i in range(len(job_pointer)):     
-            #Get data
-            data, data_names, data_true, sp_data, data_true_med = self.analyzer.analyze_obj_vals(job_pointer[i], z_choices)
+        # Loop over different methdods (number of subplots)
+        for i in range(len(job_pointer)):
+            # Get data
+            data, data_names, data_true, sp_data, data_true_med = (
+                self.analyzer.analyze_obj_vals(job_pointer[i], z_choices)
+            )
             GPBO_method_val = sp_data["meth_name_val"]
             max_iters = sp_data["bo_iter_tot"]
-            #Create label based on method #
-            label = self.method_names[GPBO_method_val-1] 
-                    
-            #Loop over number of data types
+            # Create label based on method #
+            label = self.method_names[GPBO_method_val - 1]
+
+            # Loop over number of data types
             for k, ax in enumerate(axes.flatten()):
-                #Only plot data if axis is visible
+                # Only plot data if axis is visible
                 if k < subplots_needed:
-    #             for k in range(data.shape[-1]):
-                    #The index of the data type is k, and one data type is in the last row of the data
-                    one_data_type = data[:,:,k]
+                    #             for k in range(data.shape[-1]):
+                    # The index of the data type is k, and one data type is in the last row of the data
+                    one_data_type = data[:, :, k]
                     miny = 1e-16
                     maxy = 0
 
-                    #Get Number of runs in the job
+                    # Get Number of runs in the job
                     runs_in_job = sp_data["bo_runs_in_job"]
 
-                    #loop as long as there are runs in the file
+                    # loop as long as there are runs in the file
                     for j in range(runs_in_job):
-                        #Set run number of run in job
+                        # Set run number of run in job
                         run_number = sp_data["bo_run_num"] + j
-                        #Remove elements that are numerically 0            
+                        # Remove elements that are numerically 0
                         data_df_j = self.__get_data_to_bo_iter_term(one_data_type[j])
-                        #Define x axis
+                        # Define x axis
                         bo_len = len(data_df_j)
-                        bo_space = np.linspace(1,bo_len,bo_len)
+                        bo_space = np.linspace(1, bo_len, bo_len)
                         if bo_len > bo_len_max:
                             bo_len_max = bo_len
 
-                        #Set appropriate notation
-                        if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
+                        # Set appropriate notation
+                        if (
+                            abs(np.max(data_df_j)) >= 1e3
+                            or abs(np.min(data_df_j)) <= 1e-3
+                        ):
                             fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
                             ax.yaxis.set_major_formatter(fmt)
 
-                        #Plot data
+                        # Plot data
                         if log_data == True:
                             data_df_j = np.log(data_df_j)
 
@@ -539,15 +647,27 @@ class Plotters:
                             miny = float(np.maximum(miny, np.min(data_df_j)))
                             maxy = float(np.maximum(maxy, np.max(data_df_j)))
 
-                        #For the best result, print a solid line               
-                        if emph_runs[GPBO_method_val -1] == run_number:
-                            ax.plot(bo_space, data_df_j, alpha = 1, color = self.colors[GPBO_method_val-1], 
-                                    label = label, drawstyle='steps')
+                        # For the best result, print a solid line
+                        if emph_runs[GPBO_method_val - 1] == run_number:
+                            ax.plot(
+                                bo_space,
+                                data_df_j,
+                                alpha=1,
+                                color=self.colors[GPBO_method_val - 1],
+                                label=label,
+                                drawstyle="steps",
+                            )
                         else:
-                            ax.step(bo_space, data_df_j, alpha = 0.2, color = self.colors[GPBO_method_val-1], 
-                                    linestyle='--', drawstyle='steps')
-                            
-                    #Plot true value if applicable
+                            ax.step(
+                                bo_space,
+                                data_df_j,
+                                alpha=0.2,
+                                color=self.colors[GPBO_method_val - 1],
+                                linestyle="--",
+                                drawstyle="steps",
+                            )
+
+                    # Plot true value if applicable
                     ls_xset = False
                     if data_true is not None and i == len(job_pointer) - 1:
                         data_ls = data_true[z_choices[k]]
@@ -558,73 +678,105 @@ class Plotters:
                                 y = data_ls["Min Obj Cum."].to_numpy()
                             else:
                                 y = data_ls["Min Obj Act"].to_numpy()
-                            ax.plot(x, y, color = "darkslategrey", linestyle='solid', 
-                                                    label = "NLS (Best)")
+                            ax.plot(
+                                x,
+                                y,
+                                color="darkslategrey",
+                                linestyle="solid",
+                                label="NLS (Best)",
+                            )
 
-                    #Plot median value if applicable
-                    ls_xset_med  = False
+                    # Plot median value if applicable
+                    ls_xset_med = False
                     if data_true_med is not None and i == len(job_pointer) - 1:
                         data_med_ls = data_true_med[z_choices[k]]
                         if isinstance(data_ls, pd.DataFrame):
-                            ls_xset_med  = True
+                            ls_xset_med = True
                             x_med = data_med_ls["Iter"].to_numpy()
                             if z_choices[k] == "min_sse":
                                 y_med = data_med_ls["Min Obj Cum."].to_numpy()
                             else:
                                 y_med = data_med_ls["Min Obj Act"].to_numpy()
-                            ax.plot(x_med, y_med, color = "k", linestyle='dotted', label = "NLS (Median)")
-                
-                    #Set plot details 
+                            ax.plot(
+                                x_med,
+                                y_med,
+                                color="k",
+                                linestyle="dotted",
+                                label="NLS (Median)",
+                            )
+
+                    # Set plot details
                     if i == 0:
                         max_x = max_iters
                     if ls_xset and ls_xset_med:
                         max_x = max(max(x), max(x_med), max_iters)
                     elif ls_xset:
-                        max_x = max(max_iters,max(x))
+                        max_x = max(max_iters, max(x))
                     elif ls_xset_med:
-                        max_x = max(max_iters,max(x_med))
+                        max_x = max(max_iters, max(x_med))
 
-                    #Set plot details
+                    # Set plot details
                     if z_choices[k] == "acq":
-                        bo_space_org = np.linspace(1,max_iters,max_iters)
+                        bo_space_org = np.linspace(1, max_iters, max_iters)
                     else:
-                        bo_space_org = np.linspace(1,max_x,max_x)
+                        bo_space_org = np.linspace(1, max_x, max_x)
 
                     if z_choices[k] == "acq":
-                        self.__set_subplot_details(ax, bo_space_org, np.array([miny]), x_label, rf"${data_names[k]}$", None) 
+                        self.__set_subplot_details(
+                            ax,
+                            bo_space_org,
+                            np.array([miny]),
+                            x_label,
+                            rf"${data_names[k]}$",
+                            None,
+                        )
                     else:
-                        self.__set_subplot_details(ax, bo_space_org, None, x_label, rf"${data_names[k]}$", None)
+                        self.__set_subplot_details(
+                            ax, bo_space_org, None, x_label, rf"${data_names[k]}$", None
+                        )
 
-        #Get legend and handles
-        handles, labels = axes[0,0].get_legend_handles_labels()
+        # Get legend and handles
+        handles, labels = axes[0, 0].get_legend_handles_labels()
         if log_data == False:
             for ax in axes.flatten():
                 ax.set_yscale("log")
 
-        #Get correct legend order
+        # Get correct legend order
         desired_order = ["NLS (Best)", "NLS (Median)"] + self.method_names
         order_dict = {label: i for i, label in enumerate(desired_order)}
         handles_labels = zip(handles, labels)
-        handles_labels_sorted = sorted(handles_labels, key=lambda x: order_dict.get(x[1], float('inf')))
+        handles_labels_sorted = sorted(
+            handles_labels, key=lambda x: order_dict.get(x[1], float("inf"))
+        )
         handles, labels = zip(*handles_labels_sorted)
 
-        #Plots legend and title
+        # Plots legend and title
         plt.tight_layout()
-        fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.93), 
-                   borderaxespad=0)
-        
-        #save or show figure
+        fig.legend(
+            handles,
+            labels,
+            loc="upper left",
+            fontsize=self.other_fntsz,
+            bbox_to_anchor=(1.0, 0.93),
+            borderaxespad=0,
+        )
+
+        # save or show figure
         if self.save_figs:
-            z_choices_sort = sorted(z_choices, key=lambda x: ("sse", "min_sse", "acq").index(x))
+            z_choices_sort = sorted(
+                z_choices, key=lambda x: ("sse", "min_sse", "acq").index(x)
+            )
             save_path_dir = os.path.join(save_path, "line_plots")
-            save_path_to = os.path.join(save_path_dir, "all_meth_" + '_'.join(map(str, z_choices_sort)))
+            save_path_to = os.path.join(
+                save_path_dir, "all_meth_" + "_".join(map(str, z_choices_sort))
+            )
             self.__save_fig(save_path_to)
         else:
             plt.show()
             plt.close()
-            
+
         return
-    
+
     def __get_z_plot_names_hms(self, z_choices, sim_sse_var_ei):
         """
         Returns the z data and title for the heat map plots
@@ -646,8 +798,8 @@ class Plotters:
         all_z_data = []
         all_z_titles = []
         all_z_titles_pre = []
-        #Find z based on z_choice
-        #Fix me: Heat Maps always use just theta: Only the bar labels need to change
+        # Find z based on z_choice
+        # Fix me: Heat Maps always use just theta: Only the bar labels need to change
         for z_choice in z_choices:
             if "sse_sim" == z_choice:
                 title = r"$\mathscr{L}(\mathbf{\theta})$"
@@ -662,7 +814,9 @@ class Plotters:
             elif "sse_var" == z_choice:
                 all_z_data.append(sse_var)
                 all_z_titles_pre.append("Predicted Variance, ")
-                all_z_titles.append(r"$\mathbf{\sigma}^2_{\tilde{\mathscr{L}}(\mathbf{\theta})}$")
+                all_z_titles.append(
+                    r"$\mathbf{\sigma}^2_{\tilde{\mathscr{L}}(\mathbf{\theta})}$"
+                )
             elif "acq" == z_choice:
                 all_z_data.append(ei)
                 all_z_titles.append(r"$\Xi(\mathbf{\theta})$")
@@ -673,9 +827,9 @@ class Plotters:
             return all_z_data[0], all_z_titles[0], all_z_titles_pre[0]
         else:
             return all_z_data, all_z_titles, all_z_titles_pre
-        
-    def plot_hms_all_methods(self, pair, z_choice, levels, log_data = False, title = None):
-        '''
+
+    def plot_hms_all_methods(self, pair, z_choice, levels, log_data=False, title=None):
+        """
         Plots comparison of y_sim, GP_mean, GP_stdev, and the acquisition function values for all methods
         Parameters
         ----------
@@ -688,49 +842,58 @@ class Plotters:
         Notes
         -------
         For this function, each method is its own subplot. Each plot must be generated separately for each objective function choice.
-        '''
-        #Get best data for each method
+        """
+        # Get best data for each method
         df_best, job_list_best = self.analyzer.get_best_data()
-        #Back out best runs from job_list_best
+        # Back out best runs from job_list_best
         emph_runs = df_best["Run Number"].values
         emph_iters = df_best["BO Iter"].values
         # emph_iters = (df_best['Max Evals'] / 10).round().astype(int).values
 
-        #Make figures and define number of subplots based on number of different methods + 1 sse_sim map
+        # Make figures and define number of subplots based on number of different methods + 1 sse_sim map
         subplots_needed = len(job_list_best)
         if z_choice == "sse_mean":
             subplots_needed += 1
-        fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True, sharey = True)
-        
-        #Define plot levels
+        fig, ax, num_subplots, plot_mapping = self.__create_subplots(
+            subplots_needed, sharex=True, sharey=True
+        )
+
+        # Define plot levels
         if levels is None:
             tot_lev = None
-        elif (isinstance(levels, Iterable) and len(levels) == 1) or isinstance(levels, int):
-            tot_lev = [levels]*(num_subplots)
+        elif (isinstance(levels, Iterable) and len(levels) == 1) or isinstance(
+            levels, int
+        ):
+            tot_lev = [levels] * (num_subplots)
         else:
             tot_lev = levels
-        assert tot_lev is None or len(tot_lev) == num_subplots, "Levels must be None or have the same length as number of subplots"
+        assert (
+            tot_lev is None or len(tot_lev) == num_subplots
+        ), "Levels must be None or have the same length as number of subplots"
 
         all_z_data = []
         all_sp_data = []
         all_theta_opt = []
         all_theta_next = []
         all_train_theta = []
-        
-        #Get all data for subplots needed
-        #Loop over number of subplots needed
+
+        # Get all data for subplots needed
+        # Loop over number of subplots needed
         for i in range(len(job_list_best)):
             if "acq" in z_choice:
                 get_ei = True
             else:
                 get_ei = False
-            #Get data
-            analysis_list = self.analyzer.analyze_heat_maps(job_list_best[i], emph_runs[i], emph_iters[i], 
-                                                            pair, get_ei = get_ei)
+            # Get data
+            analysis_list = self.analyzer.analyze_heat_maps(
+                job_list_best[i], emph_runs[i], emph_iters[i], pair, get_ei=get_ei
+            )
             sim_sse_var_ei, test_mesh, param_info_dict, sp_data = analysis_list
-            #Set correct values based on propagation of errors for gp
+            # Set correct values based on propagation of errors for gp
             sim_sse_var_ei = self.__scale_z_data(sim_sse_var_ei, sp_data, log_data)
-            MAE = sklearn.metrics.mean_absolute_error(sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten())
+            MAE = sklearn.metrics.mean_absolute_error(
+                sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten()
+            )
             print(df_best["BO Method"].values[i])
             print(MAE)
             theta_true = param_info_dict["true"]
@@ -740,12 +903,12 @@ class Plotters:
             plot_axis_names = param_info_dict["names"]
             idcs_to_plot = param_info_dict["idcs"]
             z, title2, tit2_pre = self.__get_z_plot_names_hms(z_choice, sim_sse_var_ei)
-            
-            #Get x and y data from test_mesh
-            xx , yy = test_mesh #NxN, NxN
-            #Assert sattements
-            assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
-            assert z.shape==xx.shape, "Array z must be NxN"
+
+            # Get x and y data from test_mesh
+            xx, yy = test_mesh  # NxN, NxN
+            # Assert sattements
+            assert xx.shape == yy.shape, "Test_mesh must be 2 NxN arrays"
+            assert z.shape == xx.shape, "Array z must be NxN"
 
             all_z_data.append(z)
             all_sp_data.append(sp_data)
@@ -754,18 +917,20 @@ class Plotters:
             all_train_theta.append(train_theta)
 
             if (i == len(job_list_best) - 1) and z_choice == "sse_mean":
-                z_sim, title3, tit3_pre = self.__get_z_plot_names_hms("sse_sim", sim_sse_var_ei)
+                z_sim, title3, tit3_pre = self.__get_z_plot_names_hms(
+                    "sse_sim", sim_sse_var_ei
+                )
                 all_z_data.append(z_sim)
                 all_theta_opt.append(None)
                 all_theta_next.append(None)
                 all_train_theta.append(None)
-                    
-        #Initialize need_unscale to False
+
+        # Initialize need_unscale to False
         need_unscale = False
-        
-        #Unlog scale the data if vmin is 0 and log_data = True
+
+        # Unlog scale the data if vmin is 0 and log_data = True
         if np.amin(all_z_data) == -np.inf or np.isnan(np.amin(all_z_data)):
-            need_unscale = True 
+            need_unscale = True
             if log_data:
                 warnings.warn("Cannot plot log scaled data! Reverting to original")
                 z = np.exp(all_z_data[i])
@@ -774,33 +939,39 @@ class Plotters:
             # Find the maximum and minimum values in your data to normalize the color scale
             vmin = min(np.min(arr) for arr in all_z_data)
             vmax = max(np.max(arr) for arr in all_z_data)
-            #Check if data scales 2+ orders of magnitude
-            mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
+            # Check if data scales 2+ orders of magnitude
+            mag_diff = (
+                int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0
+                if vmin > 0
+                else False
+            )
 
             # Create a common color normalization for all subplots
-            #Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3 
-            if log_data == True or need_unscale or not mag_diff :
-                norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
+            # Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3
+            if log_data == True or need_unscale or not mag_diff:
+                norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False)
                 cbar_ticks = np.linspace(vmin, vmax, self.zbins)
-                new_ticks = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks = 4) #Set up to 12 ticks
-                
-            else:
-                norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
-                cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
-                new_ticks= matplotlib.ticker.LogLocator(numticks=7)
+                new_ticks = matplotlib.ticker.MaxNLocator(
+                    nbins=7, min_n_ticks=4
+                )  # Set up to 12 ticks
 
-        #Set plot details
-        #Loop over number of subplots
+            else:
+                norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
+                cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
+                new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+
+        # Set plot details
+        # Loop over number of subplots
         for i in range(subplots_needed):
             if i != len(job_list_best):
-                #Get method value from json file
+                # Get method value from json file
                 GPBO_method_val = all_sp_data[i]["meth_name_val"]
-                ax_idx = int(GPBO_method_val - 1)  
-                ax_row, ax_col = plot_mapping[ax_idx]                
+                ax_idx = int(GPBO_method_val - 1)
+                ax_row, ax_col = plot_mapping[ax_idx]
             else:
                 ax_idx = len(job_list_best)
                 ax_row, ax_col = plot_mapping[ax_idx]
-            
+
             z = all_z_data[i]
             theta_opt = all_theta_opt[i]
             theta_next = all_theta_next[i]
@@ -808,151 +979,236 @@ class Plotters:
 
             use_scientific = np.amin(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000
             if use_scientific:
-                fmt = matplotlib.ticker.FuncFormatter(self.custom_format) 
+                fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
             else:
-                fmt = '%2.2f'
+                fmt = "%2.2f"
 
             if np.all(z == z[0]):
-                z =  abs(np.random.normal(scale=1e-14, size=z.shape))
+                z = abs(np.random.normal(scale=1e-14, size=z.shape))
 
             if z_choice == "acq":
                 use_log10 = False
                 # Find the maximum and minimum values in your data to normalize the color scale
                 vmin = np.amin(z)
                 vmax = np.amax(z)
-                #Check if data scales 2+ orders of magnitude
-                mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
+                # Check if data scales 2+ orders of magnitude
+                mag_diff = (
+                    int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0
+                    if vmin > 0
+                    else False
+                )
 
                 # Create a common color normalization for all subplots
-                #Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3 
-                if log_data == True or need_unscale or not mag_diff :
-                    norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
-                    locator = matplotlib.ticker.MaxNLocator(nbins=9, min_n_ticks = 4) #Set up to 12 ticks
+                # Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3
+                if log_data == True or need_unscale or not mag_diff:
+                    norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False)
+                    locator = matplotlib.ticker.MaxNLocator(
+                        nbins=9, min_n_ticks=4
+                    )  # Set up to 12 ticks
                     cbar_ticks = locator.tick_values(vmin, vmax)
 
                 else:
-                    norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
+                    norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
                     locator = matplotlib.ticker.MaxNLocator(nbins=9, min_n_ticks=4)
                     tick_positions = locator.tick_values(np.log10(vmin), np.log10(vmax))
-                    cbar_ticks = 10 ** tick_positions
-                    use_log10 = True  
+                    cbar_ticks = 10**tick_positions
+                    use_log10 = True
 
-            #Create a colormap and colorbar for each subplot
+            # Create a colormap and colorbar for each subplot
             if log_data == True:
-                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = self.zbins, #cbar_ticks
-                                                     cmap = plt.cm.get_cmap(self.cmap), norm = norm)
+                cs_fig = ax[ax_row, ax_col].contourf(
+                    xx,
+                    yy,
+                    z,
+                    levels=self.zbins,  # cbar_ticks
+                    cmap=plt.cm.get_cmap(self.cmap),
+                    norm=norm,
+                )
             else:
-                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = self.zbins, 
-                                                     cmap = plt.cm.get_cmap(self.cmap), norm = norm)
+                cs_fig = ax[ax_row, ax_col].contourf(
+                    xx,
+                    yy,
+                    z,
+                    levels=self.zbins,
+                    cmap=plt.cm.get_cmap(self.cmap),
+                    norm=norm,
+                )
 
-            #Create a line contour for each colormap
-            if levels is not None:  
+            # Create a line contour for each colormap
+            if levels is not None:
                 assert len(tot_lev) >= i + 1, "Must have as many levels as methods"
                 num_levels = len(cbar_ticks)
                 indices = np.linspace(0, len(cs_fig.levels) - 1, num_levels, dtype=int)
                 selected_levels = cs_fig.levels[indices]
-                cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=selected_levels, #levels=cs_fig.levels[::tot_lev[i]]
-                                                     colors='k', alpha=0.7, linestyles='dashed', linewidths=3, 
-                                                     norm = norm)
+                cs2_fig = ax[ax_row, ax_col].contour(
+                    cs_fig,
+                    levels=selected_levels,  # levels=cs_fig.levels[::tot_lev[i]]
+                    colors="k",
+                    alpha=0.7,
+                    linestyles="dashed",
+                    linewidths=3,
+                    norm=norm,
+                )
 
-            #plot min obj, max ei, true and training param values as appropriate
+            # plot min obj, max ei, true and training param values as appropriate
             if theta_true is not None:
-                ax[ax_row, ax_col].scatter(theta_true[idcs_to_plot[0]], theta_true[idcs_to_plot[1]], color="blue", 
-                                           label = "True", s=200, marker = (5,1), zorder = 2)
+                ax[ax_row, ax_col].scatter(
+                    theta_true[idcs_to_plot[0]],
+                    theta_true[idcs_to_plot[1]],
+                    color="blue",
+                    label="True",
+                    s=200,
+                    marker=(5, 1),
+                    zorder=2,
+                )
             if train_theta is not None:
-                ax[ax_row, ax_col].scatter(train_theta[:,idcs_to_plot[0]], train_theta[:,idcs_to_plot[1]], 
-                                           color="green", s=100, label="Train", marker= "x", zorder = 1)
+                ax[ax_row, ax_col].scatter(
+                    train_theta[:, idcs_to_plot[0]],
+                    train_theta[:, idcs_to_plot[1]],
+                    color="green",
+                    s=100,
+                    label="Train",
+                    marker="x",
+                    zorder=1,
+                )
             if theta_next is not None:
-                ax[ax_row, ax_col].scatter(theta_next[idcs_to_plot[0]], theta_next[idcs_to_plot[1]], color="black", 
-                                           s=175, label ="Opt Acq",marker = "^", zorder = 3)
+                ax[ax_row, ax_col].scatter(
+                    theta_next[idcs_to_plot[0]],
+                    theta_next[idcs_to_plot[1]],
+                    color="black",
+                    s=175,
+                    label="Opt Acq",
+                    marker="^",
+                    zorder=3,
+                )
             if theta_opt is not None:
-                ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="darkmagenta", 
-                                           s=160, label = "Min Obj", marker = ".", edgecolor= "magenta", linewidth=0.7, 
-                                           zorder = 4)
-                
+                ax[ax_row, ax_col].scatter(
+                    theta_opt[idcs_to_plot[0]],
+                    theta_opt[idcs_to_plot[1]],
+                    color="darkmagenta",
+                    s=160,
+                    label="Min Obj",
+                    marker=".",
+                    edgecolor="magenta",
+                    linewidth=0.7,
+                    zorder=4,
+                )
+
             if z_choice == "acq":
                 divider1 = make_axes_locatable(ax[ax_row, ax_col])
                 cax1 = divider1.append_axes("right", size="5%", pad="6%")
-                cbar = fig.colorbar(cs_fig, ax = ax[ax_row, ax_col], cax = cax1, use_gridspec=True) #format = fmt
+                cbar = fig.colorbar(
+                    cs_fig, ax=ax[ax_row, ax_col], cax=cax1, use_gridspec=True
+                )  # format = fmt
                 try:
-                    cbar.ax.locator_params(axis = 'y', numticks=7)
+                    cbar.ax.locator_params(axis="y", numticks=7)
                 except:
-                    cbar.ax.locator_params(axis = 'y', nbins=7)
-                fmt_acq = matplotlib.ticker.FuncFormatter(self.custom_format) 
+                    cbar.ax.locator_params(axis="y", nbins=7)
+                fmt_acq = matplotlib.ticker.FuncFormatter(self.custom_format)
                 cbar.ax.yaxis.set_major_formatter(fmt_acq)
-                cbar.ax.set_ylabel(tit2_pre + title2, fontsize=self.other_fntsz, fontweight='bold')
-                cbar.ax.tick_params(labelsize=int(self.other_fntsz/2), labelleft = False)
+                cbar.ax.set_ylabel(
+                    tit2_pre + title2, fontsize=self.other_fntsz, fontweight="bold"
+                )
+                cbar.ax.tick_params(
+                    labelsize=int(self.other_fntsz / 2), labelleft=False
+                )
                 if use_log10:
                     cbar.formatter.set_powerlimits((0, 0))
 
-            #Set plot details
+            # Set plot details
             if i != len(job_list_best):
                 label_name = self.method_names[ax_idx]
             else:
-                label_name = tit3_pre + title3 
-            self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, label_name)
+                label_name = tit3_pre + title3
+            self.__set_subplot_details(
+                ax[ax_row, ax_col], xx, yy, None, None, label_name
+            )
 
-        #Get legend information and make colorbar on 1st plot
-        handles, labels = ax[0, 0].get_legend_handles_labels() 
+        # Get legend information and make colorbar on 1st plot
+        handles, labels = ax[0, 0].get_legend_handles_labels()
         if log_data is True and not need_unscale:
             title2 = "log(" + title2 + ")"
 
         if z_choice != "acq":
-            cb_ax = fig.add_axes([1.03,0,0.04,1])
-            cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, format= fmt, use_gridspec=True)
+            cb_ax = fig.add_axes([1.03, 0, 0.04, 1])
+            cbar = fig.colorbar(
+                cs_fig,
+                orientation="vertical",
+                ax=ax,
+                cax=cb_ax,
+                format=fmt,
+                use_gridspec=True,
+            )
             try:
-                cbar.ax.locator_params(axis = 'y', numticks=7)
+                cbar.ax.locator_params(axis="y", numticks=7)
             except:
-                cbar.ax.locator_params(axis = 'y', nbins=7)
+                cbar.ax.locator_params(axis="y", nbins=7)
             cbar.ax.tick_params(labelsize=self.other_fntsz)
-            cbar.ax.set_ylabel(tit2_pre + title2, fontsize=self.other_fntsz, fontweight='bold')
-                        
-        #Print the title
+            cbar.ax.set_ylabel(
+                tit2_pre + title2, fontsize=self.other_fntsz, fontweight="bold"
+            )
+
+        # Print the title
         if title is not None:
             title = title
-            
-        #Print the title and labels as appropriate
-        #Define x and y labels
+
+        # Print the title and labels as appropriate
+        # Define x and y labels
         if "theta" in plot_axis_names[0]:
-            xlabel = r'$\mathbf{'+ "\\" + plot_axis_names[0]+ '}$'
-            ylabel = r'$\mathbf{'+ "\\" + plot_axis_names[1]+ '}$'
+            xlabel = r"$\mathbf{" + "\\" + plot_axis_names[0] + "}$"
+            ylabel = r"$\mathbf{" + "\\" + plot_axis_names[1] + "}$"
         else:
-            xlabel = r'$\mathbf{'+ plot_axis_names[0]+ '}$'
-            ylabel = r'$\mathbf{'+ plot_axis_names[1]+ '}$'
-            
+            xlabel = r"$\mathbf{" + plot_axis_names[0] + "}$"
+            ylabel = r"$\mathbf{" + plot_axis_names[1] + "}$"
+
         for axs in ax[-1]:
-            axs.set_xlabel(xlabel, fontsize = self.other_fntsz)
+            axs.set_xlabel(xlabel, fontsize=self.other_fntsz)
 
         for axs in ax[:, 0]:
-            axs.set_ylabel(ylabel, fontsize = self.other_fntsz)
+            axs.set_ylabel(ylabel, fontsize=self.other_fntsz)
 
         self.__set_plot_titles(fig, title, None, None)
-        
-        #Plots legend and title
+
+        # Plots legend and title
         # if len(labels) > 0:
-        #     # fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, 
+        #     # fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz,
         #     #         bbox_to_anchor=(0.2, 0.85), borderaxespad=0)
-        #     fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz, 
+        #     fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz,
         #             bbox_to_anchor=(0.23, 0.87), borderaxespad=0)
-        fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, 
-                   bbox_to_anchor=(0.98, 0.49), borderaxespad=0)
+        fig.legend(
+            handles,
+            labels,
+            loc="upper right",
+            fontsize=self.other_fntsz,
+            bbox_to_anchor=(0.98, 0.49),
+            borderaxespad=0,
+        )
 
-        plt.tight_layout()  
+        plt.tight_layout()
 
-        #save or show figure
+        # save or show figure
         if self.save_figs:
-            save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
-            save_path_dir = os.path.join(save_path, "heat_maps", "all_methods", plot_axis_names[0] + "-" + plot_axis_names[1])
+            save_path = self.analyzer.make_dir_name_from_criteria(
+                self.analyzer.criteria_dict
+            )
+            save_path_dir = os.path.join(
+                save_path,
+                "heat_maps",
+                "all_methods",
+                plot_axis_names[0] + "-" + plot_axis_names[1],
+            )
             save_path_to = os.path.join(save_path_dir, z_choice)
             self.__save_fig(save_path_to)
         else:
             plt.show()
             plt.close()
-        
+
         return plt.show()
-    
-    def plot_hms_gp_compare(self, job, run_num, bo_iter, pair, z_choices, levels, log_data = False, title = None):
-        '''
+
+    def plot_hms_gp_compare(
+        self, job, run_num, bo_iter, pair, z_choices, levels, log_data=False, title=None
+    ):
+        """
         Plots comparison of y_sim, GP_mean, and GP_stdev
         Parameters
         ----------
@@ -972,29 +1228,40 @@ class Plotters:
         Notes
         -------
         For this function, each objective function value is its own subplot. Each plot must be generated separately for each method.
-        '''
-        #Assert Statements
-        assert isinstance(z_choices, (Iterable, str)), "z_choices must be Iterable or str"
+        """
+        # Assert Statements
+        assert isinstance(
+            z_choices, (Iterable, str)
+        ), "z_choices must be Iterable or str"
         if isinstance(z_choices, str):
             z_choices = [z_choices]
         for z_choice in z_choices:
-            assert z_choice in ['sse_sim', 'sse_mean', 'sse_var','acq'], "z_choices elements must be 'sse_sim', 'sse_mean', 'sse_var', or 'acq'"
+            assert z_choice in [
+                "sse_sim",
+                "sse_mean",
+                "sse_var",
+                "acq",
+            ], "z_choices elements must be 'sse_sim', 'sse_mean', 'sse_var', or 'acq'"
 
-        #Define plot levels
+        # Define plot levels
         if levels is None:
             tot_lev = None
         elif len(levels) == 1:
-            tot_lev = levels*len(z_choices) 
+            tot_lev = levels * len(z_choices)
         else:
             tot_lev = levels
-        assert tot_lev is None or len(tot_lev) == len(z_choices), "Levels must be None or have the same length as z_choices"
-        #Get all data for subplots needed
+        assert tot_lev is None or len(tot_lev) == len(
+            z_choices
+        ), "Levels must be None or have the same length as z_choices"
+        # Get all data for subplots needed
         get_ei = True if "acq" in z_choices else False
-        analysis_list = self.analyzer.analyze_heat_maps(job, run_num, bo_iter, pair, get_ei = get_ei)
+        analysis_list = self.analyzer.analyze_heat_maps(
+            job, run_num, bo_iter, pair, get_ei=get_ei
+        )
         sim_sse_var_ei, test_mesh, param_info_dict, sp_data = analysis_list
-        #Get method value from json file
+        # Get method value from json file
         GPBO_method_val = sp_data["meth_name_val"]
-        #Set correct values based on propagation of errors for gp
+        # Set correct values based on propagation of errors for gp
         sim_sse_var_ei = self.__scale_z_data(sim_sse_var_ei, sp_data, log_data)
         theta_true = param_info_dict["true"]
         theta_opt = param_info_dict["min_sse"]
@@ -1003,145 +1270,223 @@ class Plotters:
         plot_axis_names = param_info_dict["names"]
         idcs_to_plot = param_info_dict["idcs"]
 
-        #Assert sattements
-        #Get x and y data from test_mesh
-        xx , yy = test_mesh #NxN, NxN
-        assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
+        # Assert sattements
+        # Get x and y data from test_mesh
+        xx, yy = test_mesh  # NxN, NxN
+        assert xx.shape == yy.shape, "Test_mesh must be 2 NxN arrays"
 
-        #Make figures and define number of subplots based on number of files (different methods)  
+        # Make figures and define number of subplots based on number of files (different methods)
         subplots_needed = len(z_choices)
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True, sharey = True)
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+            subplots_needed, sharex=True, sharey=True
+        )
 
-        #Find z based on z_choice
-        all_z_data, all_z_titles, all_z_titles_pre = self.__get_z_plot_names_hms(z_choices, sim_sse_var_ei)
-            
-        #Loop over number of subplots
+        # Find z based on z_choice
+        all_z_data, all_z_titles, all_z_titles_pre = self.__get_z_plot_names_hms(
+            z_choices, sim_sse_var_ei
+        )
+
+        # Loop over number of subplots
         for i, ax in enumerate(axes.flatten()):
             if i < subplots_needed:
-                #Get data for z_choice
+                # Get data for z_choice
                 z = all_z_data[i]
                 need_unscale = False
 
-                #Unlog scale the data if vmin is 0 and log_data = True
+                # Unlog scale the data if vmin is 0 and log_data = True
                 if np.min(z) == -np.inf or np.isnan(np.min(z)):
-                    need_unscale = True 
+                    need_unscale = True
                     if log_data:
-                        warnings.warn("Cannot plot log scaled data! Reverting to original")
+                        warnings.warn(
+                            "Cannot plot log scaled data! Reverting to original"
+                        )
                         z = np.exp(all_z_data[i])
 
-                #Create normalization
+                # Create normalization
                 vmin = np.nanmin(z)
                 vmax = np.nanmax(z)
-                #If all z data are the same, add a small amount of noise to each to allow for plotting
+                # If all z data are the same, add a small amount of noise to each to allow for plotting
                 if vmin == vmax:
                     vmin -= 1e-14
                     vmax += 1e-14
 
-                #Check if data scales 3 orders of magnitude
-                mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) > 2.0 if vmin > 0 else False
-                
+                # Check if data scales 3 orders of magnitude
+                mag_diff = (
+                    int(math.log10(abs(vmax)) - math.log10(abs(vmin))) > 2.0
+                    if vmin > 0
+                    else False
+                )
+
                 if need_unscale == False and log_data:
                     title2 = "log(" + all_z_titles[i] + ")"
                 else:
                     title2 = all_z_titles[i]
 
-                #Choose an appropriate colormap and scaling based on vmin, vmax, and log_data
-                #If not using log data, vmin > 0, and the data scales 3 orders+ of magnitude use log10 to view plots
+                # Choose an appropriate colormap and scaling based on vmin, vmax, and log_data
+                # If not using log data, vmin > 0, and the data scales 3 orders+ of magnitude use log10 to view plots
                 if log_data or vmin < 0 or not mag_diff:
-                    norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False) 
-                    locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks = 5) #Set up to 12 ticks
+                    norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
+                    locator = matplotlib.ticker.MaxNLocator(
+                        nbins=7, min_n_ticks=5
+                    )  # Set up to 12 ticks
                     cbar_ticks = locator.tick_values(vmin, vmax)
-                    
+
                 else:
                     norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
                     locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks=5)
                     tick_positions = locator.tick_values(np.log10(vmin), np.log10(vmax))
-                    cbar_ticks = 10 ** tick_positions
+                    cbar_ticks = 10**tick_positions
                     use_log10 = True
 
-                #Create a colormap and colorbar normalization for each subplot
-                cs_fig = ax.contourf(xx, yy, z, levels = self.zbins, cmap = plt.cm.get_cmap(self.cmap), norm = norm)
+                # Create a colormap and colorbar normalization for each subplot
+                cs_fig = ax.contourf(
+                    xx,
+                    yy,
+                    z,
+                    levels=self.zbins,
+                    cmap=plt.cm.get_cmap(self.cmap),
+                    norm=norm,
+                )
 
-                #Create a line contour for each colormap
-                if levels is not None:  
+                # Create a line contour for each colormap
+                if levels is not None:
                     num_levels = len(cbar_ticks)
-                    indices = np.linspace(0, len(cs_fig.levels) - 1, num_levels, dtype=int)
+                    indices = np.linspace(
+                        0, len(cs_fig.levels) - 1, num_levels, dtype=int
+                    )
                     selected_levels = cs_fig.levels[indices]
-                    cs2_fig = ax.contour(cs_fig, levels=selected_levels, colors='k',alpha=0.7,
-                                         linestyles='dashed',linewidths=3,norm=norm)
+                    cs2_fig = ax.contour(
+                        cs_fig,
+                        levels=selected_levels,
+                        colors="k",
+                        alpha=0.7,
+                        linestyles="dashed",
+                        linewidths=3,
+                        norm=norm,
+                    )
 
-                #plot min obj, max ei, true and training param values as appropriate
+                # plot min obj, max ei, true and training param values as appropriate
                 if theta_true is not None:
-                    ax.scatter(theta_true[idcs_to_plot[0]],theta_true[idcs_to_plot[1]], color="blue", 
-                               label = "True",s=200,marker=(5,1),zorder = 2)
+                    ax.scatter(
+                        theta_true[idcs_to_plot[0]],
+                        theta_true[idcs_to_plot[1]],
+                        color="blue",
+                        label="True",
+                        s=200,
+                        marker=(5, 1),
+                        zorder=2,
+                    )
                 if train_theta is not None:
-                    ax.scatter(train_theta[:,idcs_to_plot[0]],train_theta[:,idcs_to_plot[1]],color="green",
-                               s=100,label="Train",marker="x",zorder=1)
+                    ax.scatter(
+                        train_theta[:, idcs_to_plot[0]],
+                        train_theta[:, idcs_to_plot[1]],
+                        color="green",
+                        s=100,
+                        label="Train",
+                        marker="x",
+                        zorder=1,
+                    )
                 if theta_next is not None:
-                    ax.scatter(theta_next[idcs_to_plot[0]],theta_next[idcs_to_plot[1]],color="black",s=175,
-                               label ="Opt Acq",marker= "^", zorder = 3)
+                    ax.scatter(
+                        theta_next[idcs_to_plot[0]],
+                        theta_next[idcs_to_plot[1]],
+                        color="black",
+                        s=175,
+                        label="Opt Acq",
+                        marker="^",
+                        zorder=3,
+                    )
                 if theta_opt is not None:
-                    ax.scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], color="darkmagenta", s=160, 
-                               label = "Min Obj", marker = ".", edgecolor= "magenta", linewidth=0.7, zorder = 4)
+                    ax.scatter(
+                        theta_opt[idcs_to_plot[0]],
+                        theta_opt[idcs_to_plot[1]],
+                        color="darkmagenta",
+                        s=160,
+                        label="Min Obj",
+                        marker=".",
+                        edgecolor="magenta",
+                        linewidth=0.7,
+                        zorder=4,
+                    )
 
-                #Set plot details
+                # Set plot details
                 self.__set_subplot_details(ax, xx, yy, None, None, all_z_titles[i])
 
                 # Use a custom formatter for the colorbar
-                fmt = matplotlib.ticker.FuncFormatter(self.custom_format) 
+                fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
 
                 divider1 = make_axes_locatable(ax)
                 cax1 = divider1.append_axes("right", size="5%", pad="6%")
-                cbar = fig.colorbar(cs_fig, ax = ax, cax = cax1, ticks = cbar_ticks, use_gridspec=True) #format = fmt
+                cbar = fig.colorbar(
+                    cs_fig, ax=ax, cax=cax1, ticks=cbar_ticks, use_gridspec=True
+                )  # format = fmt
                 cbar.ax.yaxis.set_major_formatter(fmt)
-                cbar.ax.tick_params(labelsize=int(self.other_fntsz/2))
+                cbar.ax.tick_params(labelsize=int(self.other_fntsz / 2))
 
-        #Get legend information and make colorbar on last plot
-        handles, labels = axes[0,0].get_legend_handles_labels() 
-                        
-        #Print the title
+        # Get legend information and make colorbar on last plot
+        handles, labels = axes[0, 0].get_legend_handles_labels()
+
+        # Print the title
         if title is None:
-            title = self.method_names[GPBO_method_val-1]
-            
-        #Print the title and labels as appropriate
-        #Define x and y labels
+            title = self.method_names[GPBO_method_val - 1]
+
+        # Print the title and labels as appropriate
+        # Define x and y labels
         if "theta" in plot_axis_names[0]:
-            xlabel = r'$\mathbf{'+ "\\" + plot_axis_names[0]+ '}$'
-            ylabel = r'$\mathbf{'+ "\\" + plot_axis_names[1]+ '}$'
+            xlabel = r"$\mathbf{" + "\\" + plot_axis_names[0] + "}$"
+            ylabel = r"$\mathbf{" + "\\" + plot_axis_names[1] + "}$"
         else:
-            xlabel = r'$\mathbf{'+ plot_axis_names[0]+ '}$'
-            ylabel = r'$\mathbf{'+ plot_axis_names[1]+ '}$'
+            xlabel = r"$\mathbf{" + plot_axis_names[0] + "}$"
+            ylabel = r"$\mathbf{" + plot_axis_names[1] + "}$"
 
         for axs in axes[-1]:
-            axs.set_xlabel(xlabel, fontsize = self.other_fntsz)
+            axs.set_xlabel(xlabel, fontsize=self.other_fntsz)
 
         for axs in axes[:, 0]:
-            axs.set_ylabel(ylabel, fontsize = self.other_fntsz)
+            axs.set_ylabel(ylabel, fontsize=self.other_fntsz)
 
         self.__set_plot_titles(fig, title, None, None)
-        
-        #Plots legend and title
-        fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 
-                   borderaxespad=0)
-        
+
+        # Plots legend and title
+        fig.legend(
+            handles,
+            labels,
+            loc="upper right",
+            fontsize=self.other_fntsz,
+            bbox_to_anchor=(-0.02, 1),
+            borderaxespad=0,
+        )
+
         plt.tight_layout()
-        
-        #save or show figure
+
+        # save or show figure
         if self.save_figs:
-            z_choices_sort = sorted(z_choices, key=lambda x: ('sse_sim', 'sse_mean', 'sse_var','acq').index(x))
-            z_choices_str = '_'.join(map(str, z_choices_sort))
+            z_choices_sort = sorted(
+                z_choices,
+                key=lambda x: ("sse_sim", "sse_mean", "sse_var", "acq").index(x),
+            )
+            z_choices_str = "_".join(map(str, z_choices_sort))
             title_str = title.replace(" ", "_").lower()
-            save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
-            save_path_dir = os.path.join(save_path, "heat_maps", title_str, plot_axis_names[0] + "-" + 
-                                        plot_axis_names[1], z_choices_str)
-            save_path_to = os.path.join(save_path_dir, "run_"+ str(run_num) + "_" + "iter_" + str(bo_iter))
+            save_path = self.analyzer.make_dir_name_from_criteria(
+                self.analyzer.criteria_dict
+            )
+            save_path_dir = os.path.join(
+                save_path,
+                "heat_maps",
+                title_str,
+                plot_axis_names[0] + "-" + plot_axis_names[1],
+                z_choices_str,
+            )
+            save_path_to = os.path.join(
+                save_path_dir, "run_" + str(run_num) + "_" + "iter_" + str(bo_iter)
+            )
             self.__save_fig(save_path_to)
         else:
             plt.show()
             plt.close()
-        
+
         return plt.show()
-    
+
     def __scale_z_data(self, sim_sse_var_ei, sp_data, log_data):
         """
         Scales the objective (sse_sim, sse_gp, sse_var, or acq_func) data based on the method and log_data
@@ -1157,21 +1502,21 @@ class Plotters:
         sim_sse_var_ei: tuple, tuple of the data from the analysis with correct scaling for plots
         """
         sse_sim, sse_mean, sse_var, ei = sim_sse_var_ei
-        #Get log or unlogged data values        
+        # Get log or unlogged data values
         if log_data == False:
-            #Change sse sim, mean, and stdev to not log for 1B
+            # Change sse sim, mean, and stdev to not log for 1B
             if sp_data["meth_name_val"] in [2]:
-                #SSE variance is var*(e^((log(sse)))^2
+                # SSE variance is var*(e^((log(sse)))^2
                 sse_mean = np.exp(sse_mean)
-                sse_var = (sse_var*sse_mean**2)      
+                sse_var = sse_var * sse_mean**2
                 sse_sim = np.exp(sse_sim)
 
-        #If getting log values
+        # If getting log values
         else:
-            #Get log data from 1A, 2A, 2B, 2C, and 2D
-            if not sp_data["meth_name_val"] in [2]:            
-                #SSE Variance is var/sse**2
-                sse_var = sse_var/sse_mean**2
+            # Get log data from 1A, 2A, 2B, 2C, and 2D
+            if not sp_data["meth_name_val"] in [2]:
+                # SSE Variance is var/sse**2
+                sse_var = sse_var / sse_mean**2
                 sse_mean = np.log(sse_mean)
                 sse_sim = np.log(sse_sim)
 
@@ -1190,7 +1535,7 @@ class Plotters:
         --------
         y_label: str, The y label for the plot
         """
-        
+
         if self.analyzer.mode == "gp":
             label_g = "\\tilde{\mathscr{L}}(\mathbf{"
             label_a = "(Predicted) SSE Loss Function, "
@@ -1208,7 +1553,7 @@ class Plotters:
             y_label = "\Xi(\mathbf{\\theta^*})"
         final_label = label_a + r"$" + y_label + "$"
         return final_label
-    
+
     def __get_data_to_bo_iter_term(self, data_all_iters):
         """
         Gets non-zero data for plotting from data array
@@ -1221,17 +1566,19 @@ class Plotters:
         --------
         data_df_j: ndarray, data that is not numerically 0
         """
-        #Remove elements that are numerically 0
-        data_df_run = pd.DataFrame(data = data_all_iters)
-        data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-14).any(axis=1),0]
-        data_df_i = data_df_run.loc[:,0] #Used to be data_df_i
-        #Ensure we have at least 2 elements to plot
+        # Remove elements that are numerically 0
+        data_df_run = pd.DataFrame(data=data_all_iters)
+        data_df_j = data_df_run.loc[(abs(data_df_run) > 1e-14).any(axis=1), 0]
+        data_df_i = data_df_run.loc[:, 0]  # Used to be data_df_i
+        # Ensure we have at least 2 elements to plot
         if len(data_df_j) < 2:
-            data_df_j = data_df_i[0:int(len(data_df_j)+2)] #+2 for stopping criteria + 1 to include last point
-            
+            data_df_j = data_df_i[
+                0 : int(len(data_df_j) + 2)
+            ]  # +2 for stopping criteria + 1 to include last point
+
         return data_df_j
 
-    def __save_fig(self, save_path, ext='png', close=True):                
+    def __save_fig(self, save_path, ext="png", close=True):
         """Save a figure from pyplot.
         Parameters
         ----------
@@ -1248,12 +1595,12 @@ class Plotters:
             should NOT close it in between saves or you will have to
             re-plot it.
         """
-        
+
         # Extract the directory and filename from the given path
         directory = os.path.split(save_path)[0]
         filename = "%s.%s" % (os.path.split(save_path)[1], ext)
-        if directory == '':
-            directory = '.'
+        if directory == "":
+            directory = "."
 
         # If the directory does not exist, create it
         if not os.path.exists(directory):
@@ -1263,22 +1610,22 @@ class Plotters:
         savepath = os.path.join(directory, filename)
 
         # Actually save the figure
-        plt.savefig(savepath, dpi=300, bbox_inches='tight')
-        
+        plt.savefig(savepath, dpi=300, bbox_inches="tight")
+
         # Close it
         if close:
             plt.close()
 
-    def __create_subplots(self, num_subplots, sharex = "row", sharey = 'none'):
+    def __create_subplots(self, num_subplots, sharex="row", sharey="none"):
         """
         Creates Subplots based on the amount of data
-        
+
         Parameters
         ----------
         num_subplots: int, total number of needed subplots
         sharex: str, sharex values for subplots. Default is "row"
         sharey: str, sharey value for subplots. Default is "none"
-        
+
         Returns
         -------
         fig: matplotlib.figure, The matplotlib figure object
@@ -1289,27 +1636,36 @@ class Plotters:
 
         assert num_subplots >= 1, "Number of subplots must be at least 1"
         assert isinstance(num_subplots, int), "Num subplots must be int"
-        #Make figures and define number of subplots  
-        #If you are making more than one figure, sharex is always true
+        # Make figures and define number of subplots
+        # If you are making more than one figure, sharex is always true
         if num_subplots == 1:
             sharex = True
 
-        #Make enough rows and columns and get close to equal number of each
+        # Make enough rows and columns and get close to equal number of each
         row_num = int(np.floor(np.sqrt(num_subplots)))
-        col_num = int(np.ceil(num_subplots/row_num))
-        assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
+        col_num = int(np.ceil(num_subplots / row_num))
+        assert (
+            row_num * col_num >= num_subplots
+        ), "row * col numbers must be at least equal to number of graphs"
         total_ax_num = row_num * col_num
 
-        #Creat subplots
-        gridspec_kw = {'wspace': 0.4, 'hspace': 0.2}
-        fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*6), squeeze = False, sharex = sharex, sharey = sharey)
+        # Creat subplots
+        gridspec_kw = {"wspace": 0.4, "hspace": 0.2}
+        fig, axes = plt.subplots(
+            row_num,
+            col_num,
+            figsize=(col_num * 6, row_num * 6),
+            squeeze=False,
+            sharex=sharex,
+            sharey=sharey,
+        )
 
-        #Turn off unused axes
+        # Turn off unused axes
         for i, axs in enumerate(axes.flatten()):
             if i >= num_subplots:
-                axs.axis('off')
+                axs.axis("off")
 
-        #Make plot mapping to map an axes to an iterable value
+        # Make plot mapping to map an axes to an iterable value
         plot_mapping = {}
         for i in range(row_num):
             for j in range(col_num):
@@ -1317,11 +1673,11 @@ class Plotters:
                 plot_mapping[plot_number] = (i, j)
 
         return fig, axes, total_ax_num, plot_mapping
-    
+
     def __set_subplot_details(self, ax, plot_x, plot_y, xlabel, ylabel, title):
         """
         Function for setting plot settings
-        
+
         Parameters
         ----------
         ax: matplotlib.axes.Axes, The axes to set the plot settings for
@@ -1335,45 +1691,60 @@ class Plotters:
         -------
         ax: matplotlib.axes.Axes, The axes with the plot settings set
         """
-        #Group inputs by type
+        # Group inputs by type
         none_str_vars = [title, xlabel, ylabel]
         int_vars = [self.xbins, self.ybins, self.other_fntsz]
         arr_vars = [plot_x, plot_y]
-        
-        #Assert Statements
-        assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, and ylabel must be string or None"
-        assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, and fontsize must be int"
-        assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
-        assert all(isinstance(var, (np.ndarray,pd.core.series.Series)) or var is None for var in arr_vars), "plot_x, plot_y must be np.ndarray or pd.core.series.Series or None"
-        
-        #Set title, label, and axes
+
+        # Assert Statements
+        assert all(
+            isinstance(var, str) or var is None for var in none_str_vars
+        ), "title, xlabel, and ylabel must be string or None"
+        assert all(
+            isinstance(var, int) for var in int_vars
+        ), "xbins, ybins, and fontsize must be int"
+        assert all(
+            var > 0 or var is None for var in int_vars
+        ), "integer variables must be positive"
+        assert all(
+            isinstance(var, (np.ndarray, pd.core.series.Series)) or var is None
+            for var in arr_vars
+        ), "plot_x, plot_y must be np.ndarray or pd.core.series.Series or None"
+
+        # Set title, label, and axes
         if title is not None:
-            pad = 6 + 4*title.count("_")
-            ax.set_title(title, fontsize=self.other_fntsz, fontweight='bold', pad = pad)   
+            pad = 6 + 4 * title.count("_")
+            ax.set_title(title, fontsize=self.other_fntsz, fontweight="bold", pad=pad)
         if xlabel is not None:
-            pad = 6 + 4*xlabel.count("_")
-            ax.set_xlabel(xlabel,fontsize=self.other_fntsz,fontweight='bold', labelpad = pad)
+            pad = 6 + 4 * xlabel.count("_")
+            ax.set_xlabel(
+                xlabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
+            )
         if ylabel is not None:
-            pad = 6 + 2*ylabel.count("_")
-            ax.set_ylabel(ylabel,fontsize=self.other_fntsz,fontweight='bold', labelpad = pad)
-            
-        #Turn on tick parameters and bin number
-        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
-        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
-        ax.locator_params(axis='y', nbins=self.ybins)
-        ax.locator_params(axis='x', nbins=self.xbins)
-        ax.minorticks_on() # turn on minor ticks
-        ax.tick_params(which="minor",direction="in",top=True, right=True)
-        
-        #Set a and y bounds and aspect ratio
-        if plot_x is not None and not np.isclose(np.min(plot_x), np.max(plot_x), rtol = 1e-6):        
-            ax.set_xlim(left = np.min(plot_x), right = np.max(plot_x))
-    
+            pad = 6 + 2 * ylabel.count("_")
+            ax.set_ylabel(
+                ylabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
+            )
+
+        # Turn on tick parameters and bin number
+        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction="in")
+        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction="in")
+        ax.locator_params(axis="y", nbins=self.ybins)
+        ax.locator_params(axis="x", nbins=self.xbins)
+        ax.minorticks_on()  # turn on minor ticks
+        ax.tick_params(which="minor", direction="in", top=True, right=True)
+
+        # Set a and y bounds and aspect ratio
+        if plot_x is not None and not np.isclose(
+            np.min(plot_x), np.max(plot_x), rtol=1e-6
+        ):
+            ax.set_xlim(left=np.min(plot_x), right=np.max(plot_x))
+
         if plot_y is not None and abs(np.min(plot_y)) <= 1e-16:
-            ax.set_ylim(bottom = 1e-16)
+            ax.set_ylim(bottom=1e-16)
 
         if plot_y is not None and np.min(plot_y) == 0:
-            ax.set_ylim(bottom = np.min(plot_y)-0.05, top = np.max(plot_y)+0.05) 
+            ax.set_ylim(bottom=np.min(plot_y) - 0.05, top=np.max(plot_y) + 0.05)
 
         ax.set_box_aspect(1)
 
@@ -1391,87 +1762,115 @@ class Plotters:
         y_label: str or None, The y label of the figure
         """
         if self.title_fntsz is not None:
-            fig.suptitle(title, weight='bold', fontsize=self.title_fntsz)
+            fig.suptitle(title, weight="bold", fontsize=self.title_fntsz)
         if x_label is not None:
-            fig.supxlabel(x_label, fontsize=self.other_fntsz,fontweight='bold')
+            fig.supxlabel(x_label, fontsize=self.other_fntsz, fontweight="bold")
         if y_label is not None:
-            fig.supylabel(y_label, fontsize=self.other_fntsz,fontweight='bold')  
-        return 
-    
+            fig.supylabel(y_label, fontsize=self.other_fntsz, fontweight="bold")
+        return
+
     def make_parity_plots(self):
         """
         Makes Parity plots of validation and true data for selected methods in best
         """
-        #Get Best Data Runs and iters
+        # Get Best Data Runs and iters
         df_best, job_list_best = self.analyzer.get_best_data()
         runs = df_best["Run Number"].to_list()
         iters = df_best["BO Iter"].to_list()
         GPBO_methods = df_best["BO Method"].to_list()
-        ax_idxs = [self.gpbo_meth_dict[str]-1 for str in GPBO_methods]
-        #Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
+        ax_idxs = [self.gpbo_meth_dict[str] - 1 for str in GPBO_methods]
+        # Number of subplots is number of parameters for 2D plots (which will be the last spot of the shape parameter)
         subplots_needed = len(runs)
-        fig, axes, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = False, sharey=False)
-        #Print the title and labels as appropriate
-        self.__set_plot_titles(fig, None, "True Values, " + r"$\mathbf{y}$", "Predicted Values, " + r"$\mathbf{\mu}$" + "\n")
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+            subplots_needed, sharex=False, sharey=False
+        )
+        # Print the title and labels as appropriate
+        self.__set_plot_titles(
+            fig,
+            None,
+            "True Values, " + r"$\mathbf{y}$",
+            "Predicted Values, " + r"$\mathbf{\mu}$" + "\n",
+        )
 
-        #Loop over different hyperparameters (number of subplots)
+        # Loop over different hyperparameters (number of subplots)
         for i, ax in enumerate(axes.flatten()):
-            #Only plot data if axis is visible
+            # Only plot data if axis is visible
             if i < subplots_needed:
-                #Get the test data associated with the best job
-                test_data = self.analyzer.analyze_parity_plot_data(job_list_best[i], runs[i], iters[i])
-                
-                #Get data from test_data
-                sim_data = test_data.y_vals 
+                # Get the test data associated with the best job
+                test_data = self.analyzer.analyze_parity_plot_data(
+                    job_list_best[i], runs[i], iters[i]
+                )
+
+                # Get data from test_data
+                sim_data = test_data.y_vals
                 gp_mean = test_data.gp_mean
                 gp_stdev = np.sqrt(abs(test_data.gp_var))
                 print(test_data.gp_var)
                 print(np.mean(test_data.gp_var))
 
-                #Plot x and y data
-                ax.plot(sim_data, sim_data, color = "k")
-                ax.scatter(sim_data, gp_mean, color = "blue", label = "GP Mean")
-                ax.errorbar(sim_data, gp_mean, yerr = 1.96*gp_stdev, alpha=0.3, fmt = 'o', color = "blue")
+                # Plot x and y data
+                ax.plot(sim_data, sim_data, color="k")
+                ax.scatter(sim_data, gp_mean, color="blue", label="GP Mean")
+                ax.errorbar(
+                    sim_data,
+                    gp_mean,
+                    yerr=1.96 * gp_stdev,
+                    alpha=0.3,
+                    fmt="o",
+                    color="blue",
+                )
 
                 RMSE = mean_squared_error(sim_data, gp_mean, squared=False)
                 R2 = r2_score(sim_data, gp_mean)
-                #Set plot details
-                ax.text(0.95, 0.05, 'RMSE: ' + "{:.2f}".format(RMSE),
-                horizontalalignment='right',  # Align text to the right
-                verticalalignment='bottom',   # Align text to the bottom
-                transform=ax.transAxes,       # Use axis coordinates (0 to 1 range)
-                fontsize=self.other_fntsz) 
+                # Set plot details
+                ax.text(
+                    0.95,
+                    0.05,
+                    "RMSE: " + "{:.2f}".format(RMSE),
+                    horizontalalignment="right",  # Align text to the right
+                    verticalalignment="bottom",  # Align text to the bottom
+                    transform=ax.transAxes,  # Use axis coordinates (0 to 1 range)
+                    fontsize=self.other_fntsz,
+                )
                 formatted_r2 = "{:.2f}".format(R2)
-                ax.text(0.95, 0.15, f"$R^2 = {formatted_r2}$",
-                horizontalalignment='right',  # Align text to the right
-                verticalalignment='bottom',   # Align text to the bottom
-                transform=ax.transAxes,       # Use axis coordinates (0 to 1 range)
-                fontsize=self.other_fntsz) 
-                self.__set_subplot_details(ax, sim_data, gp_mean, None, None, self.method_names[ax_idxs[i]])
+                ax.text(
+                    0.95,
+                    0.15,
+                    f"$R^2 = {formatted_r2}$",
+                    horizontalalignment="right",  # Align text to the right
+                    verticalalignment="bottom",  # Align text to the bottom
+                    transform=ax.transAxes,  # Use axis coordinates (0 to 1 range)
+                    fontsize=self.other_fntsz,
+                )
+                self.__set_subplot_details(
+                    ax, sim_data, gp_mean, None, None, self.method_names[ax_idxs[i]]
+                )
 
+            # Add legends and handles from last subplot that is visible
+            if i == subplots_needed - 1:
+                handles, labels = axes[0, -1].get_legend_handles_labels()
 
-            #Add legends and handles from last subplot that is visible
-            if i == subplots_needed -1:
-                handles, labels = axes[0, -1].get_legend_handles_labels()  
-                
-        #Plots legend
+        # Plots legend
         # if labels:
-        #     fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.4), 
+        #     fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(1.0, 0.4),
         #                borderaxespad=0)
 
         plt.tight_layout()
-            
-        #Save or show figure
+
+        # Save or show figure
         if self.save_figs:
-            save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
+            save_path = self.analyzer.make_dir_name_from_criteria(
+                self.analyzer.criteria_dict
+            )
             save_path_dir = os.path.join(save_path)
             save_path_to = os.path.join(save_path_dir, "parity_plots")
             self.__save_fig(save_path_to)
         else:
             plt.show()
             plt.close()
-            
-        return 
+
+        return
+
 
 class All_CS_Plotter(Plotters):
     """
@@ -1485,29 +1884,32 @@ class All_CS_Plotter(Plotters):
     __save_fig(save_path, ext='png', close=True): Saves the figure to a file
     make_bar_charts(mode): Makes bar charts of the best runs for each method
     """
-    def __init__(self, analyzer, save_figs = False):
+
+    def __init__(self, analyzer, save_figs=False):
         """
         Parameters
         ----------
         analyzer: General_Analysis, an instance of the General_Analysis class
         save_figs: bool, save figures to file if True. Default False
         """
-        #Asserts
+        # Asserts
         assert isinstance(save_figs, bool), "save_figs must be boolean"
-        assert isinstance(analyzer, All_CS_Analysis), "analyzer must be an instance of All_CS_Analysis"
+        assert isinstance(
+            analyzer, All_CS_Analysis
+        ), "analyzer must be an instance of All_CS_Analysis"
         super().__init__(analyzer, save_figs)
-        self.hatches = ['*', '\\', '\\', 'o', 'o', 'o', 'o', 'o']    
+        self.hatches = ["*", "\\", "\\", "o", "o", "o", "o", "o"]
 
-    def __create_subplots(self, num_subplots, sharex = "row", sharey = 'none'):
+    def __create_subplots(self, num_subplots, sharex="row", sharey="none"):
         """
         Creates Subplots based on the amount of data
-        
+
         Parameters
         ----------
         num_subplots: int, total number of needed subplots
         sharex: str, sharex value for subplots. Default is "row"
         sharey: str, sharey value for subplots. Default is "none"
-        
+
         Returns
         -------
         fig: matplotlib.figure, The matplotlib figure object
@@ -1518,27 +1920,36 @@ class All_CS_Plotter(Plotters):
 
         assert num_subplots >= 1, "Number of subplots must be at least 1"
         assert isinstance(num_subplots, int), "Num subplots must be int"
-        #Make figures and define number of subplots  
-        #If you are making more than one figure, sharex is always true
+        # Make figures and define number of subplots
+        # If you are making more than one figure, sharex is always true
         if num_subplots == 1:
             sharex = True
 
-        #Make enough rows and columns and get close to equal number of each
+        # Make enough rows and columns and get close to equal number of each
         row_num = 1
         col_num = num_subplots
-        assert row_num * col_num >= num_subplots, "row * col numbers must be at least equal to number of graphs"
+        assert (
+            row_num * col_num >= num_subplots
+        ), "row * col numbers must be at least equal to number of graphs"
         total_ax_num = row_num * col_num
 
-        #Creat subplots
-        gridspec_kw = {'wspace': 0.4, 'hspace': 0.2}
-        fig, axes = plt.subplots(row_num, col_num, figsize = (col_num*6,row_num*16), squeeze = False, sharex = sharex, sharey = sharey)
+        # Creat subplots
+        gridspec_kw = {"wspace": 0.4, "hspace": 0.2}
+        fig, axes = plt.subplots(
+            row_num,
+            col_num,
+            figsize=(col_num * 6, row_num * 16),
+            squeeze=False,
+            sharex=sharex,
+            sharey=sharey,
+        )
 
-        #Turn off unused axes
+        # Turn off unused axes
         for i, axs in enumerate(axes.flatten()):
             if i >= num_subplots:
-                axs.axis('off')
+                axs.axis("off")
 
-        #Make plot mapping to map an axes to an iterable value
+        # Make plot mapping to map an axes to an iterable value
         plot_mapping = {}
         for i in range(row_num):
             for j in range(col_num):
@@ -1546,11 +1957,11 @@ class All_CS_Plotter(Plotters):
                 plot_mapping[plot_number] = (i, j)
 
         return fig, axes, total_ax_num, plot_mapping
-    
+
     def __set_subplot_details(self, ax, xlabel, ylabel, title):
         """
         Function for setting plot settings
-        
+
         Parameters
         ----------
         ax: matplotlib.axes.Axes, The axes to set the plot settings for
@@ -1564,36 +1975,46 @@ class All_CS_Plotter(Plotters):
         -------
         ax: matplotlib.axes.Axes, The axes with the plot settings set
         """
-        #Group inputs by type
+        # Group inputs by type
         none_str_vars = [title, xlabel, ylabel]
         int_vars = [self.xbins, self.ybins, self.other_fntsz]
-        
-        #Assert Statements
-        assert all(isinstance(var, str) or var is None for var in none_str_vars), "title, xlabel, and ylabel must be string or None"
-        assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, and fontsize must be int"
-        assert all(var > 0 or var is None for var in int_vars), "integer variables must be positive"
-        
-        #Set title, label, and axes
+
+        # Assert Statements
+        assert all(
+            isinstance(var, str) or var is None for var in none_str_vars
+        ), "title, xlabel, and ylabel must be string or None"
+        assert all(
+            isinstance(var, int) for var in int_vars
+        ), "xbins, ybins, and fontsize must be int"
+        assert all(
+            var > 0 or var is None for var in int_vars
+        ), "integer variables must be positive"
+
+        # Set title, label, and axes
         if title is not None:
-            pad = 6 + 4*title.count("_")
-            ax.set_title(title, fontsize=self.other_fntsz, fontweight='bold', pad = pad)   
+            pad = 6 + 4 * title.count("_")
+            ax.set_title(title, fontsize=self.other_fntsz, fontweight="bold", pad=pad)
         if xlabel is not None:
-            pad = 6 + 4*xlabel.count("_")
-            ax.set_xlabel(xlabel,fontsize=self.other_fntsz,fontweight='bold', labelpad = pad)
+            pad = 6 + 4 * xlabel.count("_")
+            ax.set_xlabel(
+                xlabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
+            )
         if ylabel is not None:
-            pad = 6 + 2*ylabel.count("_")
-            ax.set_ylabel(ylabel,fontsize=self.other_fntsz,fontweight='bold', labelpad = pad)
-            
-        #Turn on tick parameters and bin number
-        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
-        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction = "in")
-        ax.minorticks_on() # turn on minor ticks
-        ax.tick_params(which="minor",direction="in",top=True, right=True)
-        ax.locator_params(axis='x', nbins=self.xbins)
+            pad = 6 + 2 * ylabel.count("_")
+            ax.set_ylabel(
+                ylabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
+            )
+
+        # Turn on tick parameters and bin number
+        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction="in")
+        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction="in")
+        ax.minorticks_on()  # turn on minor ticks
+        ax.tick_params(which="minor", direction="in", top=True, right=True)
+        ax.locator_params(axis="x", nbins=self.xbins)
 
         return ax
-    
-    def __save_fig(self, save_path, ext='png', close=True):                
+
+    def __save_fig(self, save_path, ext="png", close=True):
         """Save a figure from pyplot.
         Parameters
         ----------
@@ -1610,12 +2031,12 @@ class All_CS_Plotter(Plotters):
             should NOT close it in between saves or you will have to
             re-plot it.
         """
-        
+
         # Extract the directory and filename from the given path
         directory = os.path.split(save_path)[0]
         filename = "%s.%s" % (os.path.split(save_path)[1], ext)
-        if directory == '':
-            directory = '.'
+        if directory == "":
+            directory = "."
 
         # If the directory does not exist, create it
         if not os.path.exists(directory):
@@ -1625,8 +2046,8 @@ class All_CS_Plotter(Plotters):
         savepath = os.path.join(directory, filename)
 
         # Actually save the figure
-        plt.savefig(savepath, dpi=300, bbox_inches='tight')
-        
+        plt.savefig(savepath, dpi=300, bbox_inches="tight")
+
         # Close it
         if close:
             plt.close()
@@ -1640,100 +2061,151 @@ class All_CS_Plotter(Plotters):
         mode: Whether to make a bar chart for the objective or time information for the case studies. Options "objs" or "time"
         """
         assert mode in ["time", "objs"], "mode must be 'time' or 'objs'"
-        #Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
-        t_label_lst = [get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list]
-        
+        # Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
+        t_label_lst = [
+            get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list
+        ]
+
         if mode == "time":
             add_value = 1
-            fig, axes, num_subplots, plot_mapping = self.__create_subplots(2, sharex = False, sharey = True)
+            fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+                2, sharex=False, sharey=True
+            )
         else:
             add_value = 1
-            fig, axes, num_subplots, plot_mapping = self.__create_subplots(4, sharex = False, sharey = True)
+            fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+                4, sharex=False, sharey=True
+            )
 
-        bar_size = 1/(len(self.analyzer.cs_list) + add_value)
-        padding = 1/(len(self.analyzer.cs_list))
+        bar_size = 1 / (len(self.analyzer.cs_list) + add_value)
+        padding = 1 / (len(self.analyzer.cs_list))
 
-        #Get jobs associated with the case studies given
+        # Get jobs associated with the case studies given
         df_averages = self.analyzer.get_averages_best()
-        desired_order = ["Large Linear", "Muller y0", "Log Logistic", "Yield-Loss", "Simple Linear", "Muller x0", "2D Log Logistic", "BOD Curve"]
+        desired_order = [
+            "Large Linear",
+            "Muller y0",
+            "Log Logistic",
+            "Yield-Loss",
+            "Simple Linear",
+            "Muller x0",
+            "2D Log Logistic",
+            "BOD Curve",
+        ]
         # Convert the 'Department' column to a categorical type with the specified order
-        df_averages['CS Name'] = pd.Categorical(df_averages['CS Name'], categories=desired_order, ordered=True)
-        df_averages['BO Method'] = pd.Categorical(df_averages['BO Method'], categories=["NLS"] + self.method_names[::-1], ordered=True)
-        
+        df_averages["CS Name"] = pd.Categorical(
+            df_averages["CS Name"], categories=desired_order, ordered=True
+        )
+        df_averages["BO Method"] = pd.Categorical(
+            df_averages["BO Method"],
+            categories=["NLS"] + self.method_names[::-1],
+            ordered=True,
+        )
+
         # Sort the DataFrame by the 'Department' column
-        df_averages = df_averages.sort_values(['CS Name', 'BO Method'])
+        df_averages = df_averages.sort_values(["CS Name", "BO Method"])
 
         def calculate_new_column(group):
             # Calculate Avg Evals for NLS in the current group
-            nls_avg_evals = group.loc[group['BO Method'] == 'NLS', 'Avg F Evals Tot'].values[0]
-            nls_std_evals = group.loc[group['BO Method'] == 'NLS', 'Std F Evals Tot'].values[0]
-            
-            # Calculate the new column
-            group['D'] = nls_avg_evals - group['Avg F Evals Tot']
-            group['Std D'] = np.sqrt(nls_std_evals**2 + group['Std F Evals Tot']**2)
+            nls_avg_evals = group.loc[
+                group["BO Method"] == "NLS", "Avg F Evals Tot"
+            ].values[0]
+            nls_std_evals = group.loc[
+                group["BO Method"] == "NLS", "Std F Evals Tot"
+            ].values[0]
 
             # Calculate the new column
-            group['F_Time_Parity'] = (group['Avg Time'] / 60) / group['D']
-            
+            group["D"] = nls_avg_evals - group["Avg F Evals Tot"]
+            group["Std D"] = np.sqrt(nls_std_evals**2 + group["Std F Evals Tot"] ** 2)
+
+            # Calculate the new column
+            group["F_Time_Parity"] = (group["Avg Time"] / 60) / group["D"]
+
             # Calculate the uncertainty in (Avg Time / 60)
-            std_avg_time_div_60 = group['Std Time'] / 60
-            
+            std_avg_time_div_60 = group["Std Time"] / 60
+
             # Calculate the uncertainty in the new column
-            group['F_Par_std'] = group['F_Time_Parity'] * np.sqrt(
-                (std_avg_time_div_60 / (group['Avg Time'] / 60))**2 +
-                (group['Std D'] / group['D'])**2
+            group["F_Par_std"] = group["F_Time_Parity"] * np.sqrt(
+                (std_avg_time_div_60 / (group["Avg Time"] / 60)) ** 2
+                + (group["Std D"] / group["D"]) ** 2
             )
-            group = group.drop(columns=['Std D', 'D'])
-            
+            group = group.drop(columns=["Std D", "D"])
+
             return group
 
         # Apply the calculation for each group
-        df_averages = df_averages.groupby('CS Name', group_keys=False).apply(calculate_new_column)
+        df_averages = df_averages.groupby("CS Name", group_keys=False).apply(
+            calculate_new_column
+        )
 
         if mode == "objs":
-            names = ['Median Loss', 'Avg Evals', 'Avg Evals Tot',  'Avg Opt Acq']
-            std_names = ['IQR Loss', 'Std Evals', 'Std Evals Tot',  'Std Opt Acq']
-            titles = ["Median " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$" +" \n at Termination", 
-                        "Avg. " + r"$\mathscr{L}(\cdot)$" + " Evaluations \n to Reach " + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$", 
-                        "Total " + r"$\mathscr{L}(\cdot)$" + " Evalulations",
-                        "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions"]
+            names = ["Median Loss", "Avg Evals", "Avg Evals Tot", "Avg Opt Acq"]
+            std_names = ["IQR Loss", "Std Evals", "Std Evals Tot", "Std Opt Acq"]
+            titles = [
+                "Median "
+                + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$"
+                + " \n at Termination",
+                "Avg. "
+                + r"$\mathscr{L}(\cdot)$"
+                + " Evaluations \n to Reach "
+                + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$",
+                "Total " + r"$\mathscr{L}(\cdot)$" + " Evalulations",
+                "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions",
+            ]
         else:
-            names = ['Avg Time','F_Time_Parity']
-            std_names = ['Std Time','F_Par_std']
-            titles = ["Avg. Run Time (min)","Estimated " + r"$f(\cdot)$" + " Cost \n for Parity (min)"]
+            names = ["Avg Time", "F_Time_Parity"]
+            std_names = ["Std Time", "F_Par_std"]
+            titles = [
+                "Avg. Run Time (min)",
+                "Estimated " + r"$f(\cdot)$" + " Cost \n for Parity (min)",
+            ]
 
         t_label_lst = list(df_averages["CS Name"].unique())
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
 
-        y_locs = np.arange(len(self.analyzer.cs_list)) * (bar_size * (len(self.analyzer.meth_val_list)+add_value) + padding)
+        y_locs = np.arange(len(self.analyzer.cs_list)) * (
+            bar_size * (len(self.analyzer.meth_val_list) + add_value) + padding
+        )
         axes = axes.flatten()
-        for i in range(len(self.analyzer.meth_val_list)+ add_value):
+        for i in range(len(self.analyzer.meth_val_list) + add_value):
             if i < len(self.analyzer.meth_val_list):
-                #loop over methods n reverse order
-                meth_val = self.analyzer.meth_val_list[-1 -i]
-                meth_averages = df_averages.loc[df_averages["BO Method"] == self.method_names[meth_val-1]]
-                label = self.method_names[meth_val-1]
-                color = self.colors[meth_val-1]
+                # loop over methods n reverse order
+                meth_val = self.analyzer.meth_val_list[-1 - i]
+                meth_averages = df_averages.loc[
+                    df_averages["BO Method"] == self.method_names[meth_val - 1]
+                ]
+                label = self.method_names[meth_val - 1]
+                color = self.colors[meth_val - 1]
             else:
                 meth_averages = df_averages.loc[df_averages["BO Method"] == "NLS"]
                 label = "NLS"
                 color = "grey"
-                
+
             for j in range(len(names)):
                 scl_value = 60 if names[j] == "Avg Time" else 1
-                avg_val = meth_averages[names[j]]/scl_value
-                std_val = meth_averages[std_names[j]]/scl_value
+                avg_val = meth_averages[names[j]] / scl_value
+                std_val = meth_averages[std_names[j]] / scl_value
                 avg_val = np.maximum(avg_val, 0)
                 std_val = np.maximum(std_val, 0)
-                rects = axes[j].barh(y_locs + i*bar_size, avg_val, xerr = std_val,
-                                align='center', height=bar_size, color=color, 
-                                label=label, hatch = self.hatches[-1 -i])
-                
+                rects = axes[j].barh(
+                    y_locs + i * bar_size,
+                    avg_val,
+                    xerr=std_val,
+                    align="center",
+                    height=bar_size,
+                    color=color,
+                    label=label,
+                    hatch=self.hatches[-1 - i],
+                )
+
                 if i == 0:
-                    #Set plot details on last iter
+                    # Set plot details on last iter
                     self.__set_subplot_details(axes[j], None, None, titles[j])
-                    axes[j].set(yticks=y_locs + padding*len(self.analyzer.cs_list)/2, yticklabels=t_label_lst, ylim=[0 - padding , len(y_locs)])
-        
+                    axes[j].set(
+                        yticks=y_locs + padding * len(self.analyzer.cs_list) / 2,
+                        yticklabels=t_label_lst,
+                        ylim=[0 - padding, len(y_locs)],
+                    )
 
         if mode == "time":
             axes[0].set_xscale("log")
@@ -1742,29 +2214,51 @@ class All_CS_Plotter(Plotters):
             axes[0].set_xscale("log")
             axes[3].set_xscale("log")
 
-        for n,ax in enumerate(axes):
+        for n, ax in enumerate(axes):
             ax.grid()
             if len(axes) > 1:
-                ax.text(-0.1, 1.05, "("+string.ascii_uppercase[n]+")", transform=ax.transAxes, 
-                size=20, weight='bold')
+                ax.text(
+                    -0.1,
+                    1.05,
+                    "(" + string.ascii_uppercase[n] + ")",
+                    transform=ax.transAxes,
+                    size=20,
+                    weight="bold",
+                )
 
-        #Add legends and handles from last subplot that is visible
-        handles, labels = axes[-1].get_legend_handles_labels()  
-                
-        #Plots legend
+        # Add legends and handles from last subplot that is visible
+        handles, labels = axes[-1].get_legend_handles_labels()
+
+        # Plots legend
         if labels:
             if mode == "time":
-                fig.legend(reversed(handles), reversed(labels), loc= "upper left", ncol=1, fontsize = self.other_fntsz, bbox_to_anchor=(1.05, 0.95), 
-                       borderaxespad=0)
+                fig.legend(
+                    reversed(handles),
+                    reversed(labels),
+                    loc="upper left",
+                    ncol=1,
+                    fontsize=self.other_fntsz,
+                    bbox_to_anchor=(1.05, 0.95),
+                    borderaxespad=0,
+                )
             else:
-                fig.legend(reversed(handles), reversed(labels), loc= "upper center", ncol=4, fontsize = self.other_fntsz, bbox_to_anchor=(0.55, 1.10), 
-                       borderaxespad=0)
-            
+                fig.legend(
+                    reversed(handles),
+                    reversed(labels),
+                    loc="upper center",
+                    ncol=4,
+                    fontsize=self.other_fntsz,
+                    bbox_to_anchor=(0.55, 1.10),
+                    borderaxespad=0,
+                )
+
         plt.tight_layout()
-            
-        #Save or show figure
+
+        # Save or show figure
         if self.save_figs:
-            save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
+            save_path = self.analyzer.make_dir_name_from_criteria(
+                self.analyzer.criteria_dict
+            )
             save_path_dir = os.path.join(save_path)
             save_path_to = os.path.join(save_path_dir, str(mode) + "_bar")
             df_averages.to_csv(save_path_to + ".csv", index=False)
@@ -1775,4 +2269,3 @@ class All_CS_Plotter(Plotters):
 
         # return df_averages
         return df_averages
-
