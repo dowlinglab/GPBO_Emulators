@@ -1,5 +1,6 @@
 import signac
 
+
 def check_post_conditions(job):
     # Implement your post-condition checking logic here.
     # Return True if the post-conditions are met, otherwise, return False.
@@ -7,12 +8,17 @@ def check_post_conditions(job):
     # Example: Checking if a 'status' key in the job state point is 'completed'.
     return job.isfile("BO_Results.gz")
 
+
 def find_jobs_with_unmet_conditions(project, cs_name_val):
-    unmet_conditions_jobs = [] 
-    for job in sorted(project.find_jobs({"cs_name_val":cs_name_val}), key=lambda job: job.sp.meth_name_val): #job: job._id
+    unmet_conditions_jobs = []
+    for job in sorted(
+        project.find_jobs({"cs_name_val": cs_name_val}),
+        key=lambda job: job.sp.meth_name_val,
+    ):  # job: job._id
         if not check_post_conditions(job):
             unmet_conditions_jobs.append(job)
     return unmet_conditions_jobs
+
 
 def get_unfinished_ep_jobs(project, cs_name_val):
     # Initialize the Signac project
@@ -20,7 +26,7 @@ def get_unfinished_ep_jobs(project, cs_name_val):
 
     # Find jobs that have not met post-conditions
     unmet_conditions_jobs = find_jobs_with_unmet_conditions(project, cs_name_val)
-    
+
     if len(unmet_conditions_jobs) == 0:
         return print("No unfinished jobs.")
     else:
@@ -32,7 +38,10 @@ def get_unfinished_ep_jobs(project, cs_name_val):
 
         # Iterate through keys and compare their values
         for key, value_first_job in state_point_first_job.items():
-            is_different = any(job.statepoint().get(key) != value_first_job for job in unmet_conditions_jobs[1:])
+            is_different = any(
+                job.statepoint().get(key) != value_first_job
+                for job in unmet_conditions_jobs[1:]
+            )
             if is_different:
                 different_keys.append(key)
 
@@ -45,6 +54,7 @@ def get_unfinished_ep_jobs(project, cs_name_val):
             # Print the subset state point
             print("Job ", job.id, subset_state_point)
         return
+
 
 project = signac.get_project()
 case_study = input("Enter a case study value: ")

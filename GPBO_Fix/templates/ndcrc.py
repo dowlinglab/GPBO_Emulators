@@ -1,4 +1,5 @@
 """Scheduler environment module for NotreDameCRC."""
+
 import flow
 
 from .ndcrc_scheduler import SGEScheduler
@@ -11,8 +12,6 @@ class NotreDameCRC(flow.environment.StandardEnvironment):
     template = "crc.nd.sh"
     scheduler_type = SGEScheduler
     JOB_ID_SEPARATOR = "-"
-
-
 
     @classmethod
     def _get_mpi_prefix(cls, operation, parallel):
@@ -34,6 +33,7 @@ class NotreDameCRC(flow.environment.StandardEnvironment):
 
         """
         return ""
+
 
 # class NotreDameCRCTest(flow.environment.TestEnvironment):
 #

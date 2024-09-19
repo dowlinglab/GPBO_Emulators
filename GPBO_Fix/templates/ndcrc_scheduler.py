@@ -2,6 +2,7 @@
 
 This module implements the Scheduler and ClusterJob classes.
 """
+
 import errno
 import getpass
 import logging
@@ -33,9 +34,7 @@ def _fetch(user=None):
 
     cmd = ["qstat", "-u", user, "-xml"]
     try:
-        result = subprocess.check_output(cmd).decode(
-            "utf-8", errors="backslashreplace"
-        )
+        result = subprocess.check_output(cmd).decode("utf-8", errors="backslashreplace")
     except subprocess.CalledProcessError:
         raise
     except IOError as error:
@@ -151,9 +150,7 @@ class SGEScheduler(Scheduler):
     def is_present(cls):
         """Return True if it appears that a SGE scheduler is available within the environment."""
         try:
-            subprocess.check_output(
-                ["sge_qmaster", "-help"], stderr=subprocess.STDOUT
-            )
+            subprocess.check_output(["sge_qmaster", "-help"], stderr=subprocess.STDOUT)
         except (IOError, OSError):
             return False
         else:
