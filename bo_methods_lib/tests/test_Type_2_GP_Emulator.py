@@ -28,6 +28,8 @@ def test_bo_methods_lib_imported():
 
 cs_name1 = "Simple Linear"
 cs_name2 = "Muller x0"
+cs_val1 = 1
+cs_val2 = 2
 
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)
@@ -49,7 +51,7 @@ seed = 1
 method = GPBO_Methods(Method_name_enum(5))  # 2C
 
 # Define cs_params, simulator, and exp_data for CS1
-simulator1 = simulator_helper_test_fxns(cs_name1.value, noise_mean, noise_std, seed)
+simulator1 = simulator_helper_test_fxns(cs_val2, noise_mean, noise_std, seed)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 sim_data1 = simulator1.gen_sim_data(
     num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, sep_fact
@@ -83,7 +85,7 @@ gp_emulator1_e = Type_2_GP_Emulator(
 )
 
 # Define cs_params, simulator, and exp_data for CS2
-simulator2 = simulator_helper_test_fxns(cs_name2.value, noise_mean, noise_std, seed)
+simulator2 = simulator_helper_test_fxns(cs_val2, noise_mean, noise_std, seed)
 exp_data2 = simulator2.gen_exp_data(num_x_data, gen_meth_x)
 sim_data2 = simulator2.gen_sim_data(
     num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, sep_fact
@@ -970,7 +972,7 @@ seed = 1
 method = GPBO_Methods(Method_name_enum(5))  # 2C
 
 # Define cs_params, simulator, and exp_data for CS1
-simulator1 = simulator_helper_test_fxns(cs_name1.value, noise_mean, noise_std, seed)
+simulator1 = simulator_helper_test_fxns(cs_val2, noise_mean, noise_std, seed)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 sim_data1 = simulator1.gen_sim_data(
     num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, sep_fact
@@ -998,7 +1000,7 @@ gp_emulator1_e = Type_2_GP_Emulator(
 )
 
 # Define cs_params, simulator, and exp_data for CS2
-simulator2 = simulator_helper_test_fxns(cs_name2.value, noise_mean, noise_std, seed)
+simulator2 = simulator_helper_test_fxns(cs_val2, noise_mean, noise_std, seed)
 exp_data2 = simulator2.gen_exp_data(num_x_data, gen_meth_x)
 sim_data2 = simulator2.gen_sim_data(
     num_theta_data2, num_x_data, gen_meth_theta, gen_meth_x, sep_fact

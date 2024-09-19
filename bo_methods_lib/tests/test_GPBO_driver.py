@@ -7,7 +7,6 @@ import itertools
 from itertools import combinations_with_replacement, combinations, permutations
 import copy
 
-import bo_methods_lib
 import pytest
 from bo_methods_lib.GPBO_Classes_New import *  # Fix this later
 from bo_methods_lib.GPBO_Class_fxns import *  # Fix this later
@@ -27,7 +26,7 @@ def test_bo_methods_lib_imported():
 
 
 CS_name = "Simple Linear"
-
+cs_val1 = 1
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)  # Note: Has to be the same for validation and sim data
 num_theta_data = 20
@@ -72,7 +71,7 @@ run_bo_restarts_list = [method1, method2, method3, method4, method5, method6, me
 @pytest.mark.parametrize("method", run_bo_restarts_list)
 def test_run_bo_restarts(method):
     # Define cs_params, simulator, and exp_data for CS1
-    simulator = simulator_helper_test_fxns(CS_name.value, noise_mean, noise_std, seed)
+    simulator = simulator_helper_test_fxns(cs_val1, noise_mean, noise_std, seed)
     exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x)
     sim_data = simulator.gen_sim_data(
         num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, False
@@ -93,7 +92,7 @@ def test_run_bo_restarts(method):
     )
 
     # Set Cs_params and Simulator
-    cs_name = "test"
+    cs_name = CS_name
     cs_params = CaseStudyParameters(
         cs_name,
         ep0,
@@ -175,7 +174,7 @@ create_heat_map_param_data_list = [
 @pytest.mark.parametrize("method", create_heat_map_param_data_list)
 def test_create_heat_map_param_data(method):
     # Define cs_params, simulator, and exp_data for CS1
-    simulator = simulator_helper_test_fxns(CS_name.value, noise_mean, noise_std, seed)
+    simulator = simulator_helper_test_fxns(cs_val1, noise_mean, noise_std, seed)
     exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x)
     sim_data = simulator.gen_sim_data(
         num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, False
@@ -257,7 +256,7 @@ create_data_instance_from_theta_list = [
 @pytest.mark.parametrize("method", create_data_instance_from_theta_list)
 def test_create_data_instance_from_theta(method):
     # Define cs_params, simulator, and exp_data for CS1
-    simulator = simulator_helper_test_fxns(CS_name.value, noise_mean, noise_std, seed)
+    simulator = simulator_helper_test_fxns(cs_val1, noise_mean, noise_std, seed)
     exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x)
     sim_data = simulator.gen_sim_data(
         num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, False

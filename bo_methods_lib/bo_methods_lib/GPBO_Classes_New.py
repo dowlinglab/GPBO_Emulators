@@ -1400,6 +1400,8 @@ class Data:
         test_idx = all_idx[len_train_idc:]
 
         return train_idx, test_idx
+
+
 class GP_Emulator:
     """
     The base class for Gaussian Processes used in this workflow
@@ -1577,7 +1579,7 @@ class GP_Emulator:
             Lower bound of the parameter
         high: float, int
             Upper bound of the parameter
-        initial_value: float, int
+        initial_value: float, int, np.ndarray
             Initial value of the parameter
 
         Returns
@@ -1593,8 +1595,10 @@ class GP_Emulator:
         assert isinstance(low, (float, int)), "low must be float or int"
         assert isinstance(high, (float, int)), "low must be float or int"
         assert isinstance(
-            initial_value, (float, int)
-        ), "initial_value must be float or int"
+            initial_value, (float, int, np.ndarray)
+        ), "initial_value must be float, int, or np.ndarray of shape ()"
+        if isinstance(initial_value, np.ndarray):
+            assert len(initial_value.shape) == 0, "initial_value must be a scalar"
         assert low < high, "low must be less than high"
         sigmoid = tfb.Sigmoid(
             low=tf.cast(low, dtype=tf.float64), high=tf.cast(high, dtype=tf.float64)
@@ -2007,11 +2011,11 @@ class GP_Emulator:
 
         Returns
         -------
-        gp_mean: np.ndarray 
+        gp_mean: np.ndarray
             GP mean prediction for the data set
-        gp_var: np.ndarray 
+        gp_var: np.ndarray
             GP variance prediction for the data set
-        gp_covar: np.ndarray 
+        gp_covar: np.ndarray
             GP covariance prediction for the data set
 
         """
@@ -2066,18 +2070,18 @@ class GP_Emulator:
 
         Parameters
         -----------
-        misc_data: Data 
+        misc_data: Data
             Data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
-        featurized_misc_data: np.ndarray 
+        featurized_misc_data: np.ndarray
             Featurized data to evaluate. Hint: Run featurize_data() to generate
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         -------
-        misc_gp_mean: np.ndarray 
+        misc_gp_mean: np.ndarray
             GP mean prediction for the data set
-        misc_var_return: np.ndarray 
+        misc_var_return: np.ndarray
             GP (co)variance prediction for the data set
 
         Raises
@@ -2121,16 +2125,16 @@ class GP_Emulator:
 
         Parameters
         -----------
-        test_data: Data 
+        test_data: Data
             Data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         -------
-        test_gp_mean: np.ndarray 
+        test_gp_mean: np.ndarray
             GP mean prediction for the test set
-        test_var_return: np.ndarray 
+        test_var_return: np.ndarray
             GP (co)variance prediction for the test set
 
         Raises
@@ -2174,16 +2178,16 @@ class GP_Emulator:
 
         Parameters
         -----------
-        val_data: Data 
+        val_data: Data
             Data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         -------
-        val_gp_mean: np.ndarray 
+        val_gp_mean: np.ndarray
             GP mean prediction for the test set
-        val_var_return: np.ndarray 
+        val_var_return: np.ndarray
             GP (co)variance prediction for the test set
 
         Raises
@@ -2231,16 +2235,16 @@ class GP_Emulator:
 
         Parameters
         -----------
-        cand_data: Data 
+        cand_data: Data
             Data to evaluate gp mean and variance for. Must contain data.theta_vals and data.x_vals
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
 
         Returns
         -------
-        cand_gp_mean: np.ndarray 
+        cand_gp_mean: np.ndarray
             GP mean prediction for the test set
-        cand_var_return: np.ndarray 
+        cand_var_return: np.ndarray
             GP (co)variance prediction for the test set
 
         Raises
@@ -2328,15 +2332,15 @@ class Type_1_GP_Emulator(GP_Emulator):
         """
         Parameters
         ----------
-        gp_sim_data: Data 
+        gp_sim_data: Data
             All simulation data for the GP
-        gp_val_data: Data 
+        gp_val_data: Data
             The validation data for the GP. None if not saving validation data
-        cand_data: Data 
+        cand_data: Data
             Candidate theta value for evaluation with GPBO_Driver.opt_with_scipy()
-        train_data: Data 
+        train_data: Data
             The training data for the GP
-        test_data: Data 
+        test_data: Data
             The testing data for the GP
         kernel: Kernel_enum
             Determines which GP Kerenel to use
@@ -2352,13 +2356,13 @@ class Type_1_GP_Emulator(GP_Emulator):
             Random seed
         normalize: bool
             Determines whether data is standardized (with sklearn RobustScaler) before training
-        feature_train_data: np.ndarray 
+        feature_train_data: np.ndarray
             The feature data for the training data in ndarray form
-        feature_test_data: np.ndarray 
+        feature_test_data: np.ndarray
             The feature data for the testing data in ndarray form
-        feature_val_data: np.ndarray 
+        feature_val_data: np.ndarray
             The feature data for the validation data in ndarray form
-        feature_cand_data: np.ndarray 
+        feature_cand_data: np.ndarray
             The feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
 
         Raises
@@ -2415,12 +2419,12 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parameters
         -----------
-        data: Data 
+        data: Data
             Data to evaluate GP for containing at least parameter sets (data.theta_vals)
 
         Returns
         -------
-        feature_eval_data: np.ndarray 
+        feature_eval_data: np.ndarray
             The feature data for the GP
 
         Raises
@@ -2560,7 +2564,7 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parameters
         ----------
-        data: Data 
+        data: Data
             Parameter sets you want to evaluate the sse and sse variance for
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
@@ -2616,7 +2620,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ------
         AssertionError
             If any of the required parameters are missing or not of the correct type or value
-        
+
         Notes
         ------
         Populates data.sse, data.sse_var, and data.sse_covar with the GP mean, variance, and covariance (standard GPBO emulates objecive function)
@@ -2789,9 +2793,9 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data: Data 
+        sim_data: Data
             Simulated data to evaluate ei for
-        exp_data: Data 
+        exp_data: Data
             Experimental data to evaluate ei with
         ep_bias: Exploration_Bias
             The exploration bias class
@@ -2832,9 +2836,9 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        misc_data: Data 
+        misc_data: Data
             Data to evaluate ei for
-        exp_data: Data 
+        exp_data: Data
             The experimental data to evaluate ei with
         ep_bias: Exploration_Bias
             The exploration bias class
@@ -2872,11 +2876,11 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        exp_data: Data 
+        exp_data: Data
             The experimental data to evaluate ei with
         ep_bias: Exploration_Bias
             The exploration bias class
-        best_error_metrics: tuple(float, np.ndarray, np.ndarray) 
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
             The best error, best error parameter set, and  best_error_x values of the method. Hint: use calc_best_error()
 
         Returns
@@ -2910,7 +2914,7 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        exp_data: Data 
+        exp_data: Data
             The experimental data to evaluate ei with
         ep_bias: Exploration_Bias
             The exploration bias class
@@ -2949,7 +2953,7 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        exp_data: Data 
+        exp_data: Data
             The experimental data to evaluate ei with
         ep_bias: Exploration_Bias
             The exploration bias class
@@ -3074,13 +3078,13 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         gp_sim_data: Data,
             All simulation data for the GP
-        gp_val_data: Data 
+        gp_val_data: Data
             The validation data for the GP. None if not saving validation data
-        cand_data: Data 
+        cand_data: Data
             Candidate theta value for evaluation with GPBO_Driver.opt_with_scipy()
-        train_data: Data 
+        train_data: Data
             The training data for the GP
-        testing_data: Data 
+        testing_data: Data
             The testing data for the GP
         kernel: Kernel_enum
             Determines which GP Kerenel to use
@@ -3096,13 +3100,13 @@ class Type_2_GP_Emulator(GP_Emulator):
             Random seed
         normalize: bool
             Determines whether data is standardized (with sklearn RobustScaler) before training
-        feature_train_data: np.ndarray 
+        feature_train_data: np.ndarray
             The feature data for the training data in ndarray form
-        feature_test_data: np.ndarray 
+        feature_test_data: np.ndarray
             The feature data for the testing data in ndarray form
-        feature_val_data: np.ndarray 
+        feature_val_data: np.ndarray
             The feature data for the validation data in ndarray form
-        feature_cand_data: np.ndarray 
+        feature_cand_data: np.ndarray
             The feature data for the candidate theta data in ndarray. Used with GPBO_Driver.__opt_with_scipy()
 
         Raises
@@ -3179,12 +3183,12 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parameters
         -----------
-        data: Data 
+        data: Data
             Data to evaluate GP for containing at least data.theta_vals and data.x_vals
 
         Returns
         --------
-        feature_eval_data: np.ndarray 
+        feature_eval_data: np.ndarray
             The feature data for the GP
 
         Raises
@@ -3341,7 +3345,7 @@ class Type_2_GP_Emulator(GP_Emulator):
             Parameter sets you want to evaluate the sse and sse variance for
         method: GPBO_Methods
             Contains data for methods
-        exp_data: Data 
+        exp_data: Data
             The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
@@ -3357,7 +3361,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ------
         AssertionError
             If covar is not a boolean
-        
+
         Notes
         ------
         Also populates data.sse, data.sse_var, and data.sse_covar
@@ -3431,7 +3435,7 @@ class Type_2_GP_Emulator(GP_Emulator):
             Data parameter sets you want to evaluate the sse and sse variance for
         method: GPBO_Methods
             Contains data for methods
-        exp_data: Data 
+        exp_data: Data
             The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
@@ -3487,7 +3491,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         method: GPBO_Methods
             Contains data for methods
-        exp_data: Data 
+        exp_data: Data
             The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
@@ -3539,7 +3543,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         method: GPBO_Methods
             Contains data for methods
-        exp_data: Data 
+        exp_data: Data
             The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
@@ -3595,7 +3599,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         method: GPBO_Methods
             Contains data for methods
-        exp_data: Data 
+        exp_data: Data
             The experimental data of the class. Must contain exp_data.x_vals and exp_data.y_vals
         covar: bool, default False
             Determines whether covariance (True) or variance (False) of sse is returned with the gp mean
@@ -3646,7 +3650,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         method: GPBO_Methods
             Class containing method information
-        exp_data: Data 
+        exp_data: Data
             Experimental data. Must contain exp_data.x_vals, exp_data.theta_vals, and exp_data.y_vals
 
         Returns
@@ -3729,12 +3733,12 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data: Data 
+        sim_data: Data
             Data to evaluate ei for
-        exp_data: Data 
+        exp_data: Data
             The experimental data to evaluate ei with
         ep_bias: Exploration_Bias, The exploration bias class
-        best_error_metrics: tuple(float, np.ndarray, np.ndarray) 
+        best_error_metrics: tuple(float, np.ndarray, np.ndarray)
             the best error (sse), best error parameter set, and best_error_x (squared error) values of the method. Hint: use calc_best_error()
         method: Method class
             Method for GP Emulation
@@ -3796,9 +3800,9 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data: Data 
+        sim_data: Data
             Data to evaluate ei for
-        exp_data: Data 
+        exp_data: Data
             The experimental data to evaluate ei with
         ep_bias: Exploration_Bias
             The exploration bias class
@@ -3860,9 +3864,9 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         Parmaeters
         ----------
-        sim_data: Data 
+        sim_data: Data
             Data to evaluate ei for
-        exp_data: Data 
+        exp_data: Data
             The experimental data to evaluate ei with
         ep_bias: Exploration_Bias
             The exploration bias class
@@ -3924,7 +3928,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         sim_data: Data
             Simualted data to evaluate ei for
-        exp_data: Data 
+        exp_data: Data
             The experimental data to evaluate ei with
         ep_bias: Exploration_Bias
             The exploration bias class
@@ -3989,7 +3993,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ----------
         sim_data: Data
             Simualted data to evaluate ei for
-        exp_data: Data 
+        exp_data: Data
             The experimental data to evaluate ei with
         ep_bias: Exploration_Bias
             The exploration bias class
@@ -4215,7 +4219,7 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        mean: np.ndarray or None, default None 
+        mean: np.ndarray or None, default None
             The mean of the random variables
         covar: np.ndarray or None, default None
             The covariance of the random variables
@@ -4268,7 +4272,7 @@ class Expected_Improvement:
 
         Returns
         -------
-        ei: np.ndarray 
+        ei: np.ndarray
             The expected improvement of the parameter set
         ei_term_df: pd.DataFrame
             Pandas dataframe containing the values of calculations associated with ei for the parameter set
@@ -4339,7 +4343,7 @@ class Expected_Improvement:
 
         Returns
         -------
-        ei: np.ndarray 
+        ei: np.ndarray
             The expected improvement of the parameter set
         ei_term_df: pd.DataFrame
             Pandas dataframe containing the values of calculations associated with ei for the parameter set
@@ -4408,16 +4412,16 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        gp_mean: np.ndarray 
+        gp_mean: np.ndarray
             Model mean at state points (x) for a given parameter set
-        gp_variance: np.ndarray 
+        gp_variance: np.ndarray
             Model variance at state points (x) for a given parameter set
-        y_target: np.ndarray 
+        y_target: np.ndarray
             The expected value of the function from data or other source
 
         Returns
         -------
-        ei_temp: np.ndarray 
+        ei_temp: np.ndarray
             The expected improvement for one parameter set
         row_data: pd.DataFrame
             Pandas dataframe containing the values of calculations associated with ei for the parameter set
@@ -4553,16 +4557,16 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        gp_mean: np.ndarray 
+        gp_mean: np.ndarray
             Model mean at state points (x) for a given parameter set
-        gp_variance: np.ndarray 
+        gp_variance: np.ndarray
             Model variance at state points (x) for a given parameter set
-        y_target: np.ndarray 
+        y_target: np.ndarray
             The expected value of the function from data or other source
 
         Returns
         -------
-        ei_temp: np.ndarray 
+        ei_temp: np.ndarray
             The expected improvement for one parameter set
         row_data: pd.DataFrame
             Pandas dataframe containing the values of calculations associated with ei for the parameter set
@@ -4672,16 +4676,16 @@ class Expected_Improvement:
         ----------
         epsilon: float
             The random variable over which we integrate
-        gp_mean: np.ndarray 
+        gp_mean: np.ndarray
             GP model mean
-        gp_stdev: np.ndarray 
+        gp_stdev: np.ndarray
             GP model stdev
-        y_target: np.ndarray 
+        y_target: np.ndarray
             The expected value of the function from data or other source
 
         Returns
         -------
-        ei_term_2_integral: np.ndarray 
+        ei_term_2_integral: np.ndarray
             The expected improvement for term 2 of the GP model for method 2B
         """
         # Define inside term as the maximum of 1e-14 or abs((y_target - gp_mean - gp_stdev*epsilon))
@@ -4697,16 +4701,16 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        gp_mean: np.ndarray 
+        gp_mean: np.ndarray
             Model mean at state points (x) for a given parameter set
-        gp_var: np.ndarray 
+        gp_var: np.ndarray
             Model variance at state points (x) for a given parameter set
-        y_target: np.ndarray 
+        y_target: np.ndarray
             The expected value of the function from data or other source
 
         Returns
         -------
-        ei_temp: np.ndarray 
+        ei_temp: np.ndarray
             The expected improvement for one parameter set
         row_data: pd.DataFrame
             Pandas dataframe containing the values of calculations associated with ei for the parameter set
@@ -4801,9 +4805,9 @@ class Expected_Improvement:
 
         Returns
         --------
-        points_p: np.ndarray 
+        points_p: np.ndarray
             The sparse grid points
-        weights_p: np.ndarray 
+        weights_p: np.ndarray
             The Gauss-Hermite Quadrature Rule Weights
 
         Notes
@@ -4830,16 +4834,16 @@ class Expected_Improvement:
 
         Parameters
         ----------
-        gp_mean: np.ndarray 
+        gp_mean: np.ndarray
             Model mean at state points x for a given parameter set
-        gp_variance: np.ndarray 
+        gp_variance: np.ndarray
             Model variance at state points x for a given parameter set
-        y_target: np.ndarray 
+        y_target: np.ndarray
             The expected value of the function from data or other source
 
         Returns
         -------
-        ei_mean: np.ndarray 
+        ei_mean: np.ndarray
             The expected improvement for one parameter set
         row_data: pd.DataFrame
             Pandas dataframe containing the values of calculations associated with ei for the parameter set
@@ -5127,7 +5131,7 @@ class Exploration_Bias:
 
     def __set_ep_decay(self):
         """
-        Creates a value for the exploration parameter based off of a decay heuristic. 
+        Creates a value for the exploration parameter based off of a decay heuristic.
 
         Returns
         --------
@@ -5252,11 +5256,11 @@ class BO_Results:
             Dictionary containing the configuration of the BO algorithm
         simulator_class: Simulator
             Class containing the Simulator class information
-        exp_data_class: Data 
+        exp_data_class: Data
             The experimental data for the workflow
         list_gp_emulator_class: list(GP_Emulator)
             Contains all gp_emulator information at each BO iter
-        results_df: pd.DataFrame    
+        results_df: pd.DataFrame
             Dataframe including the values pertinent to BO for all BO runs
         max_ei_details_df: pd.DataFrame
             Dataframe including ei components of the best EI at each iter
@@ -5324,11 +5328,11 @@ class GPBO_Driver:
             Class containing GPBO method information
         simulator: Simulator
             Class containing values of simulation parameters
-        exp_data: Data 
+        exp_data: Data
             Experimental data containing at least exp_data.theta_vals, exp_data.x_vals, and exp_data.y_vals
-        sim_data: Data 
+        sim_data: Data
             Simulated data containing at least sim_data.theta_vals, sim_data.x_vals, and sim_data.y_vals
-        sim_sse_data: Data 
+        sim_sse_data: Data
             Simulated objective data containing at least sim_sse_data.theta_vals, sim_sse_data.x_vals, and sim_sse_data.y_vals
         val_data: Data or None
             Validation data containing at least val_data.theta_vals, val_data.x_vals, and val_data.y_vals
@@ -5466,7 +5470,7 @@ class GPBO_Driver:
 
         Returns
         -------
-        be_data: Data 
+        be_data: Data
             Contains best_error as an instance of the data class
         be_metrics: tuple(float, np.ndarray, np.ndarray)
             The min_SSE, param at min_SSE, and squared residuals
@@ -5722,7 +5726,7 @@ class GPBO_Driver:
         Returns
         --------
         obj: float, the value of the specified objective function for the given candidate parameter set
-        
+
         Notes
         -----
         If there are nan values in theta, the objective function is set to 1 for neg_ei and self.sse_penalty for sse and E_sse
@@ -6014,7 +6018,7 @@ class GPBO_Driver:
 
         Parameters
         ----------
-        theta_best_data: Data 
+        theta_best_data: Data
             The parameter set data associated with the optimal acquisition function value
         """
         # Augment training theta, x, and y/sse data

@@ -28,6 +28,9 @@ def test_bo_methods_lib_imported():
 cs_name1 = "Simple Linear"
 cs_name2 = "Muller x0"
 
+cs_val1 = 1
+cs_val2 = 2
+
 num_x_data = 5
 gen_meth_x = Gen_meth_enum(2)
 sep_fact = 0.8
@@ -38,11 +41,11 @@ noise_std = 0
 seed = 3
 
 # Define cs_params, simulator, and exp_data for CS1
-simulator1 = simulator_helper_test_fxns(cs_name1.value, noise_mean, noise_std, seed)
+simulator1 = simulator_helper_test_fxns(cs_val1, noise_mean, noise_std, seed)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 
 # Define cs_params, simulator, and exp_data for CS2
-simulator2 = simulator_helper_test_fxns(cs_name2.value, noise_mean, noise_std, seed)
+simulator2 = simulator_helper_test_fxns(cs_val2, noise_mean, noise_std, seed)
 exp_data2 = simulator2.gen_exp_data(num_x_data, gen_meth_x)
 
 # This test function tests whether get_num_theta checker works correctly

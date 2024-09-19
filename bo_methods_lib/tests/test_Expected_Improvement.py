@@ -37,10 +37,11 @@ ep_enum = Ep_enum(1)
 
 # Generate some experimental data
 cs_name1 = "Simple Linear"
+cs_val1 = 1
 indecies_to_consider1 = list(
     range(0, 2)
 )  # This is what changes for different subproblems of CS1
-simulator1 = simulator_helper_test_fxns(cs_name1.value, noise_mean, noise_std, seed)
+simulator1 = simulator_helper_test_fxns(cs_val1, noise_mean, noise_std, seed)
 exp_data = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 
 # Generate exploration bias class
