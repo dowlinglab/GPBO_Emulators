@@ -51,7 +51,7 @@ seed = 1
 method = GPBO_Methods(Method_name_enum(5))  # 2C
 
 # Define cs_params, simulator, and exp_data for CS1
-simulator1 = simulator_helper_test_fxns(cs_val2, noise_mean, noise_std, seed)
+simulator1 = simulator_helper_test_fxns(cs_val1, noise_mean, noise_std, seed)
 exp_data1 = simulator1.gen_exp_data(num_x_data, gen_meth_x)
 sim_data1 = simulator1.gen_sim_data(
     num_theta_data1, num_x_data, gen_meth_theta, gen_meth_x, sep_fact
