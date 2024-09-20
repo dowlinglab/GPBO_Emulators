@@ -183,7 +183,7 @@ class General_Analysis:
         result_dir = (
             "/".join(parts)
             if is_nested
-            else os.path.join("Test_" + self.mode, "/".join(parts))
+            else os.path.join("Results_" + self.mode, "/".join(parts))
         )
         return result_dir
 
