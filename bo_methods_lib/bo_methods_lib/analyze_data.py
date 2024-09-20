@@ -219,7 +219,17 @@ class General_Analysis:
         -------
         array_from_str: np.ndarray
             The array from the string
+
+        Raises
+        ------
+        AssertionError
+            If str_arr is not a string
+
+        Notes
+        -----
+        This function is used as a lambda function in the apply method of a pandas dataframe column. It is not guaraneteed to work outside of this context.
         """
+        assert isinstance(str_arr, str), "str_arr must be a string"
         # Find the index of the first space
         first_space_index = str_arr.index(" ")
         # Remove the first space if its the 2nd character (the first will be [)
@@ -256,8 +266,16 @@ class General_Analysis:
         ------
         AssertionError
             If job BO.Results.gz file does not exist
+            If save_csv is not a boolean
+            If criteria_dict is not a dictionary or None
+
+        Notes
+        -----
+        If criteria_dict is None, the class value is used
 
         """
+        assert isinstance(save_csv, bool), "save_csv must be a boolean"
+        assert isinstance(criteria_dict, dict) or criteria_dict == None
         # Intialize dataframe and job list for all jobs in criteria_dict
         df_all_jobs = pd.DataFrame()
         job_list = []
@@ -354,6 +372,10 @@ class General_Analysis:
         ------
         AssertionError
             If any of the required parameters are missing or not of the correct type or value
+
+        Notes
+        -----
+        If save_csv is None, it is set to the class default
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert save_csv == None or isinstance(
@@ -580,6 +602,8 @@ class General_Analysis:
         job_list: list(signac.job.Job)
             A list of jobs from Signac corresponding to the ones in df_data
         """
+        assert isinstance(df_data, pd.DataFrame), "df_data must be a pd.DataFrame"
+        assert "Job ID" in df_data.columns, "Job ID must be in the columns of df_data"
         # Get list of best jobs
         job_list = []
         job_id_list = list(df_data["Job ID"])
@@ -602,7 +626,15 @@ class General_Analysis:
         -------
         df_data: pd.DataFrame
             The sorted dataframe
+
+        Raises
+        ------
+        AssertionError
+            If df_data is not a pd.DataFrame
+            If "BO Method" is not in the columns of df_data
         """
+        assert isinstance(df_data, pd.DataFrame), "df_data must be a pd.DataFrame"
+        assert "BO Method" in df_data.columns, "Job ID must be in the columns of df_data"
         # Put rows in order of method
         order = [
             "Conventional",
@@ -676,11 +708,12 @@ class General_Analysis:
 
         Raises
         ------
-        ValueError: If the file type is not .gz, .pickle, .npy, .csv, or .json
+        ValueError: If the file type is not .gz, .pkl, .pickle, .npy, .csv, or .json
         """
         assert isinstance(path, str), "path_end must be str"
         # Split path into parts
         ext = os.path.splitext(path)[-1]
+        assert ext in [".csv", ".npy", ".pkl", ".pickle", ".gz", ".json"], "File type not supported"
         # Extract directory name
         dirname = os.path.dirname(path)
         # #Make directory if it doesn't already exist
@@ -692,13 +725,13 @@ class General_Analysis:
                 data = pd.read_csv(path, index_col=0)
             elif ext == ".npy":
                 data = np.load(path, allow_pickle=True)
-            elif ext == ".pkl" or ext == ".gz":
+            elif ext == ".pkl" or ext == ".gz" or ext == ".pickle":
                 data = open_file_helper(path)
             elif ext == ".json":
                 with open(path, "r") as file:
                     data = json.load(file)
             else:
-                raise ValueError("NOT a csv, json, npy, pkl, or gz file")
+                raise ValueError("NOT a csv, json, npy, pkl, pickle, or gz file")
             return True, data
         else:
             return False, None
@@ -716,10 +749,12 @@ class General_Analysis:
 
         Raises
         ------
-        ValueError: If the file type is not .gz, .pickle, .npy, .csv, or .json
+        ValueError: If the file type is not .gz, .pkl, .pickle, .npy, .csv, or .json
         """
+        assert isinstance(save_path, str), "path_end must be str"
         # Split path into parts
         ext = os.path.splitext(save_path)[-1]
+        assert ext in [".csv", ".npy", ".pkl", ".pickle", ".gz", ".json"], "File type not supported"
         # Extract directory name
         dirname = os.path.dirname(save_path)
         # Make directory if it doesn't already exist
@@ -735,11 +770,11 @@ class General_Analysis:
         elif ext == ".gz":
             with gzip.open(save_path, "wb", compresslevel=1) as file:
                 data = pickle.dump(data, file)
-        elif ext == ".pkl":
+        elif ext == ".pkl" or ext == ".pickle":
             with open(save_path, "wb") as file:
                 data = pickle.dump(data, file)
         else:
-            raise ValueError("NOT a csv, json, npy, pkl, or gz file")
+            raise ValueError("NOT a csv, json, npy, pkl, pickle, or gz file")
         return
 
     def __z_choice_helper(self, z_choices, theta_true_data, data_type):
@@ -1209,6 +1244,7 @@ class General_Analysis:
         ------
         AssertionError
             If any of the required parameters are missing or not of the correct type or value
+            If the run_num or bo_iter are out of bounds
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert isinstance(run_num, (np.int64, int)), "run_num must be an int"
@@ -1324,6 +1360,9 @@ class General_Analysis:
         ------
         AssertionError
             If any of the required parameters are missing or not of the correct type or value
+            If the run_num or bo_iter are out of bounds
+        ValueError
+            pair_id is out of bounds or an invalid string
         """
         assert isinstance(job, signac.job.Job), "job must be a signac.job.Job object"
         assert isinstance(run_num, (np.int64, int)), "run_num must be an int"
@@ -1457,7 +1496,7 @@ class General_Analysis:
                     pair_id
                 ]
             else:
-                raise Warning("Invalid pair_id!")
+                raise ValueError("Invalid pair_id!")
 
             # Initialize heat map data class
             heat_map_data_org = heat_map_data_dict[param_names]

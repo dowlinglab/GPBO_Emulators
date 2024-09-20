@@ -71,6 +71,7 @@ class Plotters:
         """
         # Asserts
         assert isinstance(save_figs, bool), "save_figs must be boolean"
+        assert isinstance(analyzer, (General_Analysis, All_CS_Analysis, LS_Analysis)), "analyzer must be General_Analysis, LS_Analysis, or All_CS_Analysis"
 
         # Constructor method
         self.analyzer = analyzer
@@ -403,6 +404,8 @@ class Plotters:
         title: str or None, default None
             Title of plot
         """
+        assert isinstance(job, signac.job.Job), "job must be a signac job"
+        assert isinstance(title, str) or title is None, "title must be a string or None"
         data, data_names, data_true, sp_data = self.analyzer.analyze_hypers(job)
         y_label = "Value"
         title = "Hyperparameter Values"
@@ -428,6 +431,14 @@ class Plotters:
         title: str or None, default None
             Title of plot
         """
+        assert isinstance(job, signac.job.Job), "job must be a signac job"
+        assert isinstance(z_choice, str), "z_choice must be a string"
+        assert z_choice in [
+            "min_sse",
+            "sse",
+            "acq",
+        ], "z_choice must be one of 'min_sse', 'sse', or 'acq'"
+        assert isinstance(title, str) or title is None, "title must be a string or None"
         data, data_names, data_true, sp_data = self.analyzer.analyze_thetas(
             job, z_choice
         )
@@ -605,6 +616,8 @@ class Plotters:
         x_label = "Loss Evaluations"
 
         # Assert Statements
+        assert isinstance(title, str) or title is None, "title must be a string or None"
+        assert isinstance(log_data, bool), "log_data must be boolean"
         assert isinstance(z_choices, (list, str)), "z_choices must be list or string"
         if isinstance(z_choices, str):
             z_choices = list(z_choices)
@@ -902,10 +915,29 @@ class Plotters:
         ------
         AssertionError
             If any of the required parameters are missing or not of the correct type or value
+            If meshgrids are not the correct shape
+            If there are not enough levels for the number of subplots
+        Warning
+            If log_data is True and minimum values to plot is less than or equal to 0
+
         Notes
         -------
         For this function, each method is its own subplot. Each plot must be generated separately for each objective function choice.
         """
+        assert isinstance(pair, int), "pair must be an integer"
+        assert isinstance(z_choice, str), "z_choice must be a string"
+        assert z_choice in [
+            "sse_sim",
+            "sse_mean",
+            "sse_var",
+            "acq",
+        ], "z_choice must be one of 'sse_sim', 'sse_mean', 'sse_var', or 'acq'"
+        assert isinstance(levels, (int, list, type(None))), "levels must be an int or list"
+        if isinstance(levels, list):
+            assert all(isinstance(item, int) for item in levels), "levels must be int"
+        assert isinstance(log_data, bool), "log_data must be boolean"
+        assert isinstance(title, str) or title is None, "title must be a string or None"
+
         # Get best data for each method
         df_best, job_list_best = self.analyzer.get_best_data()
         # Back out best runs from job_list_best
@@ -1300,12 +1332,22 @@ class Plotters:
         ------
         AssertionError
             If any of the required parameters are missing or not of the correct type or value
+            If meshgrids are not the correct shape
+            If there are not enough levels for the number of subplots
+        Warning
+            If log_data is True and minimum values to plot is less than or equal to 0
 
         Notes
         -------
         For this function, each objective function value is its own subplot. Each plot must be generated separately for each method.
         """
         # Assert Statements
+        assert isinstance(job, signac.job.Job), "job must be a signac job"
+        assert isinstance(run_num, int), "run_num must be an integer"
+        assert isinstance(bo_iter, int), "bo_iter must be an integer"
+        assert isinstance(pair, int), "pair must be an integer"
+        assert isinstance(log_data, bool), "log_data must be boolean"
+        assert isinstance(title, str) or title is None, "title must be a string or None"
         assert isinstance(
             z_choices, (Iterable, str)
         ), "z_choices must be Iterable or str"
