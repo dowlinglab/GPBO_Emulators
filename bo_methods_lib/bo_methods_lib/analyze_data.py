@@ -183,7 +183,7 @@ class General_Analysis:
         result_dir = (
             "/".join(parts)
             if is_nested
-            else os.path.join("Results_" + self.mode, "/".join(parts))
+            else os.path.join("Test_" + self.mode, "/".join(parts))
         )
         return result_dir
 
@@ -443,6 +443,45 @@ class General_Analysis:
 
         return df_job, true_data_w_bnds
 
+    def get_best_all_runs(self, criteria_dict = None):
+        """
+        Gets the best (as described from self.mode) performing data for each method in the criteria dict
+    
+        Returns
+        -------
+        df_best: pd.DataFrame, The best data for each method
+        job_list_best: list, a list of jobs from Signac corresponding to the ones in df_best
+        """
+        if self.mode == "act":
+            obj_col = "Min Obj Act Cum"
+        elif self.mode == "acq":
+            obj_col = "Acq Obj Act Cum"
+        elif self.mode == "gp":
+            obj_col = "Min Obj GP Cum"
+        #Get data from Criteria dict if you need it
+        df, jobs, theta_true_data_w_bnds = self.get_df_all_jobs(criteria_dict)
+        # print(df.head())
+        data_best_path = os.path.join(self.study_results_dir, "best_run_results.csv")
+        data_exists, df_best = self.load_data(data_best_path)
+        if not data_exists or self.save_csv:
+            #Start by sorting pd dataframe by lowest obj func value overall, then by BO Iter and Run Number
+            df_sorted = df.sort_values(by=[obj_col, 'BO Iter', 'Run Number'], ascending=True)
+            #Then take only the 1st instance for each method and run
+            df_best = df_sorted.drop_duplicates(subset=['BO Method', 'Run Number'], keep='first').copy()
+            #Calculate the L2 norm of the best runs
+            df_best = self.__calc_l2_norm(df_best, theta_true_data_w_bnds)
+            #Sort df_best
+            df_best = self.sort_by_meth(df_best)
+
+        #Get list of best jobs
+        job_list_best = self.__get_job_list(df_best)
+
+        #Put in a csv file in a directory based on the job
+        if self.save_csv:
+            self.save_data(df_best, data_best_path)
+
+        return df_best, job_list_best
+    
     def get_best_data(self):
         """
         Gets the best (as described from self.mode) performing data for each method in the criteria dict
@@ -1980,7 +2019,7 @@ class All_CS_Analysis(General_Analysis):
             self.save_data(df_avg_all, save_path)
 
         return df_avg_all
-
+    
     def get_percent_true_found(self, cs_nums):
         """
         Gets the percentage of how often the true parameter value was found
@@ -2814,10 +2853,6 @@ class LS_Analysis(General_Analysis):
             local_min_sets = all_sets[unique_mask]
 
             # Change tuples to arrays
-            # local_min_sets.loc[:,"Theta Min Obj Cum."] = local_min_sets[
-            #     "Theta Min Obj Cum."
-            # ].apply(np.array)
-
             local_min_sets = local_min_sets.copy()  # Ensure you're working with a copy
             local_min_sets["Theta Min Obj Cum."] = local_min_sets["Theta Min Obj Cum."].apply(np.array)
 

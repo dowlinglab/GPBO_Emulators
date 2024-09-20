@@ -34,11 +34,11 @@ for val in [11,14,2,1,12,13,3,10]:
     local_mins = ls_analyzer.categ_min(tot_runs)
 
     #Get best runs
-    # ls_results = ls_analyzer.least_squares_analysis()
-    # ls_results_sort = ls_results.sort_values(by=['Min Obj Cum.', 'Iter'], ascending=[True, True])
-    # ls_runs = ls_results_sort.drop_duplicates(subset="Run", keep='first')
-    # ls_best_path = os.path.join(
-    #         ls_analyzer.study_results_dir,
-    #         "ls_best_run.csv"
-    #     )
-    # ls_analyzer.save_data(ls_runs, ls_best_path)
+    ls_results = ls_analyzer.least_squares_analysis()
+    ls_results_sort = ls_results.sort_values(by=['Min Obj Cum.', 'Iter'], ascending=[True, True])
+    ls_runs = ls_results_sort.drop_duplicates(subset="Run", keep='first')
+    ls_best_path = os.path.join(
+            ls_analyzer.study_results_dir,
+            "ls_best_run.csv"
+        )
+    ls_analyzer.save_data(ls_runs, ls_best_path)
