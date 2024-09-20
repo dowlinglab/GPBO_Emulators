@@ -1833,10 +1833,10 @@ class All_CS_Analysis(General_Analysis):
         df_all_jobs, job_list, __ = self.get_df_all_jobs()
         df_all_jobs = self.__sort_by_cs_meth(df_all_jobs)
 
-        if self.save_csv or not os.path.exists(self.study_results_dir + "all_data.csv"):
+        if self.save_csv or not os.path.exists(self.study_results_dir + "full_results.csv"):
             # Save the data to a csv
             os.makedirs(self.study_results_dir, exist_ok=True)
-            path_save = os.path.join(self.study_results_dir, "all_data.csv")
+            path_save = os.path.join(self.study_results_dir, "full_results.csv")
             df_all_jobs.to_csv(path_save, index=False)
         return df_all_jobs
 
