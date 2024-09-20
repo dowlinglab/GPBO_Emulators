@@ -25,7 +25,7 @@ from .GPBO_Class_fxns import get_cs_class_from_val
 import warnings
 np.warnings = warnings
 
-def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None, xbins=5, ybins=5, zbins=900, title_size=24, other_size=24, cmap = "autumn"):
+def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None, xbins=5, ybins=5, zbins=900, title_size=24, other_size=20, cmap = "autumn"):
     """
     Function to make dictionary for plotting specifics
     
@@ -42,7 +42,7 @@ def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None,
         zbins: int or None, Number of bins for z. Default 900
         title_size: int, fontisize for title. Default 24
         other_size: int, fontisize for other values. Default 20
-        cmap: str, colormap for matplotlib to use for heat map generation
+        cmap: str, colormap for matplotlib to use for heat map generation. Deafult "autumn"
         
     Returns:
     --------
@@ -65,7 +65,7 @@ def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None,
         assert zbins > 3, "zbins must be int > 3 or None"
     assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path must be string or None"
     assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
-    assert all(var > 0 or var is None for var in int_vars), "xbins, ybins, title_size, and other_size must be positive int" 
+    assert all(var > 0 or var is None for var in int_vars), "xbins, ybins, title_size, and other_size must be positive int or None" 
     assert isinstance(line_levels, (list, int)) or line_levels is None, "line_levels must be list of int, int, or None"
     if isinstance(line_levels, (list)) == True:
         assert all(isinstance(var, int) for var in line_levels), "If a list, line_levels must be list of int"
@@ -140,8 +140,8 @@ class Plotters:
         Parameters
         -----------
         z_choice: str, one of "min_sse", "sse", or "acq". The values that will be plotted
-        log_data: bool, plots data on natural log scale if True
-        title: str or None, Title of plot
+        log_data: bool, plots data on natural log scale if True. Default False 
+        title: str or None, Title of plot. Deafult None 
 
         Returns
         --------

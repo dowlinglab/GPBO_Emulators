@@ -136,7 +136,7 @@ class CS_name_enum(Enum):
     """
     #Check that values are only 1 to 2
     if Enum in range(1, 18) == False:
-        raise ValueError("There are 16 options for Enum: 1 to 17")
+        raise ValueError("There are 17 options for Enum: 1 to 17")
         
     CS1 = 1
     CS2_x0 = 2
@@ -185,6 +185,7 @@ class GPBO_Methods:
     Methods
     --------------
     __init__
+    get_name_long()
     get_emulator()
     get_obj()
     get_sparse_mc()
@@ -208,6 +209,10 @@ class GPBO_Methods:
     def get_name_long(self):
         """
         Gets the shorthand name of the method that appears in the manuscript
+        
+        Returns:
+        --------
+        report_name: str, shorthand name for GPBO method names
         """
 
         if self.method_name.name == "A1":
@@ -252,7 +257,7 @@ class GPBO_Methods:
         """
         
         #Objective function is ln_obj if it includes the letter B
-        if self.method_name.name == "B1":
+        if self.method_name.name == "B1": #TODO: add this in an or self.method_name.name == "B2" ?? since it says all the ones that start with b
             obj = Obj_enum(2)
         else:
             obj = Obj_enum(1)
@@ -274,10 +279,10 @@ class GPBO_Methods:
         #Check Emulator status
         if self.emulator == True:
             #Method 2C is Sparse Grid
-            if "C" in self.method_name.name:
+            if "C" in self.method_name.name: # TODO "C2 ==" bc if emulator is one 2 is .name only c is left unless more c are added 
                 sparse_grid = True
             #Method 2D is Monte Carlo
-            elif "D" in self.method_name.name:
+            elif "D" in self.method_name.name: # TODO "D2 =="
                 mc = True
         
         return sparse_grid, mc
@@ -294,7 +299,8 @@ class CaseStudyParameters:
     """
     # Class variables and attributes
     
-    def __init__(self, cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, set_seed, obj_tol, acq_tol):
+    def __init__(self, cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, reoptimize_obj, 
+                 gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, set_seed, obj_tol, acq_tol):
         """
         Parameters
         ----------
@@ -304,7 +310,7 @@ class CaseStudyParameters:
         normalize: bool, Determines whether feature data will be normalized for problem analysis
         kernel: enum class instance, Determines which GP Kerenel to use
         lenscl: float, np.ndarray, or None, Value of the lengthscale hyperparameter - None if hyperparameters will be trained
-        outputscl: float or None, Determines value of outputscale - None if hyperparameters will be updated during training
+        outputscl: float, int or None, Determines value of outputscale - None if hyperparameters will be updated during training
         retrain_GP: int, number of times to restart GP training. Note, 0 = 1 optimization
         reoptimize_obj: int, number of times to reoptimize ei/sse with different starting values. Note, 0 = 1 optimization
         gen_heat_map_data: bool, determines whether validation data are generated to create heat maps
@@ -313,8 +319,8 @@ class CaseStudyParameters:
         save_data: bool, Determines whether ei data for argmax(ei) theta will be saved
         DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
         set_seed: int or None, Determines seed for randomizations. None if seed is random
-        obj_tol: float, obj at which to terminate algorithm after int(bo_iter_tot*0.3) iters
-        acq_tol: float, acquisition function value at which to terminate algorithm
+        obj_tol: float or int, obj at which to terminate algorithm after int(bo_iter_tot*0.3) iters
+        acq_tol: float or int, acquisition function value at which to terminate algorithm
         """
         #Assert statements
         #Check for strings
@@ -327,8 +333,9 @@ class CaseStudyParameters:
         #Check for bool
         assert all(isinstance(var, (bool)) for var in [normalize, gen_heat_map_data, save_data]) == True, "normalize, gen_heat_map_data, save_fig, and save_data must be bool"
         #Check for int
-        assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, set_seed, retrain_GP, reoptimize_obj]) == True, "bo_iter_tot, bo_run_tot, seed, retrain_GP, and reoptimize_obj must be int"
-        assert isinstance(outputscl, (float, int)) or outputscl is None, "outputscl must be float, int, or None"
+        assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, retrain_GP, reoptimize_obj]) == True, "bo_iter_tot, bo_run_tot, seed, retrain_GP, and reoptimize_obj must be int"
+        assert isinstance(set_seed, (int) or set_seed is None), "set_seed must be int or None"
+        assert isinstance(outputscl, (float, int) or outputscl is None), "outputscl must be float, int, or None"
         #Outputscl must be >0 if not None
         if outputscl is not None:
             assert outputscl > 0, "outputscl must be > 0 initially if it is not None"
