@@ -1700,7 +1700,7 @@ class All_CS_Analysis(General_Analysis):
     get_all_data(): Gets all data for all case studies
     get_acq_last10_avg(): Get the average acquisition function value for the last 10 iterations of each run
     get_averages(): Get average computational time, max function evaltuations, and sse values for all case studies
-    get_percent_true_found(): Get the percentage of how often the true parameter value was found
+    get_percent_true_found(cs_nums): Get the percentage of how often the true parameter value was found
     get_averages_best(): Get the average computational time, max function evaltuations, and sse values for the best run
     """
 
@@ -2752,7 +2752,7 @@ class LS_Analysis(General_Analysis):
         save_csv_org = self.save_csv
 
         if self.save_csv or not found_data1:
-            # Set save csv to false so that 500 restarts csv data is not saved
+            # Set save csv to false so that tot_runs restarts csv data is not saved
             self.save_csv = False
             # Run Least Squares tot_runs times
             ls_results = self.least_squares_analysis(tot_runs)
