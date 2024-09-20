@@ -1,13 +1,8 @@
 import numpy as np
-import pandas as pd
 import signac
-import os
 from itertools import combinations
-
-import bo_methods_lib
 from bo_methods_lib.bo_methods_lib.analyze_data import General_Analysis
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_plotters import Plotters
-from skimage.transform import resize
 
 # Ignore warnings
 import warnings
@@ -46,8 +41,8 @@ for val in [1, 11]:
         for i in range(len(job_list_best)):
             # Get jobs, runs, and iters to examine
             job = job_list_best[i]
-            run_num = df_best["Run Number"].iloc[i]
-            bo_iter = df_best["BO Iter"].iloc[i]
+            run_num = int(df_best["Run Number"].iloc[i])
+            bo_iter = int(df_best["BO Iter"].iloc[i])
 
             # Back out number of parameters
             string_val = df_best["Theta Min Obj"].iloc[0]

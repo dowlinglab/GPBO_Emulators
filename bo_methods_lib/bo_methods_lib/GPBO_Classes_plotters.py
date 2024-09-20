@@ -445,7 +445,7 @@ class Plotters:
         GPBO_method_val = sp_data["meth_name_val"]
         # Create label based on method #
         meth_label = self.method_names[GPBO_method_val - 1]
-        y_label = self.__set_ylab_from_z(z_choice)
+        y_label = "Parameter Values"
 
         if title != None:
             title = title
@@ -990,7 +990,7 @@ class Plotters:
                 sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten()
             )
             print(df_best["BO Method"].values[i])
-            print(MAE)
+            print("MAE: ", MAE)
             theta_true = param_info_dict["true"]
             theta_opt = param_info_dict["min_sse"]
             theta_next = param_info_dict["opt_acq"]
@@ -1960,8 +1960,6 @@ class Plotters:
                 sim_data = test_data.y_vals
                 gp_mean = test_data.gp_mean
                 gp_stdev = np.sqrt(abs(test_data.gp_var))
-                print(test_data.gp_var)
-                print(np.mean(test_data.gp_var))
 
                 # Plot x and y data
                 ax.plot(sim_data, sim_data, color="k")

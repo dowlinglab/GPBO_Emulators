@@ -6,6 +6,7 @@ import signac
 from ast import literal_eval
 from collections.abc import Iterable
 from sklearn.preprocessing import MinMaxScaler
+from scipy.spatial.distance import pdist, squareform
 
 from .GPBO_Class_fxns import *
 from .GPBO_Classes_New import *
@@ -275,7 +276,7 @@ class General_Analysis:
 
         """
         assert isinstance(save_csv, bool), "save_csv must be a boolean"
-        assert isinstance(criteria_dict, dict) or criteria_dict == None
+        assert isinstance(criteria_dict, dict) or criteria_dict is None, "criteria_dict must be a dictionary or None"
         # Intialize dataframe and job list for all jobs in criteria_dict
         df_all_jobs = pd.DataFrame()
         job_list = []
@@ -812,7 +813,7 @@ class General_Analysis:
             obj_col_sse = "Acq Obj Act"
             obj_col_sse_min = "Acq Obj Act Cum"
             param_sse = "Theta Opt Acq"
-            param_sse_min = "Theta Opt Acq Cum"
+            param_sse_min = "Theta Acq Act Cum"
         elif self.mode == "gp":
             obj_col_sse = "Min Obj GP"
             obj_col_sse_min = "Min Obj GP Cum"
@@ -1287,6 +1288,7 @@ class General_Analysis:
                 results_GP[run_idx].list_gp_emulator_class[bo_iter - 1]
             )
             simulator = copy.copy(results[run_idx].simulator_class)
+            simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
             exp_data = copy.copy(
                 results[0].exp_data_class
             )  # Experimental data won't change
@@ -1428,6 +1430,7 @@ class General_Analysis:
             gp_emulator = loaded_results_GPs[run_num].list_gp_emulator_class[bo_iter]
             exp_data = loaded_results[run_num].exp_data_class
             simulator = loaded_results[run_num].simulator_class
+            simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
             ep_at_iter = (
                 loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
             )
@@ -2506,6 +2509,7 @@ class LS_Analysis(General_Analysis):
             # Get Experimental data and Simulator objects used in problem
             exp_data = results[0].exp_data_class
             simulator = results[0].simulator_class
+            simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
 
         else:
             # Set tot_runs cs as 5 as a default
@@ -2668,11 +2672,11 @@ class LS_Analysis(General_Analysis):
                 for j in range(len(iter_df)):
                     if j > 0:
                         if (
-                            iter_df["Min Obj Cum."].iloc[i]
-                            >= iter_df["Min Obj Cum."].iloc[i - 1]
+                            iter_df["Min Obj Cum."].iloc[j]
+                            >= iter_df["Min Obj Cum."].iloc[j - 1]
                         ):
-                            iter_df.at[i, "Theta Min Obj Cum."] = (
-                                iter_df["Theta Min Obj Cum."].iloc[i - 1].copy()
+                            iter_df.at[j, "Theta Min Obj Cum."] = (
+                                iter_df["Theta Min Obj Cum."].iloc[j - 1].copy()
                             )
 
                 iter_df["Run Time"] = time_per_run
@@ -2731,6 +2735,7 @@ class LS_Analysis(General_Analysis):
         -----
         If None, tot_runs will default to 5
         """
+        assert self.simulator != None, "simulator must be defined"
         assert (
             isinstance(tot_runs, int) or tot_runs is None
         ), "tot_runs must be int or None"
@@ -2743,12 +2748,13 @@ class LS_Analysis(General_Analysis):
             "ls_local_min_" + tot_runs_str + ".csv",
         )
         found_data1, local_min_sets = self.load_data(ls_data_path)
-        # Set save csv to false so that 500 restarts csv data is not saved
+        
         save_csv_org = self.save_csv
-        self.save_csv = False
 
         if self.save_csv or not found_data1:
-            # Run Least Squares 500 times
+            # Set save csv to false so that 500 restarts csv data is not saved
+            self.save_csv = False
+            # Run Least Squares tot_runs times
             ls_results = self.least_squares_analysis(tot_runs)
             # Drop all except best iteration for each run
             ls_results_sort = ls_results.sort_values(
@@ -2775,68 +2781,46 @@ class LS_Analysis(General_Analysis):
             # Drop minima with optimality > 1e-4
             all_sets = all_sets[all_sets["Optimality"] < 1e-4]
 
-            # make a dataframe to store the discarded and not discarded points
-            local_min_sets = pd.DataFrame(columns=all_sets.columns)
-            discarded_points = pd.DataFrame(columns=all_sets.columns)
             # Set seed
             if self.seed != None:
                 np.random.seed(self.seed)
 
-            # While you have samples to analyze
-            while len(local_min_sets) + len(discarded_points) < len(all_sets):
-                # Shuffle the points
-                all_sets = all_sets.sample(frac=1)
-                # Add the 1st object in the shuffled list to your local min sets
-                new_points = pd.DataFrame(
-                    all_sets.iloc[[0]], columns=local_min_sets.columns
-                )
-                local_min_sets = pd.concat(
-                    [local_min_sets.astype(new_points.dtypes), new_points],
-                    ignore_index=True,
-                )
+            #Scale values between 0 and 1 with minmax scaler
+            theta_bounds = self.simulator.bounds_theta_reg
+            scaler = MinMaxScaler()
+            scaler = MinMaxScaler()
+            scaler.fit([theta_bounds[0], theta_bounds[1]])
+            all_param_sets = np.array(list(map(np.array, all_sets["Theta Min Obj Cum."].values)))
+            all_param_sets_scaled = scaler.transform(all_param_sets)
+            #Calculate the scaled euclidean distance between each pair of scaled points
+            dist = pdist(all_param_sets_scaled)/np.sqrt(all_param_sets.shape[1])
+            #Convert the condensed distance matrix to square form
+            dist_sq = squareform(dist)
 
-                # Set distance to be 1% of the sum of the abs values of the parameters in the new set
-                distance = (
-                    np.sum(
-                        abs(
-                            list(
-                                map(
-                                    np.array,
-                                    all_sets["Theta Min Obj Cum."].iloc[[0]].values,
-                                )
-                            )[0]
-                        )
-                    )
-                    * 1e-4
-                )
-                # calculate l1 norm
-                array_sets = np.array(
-                    list(map(np.array, all_sets["Theta Min Obj Cum."].values))
-                )
-                array_new = np.array(
-                    list(
-                        map(
-                            np.array, new_points["Theta Min Obj Cum."].iloc[[-1]].values
-                        )
-                    )
-                )
-                dist = np.abs(array_sets - array_new)
-                l1_norm = np.sum(dist, axis=1)
-                # Remove any points where l2_norm <= distance
-                points_to_remove = np.where(l1_norm <= distance)[0]
-                disc_point_df = pd.DataFrame(
-                    all_sets.iloc[points_to_remove], columns=local_min_sets.columns
-                )
-                discarded_points = pd.concat(
-                    [discarded_points.astype(disc_point_df.dtypes), disc_point_df],
-                    ignore_index=True,
-                )
-                all_sets.drop(index=all_sets.index[points_to_remove], inplace=True)
+            #Initialize a boolean array to keep track of unique sets
+            unique_mask = np.ones(all_param_sets.shape[0], dtype=bool)
+
+            # Iterate over the upper triangle of the distance matrix
+            for i in range(all_param_sets.shape[0]):
+                # If the current set is already marked as non-unique, skip it
+                if not unique_mask[i]:
+                    continue
+                # Mark sets within the threshold distance as non-unique
+                within_threshold = dist_sq[i] <= 0.01
+                unique_mask[within_threshold] = False
+                unique_mask[i] = True  # Keep the current set
+
+            # Filter out the unique sets from the pandas df
+            local_min_sets = all_sets[unique_mask]
 
             # Change tuples to arrays
-            local_min_sets["Theta Min Obj Cum."] = local_min_sets[
-                "Theta Min Obj Cum."
-            ].apply(np.array)
+            # local_min_sets.loc[:,"Theta Min Obj Cum."] = local_min_sets[
+            #     "Theta Min Obj Cum."
+            # ].apply(np.array)
+
+            local_min_sets = local_min_sets.copy()  # Ensure you're working with a copy
+            local_min_sets["Theta Min Obj Cum."] = local_min_sets["Theta Min Obj Cum."].apply(np.array)
+
             # Put in order of lowest sse and reset index
             local_min_sets = local_min_sets.sort_values(
                 by=["Min Obj Cum."], ascending=True

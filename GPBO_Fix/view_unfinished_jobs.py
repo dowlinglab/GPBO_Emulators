@@ -6,7 +6,7 @@ def check_post_conditions(job):
     # Return True if the post-conditions are met, otherwise, return False.
     # You can access job data using job.statepoint().
     # Example: Checking if a 'status' key in the job state point is 'completed'.
-    return job.isfile("BO_Results.gz")
+    return job.isfile("BO_Results.gz") and job.isfile("BO_Results_GPs.gz")
 
 
 def find_jobs_with_unmet_conditions(project, cs_name_val):

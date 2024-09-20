@@ -23,7 +23,10 @@ from bo_methods_lib.bo_methods_lib.GPBO_Classes_New import (
     CaseStudyParameters,
     GPBO_Driver,
 )
-from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns
+from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import (
+    simulator_helper_test_fxns, 
+    get_cs_class_from_val
+)
 import pickle
 import gzip
 
@@ -79,7 +82,7 @@ def run_ep_or_sf_exp(job):
     simulator = simulator_helper_test_fxns(
         job.sp.cs_name_val, job.sp.noise_mean, job.sp.noise_std, job.sp.seed
     )
-
+    
     # Generate Exp Data (OR Add your own experimental data as a Data class object)
     set_seed = 1  # Set set_seed to 1 for data generation
     gen_meth_x = Gen_meth_enum(job.sp.gen_meth_x)
@@ -140,7 +143,7 @@ def run_ep_or_sf_exp(job):
         method, sim_data, exp_data, job.sp.sep_fact, False
     )
 
-    # Generate validation data if applicable. This is only useful for small (<5 Params + State Points). Otherwise this takes up too much memory
+    # Generate validation data if applicable. This is only useful for small (<4 Params + 1 State Point). Otherwise this takes up too much memory
     if job.sp.num_val_pts > 0:
         gen_meth_theta_val = Gen_meth_enum(
             job.sp.gen_meth_theta_val
@@ -164,7 +167,7 @@ def run_ep_or_sf_exp(job):
         gen_meth_theta_val = job.sp.gen_meth_theta_val  # Value is None
 
     # Define cs_name and cs_params class
-    cs_name = "BO_Results"
+    cs_name = get_cs_class_from_val(job.sp.cs_name_val).name #Save name of case study here
     # Signac saves all BO_Results in different folders, so they can have the same name
     cs_params = CaseStudyParameters(
         cs_name,
