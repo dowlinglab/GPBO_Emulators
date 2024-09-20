@@ -951,6 +951,15 @@ def test_set_gp_model_data_err(gp_emulator):
         gp_emulator.train_data.y_vals = None
         data = gp_emulator.set_gp_model_data()
 
+# This test function tests whether set_gp_model throws correct errors
+# retrain_count
+set_gp_model_err_list = [-1.0, 0.5, "0"]
+
+
+@pytest.mark.parametrize("retrain_count", set_gp_model_err_list)
+def bounded_parameter_err(retrain_count):
+    with pytest.raises((AssertionError, AttributeError, ValueError)):
+        gp_emulator1_e.set_gp_model(retrain_count)
 
 # Define small case study
 num_x_data = 5
@@ -1432,7 +1441,7 @@ def test_eval_gp_mean_var_err(gp_emulator):
         )  # Calc mean, var of gp
 
 
-# This test function tests whether eval_gp_sse_var checker works correctly
+# This test function tests whether eval_gp_sse_var_test checker works correctly
 expected_mean1_test_sse = np.array([0.6569498, 0.59890417])
 expected_var1_test_sse = np.array([3.04214799, 3.53123217])
 expected_mean2_test_sse = np.array([0.67082118])
@@ -1507,7 +1516,7 @@ def test_eval_gp_sse_var_test(
         assert sse_var.shape[0] == sse_var.shape[1]
 
 
-# This test function tests whether eval_gp_sse_var checker works correctly
+# This test function tests whether eval_gp_sse_var_val checker works correctly
 expected_mean1_val_sse = np.array(
     [
         0.93710109,
@@ -1578,7 +1587,7 @@ def test_eval_gp_sse_var_val(gp_emulator, covar, exp_data, expected_mean, expect
     else:
         assert sse_var == None
 
-
+# This test function tests whether eval_gp_sse_var_misc/cand checker works correctly
 expected_mean1_sse = np.array([0.93710109])
 expected_var1_sse = np.array([2.71034979])
 expected_mean2_sse = np.array([3.05269292])

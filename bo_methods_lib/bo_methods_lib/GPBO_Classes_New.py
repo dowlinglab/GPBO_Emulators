@@ -5269,6 +5269,17 @@ class BO_Results:
         heat_map_data_dict: dict
             Heat map data for each set of 2 parameters indexed by parameter names "param_1-param_2"
         """
+        assert isinstance(configuration, dict) or configuration is None, "configuration must be a dictionary or None"
+        assert isinstance(simulator_class, Simulator) or simulator_class is None, "simulator_class must be an instance of Simulator or None"
+        assert isinstance(exp_data_class, Data) or exp_data_class is None, "exp_data_class must be an instance of Data or None"
+        assert isinstance(list_gp_emulator_class, list) or list_gp_emulator_class is None, "list_gp_emulator_class must be a list or None"
+        if list_gp_emulator_class is not None:
+            assert all(isinstance(gp_emulator, (Type_1_GP_Emulator, Type_2_GP_Emulator)) for gp_emulator in 
+                   list_gp_emulator_class), "entries of list list_gp_emulator_class must be Type_1_GP_Emulator or Type_2_GP_Emulator"
+        assert isinstance(results_df, pd.DataFrame) or results_df is None, "results_df must be a pandas DataFrame or None"
+        assert isinstance(max_ei_details_df, pd.DataFrame) or max_ei_details_df is None, "max_ei_details_df must be a pandas DataFrame or None"
+        assert isinstance(why_term, str) or why_term is None, "why_term must be a string or None"
+        assert isinstance(heat_map_data_dict, dict) or heat_map_data_dict is None, "heat_map_data_dict must be a dictionary or None"
         # Constructor method
         self.configuration = configuration
         self.simulator_class = simulator_class
