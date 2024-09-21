@@ -84,7 +84,7 @@ An example of the procedure is provided below:
     # with a new conda environment named gpbo-emul
     conda env create -f gpbo-emul.yml
     conda activate gpbo-emul
-    python -m pip install Tasmanian --user
+    python -m pip install Tasmanian
 
 <!-- Usage: Provide instructions on how to use the project, including any configuration or customization options. Examples of usage scenarios can also be added. -->
 ## Usage
