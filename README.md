@@ -14,38 +14,37 @@ Montana N. Carlozo, Ke Wang, Alexander W. Dowling, “Bayesian Optimization Meth
 ### Repository Organization
 The repository is organized as follows: <br />
 GPBO_Emulators/ is the top level directory. It contains: <br />
-.gitignore prevents large files from the signac workflow and plots from being tracked by git and prevents  tracking of other unimportant files. <br />
-init_gpbofix.py generated the setup for running the workflow with signac <br />
-make_1meth_hms.py makes contour plots of Simulated SSE, GP SSE, GP SSE variance, and acqusition function for a given GP model. <br />
-make_1obj_hms.py makes contour plots of either Simulated SSE, GP SSE, GP SSE variance, or acqusition function for a given GP model for each method. <br />
-make_bar_charts.py makes Figures 2 and 7 from the main text (bar charts of relevant data). <br />
-make_cond_num_data.py generates condition number data for the best GP models. <br />
-makes_least_squares_data.py generates data related to nonlinear least squares (NLS) including categorizing number of local minima and best performing NLS runs. <br />
-make_line_plots.py generates all line plots in the main text and SI including parity plots and plots of BO iteration for SSE and acquisition function for all modes of evaluation. <br />
-make_movies_from_hms.py makes movies (.mp4) from the contour plots generated with make_1obj_hms.py. <br />
-make_muly0_hist.py makes the histogram for M\"uller y0 case study data. <br />
-gpbo-emul.yml is the environment for running this workflow. <br />
+1. .gitignore prevents large files from the signac workflow and plots from being tracked by git and prevents  tracking of other unimportant files. <br />
+2. init_gpbofix.py generated the setup for running the workflow with signac <br />
+3. make_1meth_hms.py makes contour plots of Simulated SSE, GP SSE, GP SSE variance, and acqusition function for a given GP model. <br />
+4. make_1obj_hms.py makes contour plots of either Simulated SSE, GP SSE, GP SSE variance, or acqusition function for a given GP model for each method. <br />
+5. make_bar_charts.py makes Figures 2 and 7 from the main text (bar charts of relevant data). <br />
+6. make_cond_num_data.py generates condition number data for the best GP models. <br />
+7. makes_least_squares_data.py generates data related to nonlinear least squares (NLS) including categorizing number of local minima and best performing NLS runs. <br />
+8. make_line_plots.py generates all line plots in the main text and SI including parity plots and plots of BO iteration for SSE and acquisition function for all modes of evaluation. <br />
+9. make_movies_from_hms.py makes movies (.mp4) from the contour plots generated with make_1obj_hms.py. <br />
+10. make_muly0_hist.py makes the histogram for M\"uller y0 case study data. <br />
+11. gpbo-emul.yml is the environment for running this workflow. <br />
 
 Directory bo_methods_lib/ contains the package for running the workflow. <br />
 bo_methods_lib/bo_methods_lib/ contains the following files: <br />
-GPBO_Classes_New.py is the main script for the algorithm. <br />
-GPBO_Class_fxns.py are helper functions which define parameters for the multiple case studies. This function is also useful for mapping the numerical markers of case studies to their formal names from the manuscript. <br />
-analyze_data.py and GPBO_Classes_plotters.py are used for analyzing and plotting the results. <br />
-bo_methods_lib/tests contains test functions for public methods of all classes in GPBO_Classes_New.py. <br />
+1. GPBO_Classes_New.py is the main script for the algorithm. <br />
+2. GPBO_Class_fxns.py are helper functions which define parameters for the multiple case studies. This function is also useful for mapping the numerical markers of case studies to their formal names from the manuscript. <br />
+3. analyze_data.py and GPBO_Classes_plotters.py are used for analyzing and plotting the results. <br />
+4. tests/*.py contains test functions for public methods of all classes in GPBO_Classes_New.py. <br />
 
 Directory GPBO_Fix/ is initially created via init_gpbofix.py in the top directory through signac. <br /> 
 It contains the following files/subdirectories: <br />
-delete_jobs.py is a script for quickly deleting targeted jobs/results in signac. <br />
-view_unfinished_jobs.py is a script for viewing individual case study job progress. <br />
-project_GPBO_Fix.py is the script for running the workflow using signac. <br />
-templates/ are the templates required to run this workflow in signac on the crc. <br />
-workspace/ will appear to save all raw results generated during the workflow after running init_gpbofix.py. This file is not tracked by git due to its size. <br />
+1. delete_jobs.py is a script for quickly deleting targeted jobs/results in signac. <br />
+2. view_unfinished_jobs.py is a script for viewing individual case study job progress. <br />
+3. project_GPBO_Fix.py is the script for running the workflow using signac. <br />
+4. templates/ are the templates required to run this workflow in signac on the crc. <br />
+5. workspace/ will appear to save all raw results generated during the workflow after running init_gpbofix.py. This file is not tracked by git due to its size. <br />
     
 Running the analysis (steps 6 -11 below) will cause results directories to appear with relevant human readable data and plots. Subdirectories further categorize the results by case study and methods analyzed. <br />
-Results_acq/ shows data where we analyze the best results based on how efficiently the acquisition function was optimized. <br />
-Results_act/ shows data where we analyze the best results based on how efficiently the actual SSE was optimized. <br />
-Results_gp/ shows data where we analyze the best results based on how efficiently the GP predicted SSE was optimized. <br />
-
+1. Results_acq/ shows data where we analyze the best results based on how efficiently the acquisition function was optimized. <br />
+2. Results_act/ shows data where we analyze the best results based on how efficiently the actual SSE was optimized. <br />
+3. Results_gp/ shows data where we analyze the best results based on how efficiently the GP predicted SSE was optimized. <br />
 
 ### Workflow Files and Results
 All workflow iterations were performed inside ``GPBO_Emulators/GPBO_Fix`` where it exists.
@@ -77,7 +76,7 @@ need to be installed from source or pip. <br />
 
 Running the simulations will also require an installation of TASMANIAN.
 This can be installed separately (see installation instructions
-`here <https://github.com/ORNL/TASMANIAN>`). <br />
+`here <https://github.com/ORNL/TASMANIAN>`_). <br />
 
 An example of the procedure is provided below:
 
