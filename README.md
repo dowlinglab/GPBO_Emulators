@@ -1,4 +1,4 @@
-# Machine Learning-Enabled Development of Accurate Force Fields for Refrigerants
+# Bayesian Optimization Methods for Nonlinear Model Calibration
 Authors: Montana Carlozo, Ke Wang, and Alexander W. Dowling
 <!-- Introduction: Provide a brief introduction to the project, including its purpose, goals, and any key features or benefits. -->
 ## Introduction
