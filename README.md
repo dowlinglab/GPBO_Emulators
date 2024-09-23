@@ -1,5 +1,5 @@
 # Bayesian Optimization Methods for Nonlinear Model Calibration
-Authors: Montana Carlozo, Ke Wang, and Alexander W. Dowling
+Authors: Montana N. Carlozo, Ke Wang, and Alexander W. Dowling
 <!-- Introduction: Provide a brief introduction to the project, including its purpose, goals, and any key features or benefits. -->
 ## Introduction
 **GPBO_Emulators** is a repository used to calibrate computationally expensive models given experimental data. The key feature of this work is using machine learning tools in the form of Gaussian processes (GPs) and Bayesian Optimization (BO) which allow us to smartly sample parameter space to decrease the objective. This work features comparing standard GPBO in which a GP models an expensive objective function to emulator GPBO in which an expensive function is emulated directly by the GP.
