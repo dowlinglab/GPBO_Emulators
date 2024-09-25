@@ -25,6 +25,11 @@ save_figs = False
 modes = ["act", "gp", "acq"]
 project = signac.get_project("GPBO_Fix")
 
+for job in project:
+    command = f"rclone copy gdrv:GPBO_Fix/workspace/{job.id}/BO_Results.gz GPBO_Fix/workspace/{job.id}/BO_Results.gz"
+    print(command)
+    os.system(command)
+
 job_ids = []
 for val in [11,14,2,1,12,13,3,10]:
     criteria_dict = {
@@ -50,5 +55,6 @@ for val in [11,14,2,1,12,13,3,10]:
 job_ids = list(set(job_ids))
 print(job_ids)
 for job_id in job_ids:
-    command = f"rclone copy GPBO_Fix/workspace/{job_id} gdrv:GPBO_Fix/workspace/{job_id}"
-    os.system(command)
+    command1 = f"rclone copy GPBO_Fix/workspace/{job_id}/BO_Results_GPs.gz gdrv:GPBO_Fix/workspace/{job_id}/BO_Results_GPs.gz"
+    print(command1)
+    os.system(command1)
