@@ -59,11 +59,11 @@ When reproducing the results of this workflow, more practical, human readable cs
 ### Workflow Code
 All of the scripts for running the workflow are provided in
 ``bo_methods_lib/bo_methods_lib/GPBO_Classes_New``. All tests for public methods in this file are found in ``bo_methods_lib/bo_methods_lib/tests``
-All scipts for analyzing the data in ``GPBO_Fix/workflow`` are provided in ``GPBO_Emulators/make_\*.py``.
+All scipts for analyzing the data in ``GPBO_Fix/workflow`` are provided in ``GPBO_Emulators/make_*.py``.
 
 ### Figures
 All scripts required to generate the primary figures in the
-manuscript and SI are reported under ``GPBO_Emulators/make_\*.py``. When running analysis scripts, these figures are saved under ``Results_xxx/cs_name_val_y/\*``.
+manuscript and SI are reported under ``GPBO_Emulators/make_*.py``. When running analysis scripts, these figures are saved under ``Results_xxx/cs_name_val_y/*``.
 
 ## Installation
 To run this software, you must have access to all packages in the gpbo-emul environment (gpbo-emul.yml) which can be installed using the instructions in the next section.
@@ -94,7 +94,7 @@ An example of the procedure is provided below:
 to manage the setup and execution of the workflow. These
 instructions assume a working knowledge of that software. <br />
 
-**WARNING**: Running these scripts will overwrite your local copy of our data (``GPBO_Fix/workflow/\*``) with the data from your workflow runs. <br />
+**WARNING**: Running these scripts will overwrite your local copy of our data (``GPBO_Fix/workflow/*``) with the data from your workflow runs. <br />
 
 To run the GPBO workflow, follow the following steps:
 1. Use init_gpbofix.py to initialize files for simulation use
@@ -118,7 +118,7 @@ To run the GPBO workflow, follow the following steps:
 ### Final Analysis
 The final processing and figure generation steps can be run using the following once all signac jobs have finished.
 
-**WARNING**: Running these scripts will overwrite your local copy of our workflow results (``Results_xxx/\*``) with the results from your workflow runs. <br />
+**WARNING**: Running these scripts will overwrite your local copy of our workflow results (``Results_xxx/*``) with the results from your workflow runs. <br />
 
 1. Make bar charts for the objective and time data (Figures 1 and 7) and get all data shown in full-results.xlsx <br />
    When this method is run, the data for Table 3, results.xlsx, and full-results.xlsx are generated.
