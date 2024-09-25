@@ -179,7 +179,6 @@ Please contact Montana Carlozo (mcarlozo@nd.edu) or Dr. Alex Dowling (adowling@n
 ## Software Versions
 This section lists software versions for the most important packages. <br />
 gpflow==2.9.1 <br />
-imageio==2.31.4 <br />
 numpy==1.24.4 <br />
 pandas==1.4.2 <br />
 Pyomo==6.6.2 <br />
