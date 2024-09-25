@@ -391,7 +391,7 @@ class CaseStudyParameters:
 
 class Simulator:
     """
-    The base class for differet simulators. Defines a simulation
+    The base class for different simulators. Defines a simulation
     
     Methods
     --------------
@@ -402,16 +402,17 @@ class Simulator:
     __create_param_data(num_points, bounds, gen_meth, seed)
     __vector_to_1D_array(array)
     gen_y_data(data, noise_mean, noise_std)
-    gen_exp_data(num_x_data, gen_meth_x)
-    gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, gen_val_data)
+    gen_exp_data(num_x_data, gen_meth_x, set_seed)
+    gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, set_seed, gen_val_data)
     gen_theta_vals(num_theta_data)
     sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, gen_val_data)
     """
-    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, set_seed, calc_y_fxn, calc_y_fxn_args):
+    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, 
+                 bounds_x_u, noise_mean, noise_std, set_seed, calc_y_fxn, calc_y_fxn_args):
         """
         Parameters
         ----------
-        indeces_to_consider: list of int, The indeces corresponding to which parameters are being guessed
+        indeces_to_consider: list of int, The indices corresponding to which parameters are being guessed
         theta_ref: ndarray, The array containing the true values of problem constants
         theta_names: list, list of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         bounds_theta_l: list, lower bounds of theta
@@ -431,6 +432,8 @@ class Simulator:
         #Check for list or ndarray
         list_vars = [indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
         assert all(isinstance(var,(list,np.ndarray)) for var in list_vars) == True, "indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
+        #Check indeces_to_consider are ints
+        assert all(isinstance(var, (int)) for var in indeces_to_consider) == True, "indeces_to_consider must be a list of ints"
         #Check for list lengths > 0
         assert all(len(var) > 0 for var in list_vars) == True, "indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must have length > 0"
         #Check that bound_x and bounds_theta have same lengths
@@ -438,8 +441,7 @@ class Simulator:
         #Check indeces to consider in theta_ref
         assert all(0 <= idx <= len(theta_ref)-1 for idx in indeces_to_consider)==True, "indeces to consider must be in range of theta_ref"
         assert isinstance(calc_y_fxn_args, dict) or calc_y_fxn_args is None, "calc_y_fxn_args must be dict or None"
-        
-        #How to write assert statements for calc_y_fxn?
+        assert callable(calc_y_fxn), "calc_y_fxn must be a callable function"
         
         # Constructor method
         self.dim_x = len(bounds_x_l)
