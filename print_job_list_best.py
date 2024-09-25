@@ -26,7 +26,7 @@ modes = ["act", "gp", "acq"]
 project = signac.get_project("GPBO_Fix")
 
 for job in project:
-    command = f"rclone copy gdrv:GPBO_Fix/workspace/{job.id}/BO_Results.gz GPBO_Fix/workspace/{job.id}/BO_Results.gz"
+    command = f"rclone copy GPBO_Fix/workspace/{job.id}/BO_Results.gz gdrv:GPBO_Fix/workspace/{job.id}/BO_Results.gz"
     print(command)
     os.system(command)
 
