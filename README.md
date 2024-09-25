@@ -75,7 +75,7 @@ need to be installed from source or pip. <br />
 
 Running the simulations will also require an installation of TASMANIAN.
 This can be installed separately (see installation instructions
-[here](https://github.com/ORNL/TASMANIAN). <br />
+[here](https://github.com/ORNL/TASMANIAN) ). <br />
 
 An example of the procedure is provided below:
 
