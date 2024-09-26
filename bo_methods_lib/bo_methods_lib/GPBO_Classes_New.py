@@ -565,6 +565,7 @@ class Simulator:
         """
         Reshapes 1D arrays (n,), into 2D arrays (n, 1), while leaving other arrays unchanged
 
+
         Parameters
         ----------
         array: ndarray, expected 1D or higher dimension array
@@ -753,12 +754,8 @@ class Simulator:
         --------
         theta_vals: ndarray, theta values generated
         """
-        assert isinstance(num_theta_data, int) and num_theta_data > 0, "num_theta_data must be int > 0"
+        assert isinstance(num_theta_data, int) and num_theta_data > 0, "num_theta_data must be be a postive integer"
         gen_meth_theta = Gen_meth_enum(1)
-            
-        #Chck that num_data > 0
-        if num_theta_data <= 0 or isinstance(num_theta_data, int) == False:
-            raise ValueError('num_theta_data must be a positive integer')
             
         #Warn user if >5000 pts generated
         if num_theta_data > 5000:
@@ -786,7 +783,7 @@ class Simulator:
         sim_sse_data: ndarray, sse data generated from y_vals
         """
         
-        assert isinstance(sep_fact, (float,int)), "Separation factor must be float or int > 0"
+        assert isinstance(sep_fact, (float,int)), "Separation factor must be float or int"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
             
         if isinstance(gen_val_data, bool) == False:
