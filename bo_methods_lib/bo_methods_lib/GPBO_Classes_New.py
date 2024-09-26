@@ -563,11 +563,11 @@ class Simulator:
     
     def __vector_to_1D_array(self, array):
         """
-        Turns arrays that are shape (n,) into (n, 1) arrays
+        Reshapes 1D arrays (n,), into 2D arrays (n, 1), while leaving other arrays unchanged
 
         Parameters
         ----------
-        array: ndarray, n dimensions
+        array: ndarray, expected 1D or higher dimension array
 
         Returns
         -------
@@ -575,7 +575,7 @@ class Simulator:
         """
         #If array is not 2D, give it shape (len(array), 1)
         if not len(array.shape) > 1:
-            array = array.reshape(-1,1)
+            return array.reshape(-1,1)
         return array
     
     
@@ -605,7 +605,7 @@ class Simulator:
         for i in range(len_points):
             #Create model coefficient from true space substituting in the values of param_space at the correct indeces
             model_coefficients = self.theta_ref.copy()
-            #Replace coefficients a specified indeces with their theta_val counterparts
+            #Replace coefficients at specified indices with their theta_val counterparts
             model_coefficients[self.indeces_to_consider] = data.theta_vals[i]               
             #Create y data coefficients
             y_data.append(self.calc_y_fxn(model_coefficients, data.x_vals[i], self.calc_y_fxn_args))
@@ -617,13 +617,11 @@ class Simulator:
         if noise_std is None:
             #If noise is none, set the noise as 5% of the mean value
             noise_std = np.abs(np.mean(y_data))*0.05
-        else:
-            noise_std = noise_std
 
         noise = np.random.normal(size=len(y_data), loc = noise_mean, scale = noise_std)
         
         #Add noise to data
-        y_data = y_data + noise
+        y_data += noise
         
         return y_data
        
@@ -634,12 +632,12 @@ class Simulator:
         Parameters
         ----------
         num_x_data: int, number of experiments
-        gen_meth_x: bool: Whether to generate X data with LHS or grid method
-        set_seed: int or None, Seed with which t0 generate experimental data. None sets the seed to the class seed
+        gen_meth_x: bool, Whether to generate X data with LHS or grid method
+        set_seed: int or None, Seed with which to generate experimental data. None sets the seed to the class seed
 
         Returns:
         --------
-        exp_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        exp_data: Data Object, instance of a class filled in with experimental x and y data along with parameter bounds
         """
         assert isinstance(set_seed, int) or set_seed is None, "set_seed must be int or None"
         #Set generation data seed
@@ -648,7 +646,7 @@ class Simulator:
         else:
             new_seed = self.seed
         #check that num_data > 0 
-        if num_x_data <= 0 or isinstance(num_x_data, int) == False:
+        if num_x_data >= 0 and isinstance(num_x_data, int) == False:
             raise ValueError('num_x_data must be a positive integer')
             
         #Create x vals based on bounds and num_x_data
@@ -663,7 +661,8 @@ class Simulator:
         
         return exp_data
     
-    def gen_sim_data(self, num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, set_seed = None, gen_val_data = False):
+    def gen_sim_data(self, num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, set_seed = None,
+                      gen_val_data = False):
         """
         Generates experimental data in an instance of the Data class
         
@@ -674,12 +673,12 @@ class Simulator:
         gen_meth_theta: bool: Whether to generate theta data with LHS or grid method
         gen_meth_x: bool: Whether to generate X data with LHS or grid method
         sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        set_seed: int or None, seed to generate initial training data with. If None, seed will be the seed of the class
+        set_seed: int or None, seed to generate initial training data with. If None, seed will be the seed of the class. Default None
         gen_val_data: bool, Whether validation data (no y vals) or simulation data (has y vals) will be generated. Default False
         
         Returns:
         --------
-        sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
+        sim_data: Data object,  instance of a class filled in with experimental x and y data along with parameter bounds
         """
         assert isinstance(sep_fact, (float,int)), "Separation factor must be float or int > 0"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
@@ -694,13 +693,13 @@ class Simulator:
             raise ValueError('gen_val_data must be bool')
             
         #Chck that num_data > 0
-        if num_theta_data <= 0 or isinstance(num_theta_data, int) == False:
+        if num_theta_data >= 0 and isinstance(num_theta_data, int) == False:
             raise ValueError('num_theta_data must be a positive integer')
             
-        if num_x_data <= 0 or isinstance(num_x_data, int) == False:
+        if num_x_data >= 0 and isinstance(num_x_data, int) == False:
             raise ValueError('num_x_data must be a positive integer')
         
-        #Set bounds on theta which we are regressing given bounds_theta and indeces to consider
+        #Set bounds on theta which we are regressing given bounds_theta and indices to consider
         #X data we always want the same between simulation and validation data
         x_data = self.__vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, sim_seed))
             
