@@ -26,7 +26,7 @@ modes = ["act", "gp", "acq"]
 project = signac.get_project("GPBO_Fix")
 
 for job in project:
-    command = f"rclone copy GPBO_Fix/workspace/{job.id}/BO_Results.gz gdrv:GPBO_Fix/workspace/{job.id}/BO_Results.gz"
+    command = f"rclone copy GPBO_Fix/workspace/{job.id}/BO_Results.gz gdrv:GPBO_Fix/workspace/{job.id}"
     print(command)
     os.system(command)
 
@@ -55,6 +55,6 @@ for val in [11,14,2,1,12,13,3,10]:
 job_ids = list(set(job_ids))
 print(job_ids)
 for job_id in job_ids:
-    command1 = f"rclone copy GPBO_Fix/workspace/{job_id}/BO_Results_GPs.gz gdrv:GPBO_Fix/workspace/{job_id}/BO_Results_GPs.gz"
+    command1 = f"rclone copy GPBO_Fix/workspace/{job_id}/BO_Results_GPs.gz gdrv:GPBO_Fix/workspace/{job_id}"
     print(command1)
     os.system(command1)
