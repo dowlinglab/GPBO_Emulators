@@ -2298,15 +2298,15 @@ class All_CS_Plotter(Plotters):
 
         # Sort the DataFrame by the 'Department' column
         df_averages = df_averages.sort_values(["CS Name", "BO Method"])
-
+        # print(df_averages.head())
         def calculate_new_column(group):
             # Calculate Avg Evals for NLS in the current group
             nls_avg_evals = group.loc[
                 group["BO Method"] == "NLS", "Avg F Evals Tot"
-            ].values[0]
+            ].values
             nls_std_evals = group.loc[
                 group["BO Method"] == "NLS", "Std F Evals Tot"
-            ].values[0]
+            ].values
 
             # Calculate the new column
             group["D"] = nls_avg_evals - group["Avg F Evals Tot"]
@@ -2455,6 +2455,207 @@ class All_CS_Plotter(Plotters):
             )
             save_path_dir = os.path.join(save_path)
             save_path_to = os.path.join(save_path_dir, str(mode) + "_bar")
+            df_averages.to_csv(save_path_to + ".csv", index=False)
+            self.__save_fig(save_path_to)
+        else:
+            plt.show()
+            plt.close()
+
+        # return df_averages
+        return df_averages
+    
+    def make_derivfree_bar(self):
+        """
+        Makes a bar chart of relevant data for each method and case study. Produces Figures 2 and 7 in the paper
+
+        Parameters:
+        -----------
+        mode: str
+            Whether to make a bar chart for the objective or time information for the case studies
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
+        -----
+        Options for mode are "objs" or "time"
+        """
+        # Make figures and define number of subplots (3. One for SSE, one for L2 Norm, and one for (total) fxn evals)
+        t_label_lst = [
+            get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list
+        ]
+
+        add_value = 1
+        fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+            3, sharex=False, sharey=True
+        )
+
+        #Bar sizing = number of case studies + padding
+        bar_size = 1 / (len(self.analyzer.cs_list) + add_value)
+        padding = 1 / (len(self.analyzer.cs_list))
+
+        # Get jobs associated with the case studies given
+        df_averages = self.analyzer.get_averages_best()
+        desired_order = [
+            "Large Linear",
+            "Muller y0",
+            "Log Logistic",
+            "Yield-Loss",
+            "Simple Linear",
+            "Muller x0",
+            "2D Log Logistic",
+            "BOD Curve",
+        ]
+        # Convert the 'Department' column to a categorical type with the specified order
+        df_averages["CS Name"] = pd.Categorical(
+            df_averages["CS Name"], categories=desired_order, ordered=True
+        )
+        df_averages["BO Method"] = pd.Categorical(
+            df_averages["BO Method"],
+            categories=["NLS"] + self.method_names[::-1],
+            ordered=True,
+        )
+
+        # Sort the DataFrame by the 'Department' column
+        df_averages = df_averages.sort_values(["CS Name", "BO Method"])
+
+        def calculate_new_column(group):
+            # Calculate Avg Evals for NLS in the current group
+            nls_avg_evals = group.loc[
+                group["BO Method"] == "NLS", "Avg F Evals Tot"
+            ].values
+            nls_std_evals = group.loc[
+                group["BO Method"] == "NLS", "Std F Evals Tot"
+            ].values
+
+            # Calculate the new column
+            group["D"] = nls_avg_evals - group["Avg F Evals Tot"]
+            group["Std D"] = np.sqrt(nls_std_evals**2 + group["Std F Evals Tot"] ** 2)
+
+            # Calculate the new column
+            group["F_Time_Parity"] = (group["Avg Time"] / 60) / group["D"]
+
+            # Calculate the uncertainty in (Avg Time / 60)
+            std_avg_time_div_60 = group["Std Time"] / 60
+
+            # Calculate the uncertainty in the new column
+            group["F_Par_std"] = group["F_Time_Parity"] * np.sqrt(
+                (std_avg_time_div_60 / (group["Avg Time"] / 60)) ** 2
+                + (group["Std D"] / group["D"]) ** 2
+            )
+            group = group.drop(columns=["Std D", "D"])
+
+            return group
+
+        # Apply the calculation for each group
+        df_averages = df_averages.groupby("CS Name", group_keys=False).apply(
+            calculate_new_column
+        )
+
+        names = ["Median Loss", "Avg Evals", "Avg Evals Tot", "Avg Opt Acq"]
+        std_names = ["IQR Loss", "Std Evals", "Std Evals Tot", "Std Opt Acq"]
+        titles = [
+            "Median "
+            + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$"
+            + " \n at Termination",
+            "Avg. "
+            + r"$\mathscr{L}(\cdot)$"
+            + " Evaluations \n to Reach "
+            + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$",
+            "Total " + r"$\mathscr{L}(\cdot)$" + " Evalulations",
+            "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions",
+        ]
+
+
+        t_label_lst = list(df_averages["CS Name"].unique())
+        t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
+
+        y_locs = np.arange(len(self.analyzer.cs_list)) * (
+            bar_size * (len(self.analyzer.meth_val_list) + add_value) + padding
+        )
+        axes = axes.flatten()
+        for i in range(len(self.analyzer.meth_val_list) + add_value):
+            if i < len(self.analyzer.meth_val_list):
+                # loop over methods n reverse order
+                meth_val = self.analyzer.meth_val_list[-1 - i]
+                meth_averages = df_averages.loc[
+                    df_averages["BO Method"] == self.method_names[meth_val - 1]
+                ]
+                label = self.method_names[meth_val - 1]
+                color = self.colors[meth_val - 1]
+            else:
+                meth_averages = df_averages.loc[df_averages["BO Method"] == "NLS"]
+                label = "NLS"
+                color = "grey"
+
+            for j in range(len(names)):
+                scl_value = 60 if names[j] == "Avg Time" else 1
+                avg_val = meth_averages[names[j]] / scl_value
+                std_val = meth_averages[std_names[j]] / scl_value
+                avg_val = np.maximum(avg_val, 0)
+                std_val = np.maximum(std_val, 0)
+                rects = axes[j].barh(
+                    y_locs + i * bar_size,
+                    avg_val,
+                    xerr=std_val,
+                    align="center",
+                    height=bar_size,
+                    color=color,
+                    label=label,
+                    hatch=self.hatches[-1 - i],
+                )
+
+                if i == 0:
+                    # Set plot details on last iter
+                    self.__set_subplot_details(axes[j], None, None, titles[j])
+                    axes[j].set(
+                        yticks=y_locs + padding * len(self.analyzer.cs_list) / 2,
+                        yticklabels=t_label_lst,
+                        ylim=[0 - padding, len(y_locs)],
+                    )
+
+        axes[0].set_xscale("log")
+        axes[1].set_xscale("log")
+        axes[2].set_xscale("log")
+
+        for n, ax in enumerate(axes):
+            ax.grid()
+            if len(axes) > 1:
+                ax.text(
+                    -0.1,
+                    1.05,
+                    "(" + string.ascii_uppercase[n] + ")",
+                    transform=ax.transAxes,
+                    size=20,
+                    weight="bold",
+                )
+
+        # Add legends and handles from last subplot that is visible
+        handles, labels = axes[-1].get_legend_handles_labels()
+
+        # Plots legend
+        if labels:
+            fig.legend(
+                reversed(handles),
+                reversed(labels),
+                loc="upper center",
+                ncol=4,
+                fontsize=self.other_fntsz,
+                bbox_to_anchor=(0.55, 1.10),
+                borderaxespad=0,
+            )
+
+        plt.tight_layout()
+
+        # Save or show figure
+        if self.save_figs:
+            save_path = self.analyzer.make_dir_name_from_criteria(
+                self.analyzer.criteria_dict
+            )
+            save_path_dir = os.path.join(save_path)
+            save_path_to = os.path.join(save_path_dir, "noderiv_bar")
             df_averages.to_csv(save_path_to + ".csv", index=False)
             self.__save_fig(save_path_to)
         else:
