@@ -7,6 +7,7 @@ from ast import literal_eval
 from collections.abc import Iterable
 from sklearn.preprocessing import MinMaxScaler
 from scipy.spatial.distance import pdist, squareform
+import pygad
 
 from .GPBO_Class_fxns import *
 from .GPBO_Classes_New import *
@@ -232,7 +233,10 @@ class General_Analysis:
         """
         assert isinstance(str_arr, str), "str_arr must be a string"
         # Find the index of the first space
-        first_space_index = str_arr.index(" ")
+        try:
+            first_space_index = str_arr.index(" ")
+        except:
+            first_space_index = -1
         # Remove the first space if its the 2nd character (the first will be [)
         if first_space_index == 1:
             str_no_space1 = (
@@ -242,6 +246,8 @@ class General_Analysis:
             str_no_space1 = str_arr
         # Turn the string into an array be subbing spaces with a ,
         array_from_str = np.array(ast.literal_eval(re.sub(r"\s+", ",", str_no_space1)))
+        if len(array_from_str) == 1:
+            array_from_str = array_from_str[0]
         return array_from_str
 
     def get_df_all_jobs(self, criteria_dict=None, save_csv=False):
@@ -2229,7 +2235,7 @@ class All_CS_Analysis(General_Analysis):
 
         return results_df
 
-    def get_averages_best(self):
+    def get_averages_best(self, other_meths = ["NLS"]):
         """
         Get median/average data for multiple properties for all case studies. Used to reporduce Figure 2 in the paper
 
@@ -2272,74 +2278,104 @@ class All_CS_Analysis(General_Analysis):
             # Add nonlinear least squares results
             # Get SSE data from least squares
             # Create a criteria dictionary for the case study
-            criteria_dict_ls = {
-                "cs_name_val": cs_name,
-                "meth_name_val": self.meth_val_list,
-            }
-            ls_analyzer = LS_Analysis(criteria_dict_ls, self.project, self.save_csv)
-            ls_results = ls_analyzer.least_squares_analysis()
-            # Make a df that is only the iters of the best run
-            df_sorted = ls_results.sort_values(
-                by=["Min Obj Cum.", "Run", "Iter"], ascending=True
-            )
-            # Keep only the highest value for each run
-            df_best_ls = df_sorted.groupby(["Run"]).first().reset_index()
-            df_best_ls["CS Name"] = get_cs_class_from_val(cs_name).name
-            df_best_ls["BO Method"] = "NLS"
-            df_best_ls.rename(columns={"Iter": "BO Iter"}, inplace=True)
-            if i == 0 and len(df_best_ls) > 0:
-                df_all_ls_best = df_best_ls
-            # Otherwise, concatenate the DataFrame to df_all_best
-            else:
-                df_all_ls_best = pd.concat([df_all_ls_best, df_best_ls], axis=0)
+            other_meth_df_list = []
+            for count_meth, meth in enumerate(other_meths):
+                criteria_dict_other_meth = {
+                        "cs_name_val": cs_name,
+                        "meth_name_val": self.meth_val_list,
+                    }
+                if meth == "NLS":
+                    ls_analyzer = LS_Analysis(criteria_dict_other_meth, self.project, self.save_csv)
+                    other_meth_results = ls_analyzer.least_squares_analysis()
+                elif meth =="SHGO-Sob":
+                    shgo_analyzer = Deriv_Free_Anlys("SHGO-Sob", criteria_dict_other_meth, self.project, self.save_csv)
+                    other_meth_results = shgo_analyzer.regression_analysis()
+                elif meth =="SHGO-Sob":
+                    shgo_analyzer = Deriv_Free_Anlys("SHGO-Simp", criteria_dict_other_meth, self.project, self.save_csv)
+                    other_meth_results = shgo_analyzer.regression_analysis()
+                elif meth =="GA":
+                    ga_analyzer = Deriv_Free_Anlys("GA", criteria_dict_other_meth, self.project, self.save_csv)
+                    other_meth_results = ga_analyzer.regression_analysis()
+                else:
+                    raise ValueError("Method not recognized")
+                    
+                    
+                # Make a df that is only the iters of the best run
+                df_sorted = other_meth_results.sort_values(
+                    by=["Min Obj Cum.", "Run", "Iter"], ascending=True
+                )
+                # Keep only the highest value for each run
+                df_best_other_meth = df_sorted.groupby(["Run"]).first().reset_index()
+                df_best_other_meth["CS Name"] = get_cs_class_from_val(cs_name).name
+                df_best_other_meth["BO Method"] = meth
+                df_best_other_meth.rename(columns={"Iter": "BO Iter"}, inplace=True)
+                if i == 0 and len(df_best_other_meth) > 0:
+                    df_all_other_meth_best = df_best_other_meth
+                # Otherwise, concatenate the DataFrame to df_all_best
+                else:
+                    df_all_other_meth_best = pd.concat([df_all_other_meth_best, df_best_other_meth], axis=0)
 
-        if "Max Evals" not in df_all_ls_best.columns:
-            # Compute the maximum 'iter' for each 'run'
-            df_all_ls_best["Max Evals"] = df_all_ls_best.groupby(["CS Name", "Run"])[
-                "BO Iter"
-            ].transform("max")
+                
+                if "Max Evals" not in df_all_other_meth_best.columns:
+                    # Compute the maximum 'iter' for each 'run'
+                    df_all_other_meth_best["Max Evals"] = df_all_other_meth_best.groupby(["CS Name", "Run"])[
+                        "BO Iter"
+                    ].transform("max")
 
-        df_all_ls_best["F Max Evals"] = df_all_ls_best["Max Evals"] * df_all_ls_best[
-            "CS Name"
-        ].map(self.cs_x_dict)
-        df_all_ls_best["F Evals"] = df_all_ls_best["BO Iter"] * df_all_ls_best[
-            "CS Name"
-        ].map(self.cs_x_dict)
+                df_all_other_meth_best["F Max Evals"] = df_all_other_meth_best["Max Evals"] * df_all_other_meth_best[
+                    "CS Name"
+                ].map(self.cs_x_dict)
+                df_all_other_meth_best["F Evals"] = df_all_other_meth_best["BO Iter"] * df_all_other_meth_best[
+                    "CS Name"
+                ].map(self.cs_x_dict)
+
+                if count_meth == 0:
+                    df_all_best_all_meth = df_all_other_meth_best
+
+                # Concatenate the DataFrames along the rows axis
+                df_all_best_all_meth = pd.concat([df_all_best_all_meth, df_all_other_meth_best], ignore_index=True)
 
         # Scale the objective function values for log conv and log indep
         condition = df_all_best["BO Method"].isin(
             ["Log Conventional", "Log Independence"]
         )
-        # Multiply values in column B by 3 where the condition is true
+        # Multiply values in column B by exp where the condition is true
         df_all_best.loc[condition, obj_col_sse_min] = np.exp(
             df_all_best.loc[condition, obj_col_sse_min]
         )
-
+        #Rename best L2 norm column 
+        # df_all_best.rename(columns={"L2 Norm Theta": "l2 norm"}, inplace=True)
         # Group the data by CS Name and BO Method, and get the mean and std for each group over all runs
         grouped_stats = (
             df_all_best.groupby(["CS Name", "BO Method"])
             .agg(
                 {
                     obj_col_sse_min: ["median", self.__get_iqr],
+                    "L2 Norm Theta": ["median", self.__get_iqr],
                     "BO Iter": ["mean", "std"],
                     "Max Evals": ["mean", "std"],
                     "Total Run Time": ["mean", "std"],
                     "F Evals": ["mean", "std"],
                     "F Max Evals": ["mean", "std"],
+                    
                 }
             )
             .reset_index()
         )
-        grouped_stats_ls = (
-            df_all_ls_best.groupby(["CS Name", "BO Method"])
+
+
+        grouped_stats_other_meths = (
+            df_all_other_meth_best.groupby(["CS Name", "BO Method"])
             .agg(
                 {
                     "Min Obj Cum.": ["median", self.__get_iqr],
+                    "l2 norm": ["median", self.__get_iqr],
                     "BO Iter": ["mean", "std"],
                     "Max Evals": ["mean", "std"],
                     "Run Time": ["mean", "std"],
                     "F Evals": ["mean", "std"],
                     "F Max Evals": ["mean", "std"],
+                    
                 }
             )
             .reset_index()
@@ -2350,6 +2386,8 @@ class All_CS_Analysis(General_Analysis):
             "BO Method",
             "Median Loss",
             "IQR Loss",
+            "Median L2 Norm",
+            "IQR L2 Norm",
             "Avg Evals",
             "Std Evals",
             "Avg Evals Tot",
@@ -2363,16 +2401,16 @@ class All_CS_Analysis(General_Analysis):
         ]
         # Flatten the MultiIndex columns
         grouped_stats.columns = cols
-        grouped_stats_ls.columns = cols
+        grouped_stats_other_meths.columns = cols
 
         # Create a new DataFrame with results
         df_acq_opt = self.get_acq_last10_avg()
         df_avg_best = grouped_stats[cols]
-        df_avg_ls_best = grouped_stats_ls[cols]
+        df_avg_other_meths_best = grouped_stats_other_meths[cols]
         df_avg_best_w_acq = pd.merge(
             df_acq_opt, df_avg_best, on=["CS Name", "BO Method"]
         )
-        df_avg_all = pd.concat([df_avg_best_w_acq, df_avg_ls_best], axis=0)
+        df_avg_all = pd.concat([df_avg_best_w_acq, df_avg_other_meths_best], axis=0)
 
         if self.save_csv:
             save_path = os.path.join(self.study_results_dir, "all_cs_avg_best.csv")
@@ -2748,6 +2786,9 @@ class LS_Analysis(General_Analysis):
             ls_results["Theta Min Obj Cum."] = ls_results["Theta Min Obj Cum."].apply(
                 self.str_to_array_df_col
             )
+            ls_results["l2 norm"] = ls_results["l2 norm"].apply(
+                self.str_to_array_df_col
+            )
 
         return ls_results
 
@@ -2869,3 +2910,477 @@ class LS_Analysis(General_Analysis):
             local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
 
         return local_min_sets
+
+
+class Deriv_Free_Anlys(General_Analysis):
+    """
+    The class for Derivative free regression analysis. Child class of General_Analysis
+
+    Methods:
+    --------
+    __init__(deriv_free_meth, criteria_dict, project, save_csv, exp_data=None, simulator=None): Initializes the class
+    __scipy_func(theta_guess, exp_data, simulator): Function to define regression function for scipy regression methods
+    __pygad_func(ga_instance, solution, solution_idx): Function to define regression function for pygad regression method
+    __get_simulator_exp_data(): Gets the simulator and experimental data from the job
+    regression_analysis(tot_runs = None): Performs least squares regression on the problem equal to what was done with BO
+    """
+
+    # Inherit objects from General_Analysis
+    def __init__(self, deriv_free_meth, criteria_dict, project, save_csv, num_generations=50, num_parents_mating=5, sol_per_pop=5, exp_data=None, simulator=None):
+        """
+        Parameters
+        ----------
+        deriv_free_meth: str
+            The derivative free method to use. Options are "NM", "SHGO-Sob", "SHGO-Simp", and "GA"
+        criteria_dict: dict
+            The criteria dictionary to analyze
+        project: signac.project.Project
+            The signac project to analyze
+        save_csv: bool
+            Whether to save csvs
+        exp_data: Data, default None
+            The experimental data to evaluate
+        simulator: Simulator, default None
+            The simulator object to evaluate
+
+        num_generations: int, default 50
+            The number of generations to run the genetic algorithm
+        num_parents_mating: int, default 5
+            The number of parents to mate in the genetic algorithm
+        sol_per_pop: int, default 10
+            The number of solutions in the population
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+        """
+        assert isinstance(deriv_free_meth, str), "deriv_free_meth must be str"
+        assert deriv_free_meth in ["NM", "SHGO-Sob", "SHGO-Simp", "GA"], "deriv_free_meth must be 'NM', 'SHGO-Sob', 'SHGO-Simp', or 'GA'"
+        self.deriv_free_meth = deriv_free_meth
+        assert (
+            isinstance(exp_data, Data) or exp_data == None
+        ), "exp_data must be type Data or None"
+        assert (
+            isinstance(simulator, Simulator) or simulator == None
+        ), "simulator must be type Simulator or None"
+        super().__init__(criteria_dict, project, "act", save_csv)
+        self.iter_param_data = []
+        self.iter_sse_data = []
+        self.iter_l2_norm = []
+        self.iter_count = 0
+        self.seed = 1
+        # Placeholder that will be overwritten if None
+        self.simulator = simulator
+        self.exp_data = exp_data
+        self.num_x = 10  # Default number of x to generate
+        self.num_generations = num_generations 
+        self.num_parents_mating = num_parents_mating
+        self.sol_per_pop = sol_per_pop
+
+    # Create a function to optimize, in this case, least squares fitting
+    def __pygad_func(self, ga_instance, solution, solution_idx):
+        """
+        Function to define regression function for least-squares fitting
+        Parameters
+        ----------
+        theta_guess: np.ndarray
+            The parameter set values to evaluate
+        exp_data: Data
+            The experimental data to evaluate
+        simulator: Simulator
+            The simulator object to evaluate
+
+        Returns
+        -------
+        error: np.ndarray
+            The error between the experimental data and the simulated data
+        """
+        # Repeat the theta best array once for each x value
+        # Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
+        t_guess_repeat = np.vstack([solution] * len(self.exp_data.x_vals))
+        # Add instance of Data class to theta_best
+        theta_guess_data = Data(
+            t_guess_repeat,
+            self.exp_data.x_vals,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            self.simulator.bounds_theta_reg,
+            self.simulator.bounds_x,
+            1,
+            self.simulator.seed,
+        )
+        # Calculate y values and sse for theta_best with noise
+        theta_guess_data.y_vals = self.simulator.gen_y_data(
+            theta_guess_data, self.simulator.noise_mean, self.simulator.noise_std
+        )
+
+        sse = np.sum((self.exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten())**2)
+        fitness = 1/(sse+1e-6)
+
+        # Append intermediate values to list
+        self.iter_param_data.append(np.array(solution))
+        self.iter_sse_data.append(sse)
+
+        # Create scaler to scale between 0 and 1
+        scaler = MinMaxScaler()
+        scaler.fit(
+            [self.simulator.bounds_theta_reg[0], self.simulator.bounds_theta_reg[1]]
+        )
+        # Calculate scaled l2
+        del_theta = scaler.transform(solution.reshape(1, -1)) - scaler.transform(
+            self.simulator.theta_true.reshape(1, -1)
+        )
+        theta_l2_norm = np.linalg.norm(del_theta, ord=2, axis=1) / np.sqrt(
+            len(solution)
+        )
+        self.iter_l2_norm.append(float(theta_l2_norm))
+        self.iter_count += 1
+
+        return float(fitness)
+    
+    # Create a function to optimize, in this case, least squares fitting
+    def __scipy_func(self, theta_guess, exp_data, simulator):
+        """
+        Function to define regression function for least-squares fitting
+        Parameters
+        ----------
+        theta_guess: np.ndarray
+            The parameter set values to evaluate
+        exp_data: Data
+            The experimental data to evaluate
+        simulator: Simulator
+            The simulator object to evaluate
+
+        Returns
+        -------
+        error: np.ndarray
+            The error between the experimental data and the simulated data
+        """
+        # Repeat the theta best array once for each x value
+        # Need to repeat theta_best such that it can be evaluated at every x value in exp_data using simulator.gen_y_data
+        t_guess_repeat = np.repeat(
+            theta_guess.reshape(1, -1), exp_data.get_num_x_vals(), axis=0
+        )
+        # Add instance of Data class to theta_best
+        theta_guess_data = Data(
+            t_guess_repeat,
+            exp_data.x_vals,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            simulator.bounds_theta_reg,
+            simulator.bounds_x,
+            1,
+            simulator.seed,
+        )
+        # Calculate y values and sse for theta_best with noise
+        theta_guess_data.y_vals = simulator.gen_y_data(
+            theta_guess_data, simulator.noise_mean, simulator.noise_std
+        )
+
+        error = np.sum((exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten())**2)
+
+        # Append intermediate values to list
+        self.iter_param_data.append(theta_guess)
+        self.iter_sse_data.append(np.sum(error**2))
+
+        # Create scaler to scale between 0 and 1
+        scaler = MinMaxScaler()
+        scaler.fit(
+            [self.simulator.bounds_theta_reg[0], self.simulator.bounds_theta_reg[1]]
+        )
+        # Calculate scaled l2
+        del_theta = scaler.transform(theta_guess.reshape(1, -1)) - scaler.transform(
+            self.simulator.theta_true.reshape(1, -1)
+        )
+        theta_l2_norm = np.linalg.norm(del_theta, ord=2, axis=1) / np.sqrt(
+            len(theta_guess)
+        )
+        self.iter_l2_norm.append(float(theta_l2_norm))
+        self.iter_count += 1
+
+        return error
+
+    def __get_simulator_exp_data(self):
+        """
+        Gets the simulator and experimental data from the job
+
+        Returns
+        -------
+        simulator: Simulator
+            The simulator object to evaluate
+        exp_data: Data
+            The experimental data to evaluate
+        tot_runs_cs: int
+            The total number of runs in the case study
+        ftol: float
+            The tolerance for the objective function
+
+        Notes
+        -----
+        The simulator and experimental data is consistent between all methods of a given case study
+        """
+        jobs = sorted(
+            self.project.find_jobs(self.criteria_dict), key=lambda job: job._id
+        )
+        valid_files = [
+            job.fn("BO_Results.gz")
+            for job in jobs
+            if os.path.exists(job.fn("BO_Results.gz"))
+        ]
+        if len(valid_files) > 0:
+            smallest_file = min(valid_files, key=lambda x: os.path.getsize(x))
+            # Find the job corresponding to the smallest file size
+            smallest_file_index = valid_files.index(smallest_file)
+            job = jobs[smallest_file_index]
+
+            # Open the statepoint of the job
+            with open(job.fn("signac_statepoint.json"), "r") as json_file:
+                # Load the JSON data
+                sp_data = json.load(json_file)
+            # get number of total runs from statepoint
+            tot_runs_cs = sp_data["bo_run_tot"]
+            ftol = sp_data["obj_tol"]
+            if tot_runs_cs == 1:
+                if sp_data["cs_name_val"] in [2, 3] and sp_data["bo_iter_tot"] == 75:
+                    tot_runs_cs = 10
+                else:
+                    tot_runs_cs = 5
+
+            # Open smallest job file
+            results = open_file_helper(job.fn("BO_Results.gz"))
+            # Get Experimental data and Simulator objects used in problem
+            exp_data = results[0].exp_data_class
+            simulator = results[0].simulator_class
+            simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
+
+        else:
+            # Set tot_runs cs as 5 as a default
+            tot_runs_cs = 5
+            # Create simulator and exp Data class objects
+            simulator = simulator_helper_test_fxns(
+                self.criteria_dict["cs_name_val"], 0, None, self.seed
+            )
+
+            # Get criteria dict name from cs number
+            cs_name_dict = get_cs_class_from_val(self.criteria_dict["cs_name_val"]).name
+            # Set num_x based off cs number
+            self.cs_x_dict = {
+                "Simple Linear": 5,
+                "Muller x0": 25,
+                "Muller y0": 25,
+                "Yield-Loss": 10,
+                "Large Linear": 25,
+                "BOD Curve": 10,
+                "Log Logistic": 10,
+                "2D Log Logistic": 25,
+            }
+            self.num_x = self.cs_x_dict[cs_name_dict]
+            exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
+            ftol = 1e-7
+
+        self.simulator = simulator
+        self.exp_data = exp_data
+
+        return simulator, exp_data, tot_runs_cs, ftol
+
+    def regression_analysis(self, tot_runs=None):
+        """
+        Performs derivative free optimization on the problem equal to what was done with BO
+
+        Parameters
+        ----------
+        tot_runs: int or None, default None
+            The total number of runs to perform
+
+        Returns
+        -------
+        ls_results: pd.DataFrame
+            The results of the least squares regression
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
+        -----
+        If None, tot_runs will default to 5
+
+        """
+        assert (
+            isinstance(tot_runs, int) or tot_runs is None
+        ), "tot_runs must be int or None"
+        if isinstance(tot_runs, int):
+            assert tot_runs > 0, "tot_runs must be > 0 if int"
+        tot_runs_str = str(tot_runs) if tot_runs is not None else "cs_runs"
+        cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
+        ls_data_path = os.path.join(
+            self.make_dir_name_from_criteria(cs_name_dict),
+            self.deriv_free_meth + "_" + tot_runs_str + ".csv",
+        )
+        found_data1, ls_results = self.load_data(ls_data_path)
+
+        if self.save_csv or not found_data1:
+            # Get simulator and exp_data Data class objects
+            simulator, exp_data, tot_runs_cs, ftol = self.__get_simulator_exp_data()
+
+            num_restarts = tot_runs_cs if tot_runs is None else tot_runs
+            len_x = exp_data.get_num_x_vals()
+
+            # Set seed
+            np.random.seed(self.seed)
+            ## specify initial guesses
+            # Note: We do not use the same starting points as with GPBO.
+            # MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
+            # Note: Starting points for optimization are saved in the driver, which is not saved in BO_Results.gz
+            theta_guess = self.simulator.gen_theta_vals(num_restarts)
+
+            # Initialize results dataframe
+            column_names = [
+                "Run",
+                "Iter",
+                "Min Obj Act",
+                "Theta Min Obj",
+                "Min Obj Cum.",
+                "Theta Min Obj Cum.",
+                "MSE",
+                "l2 norm",
+                "jac evals",
+                "Optimality",
+                "Termination",
+                "Run Time",
+                "Max Evals",
+            ]
+            column_names_iter = [
+                "Run",
+                "Iter",
+                "Min Obj Act",
+                "Theta Min Obj",
+                "Min Obj Cum.",
+                "Theta Min Obj Cum.",
+                "MSE",
+                "l2 norm",
+            ]
+            ls_results = pd.DataFrame(columns=column_names)
+
+            # Loop over number of runs
+            for i in range(num_restarts):
+                # Start timer
+                time_start = time.time()
+                # Find least squares solution
+                if self.deriv_free_meth == "SHGO-Sob":
+                    Solution = optimize.shgo(
+                        lambda theta_guess: self.__scipy_func(theta_guess, self.exp_data, self.simulator),
+                        bounds = self.simulator.bounds_theta_reg.T,
+                        sampling_method="sobol",
+                    )
+                elif self.deriv_free_meth == "SHGO-Simp":
+                    Solution = optimize.shgo(
+                        lambda theta_guess: self.__scipy_func(theta_guess, self.exp_data, self.simulator),
+                        bounds = self.simulator.bounds_theta_reg.T,
+                        sampling_method="simplicial",
+                    )
+                elif self.deriv_free_meth == "NM":
+                    Solution = optimize.minimize(
+                        self.__scipy_func,
+                        theta_guess[i],
+                        method = 'Nelder-Mead',
+                        bounds = self.simulator.bounds_theta_reg.T,
+                        args = (self.exp_data, self.simulator)
+                    )
+                else:
+                    gene_space = [{'low': row[0], 'high': row[1]} for row in self.simulator.bounds_theta_reg.T]
+                    Solution = pygad.GA(num_generations=self.num_generations,
+                                num_parents_mating=self.num_parents_mating,
+                                sol_per_pop=self.sol_per_pop,
+                                gene_space = gene_space,
+                                num_genes=self.num_genes,
+                                fitness_func=self.fitness_func)
+                    Solution.run()
+
+                # End timer and calculate total run time
+                time_end = time.time()
+                time_per_run = time_end - time_start
+
+                # Get list of iteration, sse, and parameter data
+                iter_list = np.array(range(self.iter_count)) + 1
+                sse_list = np.array(self.iter_sse_data)
+                l2_norm_list = self.iter_l2_norm
+                param_list = self.iter_param_data
+
+                # Create a pd dataframe of all iteration information. Initialize cumulative columns as zero
+                ls_iter_res = [
+                    i + 1,
+                    iter_list,
+                    sse_list,
+                    param_list,
+                    None,
+                    None,
+                    sse_list / len_x,
+                    l2_norm_list,
+                ]
+                iter_df = pd.DataFrame([ls_iter_res], columns=column_names_iter)
+                iter_df = (
+                    iter_df.apply(lambda col: col.explode(), axis=0)
+                    .reset_index(drop=True)
+                    .copy(deep=True)
+                )
+
+                iter_df["Theta Min Obj Cum."] = iter_df["Theta Min Obj"]
+                iter_df["Min Obj Cum."] = np.minimum.accumulate(iter_df["Min Obj Act"])
+
+                for j in range(len(iter_df)):
+                    if j > 0:
+                        if (
+                            iter_df["Min Obj Cum."].iloc[j]
+                            >= iter_df["Min Obj Cum."].iloc[j - 1]
+                        ):
+                            iter_df.at[j, "Theta Min Obj Cum."] = (
+                                iter_df["Theta Min Obj Cum."].iloc[j - 1].copy()
+                            )
+
+                iter_df["Run Time"] = time_per_run
+                iter_df["Max Evals"] = len(iter_list)
+                if self.deriv_free_meth == "GA":
+                    iter_df["Termination"] = Solution.run_completed
+                else:
+                    iter_df["Termination"] = Solution.status
+
+                # Append to results_df
+                ls_results = pd.concat(
+                    [ls_results.astype(iter_df.dtypes), iter_df], ignore_index=True
+                )
+
+                self.seed += 1
+                # Reset iter lists
+                self.iter_param_data = []
+                self.iter_sse_data = []
+                self.iter_l2_norm = []
+                self.iter_count = 0
+
+            # Reset the index of the pandas df
+            ls_results = ls_results.reset_index(drop=True)
+
+            if self.save_csv:
+                self.save_data(ls_results, ls_data_path)
+        elif found_data1:
+            ls_results["Theta Min Obj"] = ls_results["Theta Min Obj"].apply(
+                self.str_to_array_df_col
+            )
+            ls_results["Theta Min Obj Cum."] = ls_results["Theta Min Obj Cum."].apply(
+                self.str_to_array_df_col
+            )
+            ls_results["l2 norm"] = ls_results["l2 norm"].apply(
+                self.str_to_array_df_col
+            )
+
+        return ls_results
