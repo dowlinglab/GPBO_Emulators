@@ -2290,9 +2290,12 @@ class All_CS_Analysis(General_Analysis):
                 elif meth =="SHGO-Sob":
                     shgo_analyzer = Deriv_Free_Anlys("SHGO-Sob", criteria_dict_other_meth, self.project, self.save_csv)
                     other_meth_results = shgo_analyzer.regression_analysis()
-                elif meth =="SHGO-Sob":
+                elif meth =="SHGO-Simp":
                     shgo_analyzer = Deriv_Free_Anlys("SHGO-Simp", criteria_dict_other_meth, self.project, self.save_csv)
                     other_meth_results = shgo_analyzer.regression_analysis()
+                elif meth =="NM":
+                    nm_analyzer = Deriv_Free_Anlys("NM", criteria_dict_other_meth, self.project, self.save_csv)
+                    other_meth_results = nm_analyzer.regression_analysis()
                 elif meth =="GA":
                     ga_analyzer = Deriv_Free_Anlys("GA", criteria_dict_other_meth, self.project, self.save_csv)
                     other_meth_results = ga_analyzer.regression_analysis()
@@ -2335,6 +2338,7 @@ class All_CS_Analysis(General_Analysis):
                 # Concatenate the DataFrames along the rows axis
                 df_all_best_all_meth = pd.concat([df_all_best_all_meth, df_all_other_meth_best], ignore_index=True)
 
+        
         # Scale the objective function values for log conv and log indep
         condition = df_all_best["BO Method"].isin(
             ["Log Conventional", "Log Independence"]
@@ -3303,8 +3307,8 @@ class Deriv_Free_Anlys(General_Analysis):
                                 num_parents_mating=self.num_parents_mating,
                                 sol_per_pop=self.sol_per_pop,
                                 gene_space = gene_space,
-                                num_genes=self.num_genes,
-                                fitness_func=self.fitness_func)
+                                num_genes=self.exp_data.get_dim_theta(),
+                                fitness_func=self.__pygad_func)
                     Solution.run()
 
                 # End timer and calculate total run time
@@ -3353,7 +3357,7 @@ class Deriv_Free_Anlys(General_Analysis):
                 if self.deriv_free_meth == "GA":
                     iter_df["Termination"] = Solution.run_completed
                 else:
-                    iter_df["Termination"] = Solution.status
+                    iter_df["Termination"] = Solution.success
 
                 # Append to results_df
                 ls_results = pd.concat(
@@ -3372,6 +3376,7 @@ class Deriv_Free_Anlys(General_Analysis):
 
             if self.save_csv:
                 self.save_data(ls_results, ls_data_path)
+
         elif found_data1:
             ls_results["Theta Min Obj"] = ls_results["Theta Min Obj"].apply(
                 self.str_to_array_df_col
