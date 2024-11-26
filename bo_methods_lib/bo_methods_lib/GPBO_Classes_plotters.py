@@ -2059,8 +2059,23 @@ class All_CS_Plotter(Plotters):
         ), "analyzer must be an instance of All_CS_Analysis"
         super().__init__(analyzer, save_figs)
         self.hatches = ["*", "\\", "\\", "o", "o", "o", "o", "o"]
+        self.colors_derivfree = ["grey", "sienna", "darkgoldenrod", "olive"]
+        self.hatch_dict = {
+            "Conventional": "\\",
+            "Log Conventional": "\\",
+            "Independence": "o",
+            "Log Independence": "o",
+            "Sparse Grid": "o",
+            "Monte Carlo": "o",
+            "E[SSE]": "o",
+            "NLS": "*",
+            "SHGO-Sob": "+",
+            "SHGO-Simp": "+",
+            "NM": "+",
+            "GA": "+",
+        }
 
-    def __create_subplots(self, num_subplots, sharex="row", sharey="none"):
+    def __create_subplots(self, num_subplots, sharex="row", sharey="none", row_num_size = 16):
         """
         Creates Subplots based on the amount of data
 
@@ -2110,7 +2125,7 @@ class All_CS_Plotter(Plotters):
         fig, axes = plt.subplots(
             row_num,
             col_num,
-            figsize=(col_num * 6, row_num * 16),
+            figsize=(col_num * 6, row_num * row_num_size),
             squeeze=False,
             sharex=sharex,
             sharey=sharey,
@@ -2276,6 +2291,7 @@ class All_CS_Plotter(Plotters):
 
         # Get jobs associated with the case studies given
         df_averages = self.analyzer.get_averages_best()
+        
         desired_order = [
             "Large Linear",
             "Muller y0",
@@ -2332,6 +2348,8 @@ class All_CS_Plotter(Plotters):
             calculate_new_column
         )
 
+        print(df_averages.head())
+        print("len df_averages", len(df_averages))
         if mode == "objs":
             names = ["Median Loss", "Avg Evals", "Avg Evals Tot", "Avg Opt Acq"]
             std_names = ["IQR Loss", "Std Evals", "Std Evals Tot", "Std Opt Acq"]
@@ -2360,6 +2378,7 @@ class All_CS_Plotter(Plotters):
         y_locs = np.arange(len(self.analyzer.cs_list)) * (
             bar_size * (len(self.analyzer.meth_val_list) + add_value) + padding
         )
+        print("y_locs", y_locs, len(y_locs))
         axes = axes.flatten()
         for i in range(len(self.analyzer.meth_val_list) + add_value):
             if i < len(self.analyzer.meth_val_list):
@@ -2368,10 +2387,12 @@ class All_CS_Plotter(Plotters):
                 meth_averages = df_averages.loc[
                     df_averages["BO Method"] == self.method_names[meth_val - 1]
                 ]
+                print("meth_averages", meth_averages, len(meth_averages))
                 label = self.method_names[meth_val - 1]
                 color = self.colors[meth_val - 1]
             else:
                 meth_averages = df_averages.loc[df_averages["BO Method"] == "NLS"]
+                print("meth_averages", meth_averages, len(meth_averages))
                 label = "NLS"
                 color = "grey"
 
@@ -2381,6 +2402,8 @@ class All_CS_Plotter(Plotters):
                 std_val = meth_averages[std_names[j]] / scl_value
                 avg_val = np.maximum(avg_val, 0)
                 std_val = np.maximum(std_val, 0)
+                print("y_locs + i * bar_size", y_locs + i * bar_size, len(y_locs + i * bar_size))
+                print("avg_val", avg_val, len(avg_val))
                 rects = axes[j].barh(
                     y_locs + i * bar_size,
                     avg_val,
@@ -2464,7 +2487,7 @@ class All_CS_Plotter(Plotters):
         # return df_averages
         return df_averages
     
-    def make_derivfree_bar(self):
+    def make_derivfree_bar(self, s_meths = ["NLS", "SHGO-Sob", "NM", "GA"]):
         """
         Makes a bar chart of relevant data for each method and case study. Produces Figures 2 and 7 in the paper
 
@@ -2489,15 +2512,16 @@ class All_CS_Plotter(Plotters):
 
         add_value = 1
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(
-            3, sharex=False, sharey=True
+            3, sharex=False, sharey=True, row_num_size= 16
         )
 
         #Bar sizing = number of case studies + padding
-        bar_size = 1 / (len(self.analyzer.cs_list) + add_value)
-        padding = 1 / (len(self.analyzer.cs_list))
+        bar_size = 1 / (len(self.analyzer.cs_list))*(len(s_meths) + add_value)
+        padding = 1 / (len(self.analyzer.cs_list))*len(s_meths)
 
         # Get jobs associated with the case studies given
-        df_averages = self.analyzer.get_averages_best()
+        df_averages = self.analyzer.get_averages_best(s_meths)
+        df_bests = self.analyzer.get_all_meths_best(s_meths)
         desired_order = [
             "Large Linear",
             "Muller y0",
@@ -2508,64 +2532,33 @@ class All_CS_Plotter(Plotters):
             "2D Log Logistic",
             "BOD Curve",
         ]
-        # Convert the 'Department' column to a categorical type with the specified order
-        df_averages["CS Name"] = pd.Categorical(
-            df_averages["CS Name"], categories=desired_order, ordered=True
-        )
-        df_averages["BO Method"] = pd.Categorical(
-            df_averages["BO Method"],
-            categories=["NLS"] + self.method_names[::-1],
-            ordered=True,
-        )
-
-        # Sort the DataFrame by the 'Department' column
-        df_averages = df_averages.sort_values(["CS Name", "BO Method"])
-
-        def calculate_new_column(group):
-            # Calculate Avg Evals for NLS in the current group
-            nls_avg_evals = group.loc[
-                group["BO Method"] == "NLS", "Avg F Evals Tot"
-            ].values
-            nls_std_evals = group.loc[
-                group["BO Method"] == "NLS", "Std F Evals Tot"
-            ].values
-
-            # Calculate the new column
-            group["D"] = nls_avg_evals - group["Avg F Evals Tot"]
-            group["Std D"] = np.sqrt(nls_std_evals**2 + group["Std F Evals Tot"] ** 2)
-
-            # Calculate the new column
-            group["F_Time_Parity"] = (group["Avg Time"] / 60) / group["D"]
-
-            # Calculate the uncertainty in (Avg Time / 60)
-            std_avg_time_div_60 = group["Std Time"] / 60
-
-            # Calculate the uncertainty in the new column
-            group["F_Par_std"] = group["F_Time_Parity"] * np.sqrt(
-                (std_avg_time_div_60 / (group["Avg Time"] / 60)) ** 2
-                + (group["Std D"] / group["D"]) ** 2
+        for df in [df_averages, df_bests]:
+        # Convert the 'CS Name' column to a categorical type with the specified order
+            df["CS Name"] = pd.Categorical(
+                df["CS Name"], categories=desired_order, ordered=True
             )
-            group = group.drop(columns=["Std D", "D"])
+            df["BO Method"] = pd.Categorical(
+                df["BO Method"],
+                categories=s_meths + self.method_names[::-1],
+                ordered=True,
+            )
 
-            return group
+            # Sort the DataFrame by the 'CS Name' column
+            df = df.sort_values(["CS Name", "BO Method"])
+        
+        print(df_averages.head())
+        print("len df_averages", len(df_averages))
+        df_averages.to_csv("test_df_averages.csv")
 
-        # Apply the calculation for each group
-        df_averages = df_averages.groupby("CS Name", group_keys=False).apply(
-            calculate_new_column
-        )
-
-        names = ["Median Loss", "Avg Evals", "Avg Evals Tot", "Avg Opt Acq"]
-        std_names = ["IQR Loss", "Std Evals", "Std Evals Tot", "Std Opt Acq"]
+        names = ["Median Loss", "Avg Evals Tot", "Median L2 Norm"]
+        std_names = ["IQR Loss", "Std Evals Tot", "IQR L2 Norm"]
+        best_names = ["Best Loss", "Max Evals", "Best L2 Norm"]
         titles = [
             "Median "
             + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$"
             + " \n at Termination",
-            "Avg. "
-            + r"$\mathscr{L}(\cdot)$"
-            + " Evaluations \n to Reach "
-            + r"$\mathscr{L}(\mathbf{\theta}^{\prime})$",
             "Total " + r"$\mathscr{L}(\cdot)$" + " Evalulations",
-            "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions",
+            "Median " + r"$L_2-Norm$" + " \n at Termination",
         ]
 
 
@@ -2573,26 +2566,41 @@ class All_CS_Plotter(Plotters):
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
 
         y_locs = np.arange(len(self.analyzer.cs_list)) * (
-            bar_size * (len(self.analyzer.meth_val_list) + add_value) + padding
+            bar_size * (len(s_meths) + add_value) + padding
         )
         axes = axes.flatten()
-        for i in range(len(self.analyzer.meth_val_list) + add_value):
-            if i < len(self.analyzer.meth_val_list):
-                # loop over methods n reverse order
-                meth_val = self.analyzer.meth_val_list[-1 - i]
+        print("lenylocs", len(y_locs), print(y_locs))
+        for i in range(len(s_meths) + 1):
+            if i == 0:
+                #Make a DF including just GPBO info
+                filtered_df = df_averages[df_averages["BO Method"].isin(self.method_names)]
+                #Get only the values of the BO Method where Median Loss is the minimum
+                meth_averages_GPBO = filtered_df.loc[filtered_df["Median Loss"] == filtered_df["Median Loss"].min()]
+                label = meth_averages_GPBO["BO Method"].values[0]
                 meth_averages = df_averages.loc[
-                    df_averages["BO Method"] == self.method_names[meth_val - 1]
+                    df_averages["BO Method"] == label
                 ]
-                label = self.method_names[meth_val - 1]
-                color = self.colors[meth_val - 1]
+                #Find index of the method in the method names list
+                meth_val = self.method_names.index(label)
+                color = self.colors[meth_val]
+                print("meth avgs", meth_averages)
             else:
-                meth_averages = df_averages.loc[df_averages["BO Method"] == "NLS"]
-                label = "NLS"
-                color = "grey"
+                meth_averages = df_averages.loc[df_averages["BO Method"] == s_meths[i-1]]
+                print("meth avgs", meth_averages)
+                label = s_meths[i - 1]
+                color = self.colors_derivfree[i-1]
+
+            meth_best = df_bests.loc[df_bests["BO Method"] == label]
+            print("meth best", meth_best)
+            print("meth best", meth_best.shape)
+            hatch = self.hatch_dict[label]
 
             for j in range(len(names)):
+                print("len  y_locs + i * bar_size, ", y_locs + i * bar_size, len(y_locs + i * bar_size))
+                print("len avg_val", len(meth_averages[names[j]]))
                 scl_value = 60 if names[j] == "Avg Time" else 1
                 avg_val = meth_averages[names[j]] / scl_value
+                best_val = meth_best[best_names[j]] / scl_value
                 std_val = meth_averages[std_names[j]] / scl_value
                 avg_val = np.maximum(avg_val, 0)
                 std_val = np.maximum(std_val, 0)
@@ -2604,12 +2612,26 @@ class All_CS_Plotter(Plotters):
                     height=bar_size,
                     color=color,
                     label=label,
-                    hatch=self.hatches[-1 - i],
+                    hatch=hatch,
+                    alpha = 0.5
                 )
+                rects2 = axes[j].barh(
+                    y_locs + i * bar_size,
+                    best_val,
+                    align="center",
+                    height=bar_size,
+                    color=color,
+                    label=label,
+                    hatch=hatch,
+                )
+
+                #Add in the best performace with an alpha value of 1. Change median/avg values to alpha value of 0.5
 
                 if i == 0:
                     # Set plot details on last iter
                     self.__set_subplot_details(axes[j], None, None, titles[j])
+                    print("y_locs", y_locs)
+                    print(y_locs + padding * len(self.analyzer.cs_list) / 2)
                     axes[j].set(
                         yticks=y_locs + padding * len(self.analyzer.cs_list) / 2,
                         yticklabels=t_label_lst,
