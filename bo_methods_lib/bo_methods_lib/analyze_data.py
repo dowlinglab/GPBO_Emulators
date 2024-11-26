@@ -2235,22 +2235,8 @@ class All_CS_Analysis(General_Analysis):
 
         return results_df
 
-    def get_averages_best(self, other_meths = ["NLS"]):
-        """
-        Get median/average data for multiple properties for all case studies. Used to reporduce Figure 2 in the paper
-
-        Returns
-        -------
-        df_avg_all: pd.DataFrame
-            The dataframe of the median/average data for multiple properties for all case studies. Data used in Figure 2 in the paper
-        """
-        if self.mode == "act":
-            obj_col_sse_min = "Min Obj Act Cum"
-        elif self.mode == "acq":
-            obj_col_sse_min = "Acq Obj Act Cum"
-        elif self.mode == "gp":
-            obj_col_sse_min = "Min Obj GP Cum"
-
+    def get_best_data_all_methods(self,  other_meths = ["NLS"]):
+        """Get best data for all methods (including derivative free methods) and all case studies"""
         # Loop over each case study
         for i, cs_name in enumerate(self.cs_list):
             for j, meth_val in enumerate(self.meth_val_list):
@@ -2301,8 +2287,7 @@ class All_CS_Analysis(General_Analysis):
                     other_meth_results = ga_analyzer.regression_analysis()
                 else:
                     raise ValueError("Method not recognized")
-                    
-                    
+                     
                 # Make a df that is only the iters of the best run
                 df_sorted = other_meth_results.sort_values(
                     by=["Min Obj Cum.", "Run", "Iter"], ascending=True
@@ -2312,32 +2297,102 @@ class All_CS_Analysis(General_Analysis):
                 df_best_other_meth["CS Name"] = get_cs_class_from_val(cs_name).name
                 df_best_other_meth["BO Method"] = meth
                 df_best_other_meth.rename(columns={"Iter": "BO Iter"}, inplace=True)
-                if i == 0 and len(df_best_other_meth) > 0:
-                    df_all_other_meth_best = df_best_other_meth
-                # Otherwise, concatenate the DataFrame to df_all_best
+
+                if count_meth == 0 and i == 0: #Make df if first iteration over
+                    df_all_best_all_meth = df_best_other_meth
                 else:
-                    df_all_other_meth_best = pd.concat([df_all_other_meth_best, df_best_other_meth], axis=0)
+                    # Concatenate the DataFrames along the rows axis
+                    df_all_best_all_meth = pd.concat([df_all_best_all_meth, df_best_other_meth], ignore_index=True)
 
-                
-                if "Max Evals" not in df_all_other_meth_best.columns:
-                    # Compute the maximum 'iter' for each 'run'
-                    df_all_other_meth_best["Max Evals"] = df_all_other_meth_best.groupby(["CS Name", "Run"])[
-                        "BO Iter"
-                    ].transform("max")
+        if "Max Evals" not in df_all_best_all_meth.columns:
+            # Compute the maximum 'iter' for each 'run'
+            df_all_best_all_meth["Max Evals"] = df_all_best_all_meth.groupby(["CS Name", "Run"])[
+                "BO Iter"
+            ].transform("max")
 
-                df_all_other_meth_best["F Max Evals"] = df_all_other_meth_best["Max Evals"] * df_all_other_meth_best[
-                    "CS Name"
-                ].map(self.cs_x_dict)
-                df_all_other_meth_best["F Evals"] = df_all_other_meth_best["BO Iter"] * df_all_other_meth_best[
-                    "CS Name"
-                ].map(self.cs_x_dict)
+        df_all_best_all_meth["F Max Evals"] = df_all_best_all_meth["Max Evals"] * df_all_best_all_meth[
+            "CS Name"
+        ].map(self.cs_x_dict)
+        df_all_best_all_meth["F Evals"] = df_all_best_all_meth["BO Iter"] * df_all_best_all_meth[
+            "CS Name"
+        ].map(self.cs_x_dict)
 
-                if count_meth == 0:
-                    df_all_best_all_meth = df_all_other_meth_best
+        return df_all_best, df_all_best_all_meth
 
-                # Concatenate the DataFrames along the rows axis
-                df_all_best_all_meth = pd.concat([df_all_best_all_meth, df_all_other_meth_best], ignore_index=True)
+    def get_all_meths_best(self, other_meths = ["NLS"]):
+        """
+        Get median/average data for multiple properties for all case studies. Used to reporduce Figure 2 in the paper
 
+        Returns
+        -------
+        df_avg_all: pd.DataFrame
+            The dataframe of the median/average data for multiple properties for all case studies. Data used in Figure 2 in the paper
+        """
+        if self.mode == "act":
+            obj_col_sse_min = "Min Obj Act Cum"
+        elif self.mode == "acq":
+            obj_col_sse_min = "Acq Obj Act Cum"
+        elif self.mode == "gp":
+            obj_col_sse_min = "Min Obj GP Cum"
+
+        df_all_best, df_all_best_all_meth = self.get_best_data_all_methods(other_meths)
+        
+        # Scale the objective function values for log conv and log indep
+        condition = df_all_best["BO Method"].isin(
+            ["Log Conventional", "Log Independence"]
+        )
+        # Multiply values in column B by exp where the condition is true
+        df_all_best.loc[condition, obj_col_sse_min] = np.exp(
+            df_all_best.loc[condition, obj_col_sse_min]
+        )
+    
+        #Create dataframe with the best results
+        df_all_best_GPBO = (df_all_best.loc[df_all_best.groupby(["CS Name", "BO Method"])[obj_col_sse_min].idxmin()]).reset_index(drop=True)
+        df_all_best_GPBO.rename(columns={
+            obj_col_sse_min: "Best Loss",  # Rename obj_col_sse_min
+            "L2 Norm Theta": "Best L2 Norm"  # Rename L2 Norm Theta
+            }, inplace = True)
+        df_all_best_other = (df_all_best_all_meth.loc[df_all_best_all_meth.groupby(["CS Name", "BO Method"])["Min Obj Cum."].idxmin()]).reset_index(drop=True)
+        df_all_best_other.rename(columns={
+            "Min Obj Cum.": "Best Loss",  # Rename obj_col_sse_min
+            "l2 norm": "Best L2 Norm"  # Rename L2 Norm Theta
+            }, inplace = True)
+        
+        shared_columns = list(set(df_all_best_GPBO.columns).intersection(df_all_best_other.columns))
+
+        # Create a new DataFrame with the shared columns
+        df_all_best_GPBO = df_all_best_GPBO[shared_columns]
+        df_all_best_other = df_all_best_other[shared_columns]
+
+        # Optionally concatenate or merge the shared DataFrames (e.g., row-wise)
+        df_best_nec = pd.concat([df_all_best_GPBO, df_all_best_other], ignore_index=True)
+        
+        # df_best_nec = pd.merge(df_all_best_GPBO, df_all_best_other, on=shared_columns, how="inner")
+
+
+        if self.save_csv:
+            save_path = os.path.join(self.study_results_dir, "all_cs_all_meth_best.csv")
+            self.save_data(df_best_nec, save_path)
+
+        return df_best_nec
+    
+    def get_averages_best(self, other_meths = ["NLS"]):
+        """
+        Get median/average data for multiple properties for all case studies. Used to reporduce Figure 2 in the paper
+
+        Returns
+        -------
+        df_avg_all: pd.DataFrame
+            The dataframe of the median/average data for multiple properties for all case studies. Data used in Figure 2 in the paper
+        """
+        if self.mode == "act":
+            obj_col_sse_min = "Min Obj Act Cum"
+        elif self.mode == "acq":
+            obj_col_sse_min = "Acq Obj Act Cum"
+        elif self.mode == "gp":
+            obj_col_sse_min = "Min Obj GP Cum"
+
+        df_all_best, df_all_best_all_meth = self.get_best_data_all_methods(other_meths)
         
         # Scale the objective function values for log conv and log indep
         condition = df_all_best["BO Method"].isin(
@@ -2369,7 +2424,7 @@ class All_CS_Analysis(General_Analysis):
 
 
         grouped_stats_other_meths = (
-            df_all_other_meth_best.groupby(["CS Name", "BO Method"])
+            df_all_best_all_meth.groupby(["CS Name", "BO Method"])
             .agg(
                 {
                     "Min Obj Cum.": ["median", self.__get_iqr],
@@ -2415,6 +2470,23 @@ class All_CS_Analysis(General_Analysis):
             df_acq_opt, df_avg_best, on=["CS Name", "BO Method"]
         )
         df_avg_all = pd.concat([df_avg_best_w_acq, df_avg_other_meths_best], axis=0)
+
+        #Create dataframe with the best results
+        df_all_best_GPBO = (df_all_best.loc[df_all_best.groupby(["CS Name", "BO Method"])[obj_col_sse_min].idxmin()]).reset_index(drop=True)
+        df_all_best_GPBO.rename(columns={
+            obj_col_sse_min: "Best Loss",  # Rename obj_col_sse_min
+            "L2 Norm Theta": "Best L2 Norm"  # Rename L2 Norm Theta
+            }, inplace = True)
+        df_all_best_other = (df_all_best_all_meth.loc[df_all_best_all_meth.groupby(["CS Name", "BO Method"])["Min Obj Cum."].idxmin()]).reset_index(drop=True)
+        df_all_best_other.rename(columns={
+            "Min Obj Cum.": "Best Loss",  # Rename obj_col_sse_min
+            "L2 Norm Theta": "Best L2 Norm"  # Rename L2 Norm Theta
+            }, inplace = True)
+        
+        df_best_nec = pd.merge(
+            df_all_best_GPBO, df_all_best_other, on=["CS Name", "BO Method"], how = "inner"
+        )
+        print(df_best_nec)
 
         if self.save_csv:
             save_path = os.path.join(self.study_results_dir, "all_cs_avg_best.csv")
@@ -3094,7 +3166,7 @@ class Deriv_Free_Anlys(General_Analysis):
 
         # Append intermediate values to list
         self.iter_param_data.append(theta_guess)
-        self.iter_sse_data.append(np.sum(error**2))
+        self.iter_sse_data.append(error)
 
         # Create scaler to scale between 0 and 1
         scaler = MinMaxScaler()
@@ -3384,8 +3456,11 @@ class Deriv_Free_Anlys(General_Analysis):
             ls_results["Theta Min Obj Cum."] = ls_results["Theta Min Obj Cum."].apply(
                 self.str_to_array_df_col
             )
-            ls_results["l2 norm"] = ls_results["l2 norm"].apply(
-                self.str_to_array_df_col
-            )
+            try:
+                ls_results["l2 norm"] = ls_results["l2 norm"].apply(
+                    self.str_to_array_df_col
+                )
+            except:
+                pass
 
         return ls_results
