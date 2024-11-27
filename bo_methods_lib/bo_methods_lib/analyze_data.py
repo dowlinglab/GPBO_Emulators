@@ -2277,7 +2277,7 @@ class All_CS_Analysis(General_Analysis):
                     shgo_analyzer = Deriv_Free_Anlys("SHGO-Sob", criteria_dict_other_meth, self.project, self.save_csv)
                     other_meth_results = shgo_analyzer.regression_analysis()
                 elif meth =="SHGO-Simp":
-                    shgo_analyzer = Deriv_Free_Anlys("SHGO-Simp", criteria_dict_other_meth, self.project, self.save_csv)
+                    shgo_analyzer = Deriv_Free_Anlys("SHGO-Simp", criteria_dict_other_meth, self.project, True)
                     other_meth_results = shgo_analyzer.regression_analysis()
                 elif meth =="NM":
                     nm_analyzer = Deriv_Free_Anlys("NM", criteria_dict_other_meth, self.project, self.save_csv)
