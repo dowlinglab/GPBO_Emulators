@@ -2347,11 +2347,12 @@ class All_CS_Analysis(General_Analysis):
         )
     
         #Create dataframe with the best results
-        df_all_best_GPBO = (df_all_best.loc[df_all_best.groupby(["CS Name", "BO Method"])[obj_col_sse_min].idxmin()]).reset_index(drop=True)
+        df_all_best_GPBO = df_all_best.loc[df_all_best.groupby("CS Name")[obj_col_sse_min].idxmin()].drop_duplicates(subset=["CS Name"]).reset_index(drop=True)
         df_all_best_GPBO.rename(columns={
             obj_col_sse_min: "Best Loss",  # Rename obj_col_sse_min
             "L2 Norm Theta": "Best L2 Norm"  # Rename L2 Norm Theta
             }, inplace = True)
+        
         df_all_best_other = (df_all_best_all_meth.loc[df_all_best_all_meth.groupby(["CS Name", "BO Method"])["Min Obj Cum."].idxmin()]).reset_index(drop=True)
         df_all_best_other.rename(columns={
             "Min Obj Cum.": "Best Loss",  # Rename obj_col_sse_min
@@ -2470,23 +2471,6 @@ class All_CS_Analysis(General_Analysis):
             df_acq_opt, df_avg_best, on=["CS Name", "BO Method"]
         )
         df_avg_all = pd.concat([df_avg_best_w_acq, df_avg_other_meths_best], axis=0)
-
-        #Create dataframe with the best results
-        df_all_best_GPBO = (df_all_best.loc[df_all_best.groupby(["CS Name", "BO Method"])[obj_col_sse_min].idxmin()]).reset_index(drop=True)
-        df_all_best_GPBO.rename(columns={
-            obj_col_sse_min: "Best Loss",  # Rename obj_col_sse_min
-            "L2 Norm Theta": "Best L2 Norm"  # Rename L2 Norm Theta
-            }, inplace = True)
-        df_all_best_other = (df_all_best_all_meth.loc[df_all_best_all_meth.groupby(["CS Name", "BO Method"])["Min Obj Cum."].idxmin()]).reset_index(drop=True)
-        df_all_best_other.rename(columns={
-            "Min Obj Cum.": "Best Loss",  # Rename obj_col_sse_min
-            "L2 Norm Theta": "Best L2 Norm"  # Rename L2 Norm Theta
-            }, inplace = True)
-        
-        df_best_nec = pd.merge(
-            df_all_best_GPBO, df_all_best_other, on=["CS Name", "BO Method"], how = "inner"
-        )
-        print(df_best_nec)
 
         if self.save_csv:
             save_path = os.path.join(self.study_results_dir, "all_cs_avg_best.csv")
