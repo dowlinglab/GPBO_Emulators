@@ -2555,7 +2555,7 @@ class All_CS_Plotter(Plotters):
             )
 
             # Sort the DataFrame by the 'CS Name' column
-            df = df.sort_values(["CS Name", "BO Method"])
+            df = df.sort_values(["CS Name", "BO Method"], inplace=True)
         
         # print(df_averages.head())
         names = ["Median Loss", "Avg Evals Tot", "Median L2 Norm"]
