@@ -2070,7 +2070,7 @@ class All_CS_Plotter(Plotters):
             "E[SSE]": "teal",
             "NLS": "grey",
             "SHGO-Sob": "sienna",
-            "SHGO-Simp": "sienna",
+            "SHGO-Simp": "darkkhaki",
             "NM": "darkgoldenrod",
             "GA": "olive",
         }
