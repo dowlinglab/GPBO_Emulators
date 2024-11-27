@@ -2059,7 +2059,22 @@ class All_CS_Plotter(Plotters):
         ), "analyzer must be an instance of All_CS_Analysis"
         super().__init__(analyzer, save_figs)
         self.hatches = ["*", "\\", "\\", "o", "o", "o", "o", "o"]
-        self.colors_derivfree = ["grey", "sienna", "darkgoldenrod", "olive"]
+
+        self.color_dict = {
+            "Conventional": "red",
+            "Log Conventional": "blue",
+            "Independence": "green",
+            "Log Independence": "purple",
+            "Sparse Grid": "darkorange",
+            "Monte Carlo": "deeppink",
+            "E[SSE]": "teal",
+            "NLS": "grey",
+            "SHGO-Sob": "sienna",
+            "SHGO-Simp": "sienna",
+            "NM": "darkgoldenrod",
+            "GA": "olive",
+        }
+
         self.hatch_dict = {
             "Conventional": "\\",
             "Log Conventional": "\\",
@@ -2348,8 +2363,6 @@ class All_CS_Plotter(Plotters):
             calculate_new_column
         )
 
-        print(df_averages.head())
-        print("len df_averages", len(df_averages))
         if mode == "objs":
             names = ["Median Loss", "Avg Evals", "Avg Evals Tot", "Avg Opt Acq"]
             std_names = ["IQR Loss", "Std Evals", "Std Evals Tot", "Std Opt Acq"]
@@ -2378,7 +2391,7 @@ class All_CS_Plotter(Plotters):
         y_locs = np.arange(len(self.analyzer.cs_list)) * (
             bar_size * (len(self.analyzer.meth_val_list) + add_value) + padding
         )
-        print("y_locs", y_locs, len(y_locs))
+
         axes = axes.flatten()
         for i in range(len(self.analyzer.meth_val_list) + add_value):
             if i < len(self.analyzer.meth_val_list):
@@ -2387,12 +2400,10 @@ class All_CS_Plotter(Plotters):
                 meth_averages = df_averages.loc[
                     df_averages["BO Method"] == self.method_names[meth_val - 1]
                 ]
-                print("meth_averages", meth_averages, len(meth_averages))
                 label = self.method_names[meth_val - 1]
                 color = self.colors[meth_val - 1]
             else:
                 meth_averages = df_averages.loc[df_averages["BO Method"] == "NLS"]
-                print("meth_averages", meth_averages, len(meth_averages))
                 label = "NLS"
                 color = "grey"
 
@@ -2402,8 +2413,6 @@ class All_CS_Plotter(Plotters):
                 std_val = meth_averages[std_names[j]] / scl_value
                 avg_val = np.maximum(avg_val, 0)
                 std_val = np.maximum(std_val, 0)
-                print("y_locs + i * bar_size", y_locs + i * bar_size, len(y_locs + i * bar_size))
-                print("avg_val", avg_val, len(avg_val))
                 rects = axes[j].barh(
                     y_locs + i * bar_size,
                     avg_val,
@@ -2516,8 +2525,10 @@ class All_CS_Plotter(Plotters):
         )
 
         #Bar sizing = number of case studies + padding
-        bar_size = 1 / (len(self.analyzer.cs_list))*(len(s_meths) + add_value)
-        padding = 1 / (len(self.analyzer.cs_list))*len(s_meths)
+        height_per_group = 1 / len(self.analyzer.cs_list)
+        bars_per_group = len(s_meths) + add_value
+        bar_size = height_per_group/bars_per_group
+        padding = bar_size
 
         # Get jobs associated with the case studies given
         df_averages = self.analyzer.get_averages_best(s_meths)
@@ -2546,10 +2557,7 @@ class All_CS_Plotter(Plotters):
             # Sort the DataFrame by the 'CS Name' column
             df = df.sort_values(["CS Name", "BO Method"])
         
-        print(df_averages.head())
-        print("len df_averages", len(df_averages))
-        df_averages.to_csv("test_df_averages.csv")
-
+        # print(df_averages.head())
         names = ["Median Loss", "Avg Evals Tot", "Median L2 Norm"]
         std_names = ["IQR Loss", "Std Evals Tot", "IQR L2 Norm"]
         best_names = ["Best Loss", "Max Evals", "Best L2 Norm"]
@@ -2565,11 +2573,12 @@ class All_CS_Plotter(Plotters):
         t_label_lst = list(df_averages["CS Name"].unique())
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
 
-        y_locs = np.arange(len(self.analyzer.cs_list)) * (
-            bar_size * (len(s_meths) + add_value) + padding
-        )
+        # y_locs = np.arange(len(self.analyzer.cs_list)) * (
+        #     bar_size * (len(s_meths) + add_value) + padding
+        # )
+        y_locs  = np.arange(len(self.analyzer.cs_list)) * (height_per_group +padding)
         axes = axes.flatten()
-        print("lenylocs", len(y_locs), print(y_locs))
+
         for i in range(len(s_meths) + 1):
             if i == 0:
                 #Make a DF including just GPBO info
@@ -2581,23 +2590,16 @@ class All_CS_Plotter(Plotters):
                     df_averages["BO Method"] == label
                 ]
                 #Find index of the method in the method names list
-                meth_val = self.method_names.index(label)
-                color = self.colors[meth_val]
-                print("meth avgs", meth_averages)
+                meth_best = df_bests.loc[~df_bests["BO Method"].isin(s_meths)]
             else:
                 meth_averages = df_averages.loc[df_averages["BO Method"] == s_meths[i-1]]
-                print("meth avgs", meth_averages)
+                meth_best = df_bests.loc[df_bests["BO Method"] == s_meths[i-1]]
                 label = s_meths[i - 1]
-                color = self.colors_derivfree[i-1]
 
-            meth_best = df_bests.loc[df_bests["BO Method"] == label]
-            print("meth best", meth_best)
-            print("meth best", meth_best.shape)
             hatch = self.hatch_dict[label]
+            color = self.color_dict[label]
 
             for j in range(len(names)):
-                print("len  y_locs + i * bar_size, ", y_locs + i * bar_size, len(y_locs + i * bar_size))
-                print("len avg_val", len(meth_averages[names[j]]))
                 scl_value = 60 if names[j] == "Avg Time" else 1
                 avg_val = meth_averages[names[j]] / scl_value
                 best_val = meth_best[best_names[j]] / scl_value
@@ -2615,28 +2617,31 @@ class All_CS_Plotter(Plotters):
                     hatch=hatch,
                     alpha = 0.5
                 )
-                rects2 = axes[j].barh(
-                    y_locs + i * bar_size,
-                    best_val,
-                    align="center",
-                    height=bar_size,
-                    color=color,
-                    label=label,
-                    hatch=hatch,
-                )
+                for idx, val in enumerate(best_val):
+                    label_best = meth_best["BO Method"].iloc[idx]
+                    axes[j].barh(
+                        y_locs[idx] + i * bar_size,
+                        val,
+                        align="center",
+                        height=bar_size,
+                        color=self.color_dict[label_best],
+                        hatch=self.hatch_dict[label_best],
+                    )
 
                 #Add in the best performace with an alpha value of 1. Change median/avg values to alpha value of 0.5
 
                 if i == 0:
                     # Set plot details on last iter
+                    height_per_group = bar_size * (len(s_meths) + add_value) + padding  # Total height of one group, including padding
+                    tick_positions = y_locs + (height_per_group / 2)  # Center of each group
                     self.__set_subplot_details(axes[j], None, None, titles[j])
-                    print("y_locs", y_locs)
-                    print(y_locs + padding * len(self.analyzer.cs_list) / 2)
                     axes[j].set(
-                        yticks=y_locs + padding * len(self.analyzer.cs_list) / 2,
+                        yticks=tick_positions,
                         yticklabels=t_label_lst,
-                        ylim=[0 - padding, len(y_locs)],
+                        ylim=[0 -padding, len(y_locs)],
                     )
+                    axes[j].set_ylim([0-padding, len(tick_positions)])
+                    axes[j].set_ylim(axes[j].get_ylim()[0], max(tick_positions) + height_per_group / 2)
 
         axes[0].set_xscale("log")
         axes[1].set_xscale("log")
