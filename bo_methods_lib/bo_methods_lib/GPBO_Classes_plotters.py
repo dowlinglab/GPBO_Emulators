@@ -2578,17 +2578,21 @@ class All_CS_Plotter(Plotters):
         # )
         y_locs  = np.arange(len(self.analyzer.cs_list)) * (height_per_group +padding)
         axes = axes.flatten()
-
+        added_labels = set()
         for i in range(len(s_meths) + 1):
             if i == 0:
                 #Make a DF including just GPBO info
                 filtered_df = df_averages[df_averages["BO Method"].isin(self.method_names)]
                 #Get only the values of the BO Method where Median Loss is the minimum
-                meth_averages_GPBO = filtered_df.loc[filtered_df["Median Loss"] == filtered_df["Median Loss"].min()]
-                label = meth_averages_GPBO["BO Method"].values[0]
-                meth_averages = df_averages.loc[
-                    df_averages["BO Method"] == label
-                ]
+                # meth_averages_GPBO = filtered_df.loc[filtered_df["Median Loss"] == filtered_df["Median Loss"].min()]
+                # print(meth_averages_GPBO)
+                # label = meth_averages_GPBO["BO Method"].values[0]
+                # meth_averages = df_averages.loc[
+                #     df_averages["BO Method"] == label
+                # ]
+                meth_averages = (
+                    filtered_df.loc[filtered_df.groupby("CS Name")["Median Loss"].idxmin()]
+                )
                 #Find index of the method in the method names list
                 meth_best = df_bests.loc[~df_bests["BO Method"].isin(s_meths)]
             else:
@@ -2596,37 +2600,53 @@ class All_CS_Plotter(Plotters):
                 meth_best = df_bests.loc[df_bests["BO Method"] == s_meths[i-1]]
                 label = s_meths[i - 1]
 
-            hatch = self.hatch_dict[label]
-            color = self.color_dict[label]
+            # hatch = self.hatch_dict[label]
+            # color = self.color_dict[label]
 
             for j in range(len(names)):
                 scl_value = 60 if names[j] == "Avg Time" else 1
-                avg_val = meth_averages[names[j]] / scl_value
                 best_val = meth_best[best_names[j]] / scl_value
-                std_val = meth_averages[std_names[j]] / scl_value
-                avg_val = np.maximum(avg_val, 0)
-                std_val = np.maximum(std_val, 0)
-                rects = axes[j].barh(
-                    y_locs + i * bar_size,
-                    avg_val,
-                    xerr=std_val,
-                    align="center",
-                    height=bar_size,
-                    color=color,
-                    label=label,
-                    hatch=hatch,
-                    alpha = 0.5
-                )
-                for idx, val in enumerate(best_val):
-                    label_best = meth_best["BO Method"].iloc[idx]
+                for idx in range(len(meth_averages["BO Method"])):
+                    label_med = meth_averages["BO Method"].iloc[idx]
+                    avg_val = meth_averages[names[j]].iloc[idx] / scl_value
+                    std_val = meth_averages[std_names[j]].iloc[idx] / scl_value
+                    # avg_val = meth_averages[names[j]] / scl_value
+                    # std_val = meth_averages[std_names[j]] / scl_value
+                    avg_val = np.maximum(avg_val, 0)
+                    std_val = np.maximum(std_val, 0)
+                    if label_med not in self.method_names and idx == 0:
+                        label_m_use = label_med + " (Median)"
+                    else:
+                        label_m_use = None 
+                        added_labels.add(label_med)
                     axes[j].barh(
                         y_locs[idx] + i * bar_size,
-                        val,
+                        avg_val,
+                        xerr=std_val,
                         align="center",
                         height=bar_size,
-                        color=self.color_dict[label_best],
-                        hatch=self.hatch_dict[label_best],
+                        label=label_m_use,
+                        color=self.color_dict[label_med],
+                        hatch=self.hatch_dict[label_med],
+                        #alpha = 0.5
                     )
+
+                # for idx, val in enumerate(best_val):
+                #     label_best = meth_best["BO Method"].iloc[idx]
+                #     if label_best not in self.method_names and idx == 0:
+                #         label_b_use = label_best + " (Best)"
+                #     else:
+                #         label_b_use = None
+                #         added_labels.add(label_best)
+                #     axes[j].barh(
+                #         y_locs[idx] + i * bar_size,
+                #         val,
+                #         align="center",
+                #         height=bar_size,
+                #         label = label_b_use,
+                #         color=self.color_dict[label_best],
+                #         hatch=self.hatch_dict[label_best],
+                #     )
 
                 #Add in the best performace with an alpha value of 1. Change median/avg values to alpha value of 0.5
 
@@ -2660,7 +2680,71 @@ class All_CS_Plotter(Plotters):
                 )
 
         # Add legends and handles from last subplot that is visible
-        handles, labels = axes[-1].get_legend_handles_labels()
+        class MulticolorPatch(object):
+            def __init__(self, cmap, edgecolor=None, linewidth=None, ncolors=100):
+                self.ncolors = ncolors
+                self.edgecolor = edgecolor
+                self.linewidth = linewidth
+
+                if isinstance(cmap, str):
+                    self.cmap = plt.get_cmap(cmap)
+                else:
+                    self.cmap = cmap
+
+        # define a handler for the MulticolorPatch object
+        class MulticolorPatchHandler(object):
+            def legend_artist(self, legend, orig_handle, fontsize, handlebox):
+                n = orig_handle.ncolors
+                width, height = handlebox.width, handlebox.height
+                patches = []
+
+                for i, c in enumerate(orig_handle.cmap(i / n) for i in range(n)):
+                    patches.append(
+                        plt.Rectangle(
+                            [width / n * i - handlebox.xdescent, -handlebox.ydescent],
+                            width / n,
+                            height,
+                            facecolor=c,
+                            edgecolor=orig_handle.edgecolor,
+                            linewidth=orig_handle.linewidth,
+                        )
+                    )
+
+                patch = PatchCollection(patches, match_original=True)
+
+                handlebox.add_artist(patch)
+
+                if orig_handle.edgecolor is not None:
+                    linestyle = (0, (5, 5))  # Dashed line style
+                else:
+                    linestyle = "solid"
+
+                border_rect = plt.Rectangle(
+                    [
+                        handlebox.xdescent - 1,
+                        -handlebox.ydescent - 1,
+                    ],  # Position slightly offset
+                    width + 2,  # Width slightly larger to fit around the patches
+                    height + 2,  # Height slightly larger to fit around the patches
+                    edgecolor="black",  # Border color
+                    linestyle=linestyle,  # Dashed border style
+                    linewidth=1,  # Border line width
+                    fill=False,
+                )  # No fill color
+
+                # Add the border rectangle to handlebox
+                handlebox.add_artist(border_rect)
+
+                return patch
+
+        # Add a dummy legend
+        handles, labels = axes[0].get_legend_handles_labels()
+        handles_extra = [
+            MulticolorPatch("gist_rainbow"),
+        ]
+        labels_extra = ["GPBO (Median)"]
+        handles += handles_extra
+        labels += labels_extra
 
         # Plots legend
         if labels:
@@ -2672,8 +2756,8 @@ class All_CS_Plotter(Plotters):
                 fontsize=self.other_fntsz,
                 bbox_to_anchor=(0.55, 1.10),
                 borderaxespad=0,
+                handler_map={MulticolorPatch: MulticolorPatchHandler()}
             )
-
         plt.tight_layout()
 
         # Save or show figure
@@ -2682,7 +2766,8 @@ class All_CS_Plotter(Plotters):
                 self.analyzer.criteria_dict
             )
             save_path_dir = os.path.join(save_path)
-            save_path_to = os.path.join(save_path_dir, "noderiv_bar")
+            combined_string = "_".join(s_meths)
+            save_path_to = os.path.join(save_path_dir, combined_string + "_bar-v2")
             df_averages.to_csv(save_path_to + ".csv", index=False)
             self.__save_fig(save_path_to)
         else:
