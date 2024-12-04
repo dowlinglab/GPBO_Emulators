@@ -466,25 +466,24 @@ class General_Analysis:
             obj_col = "Min Obj GP Cum"
         #Get data from Criteria dict if you need it
         df, jobs, theta_true_data_w_bnds = self.get_df_all_jobs(criteria_dict)
-        # print(df.head())
-        data_best_path = os.path.join(self.study_results_dir, "best_run_results.csv")
-        data_exists, df_best = self.load_data(data_best_path)
-        if not data_exists or self.save_csv:
-            #Start by sorting pd dataframe by lowest obj func value overall, then by BO Iter and Run Number
-            df_sorted = df.sort_values(by=[obj_col, 'BO Iter', 'Run Number'], ascending=True)
-            #Then take only the 1st instance for each method and run
-            df_best = df_sorted.drop_duplicates(subset=['BO Method', 'Run Number'], keep='first').copy()
-            #Calculate the L2 norm of the best runs
-            df_best = self.__calc_l2_norm(df_best, theta_true_data_w_bnds)
-            #Sort df_best
-            df_best = self.sort_by_meth(df_best)
+        # data_best_path = os.path.join(self.study_results_dir, "best_run_results.csv")
+        # data_exists, df_best = self.load_data(data_best_path)
+        # if not data_exists or self.save_csv:
+        #Start by sorting pd dataframe by lowest obj func value overall, then by BO Iter and Run Number
+        df_sorted = df.sort_values(by=[obj_col, 'BO Iter', 'Run Number',], ascending=True)
+        #Then take only the 1st instance for each method, case and run
+        df_best = df_sorted.drop_duplicates(subset=['BO Method', 'Run Number'], keep='first').copy()
+        #Calculate the L2 norm of the best runs
+        df_best = self.__calc_l2_norm(df_best, theta_true_data_w_bnds)
+        #Sort df_best
+        df_best = self.sort_by_meth(df_best)
 
         #Get list of best jobs
         job_list_best = self.__get_job_list(df_best)
 
         #Put in a csv file in a directory based on the job
-        if self.save_csv:
-            self.save_data(df_best, data_best_path)
+        # if self.save_csv:
+        #     self.save_data(df_best, data_best_path)
 
         return df_best, job_list_best
     
@@ -1060,7 +1059,6 @@ class General_Analysis:
                 df_run = df_job[df_job["Run Number"] == run]
                 z_data = df_run[col_name[z]]
                 # If sse in log choices, the "true data" is sse data from least squares
-                # print(z_choices[z])
                 if "sse" in z_choices[z]:
                     data_true[z_choices[z]] = data_true_val
                     data_true_med[z_choices[z]] = data_true_med_val
@@ -2095,7 +2093,6 @@ class All_CS_Analysis(General_Analysis):
             else:
                 df_all_ls_best = pd.concat([df_all_ls_best, df_best_ls], axis=0)
 
-        # print(df_all_ls_best.head())
         if "Max Evals" not in df_all_ls_best.columns:
             # Compute the maximum 'iter' for each 'run'
             df_all_ls_best["Max Evals"] = df_all_ls_best.groupby(["CS Name", "Run"])[
@@ -2238,38 +2235,36 @@ class All_CS_Analysis(General_Analysis):
     def get_best_data_all_methods(self,  other_meths = ["NLS"]):
         """Get best data for all methods (including derivative free methods) and all case studies"""
         # Loop over each case study
-        for i, cs_name in enumerate(self.cs_list):
-            for j, meth_val in enumerate(self.meth_val_list):
-                # Create a criteria dictionary for the case study
-                criteria_dict = {"cs_name_val": cs_name, "meth_name_val": meth_val}
-                # Evaluate the best run for the case study for each method
-                try:
-                    df_best_runs, job_list_best_runs = self.get_best_all_runs(
-                        criteria_dict
-                    )
-                    # On iter 1, create the DataFrame df_all_best
-                    if i == 0 and j == 0 and len(df_best_runs) > 0:
-                        df_all_best = df_best_runs
-                    # Otherwise, concatenate the DataFrame to df_all_best
-                    else:
-                        df_all_best = pd.concat([df_all_best, df_best_runs], axis=0)
-                    df_all_best["F Max Evals"] = df_all_best["Max Evals"] * df_all_best[
-                        "CS Name"
-                    ].map(self.cs_x_dict)
-                    df_all_best["F Evals"] = df_all_best["BO Iter"] * df_all_best[
-                        "CS Name"
-                    ].map(self.cs_x_dict)
-                except:
-                    pass
+        for i, cs_name in enumerate(self.cs_list):   
+            # Create a criteria dictionary for the case study
+            # Evaluate the best run for the case study for each method
+            criteria_dict_use = copy.deepcopy(self.criteria_dict)
+            criteria_dict_use["cs_name_val"] = cs_name
+            # Evaluate the best run for the case study for each method
+            try: 
+                df_best_runs, job_list_best_runs = self.get_best_all_runs(
+                    criteria_dict_use
+                )
+                # On iter 1, create the DataFrame df_all_best
+                if i == 0 and len(df_best_runs) > 0:
+                    df_all_best = df_best_runs
+                # Otherwise, concatenate the DataFrame to df_all_best
+                else:
+                    df_all_best = pd.concat([df_all_best, df_best_runs], axis=0)
+                df_all_best["F Max Evals"] = df_all_best["Max Evals"] * df_all_best[
+                    "CS Name"
+                ].map(self.cs_x_dict)
+                df_all_best["F Evals"] = df_all_best["BO Iter"] * df_all_best[
+                    "CS Name"
+                ].map(self.cs_x_dict)
+            except:
+                pass         
             # Add nonlinear least squares results
             # Get SSE data from least squares
             # Create a criteria dictionary for the case study
             other_meth_df_list = []
             for count_meth, meth in enumerate(other_meths):
-                criteria_dict_other_meth = {
-                        "cs_name_val": cs_name,
-                        "meth_name_val": self.meth_val_list,
-                    }
+                criteria_dict_other_meth = criteria_dict_use
                 if meth == "NLS":
                     ls_analyzer = LS_Analysis(criteria_dict_other_meth, self.project, self.save_csv)
                     other_meth_results = ls_analyzer.least_squares_analysis()
@@ -2370,7 +2365,6 @@ class All_CS_Analysis(General_Analysis):
         
         # df_best_nec = pd.merge(df_all_best_GPBO, df_all_best_other, on=shared_columns, how="inner")
 
-
         if self.save_csv:
             save_path = os.path.join(self.study_results_dir, "all_cs_all_meth_best.csv")
             self.save_data(df_best_nec, save_path)
@@ -2394,7 +2388,6 @@ class All_CS_Analysis(General_Analysis):
             obj_col_sse_min = "Min Obj GP Cum"
 
         df_all_best, df_all_best_all_meth = self.get_best_data_all_methods(other_meths)
-        
         # Scale the objective function values for log conv and log indep
         condition = df_all_best["BO Method"].isin(
             ["Log Conventional", "Log Independence"]
@@ -2670,7 +2663,11 @@ class LS_Analysis(General_Analysis):
                 "2D Log Logistic": 25,
             }
             self.num_x = self.cs_x_dict[cs_name_dict]
-            exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
+            if self.criteria_dict["cs_name_val"] in [2,3,10,14]:
+                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
+            else:
+                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed)
+            simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
             ftol = 1e-7
 
         self.simulator = simulator
@@ -2846,9 +2843,12 @@ class LS_Analysis(General_Analysis):
             ls_results["Theta Min Obj Cum."] = ls_results["Theta Min Obj Cum."].apply(
                 self.str_to_array_df_col
             )
-            ls_results["l2 norm"] = ls_results["l2 norm"].apply(
-                self.str_to_array_df_col
-            )
+            try:
+                ls_results["l2 norm"] = ls_results["l2 norm"].apply(
+                    self.str_to_array_df_col
+                )
+            except:
+                pass
 
         return ls_results
 
@@ -3188,8 +3188,12 @@ class Deriv_Free_Anlys(General_Analysis):
         -----
         The simulator and experimental data is consistent between all methods of a given case study
         """
+
+        sim_data_crit_dict = self.criteria_dict.copy()
+        sim_data_crit_dict["meth_name_val"] = 1 #Placeholder to grab the smallest method 1 file
+
         jobs = sorted(
-            self.project.find_jobs(self.criteria_dict), key=lambda job: job._id
+            self.project.find_jobs(sim_data_crit_dict), key=lambda job: job._id
         )
         valid_files = [
             job.fn("BO_Results.gz")
@@ -3235,16 +3239,20 @@ class Deriv_Free_Anlys(General_Analysis):
             # Set num_x based off cs number
             self.cs_x_dict = {
                 "Simple Linear": 5,
-                "Muller x0": 25,
-                "Muller y0": 25,
+                "Muller x0": 5,
+                "Muller y0": 5,
                 "Yield-Loss": 10,
-                "Large Linear": 25,
+                "Large Linear": 5,
                 "BOD Curve": 10,
                 "Log Logistic": 10,
-                "2D Log Logistic": 25,
+                "2D Log Logistic": 5,
             }
             self.num_x = self.cs_x_dict[cs_name_dict]
-            exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
+            if self.criteria_dict["cs_name_val"] in [2,3,10,14]:
+                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
+            else:
+                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed)
+            simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
             ftol = 1e-7
 
         self.simulator = simulator
@@ -3331,7 +3339,6 @@ class Deriv_Free_Anlys(General_Analysis):
                 "l2 norm",
             ]
             ls_results = pd.DataFrame(columns=column_names)
-
             # Loop over number of runs
             for i in range(num_restarts):
                 # Start timer
