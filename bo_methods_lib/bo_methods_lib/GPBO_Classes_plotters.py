@@ -2496,7 +2496,7 @@ class All_CS_Plotter(Plotters):
         # return df_averages
         return df_averages
     
-    def make_derivfree_bar(self, s_meths = ["NLS", "SHGO-Sob", "NM", "GA"]):
+    def make_derivfree_bar(self, s_meths = ["NLS", "SHGO-Sob", "NM", "GA"], ver = 'med'):
         """
         Makes a bar chart of relevant data for each method and case study. Produces Figures 2 and 7 in the paper
 
@@ -2557,7 +2557,7 @@ class All_CS_Plotter(Plotters):
             # Sort the DataFrame by the 'CS Name' column
             df = df.sort_values(["CS Name", "BO Method"], inplace=True)
         
-        # print(df_averages.head())
+        
         names = ["Median Loss", "Avg Evals Tot", "Median L2 Norm"]
         std_names = ["IQR Loss", "Std Evals Tot", "IQR L2 Norm"]
         best_names = ["Best Loss", "Max Evals", "Best L2 Norm"]
@@ -2584,12 +2584,6 @@ class All_CS_Plotter(Plotters):
                 #Make a DF including just GPBO info
                 filtered_df = df_averages[df_averages["BO Method"].isin(self.method_names)]
                 #Get only the values of the BO Method where Median Loss is the minimum
-                # meth_averages_GPBO = filtered_df.loc[filtered_df["Median Loss"] == filtered_df["Median Loss"].min()]
-                # print(meth_averages_GPBO)
-                # label = meth_averages_GPBO["BO Method"].values[0]
-                # meth_averages = df_averages.loc[
-                #     df_averages["BO Method"] == label
-                # ]
                 meth_averages = (
                     filtered_df.loc[filtered_df.groupby("CS Name")["Median Loss"].idxmin()]
                 )
@@ -2600,12 +2594,10 @@ class All_CS_Plotter(Plotters):
                 meth_best = df_bests.loc[df_bests["BO Method"] == s_meths[i-1]]
                 label = s_meths[i - 1]
 
-            # hatch = self.hatch_dict[label]
-            # color = self.color_dict[label]
-
             for j in range(len(names)):
                 scl_value = 60 if names[j] == "Avg Time" else 1
                 best_val = meth_best[best_names[j]] / scl_value
+                alpha = 1 if ver == 'med' else 0.5
                 for idx in range(len(meth_averages["BO Method"])):
                     label_med = meth_averages["BO Method"].iloc[idx]
                     avg_val = meth_averages[names[j]].iloc[idx] / scl_value
@@ -2628,25 +2620,25 @@ class All_CS_Plotter(Plotters):
                         label=label_m_use,
                         color=self.color_dict[label_med],
                         hatch=self.hatch_dict[label_med],
-                        #alpha = 0.5
+                        alpha = alpha
                     )
-
-                # for idx, val in enumerate(best_val):
-                #     label_best = meth_best["BO Method"].iloc[idx]
-                #     if label_best not in self.method_names and idx == 0:
-                #         label_b_use = label_best + " (Best)"
-                #     else:
-                #         label_b_use = None
-                #         added_labels.add(label_best)
-                #     axes[j].barh(
-                #         y_locs[idx] + i * bar_size,
-                #         val,
-                #         align="center",
-                #         height=bar_size,
-                #         label = label_b_use,
-                #         color=self.color_dict[label_best],
-                #         hatch=self.hatch_dict[label_best],
-                #     )
+                if ver == 'best-med':
+                    for idx, val in enumerate(best_val):
+                        label_best = meth_best["BO Method"].iloc[idx]
+                        if label_best not in self.method_names and idx == 0:
+                            label_b_use = label_best + " (Best)"
+                        else:
+                            label_b_use = None
+                            added_labels.add(label_best)
+                        axes[j].barh(
+                            y_locs[idx] + i * bar_size,
+                            val,
+                            align="center",
+                            height=bar_size,
+                            label = label_b_use,
+                            color=self.color_dict[label_best],
+                            hatch=self.hatch_dict[label_best],
+                        )
 
                 #Add in the best performace with an alpha value of 1. Change median/avg values to alpha value of 0.5
 
@@ -2739,10 +2731,17 @@ class All_CS_Plotter(Plotters):
 
         # Add a dummy legend
         handles, labels = axes[0].get_legend_handles_labels()
-        handles_extra = [
-            MulticolorPatch("gist_rainbow"),
-        ]
-        labels_extra = ["GPBO (Median)"]
+        if ver == 'med': 
+            handles_extra = [
+                MulticolorPatch("gist_rainbow"),
+            ]
+            labels_extra = ["GPBO (Median)"]
+        else:
+            handles_extra = [
+                MulticolorPatch("gist_rainbow", edgecolor="white", linewidth=0.25),
+                MulticolorPatch("gist_rainbow"), 
+            ]
+            labels_extra = ["GPBO (Median)", "GPBO (Best)"]
         handles += handles_extra
         labels += labels_extra
 
@@ -2767,7 +2766,7 @@ class All_CS_Plotter(Plotters):
             )
             save_path_dir = os.path.join(save_path)
             combined_string = "_".join(s_meths)
-            save_path_to = os.path.join(save_path_dir, combined_string + "_bar-v2")
+            save_path_to = os.path.join(save_path_dir, combined_string + "_bar-" + ver)
             df_averages.to_csv(save_path_to + ".csv", index=False)
             self.__save_fig(save_path_to)
         else:
