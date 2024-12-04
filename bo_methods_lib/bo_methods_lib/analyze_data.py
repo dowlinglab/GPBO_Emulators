@@ -2278,7 +2278,8 @@ class All_CS_Analysis(General_Analysis):
                     nm_analyzer = Deriv_Free_Anlys("NM", criteria_dict_other_meth, self.project, self.save_csv)
                     other_meth_results = nm_analyzer.regression_analysis()
                 elif meth =="GA":
-                    ga_analyzer = Deriv_Free_Anlys("GA", criteria_dict_other_meth, self.project, self.save_csv)
+                    num_generations = 75 if cs_name in [2, 3] else 50
+                    ga_analyzer = Deriv_Free_Anlys("GA", criteria_dict_other_meth, self.project, self.save_csv, num_generations= num_generations)
                     other_meth_results = ga_analyzer.regression_analysis()
                 else:
                     raise ValueError("Method not recognized")
@@ -2986,7 +2987,7 @@ class Deriv_Free_Anlys(General_Analysis):
     """
 
     # Inherit objects from General_Analysis
-    def __init__(self, deriv_free_meth, criteria_dict, project, save_csv, num_generations=50, num_parents_mating=5, sol_per_pop=5, exp_data=None, simulator=None):
+    def __init__(self, deriv_free_meth, criteria_dict, project, save_csv, num_generations = 50, num_parents_mating=5, sol_per_pop=25, exp_data=None, simulator=None):
         """
         Parameters
         ----------
@@ -3003,12 +3004,12 @@ class Deriv_Free_Anlys(General_Analysis):
         simulator: Simulator, default None
             The simulator object to evaluate
 
-        num_generations: int, default 50
-            The number of generations to run the genetic algorithm
+        num_generations: int, default 50 
+            The number of generations to run the genetic algorithm. Defaults to the number of BO iters for a given case study or 50
         num_parents_mating: int, default 5
             The number of parents to mate in the genetic algorithm
-        sol_per_pop: int, default 10
-            The number of solutions in the population
+        sol_per_pop: int, default 25
+            The number of solutions in the population, also the number of initial samples
 
         Raises
         ------
@@ -3034,7 +3035,7 @@ class Deriv_Free_Anlys(General_Analysis):
         self.simulator = simulator
         self.exp_data = exp_data
         self.num_x = 10  # Default number of x to generate
-        self.num_generations = num_generations 
+        self.num_generations = 50 
         self.num_parents_mating = num_parents_mating
         self.sol_per_pop = sol_per_pop
 
@@ -3296,6 +3297,7 @@ class Deriv_Free_Anlys(General_Analysis):
             self.deriv_free_meth + "_" + tot_runs_str + ".csv",
         )
         found_data1, ls_results = self.load_data(ls_data_path)
+        simulator, exp_data, tot_runs_cs, ftol = self.__get_simulator_exp_data()
 
         if self.save_csv or not found_data1:
             # Get simulator and exp_data Data class objects
@@ -3365,13 +3367,18 @@ class Deriv_Free_Anlys(General_Analysis):
                         args = (self.exp_data, self.simulator)
                     )
                 else:
+                    saturate = int(self.num_generations/3)
+                    sat_str = "saturate_" + str(saturate)
+                    
                     gene_space = [{'low': row[0], 'high': row[1]} for row in self.simulator.bounds_theta_reg.T]
                     Solution = pygad.GA(num_generations=self.num_generations,
                                 num_parents_mating=self.num_parents_mating,
                                 sol_per_pop=self.sol_per_pop,
                                 gene_space = gene_space,
                                 num_genes=self.exp_data.get_dim_theta(),
-                                fitness_func=self.__pygad_func)
+                                fitness_func=self.__pygad_func,
+                                random_seed=self.simulator.seed + i,
+                                stop_criteria = [sat_str])
                     Solution.run()
 
                 # End timer and calculate total run time

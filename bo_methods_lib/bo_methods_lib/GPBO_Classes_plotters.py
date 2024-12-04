@@ -2089,7 +2089,7 @@ class All_CS_Plotter(Plotters):
             "NM": "+",
             "GA": "+",
         }
-
+        
     def __create_subplots(self, num_subplots, sharex="row", sharey="none", row_num_size = 16):
         """
         Creates Subplots based on the amount of data
@@ -2573,12 +2573,19 @@ class All_CS_Plotter(Plotters):
         t_label_lst = list(df_averages["CS Name"].unique())
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
 
-        # y_locs = np.arange(len(self.analyzer.cs_list)) * (
-        #     bar_size * (len(s_meths) + add_value) + padding
-        # )
         y_locs  = np.arange(len(self.analyzer.cs_list)) * (height_per_group +padding)
         axes = axes.flatten()
         added_labels = set()
+
+        cs_name_to_constant = {"Simple Linear": 20, 
+                               "Large Linear": 50, 
+                               "Muller x0": 40, 
+                               "Muller y0": 20, 
+                               "Log Logistic": 40,
+                               "2D Log Logistic": 40, 
+                               "Yield-Loss": 30, 
+                               "BOD Curve": 20}
+            
         for i in range(len(s_meths) + 1):
             if i == 0:
                 #Make a DF including just GPBO info
@@ -2589,6 +2596,11 @@ class All_CS_Plotter(Plotters):
                 )
                 #Find index of the method in the method names list
                 meth_best = df_bests.loc[~df_bests["BO Method"].isin(s_meths)]
+                
+                # print(meth_averages)
+                #Add number of fxn evals to each method
+                # meth_best.loc[:,"Max Evals"] = meth_best["CS Name"].map(cs_name_to_constant) + meth_best["Max Evals"]
+                # meth_averages.loc[:,"Avg Evals Tot"] = meth_averages["CS Name"].map(cs_name_to_constant) + meth_averages["Avg Evals Tot"]           
             else:
                 meth_averages = df_averages.loc[df_averages["BO Method"] == s_meths[i-1]]
                 meth_best = df_bests.loc[df_bests["BO Method"] == s_meths[i-1]]
@@ -2611,6 +2623,7 @@ class All_CS_Plotter(Plotters):
                     else:
                         label_m_use = None 
                         added_labels.add(label_med)
+                    
                     axes[j].barh(
                         y_locs[idx] + i * bar_size,
                         avg_val,
