@@ -51,12 +51,13 @@ class Method_name_enum(Enum):
     5 = C2 (Emulator GPBO, sparse grid integrated EI)
     6 = D2 (Emulator GPBO, monte carlo integrated EI)
     7 = A3 (Emulator GPBO, E[SSE] acquisition function)
+    8 = A4 (Emulator GPBO, Upper Confidence Bound Acquisition Function)
 
     """
 
     # Ensure that only values 1 to 5 are chosen
-    if Enum in range(1, 8) == False:
-        raise ValueError("There are only seven options for Enum: 1 to 7")
+    if Enum in range(1, 9) == False:
+        raise ValueError("There are only seven options for Enum: 1 to 8")
 
     A1 = 1
     B1 = 2
@@ -65,6 +66,7 @@ class Method_name_enum(Enum):
     C2 = 5
     D2 = 6
     A3 = 7
+    A4 = 8
     # Note use Method_name_enum.enum.name to call "A1"
 
 
