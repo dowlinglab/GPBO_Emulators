@@ -124,8 +124,55 @@ class Obj_enum(Enum):
 
     OBJ = 1
     LN_OBJ = 2
-
-
+    
+class CS_name_enum(Enum):
+    """
+    The base class for any GPBO case study names
+    
+    Notes: 
+    -------
+    1 = CS1 2 Param Polynomial
+    2 = CS2 4 Param 2 State Point (x0) Muller Potential
+    3 = CS3 4 Param 2 State Point (y0) Muller Potential
+    4 = CS4 8 Param 2 State Point (x0y0) Muller Potential
+    5 = CS5 12 Param 2 State Point (Ax0y0) Muller Potential
+    6 = CS6 8 Param 2 State Point (Ax0) Muller Potential
+    7 = CS7 8 Param 2 State Point (Ay0) Muller Potential
+    8 = CS8 5 Param Polynomial with varying scale parameters
+    9 = CS9 4 Param Isotherm
+    10 = CS10 5 Param Polynomial with same scale parameters
+    11 = CS11 2 Param BOD Example from Bates and Watts
+    Examples from: https://www.statforbiology.com/nonlinearregression/usefulequations
+    12 = CS12 3 Param Yield-Loss Model
+    13 = CS13 4 Param Log Logistic Model
+    14 = CS14 4 Param 2 State Point Log Logistic 2D Model
+    15 = CS15 5 Param 1 State Point exp() hybrid with many local minima
+    16 = CS16 4 Param 2 State Point sin/cos model with many local minima
+    17 = CS17 4 Param 1 State Point exp/cos model with many local minima
+    """
+    #Check that values are only 1 to 2
+    if Enum in range(1, 18) == False:
+        raise ValueError("There are 16 options for Enum: 1 to 17")
+        
+    CS1 = 1
+    CS2_x0 = 2
+    CS3_y0 = 3
+    CS4_x0y0 = 4
+    CS5_Ax0y0 = 5
+    CS6_Ax0 = 6
+    CS7_Ay0 = 7
+    CS8 = 8
+    CS9 = 9
+    CS10 = 10
+    CS11 = 11
+    CS12 = 12
+    CS13 = 13
+    CS14 = 14
+    CS15 = 15
+    CS16 = 16
+    CS17 = 17
+    
+    
 class Ep_enum(Enum):
     """
     The base class for any Method for calculating the decay of the exploration parameter
@@ -154,11 +201,10 @@ class GPBO_Methods:
 
     Methods
     --------------
-    __init__(*): Constructor method
-    get_name_long(): Gets the shorthand name of the method that appears in the manuscript
-    get_emulator(): Function to get emulator status based on method name
-    get_obj(): Function to get objective function status based on method name
-    get_sparse_mc(): Function to get sparse grid/Monte Carlo status based on method name
+    __init__
+    get_emulator()
+    get_obj()
+    get_sparse_mc()
     """
 
     # Class variables and attributes
@@ -182,10 +228,6 @@ class GPBO_Methods:
     def get_name_long(self):
         """
         Gets the shorthand name of the method that appears in the manuscript
-
-        Returns
-        -------
-        report_name: str, The shorthand name of the method that appears in the manuscript
         """
 
         if self.method_name.name == "A1":
@@ -228,8 +270,8 @@ class GPBO_Methods:
         --------
         obj: class instance, Determines whether log scaling is used in the objective function
         """
-
-        # Objective function is ln_obj if it includes the letter B
+        
+        #Objective function is ln_obj if it includes the letter B
         if self.method_name.name == "B1":
             obj = Obj_enum(2)
         else:
@@ -251,10 +293,10 @@ class GPBO_Methods:
 
         # Check Emulator status
         if self.emulator == True:
-            # Method 2C is Sparse Grid
+            #Method 2C is Sparse Grid
             if "C" in self.method_name.name:
                 sparse_grid = True
-            # Method 2D is Monte Carlo
+            #Method 2D is Monte Carlo
             elif "D" in self.method_name.name:
                 mc = True
 
@@ -272,112 +314,43 @@ class CaseStudyParameters:
     """
 
     # Class variables and attributes
-
-    def __init__(
-        self,
-        cs_name,
-        ep0,
-        sep_fact,
-        normalize,
-        kernel,
-        lenscl,
-        outputscl,
-        retrain_GP,
-        reoptimize_obj,
-        gen_heat_map_data,
-        bo_iter_tot,
-        bo_run_tot,
-        save_data,
-        DateTime,
-        set_seed,
-        obj_tol,
-        acq_tol,
-    ):
+    
+    def __init__(self, cs_name, ep0, sep_fact, normalize, kernel, lenscl, outputscl, retrain_GP, reoptimize_obj, gen_heat_map_data, bo_iter_tot, bo_run_tot, save_data, DateTime, set_seed, obj_tol, acq_tol):
         """
         Parameters
         ----------
-        cs_name: string
-            The name associated with the case study being evaluated
-        ep0: float or int
-            The starting value for exploration bias parameter alpha
-        sep_fact: float or int
-            The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        normalize: bool
-            Determines whether feature data will be standardized (using sklearn RobustScaler)
-        kernel: Kernel_enum
-            Determines which GP Kerenel to use
-        lenscl: float, np.ndarray, or None
-            Value of the lengthscale hyperparameter - None if hyperparameters will be trained
-        outputscl: float or None
-            Determines value of outputscale - None if hyperparameters will be updated during training
-        retrain_GP: int
-            Number of times to (re)do GP training. Note, if zero, GP will not be trained at all and default/initial hyperparameters will be used
-        reoptimize_obj: int
-            Number of times to reoptimize ei/sse with different starting values. Note, 0 = 1 optimization
-        gen_heat_map_data: bool
-            Determines whether validation data are generated to create heat maps
-        bo_iter_tot: int
-            Maximum number of BO iterations per restart
-        bo_run_tot: int
-            Total number of BO algorithm restarts
-        save_data: bool
-            Determines whether ei data for argmax(ei) theta will be saved
-        DateTime: str or None
-            Determines the date and time for the run
-        set_seed: int or None
-            Determines seed for randomizations. None if seed is random
-        obj_tol: float
-            Objective difference at which to terminate algorithm (rho_1)
-        acq_tol: float
-            Acquisition function value at which to terminate algorithm (rho_2)
-
-        Raises
-        ------
-        AssertionError
-            If any of the inputs (except cs_name) are not of the correct type
-        Warning
-            If cs_name is not a string
+        cs_name: string, The name associated with the case study being evaluated   
+        ep0: float, The original  exploration bias. Default 1
+        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+        normalize: bool, Determines whether feature data will be normalized for problem analysis
+        kernel: enum class instance, Determines which GP Kerenel to use
+        lenscl: float, np.ndarray, or None, Value of the lengthscale hyperparameter - None if hyperparameters will be trained
+        outputscl: float or None, Determines value of outputscale - None if hyperparameters will be updated during training
+        retrain_GP: int, number of times to restart GP training. Note, 0 = 1 optimization
+        reoptimize_obj: int, number of times to reoptimize ei/sse with different starting values. Note, 0 = 1 optimization
+        gen_heat_map_data: bool, determines whether validation data are generated to create heat maps
+        bo_iter_tot: int, maximum number of BO iterations per restart
+        bo_run_tot: int, total number of BO algorithm restarts
+        save_data: bool, Determines whether ei data for argmax(ei) theta will be saved
+        DateTime: str or None, Determines whether files will be saved with the date and time for the run, Default None
+        set_seed: int or None, Determines seed for randomizations. None if seed is random
+        obj_tol: float, obj at which to terminate algorithm after int(bo_iter_tot*0.3) iters
+        acq_tol: float, acquisition function value at which to terminate algorithm
         """
-        # Assert statements
-        # Check for strings
-        if not isinstance(cs_name, str) == True:
-            warnings.warn(
-                "cs_name will be converted to string if it is not an instance of CS_name_enum"
-            )
-        # Check for enum
-        assert (
-            isinstance(kernel, (Enum)) == True
-        ), "kernel must be type Enum"  # Will figure this one out later
-        # Check for float/int
-        assert (
-            all(isinstance(var, (float, int)) for var in [sep_fact, ep0]) == True
-        ), "sep_fact and ep0 must be float or int"
-        # Check for bool
-        assert (
-            all(
-                isinstance(var, (bool))
-                for var in [normalize, gen_heat_map_data, save_data]
-            )
-            == True
-        ), "normalize, gen_heat_map_data, save_fig, and save_data must be bool"
-        # Check for int
-        assert (
-            all(
-                isinstance(var, (int))
-                for var in [
-                    bo_iter_tot,
-                    bo_run_tot,
-                    set_seed,
-                    retrain_GP,
-                    reoptimize_obj,
-                ]
-            )
-            == True
-        ), "bo_iter_tot, bo_run_tot, seed, retrain_GP, and reoptimize_obj must be int"
-        assert (
-            isinstance(outputscl, (float, int)) or outputscl is None
-        ), "outputscl must be float, int, or None"
-        # Outputscl must be >0 if not None
+        #Assert statements
+        #Check for strings
+        # if not isinstance(cs_name, (str, CS_name_enum)) == True:
+        #     warnings.warn("cs_name will be converted to string if it is not an instance of CS_name_enum")
+        #Check for enum 
+        assert isinstance(kernel, (Enum)) == True, "kernel must be type Enum" #Will figure this one out later
+        #Check for float/int
+        assert all(isinstance(var, (float,int)) for var in [sep_fact,ep0]) == True, "sep_fact and ep0 must be float or int"
+        #Check for bool
+        assert all(isinstance(var, (bool)) for var in [normalize, gen_heat_map_data, save_data]) == True, "normalize, gen_heat_map_data, save_fig, and save_data must be bool"
+        #Check for int
+        assert all(isinstance(var, (int)) for var in [bo_iter_tot, bo_run_tot, set_seed, retrain_GP, reoptimize_obj]) == True, "bo_iter_tot, bo_run_tot, seed, retrain_GP, and reoptimize_obj must be int"
+        assert isinstance(outputscl, (float, int)) or outputscl is None, "outputscl must be float, int, or None"
+        #Outputscl must be >0 if not None
         if outputscl is not None:
             assert outputscl > 0, "outputscl must be > 0 initially if it is not None"
 
@@ -455,69 +428,37 @@ class CaseStudyParameters:
 class Simulator:
     """
     The base class for differet simulators. Defines a simulation
-
+    
     Methods
     --------------
-    __init__(*): Constructor method
-    __set_true_params(): Sets true parameter value array and the corresponding names based on parameter dictionary and indices to consider
-    __grid_sampling(num_points, bounds): Generates Grid sampled data
-    __lhs_sampling(num_points, bounds, seed): Design LHS Samples
-    __create_param_data(num_points, bounds, gen_meth, seed): Generates data based off of bounds, and sampling scheme
-    __vector_to_1D_array(array): Converts a vector to a 1D array
-    gen_y_data(data, noise_mean, noise_std): Generates y data with noise
-    gen_exp_data(num_x_data, gen_meth_x): Generates experimental data
-    gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, gen_val_data): Generates simulation data
-    gen_theta_vals(num_theta_data): Generates parameter sets
+    __init__
+    __set_true_params()
+    __grid_sampling(num_points, bounds
+    __lhs_sampling(num_points, bounds, seed)
+    __create_param_data(num_points, bounds, gen_meth, seed)
+    __vector_to_1D_array(array)
+    gen_y_data(data, noise_mean, noise_std)
+    gen_exp_data(num_x_data, gen_meth_x)
+    gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, gen_val_data)
+    gen_theta_vals(num_theta_data)
     sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, gen_val_data)
     """
-
-    def __init__(
-        self,
-        indices_to_consider,
-        theta_ref,
-        theta_names,
-        bounds_theta_l,
-        bounds_x_l,
-        bounds_theta_u,
-        bounds_x_u,
-        noise_mean,
-        noise_std,
-        set_seed,
-        calc_y_fxn,
-        calc_y_fxn_args,
-    ):
+    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, set_seed, calc_y_fxn, calc_y_fxn_args):
         """
         Parameters
         ----------
-        indices_to_consider: list(int)
-            The indices corresponding to which parameters are being guessed
-        theta_ref: ndarray
-            The array containing the true values of problem constants
-        theta_names: list
-            List of names of each parameter that will be plotted named by index w.r.t Theta_True
-        bounds_theta_l: list
-            Lower bounds of theta
-        bounds_x_l: list
-            Lower bounds of x
-        bounds_theta_u: list
-            Upper bounds of theta
-        bounds_x_u: list
-            Upper bounds of x
-        noise_mean: float, int
-            The mean of the noise
-        noise_std: float, int, or None
-            The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
-        set_seed: int or None
-            Determines seed for randomizations. None if seed is random
-        calc_y_fxn: function
-            The function to calculate ysim data with
-        calc_y_fxn_args: dict
-            Dictionary of arguments other than parameters and x to pass to calc_y_fxn
-
-        Raises
-        ------
-        AssertionError
-            If any of the inputs are not of the correct type or value
+        indeces_to_consider: list of int, The indeces corresponding to which parameters are being guessed
+        theta_ref: ndarray, The array containing the true values of problem constants
+        theta_names: list, list of names of each parameter that will be plotted named by indecie w.r.t Theta_True
+        bounds_theta_l: list, lower bounds of theta
+        bounds_x_l: list, lower bounds of x
+        bounds_theta_u: list, upper bounds of theta
+        bounds_x_u: list, upper bounds of x
+        noise_mean:float, int: The mean of the noise
+        noise_std: float, int: The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
+        set_seed: int or None, Determines seed for randomizations. None if seed is random
+        calc_y_fxn: function, The function to calculate ysim data with
+        calc_y_fxn_args: dict, dictionary of arguments other than parameters and x to pass to calc_y_fxn
         """
         # Check for float/int
         assert isinstance(noise_mean, (float, int)), "noise_mean must be int or float"
@@ -525,38 +466,19 @@ class Simulator:
             isinstance(noise_std, (float, int)) or noise_std is None
         ), "noise_std must be int, float, or None"
         assert isinstance(set_seed, int) or set_seed is None, "Seed must be int or None"
-        # Check for list or ndarray
-        list_vars = [
-            indices_to_consider,
-            theta_ref,
-            theta_names,
-            bounds_theta_l,
-            bounds_x_l,
-            bounds_theta_u,
-            bounds_x_u,
-        ]
-        assert (
-            all(isinstance(var, (list, np.ndarray)) for var in list_vars) == True
-        ), "indices_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
-        # Check for list lengths > 0
-        assert (
-            all(len(var) > 0 for var in list_vars) == True
-        ), "indices_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must have length > 0"
-        # Check that bound_x and bounds_theta have same lengths
-        assert len(bounds_theta_l) == len(bounds_theta_u) and len(bounds_x_l) == len(
-            bounds_x_u
-        ), "bounds lists for x and theta must be same length"
-        # Check indeces to consider in theta_ref
-        assert (
-            all(0 <= idx <= len(theta_ref) - 1 for idx in indices_to_consider) == True
-        ), "indeces to consider must be in range of theta_ref"
-        assert (
-            isinstance(calc_y_fxn_args, dict) or calc_y_fxn_args is None
-        ), "calc_y_fxn_args must be dict or None"
-        assert callable(
-            calc_y_fxn
-        ), "The argument 'calc_y_fxn' must be a callable (function) with 3 arguments."
-
+        #Check for list or ndarray
+        list_vars = [indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
+        assert all(isinstance(var,(list,np.ndarray)) for var in list_vars) == True, "indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
+        #Check for list lengths > 0
+        assert all(len(var) > 0 for var in list_vars) == True, "indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must have length > 0"
+        #Check that bound_x and bounds_theta have same lengths
+        assert len(bounds_theta_l) == len(bounds_theta_u) and len(bounds_x_l) == len(bounds_x_u), "bounds lists for x and theta must be same length"
+        #Check indeces to consider in theta_ref
+        assert all(0 <= idx <= len(theta_ref)-1 for idx in indeces_to_consider)==True, "indeces to consider must be in range of theta_ref"
+        assert isinstance(calc_y_fxn_args, dict) or calc_y_fxn_args is None, "calc_y_fxn_args must be dict or None"
+        
+        #How to write assert statements for calc_y_fxn?
+        
         # Constructor method
         self.dim_x = len(bounds_x_l)
         self.dim_theta = len(
@@ -708,12 +630,12 @@ class Simulator:
 
     def __vector_to_1D_array(self, array):
         """
-        Turns arrays that are shape (n,) into (n, 1) arrays
+        Reshapes 1D arrays (n,), into 2D arrays (n, 1), while leaving other arrays unchanged
+
 
         Parameters
         ----------
-        array: np.ndarray
-            Array of n dimensions
+        array: ndarray, n dimensions
 
         Returns
         -------
@@ -722,7 +644,7 @@ class Simulator:
         """
         # If array is not 2D, give it shape (len(array), 1)
         if not len(array.shape) > 1:
-            array = array.reshape(-1, 1)
+            array = array.reshape(-1,1)
         return array
 
     def gen_y_data(self, data, noise_mean, noise_std):
@@ -754,30 +676,26 @@ class Simulator:
         for i in range(len_points):
             # Create model coefficient from true space substituting in the values of param_space at the correct indeces
             model_coefficients = self.theta_ref.copy()
-            # Replace coefficients a specified indeces with their theta_val counterparts
-            model_coefficients[self.indices_to_consider] = data.theta_vals[i]
-            # Create y data coefficients
-            y_data.append(
-                self.calc_y_fxn(
-                    model_coefficients, data.x_vals[i], self.calc_y_fxn_args
-                )
-            )
+            #Replace coefficients a specified indeces with their theta_val counterparts
+            model_coefficients[self.indeces_to_consider] = data.theta_vals[i]               
+            #Create y data coefficients
+            y_data.append(self.calc_y_fxn(model_coefficients, data.x_vals[i], self.calc_y_fxn_args))
 
         # Convert list to array and flatten array
         y_data = np.array(y_data).flatten()
 
         # Creates noise values with a certain stdev and mean from a normal distribution
         if noise_std is None:
-            # If noise is none, set the noise as 5% of the mean value
-            noise_std = np.abs(np.mean(y_data)) * 0.05
+            #If noise is none, set the noise as 5% of the mean value
+            noise_std = np.abs(np.mean(y_data))*0.05
         else:
             noise_std = noise_std
 
-        noise = np.random.normal(size=len(y_data), loc=noise_mean, scale=noise_std)
-
-        # Add noise to data
+        noise = np.random.normal(size=len(y_data), loc = noise_mean, scale = noise_std)
+        
+        #Add noise to data
         y_data = y_data + noise
-
+        
         return y_data
 
     def gen_exp_data(self, num_x_data, gen_meth_x, set_seed=None):
@@ -786,24 +704,13 @@ class Simulator:
 
         Parameters
         ----------
-        num_x_data: int
-            Number of experiments
-        gen_meth_x: bool
-            Whether to generate X data with LHS or grid method
-        set_seed: int or None, default None
-            Seed with which t0 generate experimental data. None sets the seed to the class seed
+        num_x_data: int, number of experiments
+        gen_meth_x: bool: Whether to generate X data with LHS or grid method
+        set_seed: int or None, Seed with which t0 generate experimental data. None sets the seed to the class seed
 
         Returns
         --------
-        exp_data: Data
-            Experimental x and y data along with parameter bounds
-
-        Raises
-        ------
-        AssertionError
-            If any of the inputs are not of the correct type or value
-        ValueError
-            If num_x_data is not a positive integer
+        exp_data: instance of a class filled in with experimental x and y data along with parameter bounds
         """
         assert (
             isinstance(set_seed, int) or set_seed is None
@@ -813,80 +720,39 @@ class Simulator:
             new_seed = set_seed
         else:
             new_seed = self.seed
-        # check that num_data > 0
+        #check that num_data > 0 
         if num_x_data <= 0 or isinstance(num_x_data, int) == False:
-            raise ValueError("num_x_data must be a positive integer")
-
-        # Create x vals based on bounds and num_x_data
-        x_vals = self.__vector_to_1D_array(
-            self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, new_seed)
-        )
-        # Reshape theta_true to correct dimensions and stack it once for each xexp value
-        theta_true = self.theta_true.reshape(1, -1)
-        theta_true_repeated = np.vstack([theta_true] * len(x_vals))
-        # Create exp_data class and add values
-        exp_data = Data(
-            theta_true_repeated,
-            x_vals,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            self.bounds_theta_reg,
-            self.bounds_x,
-            None,
-            new_seed,
-        )
-        # Generate y data for exp_data calss instance
+            raise ValueError('num_x_data must be a positive integer')
+            
+        #Create x vals based on bounds and num_x_data
+        x_vals = self.__vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, new_seed))
+        #Reshape theta_true to correct dimensions and stack it once for each xexp value
+        theta_true = self.theta_true.reshape(1,-1)
+        theta_true_repeated = np.vstack([theta_true]*len(x_vals))
+        #Create exp_data class and add values
+        exp_data = Data(theta_true_repeated, x_vals, None, None, None, None, None, None, self.bounds_theta_reg, self.bounds_x, None, new_seed)
+        #Generate y data for exp_data calss instance
         exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std)
 
         return exp_data
-
-    def gen_sim_data(
-        self,
-        num_theta_data,
-        num_x_data,
-        gen_meth_theta,
-        gen_meth_x,
-        sep_fact,
-        set_seed=None,
-        gen_val_data=False,
-    ):
+    
+    def gen_sim_data(self, num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, set_seed = None, gen_val_data = False):
         """
         Generates simulated data in an instance of the Data class
 
         Parameters
         ----------
-        num_theta_data: int
-            Number of parameter sets
-        num_x_data: int
-            Number of experiments
-        gen_meth_theta: bool
-            Whether to generate theta data with LHS or grid method
-        gen_meth_x: bool
-            Whether to generate X data with LHS or grid method
-        sep_fact: float or int
-            The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        set_seed: int or None, default None
-            Seed to generate initial training data with. If None, seed will be the seed of the class
-        gen_val_data: bool, default False
-            Whether validation data (no y vals) or simulation data (has y vals) will be generated
-
-        Returns
+        num_theta_data: int, number of theta values
+        num_x_data: int, number of experiments
+        gen_meth_theta: bool: Whether to generate theta data with LHS or grid method
+        gen_meth_x: bool: Whether to generate X data with LHS or grid method
+        sep_fact: float or int, The separation factor that decides what percentage of data will be training data. Between 0 and 1.
+        set_seed: int or None, seed to generate initial training data with. If None, seed will be the seed of the class
+        gen_val_data: bool, Whether validation data (no y vals) or simulation data (has y vals) will be generated. Default False
+        
+        Returns:
         --------
-        sim_data: Data
-            Simulated x and y data along with parameter bounds
-
-        Raises
-        ------
-        AssertionError
-            If any of the inputs are not of the correct type or value
-        ValueError
-            If num_theta_data or num_x_data are not a positive integer or gen_val is not a boolean
-        Warning
-            If more than 5000 points are generated
+        sim_data: instance of a class filled in with experimental x and y data along with parameter bounds
         """
         assert isinstance(
             sep_fact, (float, int)
@@ -902,23 +768,21 @@ class Simulator:
             sim_seed = self.seed
 
         if isinstance(gen_val_data, bool) == False:
-            raise ValueError("gen_val_data must be bool")
-
-        # Chck that num_data > 0
+            raise ValueError('gen_val_data must be bool')
+            
+        #Chck that num_data > 0
         if num_theta_data <= 0 or isinstance(num_theta_data, int) == False:
-            raise ValueError("num_theta_data must be a positive integer")
-
+            raise ValueError('num_theta_data must be a positive integer')
+            
         if num_x_data <= 0 or isinstance(num_x_data, int) == False:
-            raise ValueError("num_x_data must be a positive integer")
-
-        # Set bounds on theta which we are regressing given bounds_theta and indeces to consider
-        # X data we always want the same between simulation and validation data
-        x_data = self.__vector_to_1D_array(
-            self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, sim_seed)
-        )
-
-        # Infer how many times to repeat theta and x values given whether they were generated by LHS or a meshgrid
-        # X and theta repeated at least once per time the other is generated
+            raise ValueError('num_x_data must be a positive integer')
+        
+        #Set bounds on theta which we are regressing given bounds_theta and indeces to consider
+        #X data we always want the same between simulation and validation data
+        x_data = self.__vector_to_1D_array(self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, sim_seed))
+            
+        #Infer how many times to repeat theta and x values given whether they were generated by LHS or a meshgrid
+        #X and theta repeated at least once per time the other is generated
         repeat_x = num_theta_data
         repeat_theta = len(x_data)
 
@@ -993,12 +857,14 @@ class Simulator:
         Warning
             If more than 5000 points are generated
         """
-        assert (
-            isinstance(num_theta_data, int) and num_theta_data > 0
-        ), "num_theta_data must be int > 0"
+        assert isinstance(num_theta_data, int) and num_theta_data > 0, "num_theta_data must be int > 0"
         gen_meth_theta = Gen_meth_enum(1)
-
-        # Warn user if >5000 pts generated
+            
+        #Chck that num_data > 0
+        if num_theta_data <= 0 or isinstance(num_theta_data, int) == False:
+            raise ValueError('num_theta_data must be a positive integer')
+            
+        #Warn user if >5000 pts generated
         if num_theta_data > 5000:
             warnings.warn("More than 5000 points will be generated!")
 
@@ -1032,20 +898,10 @@ class Simulator:
 
         Returns
         --------
-        sim_sse_data: np.ndarray
-            Objective function data generated from y_vals
-
-        Raises
-        ------
-        AssertionError
-            If sep_fact is not between 0 and 1
-        ValueError
-            If gen_val_data is not a boolean
+        sim_sse_data: ndarray, sse data generated from y_vals
         """
-
-        assert isinstance(
-            sep_fact, (float, int)
-        ), "Separation factor must be float or int > 0"
+        
+        assert isinstance(sep_fact, (float,int)), "Separation factor must be float or int > 0"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
 
         if isinstance(gen_val_data, bool) == False:
