@@ -244,6 +244,8 @@ class GPBO_Methods:
             report_name = "Monte Carlo"
         elif self.method_name.name == "A3":
             report_name = "E[SSE]"
+        elif self.method_name.name == "A4":
+            report_name = "UCB"
         return report_name
 
     def get_emulator(self):
@@ -358,42 +360,23 @@ class CaseStudyParameters:
         if isinstance(lenscl, list):
             lenscl = np.array(lenscl)
 
-        assert (
-            isinstance(lenscl, (float, int, np.ndarray)) or lenscl is None
-        ), "lenscl must be float, int, np.ndarray, or None"
+        assert (isinstance(lenscl, (float, int, np.ndarray)) or lenscl is None), "lenscl must be float, int, np.ndarray, or None"
         if lenscl is not None:
             if isinstance(lenscl, (float, int)):
                 assert lenscl > 0, "lenscl must be > 0 initially if lenscl is not None"
             else:
-                assert all(
-                    isinstance(var, (np.int64, np.float64, float, int))
-                    for var in lenscl
-                ), "All lenscl elements must float or int"
-                assert all(
-                    item > 0 for item in lenscl
-                ), "lenscl elements must be > 0 initially if lenscl is not None"
+                assert all(isinstance(var, (np.int64, np.float64, float, int)) for var in lenscl), "All lenscl elements must float or int"
+                assert all( item > 0 for item in lenscl), "lenscl elements must be > 0 initially if lenscl is not None"
         # Check for sep fact number between 0 and 1
-        assert (
-            0 < sep_fact <= 1
-        ), "Separation factor must be between 0 and 1. Not including zero"
+        assert ( 0 < sep_fact <= 1), "Separation factor must be between 0 and 1. Not including zero"
         # Check for > 0
-        assert (
-            all(var > 0 for var in [bo_iter_tot, bo_run_tot, set_seed]) == True
-        ), "bo_iter_tot, bo_run_tot, and seed must be > 0"
+        assert (all(var > 0 for var in [bo_iter_tot, bo_run_tot, set_seed]) == True), "bo_iter_tot, bo_run_tot, and seed must be > 0"
         # Check for >=0
-        assert (
-            all(var >= 0 for var in [retrain_GP, reoptimize_obj]) == True
-        ), "retrain_GP and reoptimize_obj must be >= 0"
+        assert (all(var >= 0 for var in [retrain_GP, reoptimize_obj]) == True ), "retrain_GP and reoptimize_obj must be >= 0"
         # Check for str or None
-        assert (
-            isinstance(DateTime, (str)) == True or DateTime == None
-        ), "DateTime must be str or None"
-        assert (
-            isinstance(acq_tol, (float, int)) and acq_tol >= 0
-        ), "acq_tol must be a positive float or integer"
-        assert (
-            isinstance(obj_tol, (float, int)) and obj_tol >= 0
-        ), "obj_tol must be a positive float or integer"
+        assert (isinstance(DateTime, (str)) == True or DateTime == None), "DateTime must be str or None"
+        assert (isinstance(acq_tol, (float, int)) and acq_tol >= 0), "acq_tol must be a positive float or integer"
+        assert (isinstance(obj_tol, (float, int)) and obj_tol >= 0), "obj_tol must be a positive float or integer"
 
         # Constructor method
         # Ensure name is a string
@@ -417,9 +400,7 @@ class CaseStudyParameters:
         self.seed = set_seed
         # Set seed
         if self.seed != None:
-            assert (
-                isinstance(self.seed, int) == True
-            ), "Seed number must be an integer or None"
+            assert (isinstance(self.seed, int) == True), "Seed number must be an integer or None"
             np.random.seed(self.seed)
         self.acq_tol = acq_tol
         self.obj_tol = obj_tol
@@ -481,19 +462,13 @@ class Simulator:
         
         # Constructor method
         self.dim_x = len(bounds_x_l)
-        self.dim_theta = len(
-            indices_to_consider
-        )  # Length of theta is equivalent to the number of indeces to consider
+        self.dim_theta = len(indices_to_consider)  # Length of theta is equivalent to the number of indeces to consider
         self.indices_to_consider = indices_to_consider
         self.theta_ref = theta_ref
         self.theta_names = theta_names
-        self.theta_true, self.theta_true_names = (
-            self.__set_true_params()
-        )  # Would this be better as a dictionary?
+        self.theta_true, self.theta_true_names = (self.__set_true_params())  # Would this be better as a dictionary?
         self.bounds_theta = np.array([bounds_theta_l, bounds_theta_u])
-        self.bounds_theta_reg = self.bounds_theta[
-            :, self.indices_to_consider
-        ]  # This is the theta_bounds for parameters we will regress
+        self.bounds_theta_reg = self.bounds_theta[:, self.indices_to_consider]  # This is the theta_bounds for parameters we will regress
         self.bounds_x = np.array([bounds_x_l, bounds_x_u])
         self.noise_mean = noise_mean
         self.noise_std = noise_std
@@ -4813,7 +4788,41 @@ class Expected_Improvement:
 
         # return theta_orig, theta_bs, CI_percentile
         return ci_percentile
+    
+class UCB:
+    """
+    The base class for upper confidence bound acquisition funciton 
+    Parameters: 
 
+    Methods
+    ----------
+    __init___(*): Constructor Method 
+    type_1(): Calulates the upper confidence bound for Type 1 (stanard) GPBO
+    type_2(method): calculates the upper confidenc bound for Type 2 (emulator) GPBO
+
+
+    """
+    def __init__(self, ep_bias, gp_mean, gp_covar, exp_data, set_seed=None):
+        """
+        ep_bais: Exploration_Bias: Class with infromation of exploration bias paramter
+        gp_mean: tensor, the GP model's mean 
+        gp_covar: tensor, the GP model's covariance
+        exp_data: Data, the Experimental data to evulate UCB with 
+        set_seed: int or None, Determines seed for randomizations, Noen if seed is random 
+        """
+        assert len(gp_mean) == len(gp_covar), "GP mean and GP Covar must be arrays of the same len"
+        assert len(gp_covar.shape) == 2, "gp_covar must be a 2D array"
+        assert all(isinstance(arr, np.ndarray) for arr in (gp_mean, gp_covar, exp_data.y_vals)), "gp_mean, gp_var, and exp_data.y_vals must be ndarrays"
+        assert isinstance(ep_bias, Exploration_Bias), "ep_bias must be instance of Exploration_Bias"
+        assert isinstance(exp_data, Data), "exp_data must be instance of Data"
+        assert isinstance(set_seed, (int, None)), "set_seed must be an int or None"
+
+        #constructor method 
+        self.ep_bias = ep_bais
+        self.gp_mean = gp_mean
+        self.gp_covar = gp_covar
+        self.exp_data = exp_data
+        self.seed = set_seed
 
 class Exploration_Bias:
     """
