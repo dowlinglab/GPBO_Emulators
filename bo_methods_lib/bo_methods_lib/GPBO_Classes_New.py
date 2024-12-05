@@ -4798,8 +4798,7 @@ class UCB:
     ----------
     __init___(*): Constructor Method 
     type_1(): Calulates the upper confidence bound for Type 1 (stanard) GPBO
-    type_2(method): calculates the upper confidenc bound for Type 2 (emulator) GPBO
-
+    type_2(): calculates the upper confidenc bound for Type 2 (emulator) GPBO
 
     """
     def __init__(self, ep_bias, gp_mean, gp_covar, exp_data, set_seed=None):
@@ -4823,6 +4822,59 @@ class UCB:
         self.gp_covar = gp_covar
         self.exp_data = exp_data
         self.seed = set_seed
+
+    def type1(self):
+        """
+        Calcualtes the upper confidence bound of type 1 (standard) GPBO
+
+        returns
+        -------
+        ucb_1: np.ndarray, the UCB for the parameter set
+        """
+
+        #compute the UCB for tyep 1 gp 
+        ucb_1 = self.gp_mean + self.ep_bais.ep_curr * self.gp_covar
+
+        return ucb_1
+
+    def type2(self, sse_mean, see_var, covar = False):
+        """
+        Calculates the upper confidence bound of type2 (emulator) GPBO
+
+        returns
+        --------
+        ucb_2: np.ndarray, the UCB for the paramter set
+        """ 
+        # Find length of theta and number of unique x in data arrays
+        len_theta = self.exp_data.get_num_theta()
+        len_x = len(self.exp_data.get_unique_x())
+        # Infer number of thetas
+        num_uniq_theta = int(len_theta / len_x)
+
+        # Reshape y_sim into n_theta rows x n_x columns
+        indices = np.arange(0, len_theta, len_x)
+        n_blocks = len(indices)
+        # Slice y_sim into blocks of size len_x and calculate squared errors for each block
+        gp_mean_resh = data.gp_mean.reshape(n_blocks, len_x)
+        block_errors = gp_mean_resh - self.exp_data.y_vals[np.newaxis, :]
+        residuals = block_errors.reshape(self.exp_data.gp_covar.shape[0], -1)
+        # Sum squared errors for each block
+        sse_mean_org = np.sum((block_errors) ** 2, axis=1)
+        sse_mean = sse_mean_org.flatten()
+
+        see_var_all = (2 * np.trace(self.exp_data.gp_covar**2)+4 * * residuals.T @ data.gp_covar @ residuals)
+
+        ucb_2 = see_mean + self.ep_bias.ep_curr * np.sqrt(see_var_all)
+
+
+        if covar: 
+            ucb_2 = sse_mean + self.ep_bais.ep_curr * tf.sqrt(sse_var)
+        else:
+            ucb_2 = see_mean + self.ep_bais.ep_curr * see_var
+
+        return ucb_2
+
+
 
 class Exploration_Bias:
     """
