@@ -3936,6 +3936,38 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         return ei, ei_terms_df
 
+    def __eval_gp_ucb(self, sim_data, exp_data, ep_bias, covar = False):
+        """
+        Evaluaes the (UCB) acquistion function for a given data set
+        
+        Parameters 
+        ----------
+        sim_data: Data
+            Data to evaluate ucb for
+        exp_data: Data
+            The experimental data to evaluate ucb with 
+        ep_bias: Exploration_bias, the exporation bias class 
+            
+        Returns
+        ------
+        ucb: np.ndarray
+            The expected improvement of all the data in sim_data"""
+        sse_mean,  see_var = self.__eval_gp_sse_var(sim_data, _ , exp_data, covar)
+
+        ucb_class = UCB(
+            ep_bias, 
+            sim_data.gp_mean,
+            sim_data.gp_covar,
+            exp_data,
+            self.seed
+        )
+
+        ucb = ucb_class.type2(sse_mean, see_var)
+
+        sim_data.acq = ucb
+
+        return ucb
+
     def add_next_theta_to_train_data(self, theta_best_data):
         """
         Adds parameter set which optimizes the acquisition function to the training data set
