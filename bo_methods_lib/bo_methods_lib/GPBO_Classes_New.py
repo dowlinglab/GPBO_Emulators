@@ -424,11 +424,11 @@ class Simulator:
     gen_theta_vals(num_theta_data)
     sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, gen_val_data)
     """
-    def __init__(self, indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, set_seed, calc_y_fxn, calc_y_fxn_args):
+    def __init__(self, indices_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u, noise_mean, noise_std, set_seed, calc_y_fxn, calc_y_fxn_args):
         """
         Parameters
         ----------
-        indeces_to_consider: list of int, The indeces corresponding to which parameters are being guessed
+        indices_to_consider: list of int, The indeces corresponding to which parameters are being guessed
         theta_ref: ndarray, The array containing the true values of problem constants
         theta_names: list, list of names of each parameter that will be plotted named by indecie w.r.t Theta_True
         bounds_theta_l: list, lower bounds of theta
@@ -448,14 +448,14 @@ class Simulator:
         ), "noise_std must be int, float, or None"
         assert isinstance(set_seed, int) or set_seed is None, "Seed must be int or None"
         #Check for list or ndarray
-        list_vars = [indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
-        assert all(isinstance(var,(list,np.ndarray)) for var in list_vars) == True, "indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
+        list_vars = [indices_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, bounds_x_u]
+        assert all(isinstance(var,(list,np.ndarray)) for var in list_vars) == True, "indices_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must be list or np.ndarray"
         #Check for list lengths > 0
-        assert all(len(var) > 0 for var in list_vars) == True, "indeces_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must have length > 0"
+        assert all(len(var) > 0 for var in list_vars) == True, "indices_to_consider, theta_ref, theta_names, bounds_theta_l, bounds_x_l, bounds_theta_u, and bounds_x_u must have length > 0"
         #Check that bound_x and bounds_theta have same lengths
         assert len(bounds_theta_l) == len(bounds_theta_u) and len(bounds_x_l) == len(bounds_x_u), "bounds lists for x and theta must be same length"
         #Check indeces to consider in theta_ref
-        assert all(0 <= idx <= len(theta_ref)-1 for idx in indeces_to_consider)==True, "indeces to consider must be in range of theta_ref"
+        assert all(0 <= idx <= len(theta_ref)-1 for idx in indices_to_consider)==True, "indeces to consider must be in range of theta_ref"
         assert isinstance(calc_y_fxn_args, dict) or calc_y_fxn_args is None, "calc_y_fxn_args must be dict or None"
         
         #How to write assert statements for calc_y_fxn?
@@ -652,7 +652,7 @@ class Simulator:
             # Create model coefficient from true space substituting in the values of param_space at the correct indeces
             model_coefficients = self.theta_ref.copy()
             #Replace coefficients a specified indeces with their theta_val counterparts
-            model_coefficients[self.indeces_to_consider] = data.theta_vals[i]               
+            model_coefficients[self.indices_to_consider] = data.theta_vals[i]               
             #Create y data coefficients
             y_data.append(self.calc_y_fxn(model_coefficients, data.x_vals[i], self.calc_y_fxn_args))
 
@@ -5685,7 +5685,8 @@ class GPBO_Driver:
             "neg_ei",
             "E_sse",
             "sse",
-        ], "opt_obj must be 'neg_ei', or 'sse'!"
+            "UCB",
+        ], "opt_obj must be 'neg_ei', or 'sse' or 'UCB'!"
 
         # Note use > because index 0 counts as 1 reoptimization
         if self.cs_params.reoptimize_obj > 50:
@@ -5820,6 +5821,9 @@ class GPBO_Driver:
             elif opt_obj == "E_sse":
                 # Objective to minimize is (E)[sse] for method ESSE
                 obj = cand_sse_mean + np.sum(cand_sse_var)
+            elif opt_obj == "UCB":
+                # objective to minimize is UCB for method
+                obj = cand_sse_mean
             else:
                 # Otherwise objective is ei
                 if self.method.emulator == False:
@@ -6178,7 +6182,7 @@ class GPBO_Driver:
         min_sse, min_theta_data = self.__opt_with_scipy("sse")
 
         # Call optimize EI acquistion fxn (If not using E[SSE])
-        if self.method.method_name.value != 7:
+        if self.method.method_name.value < 7:
             opt_acq, acq_theta_data = self.__opt_with_scipy("neg_ei")
             if self.method.emulator == True:
                 ei_args = (
@@ -6196,6 +6200,8 @@ class GPBO_Driver:
                     self.ep_bias,
                     best_error_metrics,
                 )
+        elif self.method.method_name.value == 8:
+            opt_acq, acq_theta_data = self.__opt_with_scipy("UCB")
         else:
             opt_acq, acq_theta_data = self.__opt_with_scipy("E_sse")
 
@@ -6225,7 +6231,7 @@ class GPBO_Driver:
             acq_sse_theta_data = acq_theta_data
 
         # Evaluate max EI terms at theta
-        if self.cs_params.save_data and not self.method.method_name.value == 7:
+        if self.cs_params.save_data and not self.method.method_name.value == 7 and not self.method.method_name.value == 8:
             ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(*ei_args)
 
         # Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)

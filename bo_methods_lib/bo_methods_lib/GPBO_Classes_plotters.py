@@ -26,60 +26,6 @@ import warnings
 
 np.warnings = warnings
 
-<<<<<<< HEAD
-=======
-def make_plot_dict(log_data, title, xlabel, ylabel, line_levels, save_path=None, xbins=5, ybins=5, zbins=900, title_size=24, other_size=20, cmap = "autumn"):
-    """
-    Function to make dictionary for plotting specifics
-    
-    Parameters:
-    -----------
-        log_data: bool, plots data on natural log scale if True
-        title: str or None, Title of plot
-        xlabel: str or None, the x label of the plot
-        ylabel: str or None, the y label of the plot
-        line_levels: int, list of int or None, Number of zbins to skip when drawing contour lines
-        save_path: str or None, Path to save figure to. Default None (do not save figure).
-        xbins: int, Number of bins for x. Default 5
-        ybins: int, Number of bins for y. Default 5
-        zbins: int or None, Number of bins for z. Default 900
-        title_size: int, fontisize for title. Default 24
-        other_size: int, fontisize for other values. Default 20
-        cmap: str, colormap for matplotlib to use for heat map generation. Deafult "autumn"
-        
-    Returns:
-    --------
-        plot_dict: dict, a dictionary of the plot details 
-        
-    Notes:
-    -----
-        plot_dict has keys "title", "log_data", "title_size", "other_size", "xbins", "ybins", "zbins", "save_path", "cmap", "line_levels", "xlabel", and "ylabel"
-        
-    """
-    assert isinstance(cmap, str) and cmap in list(colormaps), "cmap must be a string in matplotlib.colormaps"
-    assert isinstance(log_data, bool), "log_data must be bool"
-    assert isinstance(save_path, str) or save_path is None, "save_path must be str or None"
-    none_str_vars = [title, xlabel, ylabel]
-    if save_path is not None:
-        none_str_vars += [path for path in save_path]
-    int_vars = [xbins, ybins, title_size, other_size]
-    assert isinstance(zbins, int) or zbins is None, "zbins must be int > 3 or None"
-    if isinstance(zbins, int):
-        assert zbins > 3, "zbins must be int > 3 or None"
-    assert all(isinstance(var, str) or var is None for var in none_str_vars), "title and save_path must be string or None"
-    assert all(isinstance(var, int) for var in int_vars), "xbins, ybins, title_fontsize, and other_fontsize must be int"
-    assert all(var > 0 or var is None for var in int_vars), "xbins, ybins, title_size, and other_size must be positive int or None" 
-    assert isinstance(line_levels, (list, int)) or line_levels is None, "line_levels must be list of int, int, or None"
-    if isinstance(line_levels, (list)) == True:
-        assert all(isinstance(var, int) for var in line_levels), "If a list, line_levels must be list of int"
-        
-    plot_dict = {"log_data":log_data, "title_size": title_size, "other_size":other_size, "xbins":xbins, "ybins":ybins, "zbins":zbins, 
-                 "save_path":save_path, "cmap":cmap, "line_levels":line_levels, "title": title, "xlabel":xlabel, 
-                 "ylabel":ylabel}
-    
-    return plot_dict
->>>>>>> 3dd6a83ee6415cc4acc3a63e20c6843b91da12a4
-
 class Plotters:
     """
     The base class for Plotting functions
