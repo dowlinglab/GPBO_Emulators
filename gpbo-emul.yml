@@ -1,4 +1,4 @@
-name: Toy_Problem_env
+name: gpbo-emul
 channels:
   - defaults
 dependencies:

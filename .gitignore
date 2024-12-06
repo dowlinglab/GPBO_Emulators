@@ -2,22 +2,12 @@
 *.csv
 *.pyc
 *checkpoint.ipynb
-2022
-2023
-Results
+
 Results_*
-Results2_*
-Test_log_Muller
-workspace
-CS1/Test_Figs
-Test_Figs
-4_fig_plots
 GPBO_Fix/workspace
 GPBO_Fix/.signac
 GPBO_Fix/signac_project_document.json
 *.o*
-6_fig_plots
-Test_Figs_GP_Val
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
