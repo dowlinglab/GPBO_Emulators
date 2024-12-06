@@ -2818,6 +2818,66 @@ class Type_1_GP_Emulator(GP_Emulator):
         )
 
         return ei, ei_terms_df
+    
+    def __eval_gp_ucb(self, sim_data, exp_data, ep_bias):
+        """
+        evaluates gp acqusition function. In this case, upper confidence bound 
+
+        Parameters:
+            sim_data: Instance of Data class,
+                Simulated data to evaluate ucb with
+            exp_data: Instance of Data Class, 
+                Experimental data to evluate ucb with 
+            ep_bias: Instance of Exploration bias class
+
+        returns:
+            ucb_1: np.ndarray
+                The upper confidence bound of all the data in test_data
+        """
+        #class instance of upper confidence bound class 
+        ucb_class = UCB(ep_bias,
+                        sim_data.gp_mean,
+                        sim_data.gp_covar,
+                        exp_data, 
+                        self.seed)
+
+        # call correct method of ucb calculation 
+        ucb_1 = ucb_class.type1()
+
+        sim_data.acq = ucb_1
+
+        return ucb_1
+    
+    def eval_ucb_misc(self, misc_data, exp_data, ep_bias):
+        """
+        Evaluates GPBO acquisition funciton (EI) for miscellaneous parameter sets
+        
+        Parameters
+        ----------
+        misc_data: Data
+            Data to evaluate ucb for 
+        exp_data: Data
+            The experimental data to evluate ucb with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+
+        Returns
+        ------
+        ucb: np.ndarray 
+            The upper confidence bound of all the data in misc_data 
+        
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value 
+        """
+        assert isinstance(misc_data, Data), "misc_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(ep_bias, Exploration_Bias), "ep_bias must be type Exploration_Bias"
+        
+        ucb = self.__eval_gp_ucb(misc_data, exp_data, ep_bias)
+    
+        return ucb
 
     def add_next_theta_to_train_data(self, theta_best_sse_data):
         """
