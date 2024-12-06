@@ -2848,13 +2848,13 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         return ucb_1
     
-    def eval_ucb_misc(self, misc_data, exp_data, ep_bias):
+    def eval_ucb_cand(self, exp_data, ep_bias):
         """
-        Evaluates GPBO acquisition funciton (EI) for miscellaneous parameter sets
+        Evaluates GPBO acquisition funciton (EI) for candidate parameter sets
         
         Parameters
         ----------
-        misc_data: Data
+        cand_data: Data
             Data to evaluate ucb for 
         exp_data: Data
             The experimental data to evluate ucb with
@@ -2871,11 +2871,10 @@ class Type_1_GP_Emulator(GP_Emulator):
         AssertionError
             If any of the required parameters are missing or not of the correct type or value 
         """
-        assert isinstance(misc_data, Data), "misc_data must be type Data"
         assert isinstance(exp_data, Data), "exp_data must be type Data"
         assert isinstance(ep_bias, Exploration_Bias), "ep_bias must be type Exploration_Bias"
         
-        ucb = self.__eval_gp_ucb(misc_data, exp_data, ep_bias)
+        ucb = self.__eval_gp_ucb(self.cand_data, exp_data, ep_bias)
     
         return ucb
 
@@ -3936,7 +3935,7 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         return ei, ei_terms_df
 
-    def __eval_gp_ucb(self, sim_data, exp_data, ep_bias, covar = False):
+    def __eval_gp_ucb(self, sim_data, exp_data, ep_bias, method, sse_mean, sse_var, covar = False):
         """
         Evaluaes the (UCB) acquistion function for a given data set
         
@@ -3947,12 +3946,18 @@ class Type_2_GP_Emulator(GP_Emulator):
         exp_data: Data
             The experimental data to evaluate ucb with 
         ep_bias: Exploration_bias, the exporation bias class 
+        method: Method class
+            Method for GP Emulation
+        sse_mean: tensor
+            The sse derived from gp_mean evaluated over all state points
+        var_return: tensor
+            The sse (co)variance derived from the GP model's variance evaluated over all state points
+        
             
         Returns
         ------
         ucb: np.ndarray
             The expected improvement of all the data in sim_data"""
-        sse_mean,  see_var = self.__eval_gp_sse_var(sim_data, _ , exp_data, covar)
 
         ucb_class = UCB(
             ep_bias, 
@@ -3962,9 +3967,49 @@ class Type_2_GP_Emulator(GP_Emulator):
             self.seed
         )
 
-        ucb = ucb_class.type2(sse_mean, see_var)
+        ucb = ucb_class.type2(sse_mean, sse_var)
 
         sim_data.acq = ucb
+
+        return ucb
+    
+    def eval_ucb_cand(self, exp_data, ep_bias, method, sse_mean, sse_var):
+        """
+        Evalues gp acquisition function for the candidate theata data. In this case, ucb
+        
+        Parameters
+        ----------
+        cand_data: Data
+            Data to evaluate ucb for 
+        exp_data: Data
+            The experimental data to evluate ucb with
+        ep_bias: Exploration_Bias
+            The exploration bias class
+        method: 
+        sse_mean: tensor
+            The sse derived from gp_mean evaluated over all state points
+        var_return: tensor
+            The sse (co)variance derived from the GP model's variance evaluated over all state points
+
+        Returns
+        -------
+        ucb: np.ndarray
+            upper confidence bound on the data 
+        """
+        assert isinstance(self.cand_data, Data), "self.cand_data must be type Data"
+        assert isinstance(exp_data, Data), "exp_data must be type Data"
+        assert isinstance(
+            ep_bias, Exploration_Bias
+        ), "ep_bias must be type Exploration_bias"
+        assert isinstance(
+            method, GPBO_Methods
+        ), "method must be instance of GPBO_Methods"
+        assert (
+            method.method_name.value == 8 
+        ), "method must be Type 8. Hint: Must have method.method_name.value > 2"
+
+        #ucb = self.__eval_gp_ucb(self.cand_data, exp_data, ep_bias, method)
+        ucb = self.__eval_gp_ucb(self.cand_data, exp_data, ep_bias, method, sse_mean, sse_var)
 
         return ucb
 
@@ -4925,7 +4970,7 @@ class UCB:
         """
 
         #compute the UCB for tyep 1 gp 
-        ucb_1 = self.gp_mean + self.ep_bais.ep_curr * np.sqrt(np.diag(self.gp_covar))
+        ucb_1 = self.gp_mean + self.ep_bias.ep_curr * np.sqrt(np.diag(self.gp_covar))
 
         return ucb_1
 
@@ -4960,9 +5005,9 @@ class UCB:
 
 
         if covar: 
-            ucb_2 = sse_mean + self.ep_bais.ep_curr * np.sqrt(np.diag(sse_var))
+            ucb_2 = sse_mean + self.ep_bias.ep_curr * np.sqrt(sse_var)
         else:
-            ucb_2 = sse_mean + self.ep_bais.ep_curr * np.sqrt(sse_var)
+            ucb_2 = sse_mean + self.ep_bias.ep_curr * np.sqrt(np.diag(sse_var))
 
         return ucb_2
 
@@ -5742,7 +5787,7 @@ class GPBO_Driver:
         theta: np.ndarray
             Array of theta values to optimize
         opt_obj: str
-            Which objective to calculate. 'neg_ei', 'E_sse', or 'sse'
+            Which objective to calculate. 'neg_ei', 'E_sse', 'sse', or 'UCB'
         best_error_metrics: tuple(float, np.ndarray, np.ndarray)
             The best error, best error parameter set, and best_error_x values of the method. Hint: Use self.__get_best_error()
 
@@ -5823,7 +5868,17 @@ class GPBO_Driver:
                 obj = cand_sse_mean + np.sum(cand_sse_var)
             elif opt_obj == "UCB":
                 # objective to minimize is UCB for method
-                obj = cand_sse_mean
+                if self.method.emulator == False:
+                    ucb_output = self.gp_emulator.eval_ucb_cand(self.exp_data,
+                                                                self.ep_bias)
+                else:
+                    ucb_output = self.gp_emulator.eval_ucb_cand(self.exp_data,
+                                                                self.ep_bias,
+                                                                self.method,
+                                                                cand_sse_mean,
+                                                                cand_sse_var)
+                                                                
+                obj = ucb_output
             else:
                 # Otherwise objective is ei
                 if self.method.emulator == False:
