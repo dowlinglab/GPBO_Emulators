@@ -4817,7 +4817,7 @@ class UCB:
         assert isinstance(set_seed, (int, None)), "set_seed must be an int or None"
 
         #constructor method 
-        self.ep_bias = ep_bais
+        self.ep_bias = ep_bias
         self.gp_mean = gp_mean
         self.gp_covar = gp_covar
         self.exp_data = exp_data
@@ -4833,11 +4833,11 @@ class UCB:
         """
 
         #compute the UCB for tyep 1 gp 
-        ucb_1 = self.gp_mean + self.ep_bais.ep_curr * self.gp_covar
+        ucb_1 = self.gp_mean + self.ep_bais.ep_curr * np.sqrt(np.diag(self.gp_covar))
 
         return ucb_1
 
-    def type2(self, sse_mean, see_var, covar = False):
+    def type2(self, sse_mean, sse_var, covar = False):
         """
         Calculates the upper confidence bound of type2 (emulator) GPBO
 
@@ -4845,32 +4845,32 @@ class UCB:
         --------
         ucb_2: np.ndarray, the UCB for the paramter set
         """ 
-        # Find length of theta and number of unique x in data arrays
-        len_theta = self.exp_data.get_num_theta()
-        len_x = len(self.exp_data.get_unique_x())
-        # Infer number of thetas
-        num_uniq_theta = int(len_theta / len_x)
+        # # Find length of theta and number of unique x in data arrays
+        # len_theta = self.exp_data.get_num_theta()
+        # len_x = len(self.exp_data.get_unique_x())
+        # # Infer number of thetas
+        # num_uniq_theta = int(len_theta / len_x)
 
-        # Reshape y_sim into n_theta rows x n_x columns
-        indices = np.arange(0, len_theta, len_x)
-        n_blocks = len(indices)
-        # Slice y_sim into blocks of size len_x and calculate squared errors for each block
-        gp_mean_resh = data.gp_mean.reshape(n_blocks, len_x)
-        block_errors = gp_mean_resh - self.exp_data.y_vals[np.newaxis, :]
-        residuals = block_errors.reshape(self.exp_data.gp_covar.shape[0], -1)
-        # Sum squared errors for each block
-        sse_mean_org = np.sum((block_errors) ** 2, axis=1)
-        sse_mean = sse_mean_org.flatten()
+        # # Reshape y_sim into n_theta rows x n_x columns
+        # indices = np.arange(0, len_theta, len_x)
+        # n_blocks = len(indices)
+        # # Slice y_sim into blocks of size len_x and calculate squared errors for each block
+        # gp_mean_resh = data.gp_mean.reshape(n_blocks, len_x)
+        # block_errors = gp_mean_resh - self.exp_data.y_vals[np.newaxis, :]
+        # residuals = block_errors.reshape(self.exp_data.gp_covar.shape[0], -1)
+        # # Sum squared errors for each block
+        # sse_mean_org = np.sum((block_errors) ** 2, axis=1)
+        # sse_mean = sse_mean_org.flatten()
 
-        see_var_all = (2 * np.trace(self.exp_data.gp_covar**2)+4 * * residuals.T @ data.gp_covar @ residuals)
+        # see_var_all = (2 * np.trace(self.exp_data.gp_covar**2)+4 * * residuals.T @ data.gp_covar @ residuals)
 
-        ucb_2 = see_mean + self.ep_bias.ep_curr * np.sqrt(see_var_all)
+        # ucb_2 = see_mean + self.ep_bias.ep_curr * np.sqrt(see_var_all)
 
 
         if covar: 
-            ucb_2 = sse_mean + self.ep_bais.ep_curr * tf.sqrt(sse_var)
+            ucb_2 = sse_mean + self.ep_bais.ep_curr * np.sqrt(np.diag(sse_var))
         else:
-            ucb_2 = see_mean + self.ep_bais.ep_curr * see_var
+            ucb_2 = sse_mean + self.ep_bais.ep_curr * np.sqrt(sse_var)
 
         return ucb_2
 
