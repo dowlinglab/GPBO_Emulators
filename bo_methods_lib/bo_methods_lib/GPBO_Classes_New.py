@@ -2138,6 +2138,8 @@ class Type_1_GP_Emulator(GP_Emulator):
     eval_ei_test(exp_data, ep_bias, best_error_metrics): Evaluates the expected improvement for testing data
     eval_ei_val(exp_data, ep_bias, best_error_metrics): Evaluates the expected improvement for validation data
     eval_ei_cand(exp_data, ep_bias, best_error_metrics): Evaluates the expected improvement for candidate data
+    __eval_gp_ucb(sim_data, exp_data, ep_bias): Evalues the upper confidence bound for the gp 
+    eval_ucb_cand(exp_data, ep_bias): Evalues the upper confidence bound for cnadidate data
     add_next_theta_to_train_data(theta_best_sse_data): Adds the next parameter set to the training data
     """
 
@@ -2942,6 +2944,8 @@ class Type_2_GP_Emulator(GP_Emulator):
     eval_ei_test(exp_data, ep_bias, best_error_metrics, method, sg_mc_samples): Evaluates the expected improvement for testing data
     eval_ei_val(exp_data, ep_bias, best_error_metrics, method, sg_mc_samples): Evaluates the expected improvement for validation data
     eval_ei_cand(exp_data, ep_bias, best_error_metrics, method, sg_mc_samples): Evaluates the expected improvement for candidate data
+    __eval_gp_ucb(sim_data, exp_data, ep_bias, method, sse_mean, sse_var) evalues the upper confidence bound for the gp 
+    eval_gp_cand(exp_data, ep_bias, method, sse_mean, sse_var), evluates the upper confidence bound for the candidate data
     add_next_theta_to_train_data(theta_best_data): Adds the next parameter set to the training data
     """
 
@@ -4960,7 +4964,7 @@ class UCB:
         self.exp_data = exp_data
         self.seed = set_seed
 
-    def type1(self):
+    def type1(self, flag_ep = True, typical_ep_bias = 1.96):
         """
         Calcualtes the upper confidence bound of type 1 (standard) GPBO
 
@@ -4970,44 +4974,41 @@ class UCB:
         """
 
         #compute the UCB for tyep 1 gp 
-        ucb_1 = self.gp_mean + self.ep_bias.ep_curr * np.sqrt(np.diag(self.gp_covar))
+        if flag_ep:
+            ucb_1 = self.gp_mean + typical_ep_bias * np.sqrt(np.diag(self.gp_covar))
+        else:
+            ucb_1 = self.gp_mean + self.ep_bias.ep_curr * np.sqrt(np.diag(self.gp_covar))
 
         return ucb_1
 
-    def type2(self, sse_mean, sse_var, covar = False):
+    def type2(self, sse_mean, sse_var, covar = False, flag_ep = True, typical_ep_bias = 1.96):
         """
         Calculates the upper confidence bound of type2 (emulator) GPBO
+        sse_mean: np.ndarray
+            The sse derived from gp_mean evaluated over the data
+        sse_var: np.ndarray
+            The sse (co)variance derived from the GP model's (co)variance evaluated over the data
+        covar: Bool
+            Flag to determine whether its varaince or covariance passed 
+        flag_ep: Bool
+            Flag to determine wheter the to use ep_bias.ep_curr or typical beta vlaue 
+        typical_ep_bias: float 
+            typical ep exploration/exploitation value 
+
 
         returns
         --------
         ucb_2: np.ndarray, the UCB for the paramter set
         """ 
-        # # Find length of theta and number of unique x in data arrays
-        # len_theta = self.exp_data.get_num_theta()
-        # len_x = len(self.exp_data.get_unique_x())
-        # # Infer number of thetas
-        # num_uniq_theta = int(len_theta / len_x)
-
-        # # Reshape y_sim into n_theta rows x n_x columns
-        # indices = np.arange(0, len_theta, len_x)
-        # n_blocks = len(indices)
-        # # Slice y_sim into blocks of size len_x and calculate squared errors for each block
-        # gp_mean_resh = data.gp_mean.reshape(n_blocks, len_x)
-        # block_errors = gp_mean_resh - self.exp_data.y_vals[np.newaxis, :]
-        # residuals = block_errors.reshape(self.exp_data.gp_covar.shape[0], -1)
-        # # Sum squared errors for each block
-        # sse_mean_org = np.sum((block_errors) ** 2, axis=1)
-        # sse_mean = sse_mean_org.flatten()
-
-        # see_var_all = (2 * np.trace(self.exp_data.gp_covar**2)+4 * * residuals.T @ data.gp_covar @ residuals)
-
-        # ucb_2 = see_mean + self.ep_bias.ep_curr * np.sqrt(see_var_all)
-
+        if flag_ep:
+            ep = typical_ep_bias
+        else:
+            ep = self.ep_bias.ep_curr
 
         if covar: 
-            ucb_2 = sse_mean + self.ep_bias.ep_curr * np.sqrt(sse_var)
+            ucb_2 = sse_mean + ep * np.sqrt(sse_var)
         else:
-            ucb_2 = sse_mean + self.ep_bias.ep_curr * np.sqrt(np.diag(sse_var))
+            ucb_2 = sse_mean + ep * np.sqrt(np.diag(sse_var))
 
         return ucb_2
 
