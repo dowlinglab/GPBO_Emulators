@@ -1,5 +1,5 @@
 # Bayesian Optimization Methods for Nonlinear Model Calibration
-Authors: Montana Carlozo, Ke Wang, and Alexander W. Dowling
+Authors: Montana N. Carlozo, Ke Wang, and Alexander W. Dowling
 <!-- Introduction: Provide a brief introduction to the project, including its purpose, goals, and any key features or benefits. -->
 ## Introduction
 **GPBO_Emulators** is a repository used to calibrate computationally expensive models given experimental data. The key feature of this work is using machine learning tools in the form of Gaussian processes (GPs) and Bayesian Optimization (BO) which allow us to smartly sample parameter space to decrease the objective. This work features comparing standard GPBO in which a GP models an expensive objective function to emulator GPBO in which an expensive function is emulated directly by the GP.
@@ -18,7 +18,7 @@ GPBO_Emulators/ is the top level directory. It contains: <br />
 2. init_gpbofix.py generated the setup for running the workflow with signac <br />
 3. make_1meth_hms.py makes contour plots of Simulated SSE, GP SSE, GP SSE variance, and acqusition function for a given GP model. <br />
 4. make_1obj_hms.py makes contour plots of either Simulated SSE, GP SSE, GP SSE variance, or acqusition function for a given GP model for each method. <br />
-5. make_bar_charts.py makes Figures 2 and 7 from the main text (bar charts of relevant data). <br />
+5. make_bar_charts.py makes Figures 3, 8, and 9 from the main text (bar charts of relevant data). <br />
 6. make_cond_num_data.py generates condition number data for the best GP models. <br />
 7. makes_least_squares_data.py generates data related to nonlinear least squares (NLS) including categorizing number of local minima and best performing NLS runs. <br />
 8. make_line_plots.py generates all line plots in the main text and SI including parity plots and plots of BO iteration for SSE and acquisition function for all modes of evaluation. <br />
@@ -31,7 +31,7 @@ bo_methods_lib/bo_methods_lib/ contains the following files: <br />
 1. GPBO_Classes_New.py is the main script for the algorithm. <br />
 2. GPBO_Class_fxns.py are helper functions which define parameters for the multiple case studies. This function is also useful for mapping the numerical markers of case studies to their formal names from the manuscript. <br />
 3. analyze_data.py and GPBO_Classes_plotters.py are used for analyzing and plotting the results. <br />
-4. tests/*.py contains test functions for public methods of all classes in GPBO_Classes_New.py. <br />
+4. tests/\*.py contains test functions for public methods of all classes in GPBO_Classes_New.py. <br />
 
 Directory GPBO_Fix/ is initially created via init_gpbofix.py in the top directory through signac. <br /> 
 It contains the following files/subdirectories: <br />
@@ -39,32 +39,31 @@ It contains the following files/subdirectories: <br />
 2. view_unfinished_jobs.py is a script for viewing individual case study job progress. <br />
 3. project_GPBO_Fix.py is the script for running the workflow using signac. <br />
 4. templates/ are the templates required to run this workflow in signac on the crc. <br />
-5. workspace/ will appear to save all raw results generated during the workflow after running init_gpbofix.py. This file is not tracked by git due to its size. <br />
+5. workspace/ will appear to save all raw results generated during the workflow after running init_gpbofix.py. This file is not tracked by git due to its size. the workspace/ folder for this study can be downloaded on Google Drive (see section 'Workflow Files and Results') <br />
     
 Running the analysis (steps 6 -11 below) will cause results directories to appear with relevant human readable data and plots. Subdirectories further categorize the results by case study and methods analyzed. <br />
 1. Results_acq/ shows data where we analyze the best results based on how efficiently the acquisition function was optimized. <br />
 2. Results_act/ shows data where we analyze the best results based on how efficiently the actual SSE was optimized. <br />
 3. Results_gp/ shows data where we analyze the best results based on how efficiently the GP predicted SSE was optimized. <br />
 
+We note that this repository is based on the branch ``update_and_merge`` in the ``dowlinglab/Toy_Problem`` repository, which is private.
+
 ### Workflow Files and Results
 All workflow iterations were performed inside ``GPBO_Emulators/GPBO_Fix`` where it exists.
 Each iteration was managed with ``signac-flow``. Inside ``GPBO_Fix``, you will find all the necessary files to
 run the workflow. Note that you may not get the exact same simulation
 results due to differences in software versions, random seeds, etc.
-All of the results from our workflow are saved
-under ``Results_xxx/cs_name_val_y/``, where ``xxx`` represents a different analysis scheme and ``y`` represent a different (set of) case study. For example data pertaining to the BOD Curve case study where the actual SSE values were analyzed are in ``Results_act/cs_name_val_11/ep_enum_val_1/gp_package_gpflow/meth_name_val_in_1_2_3_4_5_6_7``. We specifically note that the best runs for each case study and method are provided under ``Results_xxx/cs_name_val_y/best_results.csv``. These results make up results.xlsx in the SI. We also specifically note nonlinear least squares results categorizing the number of minima are found in ``Results_act/cs_name_val_y``.
+The raw results from this study are available in [Google Drive](https://drive.google.com/drive/folders/0ACWzGAdosdy_Uk9PVA). These files are necessary to download and add to ``GPBO_Emulators/GPBO_Fix`` to reproduce all figures and tables identified in the paper. As such, the directory ``GPBO_Emulators/GPBO_Fix/workspace`` must exist and contain all files from the google drive before analysis scripts are run. The analysis scripts work by parsing the signac workflow data and manipulating the data into a form conducive for analysis. The files are saved on google drive because the files in which the GP models reside are often on the order of gigabytes. For other plots, we also use Google Drive because the workspace folder has hundreds of subdirectories (many of which are also large) which makes storage on GitHub impractical.
+When reproducing the results of this workflow, more practical, human readable csv files and figures are stored under ``Results_xxx/cs_name_val_y/``, where ``xxx`` represents a different analysis scheme and ``y`` represent a different (set of) case study. For example data pertaining to the BOD Curve case study for all methods where the actual SSE values were analyzed would be generated in the ``Results_act/cs_name_val_11/ep_enum_val_1/gp_package_gpflow/meth_name_val_in_1_2_3_4_5_6_7`` directory. We specifically note that the best runs for each case study and method are provided under ``Results_xxx/cs_name_val_y/best_results.csv``. These results for each case study make up results.xlsx in the supporting information (SI). We also specifically note nonlinear least squares results categorizing the number of minima are found in ``Results_act/cs_name_val_y``.
 
 ### Workflow Code
 All of the scripts for running the workflow are provided in
 ``bo_methods_lib/bo_methods_lib/GPBO_Classes_New``. All tests for public methods in this file are found in ``bo_methods_lib/bo_methods_lib/tests``
-All scipts for analyzing the workflow results are in ``GPBO_Emulators/make_*.py``.
+All scipts for analyzing the data in ``GPBO_Fix/workflow`` are provided in ``GPBO_Emulators/make_*.py``.
 
 ### Figures
 All scripts required to generate the primary figures in the
-manuscript are reported under ``GPBO_Emulators/make_*.py``.
-`` and the
-associated PDF files are located under
-`Results_xxx/cs_name_val_y/*``.
+manuscript and SI are reported under ``GPBO_Emulators/make_*.py``. When running analysis scripts, these figures are saved under ``Results_xxx/cs_name_val_y/*``.
 
 ## Installation
 To run this software, you must have access to all packages in the gpbo-emul environment (gpbo-emul.yml) which can be installed using the instructions in the next section.
@@ -76,7 +75,7 @@ need to be installed from source or pip. <br />
 
 Running the simulations will also require an installation of TASMANIAN.
 This can be installed separately (see installation instructions
-`here <https://github.com/ORNL/TASMANIAN>`_). <br />
+[here](https://github.com/ORNL/TASMANIAN) ). <br />
 
 An example of the procedure is provided below:
 
@@ -91,9 +90,11 @@ An example of the procedure is provided below:
 
 ### GPBO Workflow Execution
 
-**NOTE**: We use Signac and signac flow (`<https://signac.io/>`)
+**NOTE**: We use Signac and [signac flow](https://signac.io/)
 to manage the setup and execution of the workflow. These
 instructions assume a working knowledge of that software. <br />
+
+**WARNING**: Running these scripts will overwrite your local copy of our data (``GPBO_Fix/workflow/*``) with the data from your workflow runs. <br />
 
 To run the GPBO workflow, follow the following steps:
 1. Use init_gpbofix.py to initialize files for simulation use
@@ -117,13 +118,12 @@ To run the GPBO workflow, follow the following steps:
 ### Final Analysis
 The final processing and figure generation steps can be run using the following once all signac jobs have finished.
 
-**WARNING**: Running these scripts will overwrite your local copy of our workflow 
-results (stored as CSV files and .png files) with the results from your workflow runs.
+**WARNING**: Running these scripts will overwrite your local copy of our workflow results (``Results_xxx/*``) with the results from your workflow runs. <br />
 
-1. Make bar charts for the objective and time data (Figures 1 and 7) and get all data shown in full-results.xlsx
+1. Make bar charts for the objective data, time data, and derivative-free method data (Figures 2, 8, and 9) and get all data shown in full-results.xlsx <br />
+   When this method is run, the data for Table 3, results.xlsx, and full-results.xlsx are generated.
+   Note: results_xlsx is not automatically assembled. It is comprised of Results_act/\*/\*/\*/\*/best_results.csv for each method.
    ```
-     When this method is run, the data for Table 3, results.xlsx, and full-results.xlsx are generated.
-     Note: results_xlsx is not automatically assembled. It is comprised of Results_act/*/*/*/*/best_results.csv for each method.
      python make_bar_charts.py
    ```
 
@@ -132,14 +132,14 @@ results (stored as CSV files and .png files) with the results from your workflow
      python make_least_squares_data.py
    ```
 
-3. Make objective line plots (Figures 2, 5, 6, and S9-S32), parity plots (Figures 4 and S1-S8) for all case studies
+3. Make objective line plots (Figures 3, 6, 7, and S9-S32), parity plots (Figures 5 and S1-S8) for all case studies
    
    Hyperparameter and parameter value plots over BO iteration will also appear in GPBO_Fix/workspace/
    ```
      cd GPBO_Emulators
      python make_line_plots.py
    ```
-4. Make objective contour plots (Figures 3 and S33-38) for the BOD Curve and Simple Linear case studies. This function also prints the MAE for each method.
+4. Make objective contour plots (Figures 4 and S33-38) for the BOD Curve and Simple Linear case studies. This function also prints the MAE for each method.
    ```
      python make_1obj_hms.py
    ```
@@ -175,3 +175,20 @@ This work is funded by the Graduate Assistance in Areas of National Need fellows
 
 ## Contact
 Please contact Montana Carlozo (mcarlozo@nd.edu) or Dr. Alex Dowling (adowling@nd.edu) with any questions, suggestions, or issues.
+
+## Software Versions
+This section lists software versions for the most important packages. <br />
+gpflow==2.9.1 <br />
+numpy==1.24.4 <br />
+pandas==1.4.2 <br />
+Pyomo==6.6.2 <br />
+pytest==7.2.0 <br />
+Python==3.9.12 <br />
+scipy==1.8.0 <br />
+signac==1.8.0 <br />
+signac-flow==0.21.0 <br />
+Tasmanian==7.7.1 <br />
+torch==1.11.0 <br />
+torchaudio==0.13.1 <br />
+torchvision==0.14.1 <br />
+pygad==3.3.1 <br />
