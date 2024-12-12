@@ -2069,10 +2069,10 @@ class All_CS_Plotter(Plotters):
             "Monte Carlo": "deeppink",
             "E[SSE]": "teal",
             "NLS": "grey",
-            "SHGO-Sob": "sienna",
-            "SHGO-Simp": "darkkhaki",
+            "SHGO-Sob": "skyblue",
+            "SHGO-Simp": "skyblue",
             "NM": "darkgoldenrod",
-            "GA": "olive",
+            "GA": "mediumseagreen",
         }
 
         self.hatch_dict = {
@@ -2084,10 +2084,10 @@ class All_CS_Plotter(Plotters):
             "Monte Carlo": "o",
             "E[SSE]": "o",
             "NLS": "*",
-            "SHGO-Sob": "+",
-            "SHGO-Simp": "+",
-            "NM": "+",
-            "GA": "+",
+            "SHGO-Sob": None,
+            "SHGO-Simp": None,
+            "NM": None,
+            "GA": None,
         }
         
     def __create_subplots(self, num_subplots, sharex="row", sharey="none", row_num_size = 16):
@@ -2764,7 +2764,7 @@ class All_CS_Plotter(Plotters):
                 reversed(handles),
                 reversed(labels),
                 loc="upper center",
-                ncol=4,
+                ncol=3,
                 fontsize=self.other_fntsz,
                 bbox_to_anchor=(0.55, 1.10),
                 borderaxespad=0,

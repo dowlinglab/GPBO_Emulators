@@ -23,6 +23,9 @@ plotters = All_CS_Plotter(analyzer, save_figs)
 #Change cs_list here to get averages over select case studies
 analyzer.get_percent_true_found(cs_list)
 
-#Make Parity Plots
+#Make Overall GPBO bar charts
 for bmode in bar_modes:
     df_average = plotters.make_bar_charts(bmode)
+
+#Make Derivative Free Bar Charts
+df_med_derivfree = plotters.make_derivfree_bar(s_meths = ["NLS", "SHGO-Sob", "NM", "GA"], ver = "med")
