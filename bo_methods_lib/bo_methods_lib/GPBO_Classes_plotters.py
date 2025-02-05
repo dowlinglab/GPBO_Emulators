@@ -2023,6 +2023,166 @@ class Plotters:
             plt.close()
 
         return
+    
+    def plot_nlr_heat_maps(self, test_mesh, all_z_data, z_titles, levels, param_info_dict, log_data, title = None):
+        '''
+        Plots comparison of y_sim, GP_mean, and GP_stdev
+        Parameters
+        ----------
+            test_mesh: list of ndarray of length 2, Containing all values of the parameters for the heat map x and y. Gen with np.meshgrid()
+            theta_true: ndarray or None, Containing the true input parameters in all dimensions
+            theta_obj_min: ndarray or None, Containing the optimal input parameters predicted by the GP
+            param_names: list of str, Parameter names. Length of 2
+            levels: int, list of int or None, Number of levels to skip when drawing contour lines
+            idcs_to_plot: list of int, Indecies of parameters to plot
+            all_z_data: list of np.ndarrays, The list of values that will be plotted. Ex. SSE, SSE_Var, EI
+            z_titles: list of str, The list of the names of the values in z
+            xbins: int, Number of bins for x
+            ybins: int, Number of bins for y
+            zbins: int, Number of bins for z
+            title: str or None, Title of graph
+            title_fontsize: int, fontisize for title. Default 24
+            other_fontsize: int, fontisize for other values. Default 20
+            save_path: str or None, Path to save figure to. Default None (do not save figure).    
+        Returns
+        -------
+            plt.show(), A heat map of test_mesh and z
+        '''
+        
+        #Assert Statements
+        list_vars = [test_mesh, all_z_data, z_titles]
+        assert all(isinstance(item, np.ndarray) for item in all_z_data), "all_z_data elements must be np.ndarray"
+        assert all(isinstance(item, np.ndarray) for item in test_mesh), "test_mesh elements must be np.ndarray"
+        
+        #Define plot levels
+        if levels is None:
+            tot_lev = None
+        elif len(levels) == 1:
+            tot_lev = levels*len(all_z_data) 
+        else:
+            tot_lev = levels
+
+        assert tot_lev is None or len(tot_lev) == len(all_z_data), "levels must be length 1, None, or len(all_z_data)"
+            
+        #Get info from param dict
+        theta_true = param_info_dict["true"]
+        theta_opt = param_info_dict["min_sse"]
+        param_names = param_info_dict["names"]
+        idcs_to_plot = param_info_dict["idcs"]
+
+        #Assert sattements
+        #Get x and y data from test_mesh
+        xx , yy = test_mesh #NxN, NxN
+        assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
+        
+        #Make figures and define number of subplots  
+        subplots_needed = len(all_z_data)
+        fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True, sharey = True)
+        
+        # Find the maximum and minimum values in your data to normalize the color scale
+        vmin = min(np.min(arr) for arr in all_z_data)
+        vmax = max(np.max(arr) for arr in all_z_data)
+        mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
+
+        # Create a common color normalization for all subplots
+        if log_data == True or not mag_diff or vmin <0:
+            # print(vmin, vmax)
+            norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
+            cbar_ticks = np.linspace(vmin, vmax, self.zbins)
+        else:
+            norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
+            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
+
+        #Set plot details
+        #Loop over number of subplots
+        for i in range(subplots_needed):
+            #Get method value from json file 
+            ax_row, ax_col = plot_mapping[i]
+            
+            z = all_z_data[i]
+
+            #Create a colormap and colorbar for each subplot
+            if log_data == True:
+                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, 
+                                                     cmap = plt.cm.get_cmap(self.cmap), norm = norm)
+            else:
+                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, 
+                                                     cmap = plt.cm.get_cmap(self.cmap), norm = norm)
+
+            #Create a line contour for each colormap
+            if levels is not None:  
+                cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', 
+                                                     alpha=0.7, linestyles='dashed', linewidths=3, norm = norm)
+                # ax[ax_row, ax_col].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1)
+
+            #plot min obj, max ei, true and training param values as appropriate
+            if theta_true is not None:
+                ax[ax_row, ax_col].scatter(theta_true[idcs_to_plot[0]], theta_true[idcs_to_plot[1]], 
+                                           color="blue", label = "True", s=200, marker = (5,1), zorder = 2)
+            if theta_opt is not None:
+                ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], 
+                                           color="white", s=150, label = "Min Obj", marker = ".", 
+                                           edgecolor= "k", linewidth=0.3, zorder = 4)
+
+            #Set plot details
+            self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, z_titles[i])
+
+        #Get legend information and make colorbar on last plot
+        handles, labels = ax[-1, -1].get_legend_handles_labels() 
+
+        cb_ax = fig.add_axes([1.03,0,0.04,1])
+        if log_data is True or not mag_diff or vmin < 0:
+            new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 7 ticks
+        else:
+            new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+
+        title2 = z_titles[i] 
+            
+        if "theta" in param_names[0]:
+            xlabel = r'$\mathbf{'+ "\\" + param_names[0]+ '}$'
+            ylabel = r'$\mathbf{'+ "\\" + param_names[1]+ '}$'
+        else:
+            xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
+            ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
+            
+        for axs in ax[-1]:
+            axs.set_xlabel(xlabel, fontsize = self.other_fntsz)
+
+        for axs in ax[:, 0]:
+            axs.set_ylabel(ylabel, fontsize = self.other_fntsz)
+            
+        cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks)
+        cbar.ax.tick_params(labelsize=self.other_fntsz)
+        cbar.ax.set_ylabel("Function Value", fontsize=self.other_fntsz, fontweight='bold')
+                        
+        #Print the title
+        if title is not None:
+            title = title + " " + str(param_names)
+            
+        #Print the title and labels as appropriate
+        #Define x and y labels
+        self.__set_plot_titles(fig, title, None, None)
+        
+        #Plots legend
+        if labels:
+            fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 
+                       borderaxespad=0)
+
+        plt.tight_layout()
+
+        nlr_plot = "func_ls_compare" if theta_true is None else "sse_contour"
+
+        #Save or show figure
+        if self.save_figs:
+            save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
+            save_path_dir = os.path.join(save_path, "heat_maps", param_names[0] + "-" + param_names[1])
+            save_path_to = os.path.join(save_path_dir, "least_squares")
+            self.__save_fig(save_path_to)
+        else:
+            plt.show()
+            plt.close()
+        
+        return plt.show()
 
 
 class All_CS_Plotter(Plotters):
