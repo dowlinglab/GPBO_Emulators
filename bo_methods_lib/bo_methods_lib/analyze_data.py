@@ -2245,18 +2245,31 @@ class All_CS_Analysis(General_Analysis):
                 df_best_runs, job_list_best_runs = self.get_best_all_runs(
                     criteria_dict_use
                 )
+                #Add training data iterations to Max Evals and BO Iters based on sp data
+                #Use the first file to get the theta multiplier
+                with open(job_list_best_runs[0].fn("signac_statepoint.json"), "r") as json_file:
+                    # Load the JSON data
+                    sp_data = json.load(json_file)
+                cs_class = get_cs_class_from_val(cs_name)
+                num_params = len(cs_class.idcs_to_consider)
+                num_train_points = sp_data["num_theta_multiplier"]*num_params
+                df_best_runs["Max Evals"] += num_train_points
+                df_best_runs["BO Iter"] += num_train_points
+
                 # On iter 1, create the DataFrame df_all_best
                 if i == 0 and len(df_best_runs) > 0:
                     df_all_best = df_best_runs
                 # Otherwise, concatenate the DataFrame to df_all_best
                 else:
                     df_all_best = pd.concat([df_all_best, df_best_runs], axis=0)
+                
                 df_all_best["F Max Evals"] = df_all_best["Max Evals"] * df_all_best[
                     "CS Name"
                 ].map(self.cs_x_dict)
                 df_all_best["F Evals"] = df_all_best["BO Iter"] * df_all_best[
                     "CS Name"
                 ].map(self.cs_x_dict)
+
             except:
                 pass         
             # Add nonlinear least squares results

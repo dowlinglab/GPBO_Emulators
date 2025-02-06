@@ -175,11 +175,16 @@ class Plotters:
                 self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
             )
             GPBO_method_val = sp_data["meth_name_val"]
-            max_iters = sp_data["bo_iter_tot"]
+           
             shrt_name = GPBO_Methods(Method_name_enum(GPBO_method_val)).report_name
 
             # Get Number of runs in the job
             runs_in_job = sp_data["bo_runs_in_job"]
+            #Get number of iterations to add at the beginning by grabbing the length of theta_true
+            cs_class = get_cs_class_from_val(sp_data["cs_name_val"])
+            num_params = len(cs_class.idcs_to_consider)
+            num_train_points = sp_data["num_theta_multiplier"]*num_params
+            max_iters = sp_data["bo_iter_tot"] + num_train_points
 
             # Set subplot index to the corresponding method value number
             ax_idx = int(GPBO_method_val - 1)
@@ -198,7 +203,7 @@ class Plotters:
                 # Get data until termination
                 data_df_j = self.__get_data_to_bo_iter_term(data[j])
                 # Define x axis
-                bo_len = len(data_df_j)
+                bo_len = len(data_df_j) + num_train_points
                 bo_space = np.linspace(1, bo_len, bo_len)
                 # Set appropriate notation
                 if abs(np.max(data_df_j)) >= 1e3 or abs(np.min(data_df_j)) <= 1e-3:
@@ -209,19 +214,22 @@ class Plotters:
                 if log_data == True:
                     data_df_j = np.log(data_df_j)
 
+                #Add iterations to the beginning
+                data_df_j_w_train = np.concatenate((np.full(num_train_points, data_df_j[0]), data_df_j))
+
                 # For result where run num list is the number of runs, print a solid line
                 # print(ax_idx, emph_runs[ax_idx], run_number)
                 if emph_run == run_number:
                     ax[ax_row, ax_col].plot(
                         bo_space,
-                        data_df_j,
+                        data_df_j_w_train,
                         alpha=1,
                         color=self.colors[ax_idx],
                         drawstyle="steps",
                     )
                     ax[-1, -1].plot(
                         bo_space,
-                        data_df_j,
+                        data_df_j_w_train,
                         alpha=1,
                         color=self.colors[ax_idx],
                         drawstyle="steps",
@@ -229,7 +237,7 @@ class Plotters:
                 else:
                     ax[ax_row, ax_col].plot(
                         bo_space,
-                        data_df_j,
+                        data_df_j_w_train,
                         alpha=0.2,
                         color=self.colors[ax_idx],
                         linestyle="--",
@@ -282,10 +290,10 @@ class Plotters:
                 meth_bo_max_evals[ax_idx] = max_x
                 x_space = np.linspace(1, max_x, max_x)
                 self.__set_subplot_details(
-                    ax[ax_row, ax_col], x_space, data_df_j, None, None, title
+                    ax[ax_row, ax_col], x_space, data_df_j_w_train, None, None, title
                 )
             self.__set_subplot_details(
-                ax[-1, -1], x_space, data_df_j, None, None, "All Methods"
+                ax[-1, -1], x_space, data_df_j_w_train, None, None, "All Methods"
             )
 
         # Set handles and labels and scale axis if necessary
@@ -447,12 +455,17 @@ class Plotters:
         meth_label = self.method_names[GPBO_method_val - 1]
         y_label = "Parameter Values"
 
+        #Get number of iterations to add at the beginning by grabbing the length of theta_true
+        cs_class = get_cs_class_from_val(sp_data["cs_name_val"])
+        num_params = len(cs_class.idcs_to_consider)
+        num_train_points = sp_data["num_theta_multiplier"]*num_params
+
         if title != None:
             title = title
         else:
             title = meth_label + " Parameter Values"
 
-        fig = self.__plot_2D_general(data, data_names, data_true, y_label, title, False)
+        fig = self.__plot_2D_general(data, data_names, data_true, y_label, title, False, num_train_points)
         # save or show figure
         if self.save_figs:
             save_path_to = os.path.join(job.fn(""), "line_plots", "params_" + z_choice)
@@ -461,7 +474,7 @@ class Plotters:
             plt.show()
             plt.close()
 
-    def __plot_2D_general(self, data, data_names, data_true, y_label, title, log_data):
+    def __plot_2D_general(self, data, data_names, data_true, y_label, title, log_data, num_train_points = 0):
         """
         Plots 2D values of the same data type (ei, sse, min sse) on multiple subplots
 
@@ -492,7 +505,6 @@ class Plotters:
         )
         # Print the title and labels as appropriate
         self.__set_plot_titles(fig, title, None, None)
-        x_label = "BO Iterations"
 
         # Loop over different hyperparameters (number of subplots)
         for i, ax in enumerate(axes.flatten()):
@@ -508,7 +520,7 @@ class Plotters:
                     data_df_j = self.__get_data_to_bo_iter_term(one_data_type[j])
 
                     # Define x axis
-                    bo_len = len(data_df_j)
+                    bo_len = len(data_df_j) + num_train_points
                     bo_space = np.linspace(1, bo_len, bo_len)
 
                     # Set appropriate notation
@@ -519,6 +531,14 @@ class Plotters:
                     # Plot data
                     if log_data == True:
                         data_df_j = np.log(data_df_j)
+
+                    #duplicate the first value num_train_points times to show the number of training points
+                    if num_train_points > 0:
+                        data_df_j = np.concatenate((np.full(num_train_points, data_df_j[0]), data_df_j))
+                        x_label = "Loss Evaluations"
+                    else:
+                        x_label = "BO Iterations"
+
                     ax.step(bo_space, data_df_j, label=label)
 
                     # Plot true value if applicable
@@ -587,6 +607,8 @@ class Plotters:
         mantissa, exponent = formatted.split("e")
         return r"${} \times 10^{{{}}}$".format(mantissa, int(exponent))
 
+    # def add_training_iters(self, data):
+    
     def plot_objs_all_methods(self, z_choices, log_data=False, title=None):
         """
         Plots EI, SSE, Min SSE, and EI values vs BO iter for all 7 methods.
@@ -659,7 +681,14 @@ class Plotters:
                 self.analyzer.analyze_obj_vals(job_pointer[i], z_choices)
             )
             GPBO_method_val = sp_data["meth_name_val"]
-            max_iters = sp_data["bo_iter_tot"]
+            #Get number of iterations to add at the beginning by grabbing the length of theta_true
+            cs_class = get_cs_class_from_val(sp_data["cs_name_val"])
+            num_params = len(cs_class.idcs_to_consider)
+            num_train_points = sp_data["num_theta_multiplier"]*num_params
+
+            #Max iters is number of BO iters + training points
+            max_iters = sp_data["bo_iter_tot"] + num_train_points
+
             # Create label based on method #
             label = self.method_names[GPBO_method_val - 1]
 
@@ -683,7 +712,7 @@ class Plotters:
                         # Remove elements that are numerically 0
                         data_df_j = self.__get_data_to_bo_iter_term(one_data_type[j])
                         # Define x axis
-                        bo_len = len(data_df_j)
+                        bo_len = len(data_df_j) + num_train_points
                         bo_space = np.linspace(1, bo_len, bo_len)
                         if bo_len > bo_len_max:
                             bo_len_max = bo_len
@@ -704,11 +733,14 @@ class Plotters:
                             miny = float(np.maximum(miny, np.min(data_df_j)))
                             maxy = float(np.maximum(maxy, np.max(data_df_j)))
 
+                        #duplicate the first value num_train_points times to show the number of training points
+                        data_df_j_w_train = np.concatenate((np.full(num_train_points, data_df_j[0]), data_df_j))
+
                         # For the best result, print a solid line
                         if emph_runs[GPBO_method_val - 1] == run_number:
                             ax.plot(
                                 bo_space,
-                                data_df_j,
+                                data_df_j_w_train,
                                 alpha=1,
                                 color=self.colors[GPBO_method_val - 1],
                                 label=label,
@@ -717,7 +749,7 @@ class Plotters:
                         else:
                             ax.step(
                                 bo_space,
-                                data_df_j,
+                                data_df_j_w_train,
                                 alpha=0.2,
                                 color=self.colors[GPBO_method_val - 1],
                                 linestyle="--",
@@ -2120,9 +2152,11 @@ class Plotters:
                 ax[ax_row, ax_col].scatter(theta_true[idcs_to_plot[0]], theta_true[idcs_to_plot[1]], 
                                            color="blue", label = "True", s=200, marker = (5,1), zorder = 2)
             if theta_opt is not None:
-                ax[ax_row, ax_col].scatter(theta_opt[idcs_to_plot[0]],theta_opt[idcs_to_plot[1]], 
-                                           color="white", s=150, label = "Min Obj", marker = ".", 
-                                           edgecolor= "k", linewidth=0.3, zorder = 4)
+                for to in range(len(theta_opt)):
+                    label = "Min Obj" if to == 0 else None
+                    ax[ax_row, ax_col].scatter(theta_opt[to][idcs_to_plot[0]],theta_opt[to][idcs_to_plot[1]], 
+                                            color="white", s=150, label = label, marker = ".", 
+                                            edgecolor= "k", linewidth=0.3, zorder = 4)
 
             #Set plot details
             self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, z_titles[i])
@@ -2452,8 +2486,11 @@ class All_CS_Plotter(Plotters):
 
         if mode == "time":
             add_value = 1
+            # fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+            #     2, sharex=False, sharey=True
+            # )
             fig, axes, num_subplots, plot_mapping = self.__create_subplots(
-                2, sharex=False, sharey=True
+                3, sharex=False, sharey=True
             )
         else:
             add_value = 1
@@ -2495,8 +2532,17 @@ class All_CS_Plotter(Plotters):
             nls_avg_evals = group.loc[
                 group["BO Method"] == "NLS", "Avg F Evals Tot"
             ].values
+
             nls_std_evals = group.loc[
                 group["BO Method"] == "NLS", "Std F Evals Tot"
+            ].values
+
+            nls_avg_L_evals = group.loc[
+                group["BO Method"] == "NLS", "Avg Evals Tot"
+            ].values
+
+            nls_std_L_evals = group.loc[
+                group["BO Method"] == "NLS", "Std Evals Tot"
             ].values
 
             # Calculate the new column
@@ -2516,12 +2562,17 @@ class All_CS_Plotter(Plotters):
             )
             group = group.drop(columns=["Std D", "D"])
 
+            group["L_deficit"] = group["Avg Evals Tot"] - nls_avg_L_evals
+            group["L_deficit_std"] = np.sqrt(nls_std_L_evals**2 + group["Std Evals Tot"]**2)
+
             return group
 
         # Apply the calculation for each group
         df_averages = df_averages.groupby("CS Name", group_keys=False).apply(
             calculate_new_column
         )
+
+        df_averages.loc[df_averages["L_deficit"] <= 0, "L_deficit_std"] = 0
 
         if mode == "objs":
             names = ["Median Loss", "Avg Evals", "Avg Evals Tot", "Avg Opt Acq"]
@@ -2538,11 +2589,18 @@ class All_CS_Plotter(Plotters):
                 "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions",
             ]
         else:
-            names = ["Avg Time", "F_Time_Parity"]
-            std_names = ["Std Time", "F_Par_std"]
+            # names = ["Avg Time", "F_Time_Parity"]
+            # std_names = ["Std Time", "F_Par_std"]
+            # titles = [
+            #     "Avg. Run Time (min)",
+            #     "Estimated " + r"$f(\cdot)$" + " Cost \n for Parity (min)",
+            # ]
+            names = ["Avg Time", "F_Time_Parity", "L_deficit"]
+            std_names = ["Std Time", "F_Par_std", "L_deficit_std"]
             titles = [
                 "Avg. Run Time (min)",
                 "Estimated " + r"$f(\cdot)$" + " Cost \n for Parity (min)",
+                "Estimated " + r"$\mathscr{L}(\cdot)$" + " Deficit \n for Parity",
             ]
 
         t_label_lst = list(df_averages["CS Name"].unique())
@@ -2595,6 +2653,7 @@ class All_CS_Plotter(Plotters):
 
         if mode == "time":
             axes[0].set_xscale("log")
+            axes[2].set_xlim(left=0)
             axes[1].set_xscale("log")
         else:
             axes[0].set_xscale("log")
