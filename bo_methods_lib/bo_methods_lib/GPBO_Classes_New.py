@@ -1596,9 +1596,9 @@ class GP_Emulator:
         assert isinstance(high, (float, int)), "low must be float or int"
         assert isinstance(
             initial_value, (float, int, np.ndarray)
-        ), "initial_value must be float, int, or np.ndarray of shape ()"
+        ), "initial_value must be float, int, or np.ndarray of shape (n,)"
         if isinstance(initial_value, np.ndarray):
-            assert len(initial_value.shape) == 0, "initial_value must be a scalar"
+            assert len(initial_value.shape) <= 1, "initial_value must be a scalar or 1D array"
         assert low < high, "low must be less than high"
         sigmoid = tfb.Sigmoid(
             low=tf.cast(low, dtype=tf.float64), high=tf.cast(high, dtype=tf.float64)
