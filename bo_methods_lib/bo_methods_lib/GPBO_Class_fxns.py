@@ -21,7 +21,8 @@ def get_cs_class_from_val(cs_num):
         12,
         13,
         14,
-    ], "cs_num must be 1,2,3,10,11,12,13,14 not {}".format(cs_num)
+        15,
+    ], "cs_num must be 1,2,3,10,11,12,13,14,15 not {}".format(cs_num)
     # Get class based on cs number
     if cs_num == 1:
         cs_class = CS1()
@@ -76,7 +77,8 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
         12,
         13,
         14,
-    ], "cs_num must be 1,2,3,10,11,12,13,14"
+        15,
+    ], "cs_num must be 1,2,3,10,11,12,13,14,15"
     # Get class based on cs number
     if cs_num == 1:
         cs_class = CS1()
