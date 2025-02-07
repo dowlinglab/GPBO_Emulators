@@ -8,7 +8,7 @@ project = signac.init_project("GPBO_Fix")
 
 # Set Method and Case Study
 gp_pack = "gpflow"
-cs_val_list = [1, 2, 3, 10, 11, 12, 13, 14] #See bo_methods_lib/bo_methods_lib/GPBO_Class_fxns.py for more details
+cs_val_list = [15] #See bo_methods_lib/bo_methods_lib/GPBO_Class_fxns.py for more details
 meth_val_list = [1, 2, 3, 4, 5, 6, 7]  # Conv, Log Conv., Ind., Log Ind., Sparse Grid, Monte Carlo, E[SSE]
 
 # Set Initial Parameters
@@ -33,7 +33,8 @@ bo_iters_tot = {1: 50,
                 11: 50,
                 12: 50,
                 13: 50,
-                14: 50} #Total number of iterations
+                14: 50,
+                15: 50} #Total number of iterations
 bo_runs_total = {1: 5,
                 2: 10,
                 3: 10,
@@ -41,7 +42,8 @@ bo_runs_total = {1: 5,
                 11: 5,
                 12: 5,
                 13: 5,
-                14: 5} #Total number of runs (restarts)
+                14: 5,
+                15: 5} #Total number of runs (restarts)
 runs_per_jobs_max = {1: 5,
                 2: 1,
                 3: 1,
@@ -49,7 +51,8 @@ runs_per_jobs_max = {1: 5,
                 11: 5,
                 12: 5,
                 13: 3,
-                14: 1} #Number of runs per job
+                14: 1,
+                15: 5} #Number of runs per job
 save_data = False #Do not save extra ei data
 ei_tol = 1e-7 #Set EI tolerance to 1e-7
 obj_tol = 1e-7 #Set objective tolerance to 1e-7
@@ -60,7 +63,8 @@ num_x_datas = {1: 5,
             11: 10,
             12: 10,
             13: 10,
-            14: 5} #Number of x data points
+            14: 5,
+            15: 10} #Number of x data points
 gen_meth_theta = 1 #Generate parameter sets using LHS
 gen_meth_x = 2 #Generate x data using a grid
 gen_meth_theta_val = None #Don't generate validation data

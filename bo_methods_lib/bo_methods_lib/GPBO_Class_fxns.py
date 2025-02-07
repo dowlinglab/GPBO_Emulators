@@ -37,6 +37,8 @@ def get_cs_class_from_val(cs_num):
         cs_class = CS13()
     elif cs_num == 14:
         cs_class = CS14()
+    elif cs_num == 15:
+        cs_class = CS15()
 
     return cs_class
 
@@ -90,6 +92,8 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
         cs_class = CS13()
     elif cs_num == 14:
         cs_class = CS14()
+    elif cs_num == 15:
+        cs_class = CS15()
 
     return Simulator(
         cs_class.idcs_to_consider,
@@ -762,3 +766,56 @@ def calc_cs14_logit2D(true_model_coefficients, x, args=None):
     y_model = x1 * t1**2 + (t2 - t1 * x1) / (1 + (x2 / t3) ** t4)
 
     return y_model
+
+class CS15:
+    """
+    Class containing constants for Simple Linear Case Study
+
+    Methods:
+    --------
+    __init__(): Initializes the class
+    """
+
+    def __init__(self):
+        self.name = "Simple Multimodal"
+        self.param_name_str = "t1t2"
+        self.idcs_to_consider = [0, 1]
+        self.theta_names = ["theta_1", "theta_2"]
+        self.bounds_x_l = [-2]
+        self.bounds_x_u = [1.5]
+        self.bounds_theta_l = [-2, -2]
+        self.bounds_theta_u = [2, 2]
+        self.theta_ref = np.array([-1.5, 0.5 ])
+        self.calc_y_fxn = calc_cs15_polynomial
+        self.calc_y_fxn_args = None
+
+
+def calc_cs15_polynomial(true_model_coefficients, x, args=None):
+    """
+    Calculates the value of y for Simple Linear Case Study
+
+    Parameters
+    ----------
+    true_model_coefficients: np.ndarray
+        The array containing the true values of Theta1 and Theta2
+    x: np.ndarray
+        The list of xs that will be used to generate y
+    args: dict, default None
+        Extra arguments to pass to the function
+
+    Returns
+    --------
+    y_poly: np.ndarray
+        The noiseless values of y given theta_true and x
+
+    Raises
+    ------
+    AssertionError
+        If true_model_coefficients is not of length 2
+    """
+
+    assert len(true_model_coefficients) == 2, "true_model_coefficients must be length 2"
+
+    y_poly = (true_model_coefficients[0] * x**3 - true_model_coefficients[1] * x**2 + 2*x - 1)**2 + (true_model_coefficients[0] - true_model_coefficients[1])**2 + (x**2 - 1)**2
+
+    return y_poly

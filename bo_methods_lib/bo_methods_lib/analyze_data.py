@@ -1783,6 +1783,7 @@ class All_CS_Analysis(General_Analysis):
         self.meth_val_list = meth_val_list
         self.cs_x_dict = {
             "Simple Linear": 5,
+            "Simple Multimodal": 10,
             "Muller x0": 25,
             "Muller y0": 25,
             "Yield-Loss": 10,
