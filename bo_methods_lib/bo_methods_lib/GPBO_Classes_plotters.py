@@ -2478,7 +2478,7 @@ class All_CS_Plotter(Plotters):
         -----
         Options for mode are "objs" or "time"
         """
-        assert mode in ["time", "objs"], "mode must be 'time' or 'objs'"
+        assert mode in ["time", "objs", "si_time"], "mode must be 'time', 'objs', or 'si_time'"
         # Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
         t_label_lst = [
             get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list
@@ -2486,12 +2486,19 @@ class All_CS_Plotter(Plotters):
 
         if mode == "time":
             add_value = 1
+            fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+                2, sharex=False, sharey=True
+            )
+            # fig, axes, num_subplots, plot_mapping = self.__create_subplots(
+            #     3, sharex=False, sharey=True
+            # )
+        elif mode == "si_time":
+            add_value = 1
             # fig, axes, num_subplots, plot_mapping = self.__create_subplots(
             #     2, sharex=False, sharey=True
             # )
             fig, axes, num_subplots, plot_mapping = self.__create_subplots(
-                3, sharex=False, sharey=True
-            )
+                1, sharex=False, sharey=True)
         else:
             add_value = 1
             fig, axes, num_subplots, plot_mapping = self.__create_subplots(
@@ -2588,20 +2595,26 @@ class All_CS_Plotter(Plotters):
                 "Total " + r"$\mathscr{L}(\cdot)$" + " Evalulations",
                 "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions",
             ]
+        elif mode == "si_time":
+            names = ["L_deficit"]
+            std_names = ["L_deficit_std"]
+            titles = [
+                "Estimated " + r"$\mathscr{L}(\cdot)$" + " Evaluation Deficit \n for Parity",
+            ]
         else:
-            # names = ["Avg Time", "F_Time_Parity"]
-            # std_names = ["Std Time", "F_Par_std"]
-            # titles = [
-            #     "Avg. Run Time (min)",
-            #     "Estimated " + r"$f(\cdot)$" + " Cost \n for Parity (min)",
-            # ]
-            names = ["Avg Time", "F_Time_Parity", "L_deficit"]
-            std_names = ["Std Time", "F_Par_std", "L_deficit_std"]
+            names = ["Avg Time", "F_Time_Parity"]
+            std_names = ["Std Time", "F_Par_std"]
             titles = [
                 "Avg. Run Time (min)",
                 "Estimated " + r"$f(\cdot)$" + " Cost \n for Parity (min)",
-                "Estimated " + r"$\mathscr{L}(\cdot)$" + " Deficit \n for Parity",
             ]
+            # names = ["Avg Time", "F_Time_Parity", "L_deficit"]
+            # std_names = ["Std Time", "F_Par_std", "L_deficit_std"]
+            # titles = [
+            #     "Avg. Run Time (min)",
+            #     "Estimated " + r"$f(\cdot)$" + " Cost \n for Parity (min)",
+            #     "Estimated " + r"$\mathscr{L}(\cdot)$" + " Deficit \n for Parity",
+            # ]
 
         t_label_lst = list(df_averages["CS Name"].unique())
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
@@ -2653,8 +2666,9 @@ class All_CS_Plotter(Plotters):
 
         if mode == "time":
             axes[0].set_xscale("log")
-            axes[2].set_xlim(left=0)
             axes[1].set_xscale("log")
+        elif mode == "si_time":
+            axes[0].set_xlim(left=0)
         else:
             axes[0].set_xscale("log")
             axes[3].set_xscale("log")
@@ -2676,7 +2690,7 @@ class All_CS_Plotter(Plotters):
 
         # Plots legend
         if labels:
-            if mode == "time":
+            if "time" in mode:
                 fig.legend(
                     reversed(handles),
                     reversed(labels),
