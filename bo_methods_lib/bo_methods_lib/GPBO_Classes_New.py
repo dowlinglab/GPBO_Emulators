@@ -723,7 +723,7 @@ class Simulator:
             array = array.reshape(-1, 1)
         return array
 
-    def gen_y_data(self, data, noise_mean, noise_std):
+    def gen_y_data(self, data, noise_mean, noise_std, set_seed=None):
         """
         Creates simulated data based on the function self.calc_y_fxn
 
@@ -741,7 +741,9 @@ class Simulator:
         y_data: np.ndarray The simulated y training data
         """
         # Set seed
-        if self.seed is not None:
+        if set_seed is not None:
+            np.random.seed(set_seed)
+        elif self.seed is not None:
             np.random.seed(self.seed)
 
         # Define an array to store y values in
@@ -966,7 +968,7 @@ class Simulator:
         # Add y_vals for sim_data only
         if gen_val_data == False:
             # Training data should be generated with the same mean and variance as the experimental data
-            sim_data.y_vals = self.gen_y_data(sim_data, self.noise_mean, self.noise_std)
+            sim_data.y_vals = self.gen_y_data(sim_data, self.noise_mean, self.noise_std, set_seed = sim_seed)
 
         return sim_data
 
