@@ -2654,7 +2654,10 @@ class LS_Analysis(General_Analysis):
             # Get Experimental data and Simulator objects used in problem
             exp_data = results[0].exp_data_class
             simulator = results[0].simulator_class
-            simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
+            try:
+                simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
+            except:
+                pass
 
         else:
             # Set tot_runs cs as 5 as a default
