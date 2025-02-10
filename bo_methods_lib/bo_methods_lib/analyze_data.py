@@ -2231,7 +2231,7 @@ class All_CS_Analysis(General_Analysis):
             os.makedirs(self.study_results_dir, exist_ok=True)
             save_path = os.path.join(self.study_results_dir, "percent_true.csv")
             self.save_data(results_df, save_path)
-            self.save_data(df_all_best, self.study_results_dir + "df_all_best.csv")
+            self.save_data(df_all_best, self.study_results_dir + "/df_all_best.csv")
 
         return results_df
 

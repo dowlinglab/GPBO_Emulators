@@ -10,10 +10,10 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 
 #Set parameters
 meth_list = [1, 2, 3, 4, 5, 6, 7]
-cs_list = [11,14,2,1,12,13,3,10]
+cs_list = [11,14,2,15,1,12,13,3,10]
 save_csv = True #Set to False if you don't want to save/resave csvs
 save_figs = True
-bar_modes = ["objs", "time"] #time and/or objs
+bar_modes = ["objs", "time", "si_time"] #time and/or objs
 project = signac.get_project("GPBO_Fix")
 
 analyzer = All_CS_Analysis(cs_list, meth_list, project, "act", save_csv)
