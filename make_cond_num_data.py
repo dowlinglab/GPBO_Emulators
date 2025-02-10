@@ -15,8 +15,8 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 
 #Set Stuff
 meth_name_val_list = [1,2,3,4,5,6,7]
-save_csv = True #Set to False if you don't want to save/resave csvs
-save_figs = True
+save_csv = False #Set to False if you don't want to save/resave csvs
+save_figs = False
 modes = ["act"]
 project = signac.get_project("GPBO_Fix")
 
@@ -25,7 +25,7 @@ dict_k = {}  # Stores raw condition numbers for each case study and BO method
 dict_stats = {}  # Stores the statistics (log averages, min, max, median)
 
 # Iterate through the different case study values
-for val in [11,14,2,1,12,13,3,10]:
+for val in [11,14,2,15,1,12,13,3,10]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,
@@ -39,7 +39,7 @@ for val in [11,14,2,1,12,13,3,10]:
         plotters = Plotters(analyzer, save_figs)
 
         # Get all data from experiments
-        df_all_jobs, job_list, theta_true_data = analyzer.get_df_all_jobs(save_csv)
+        df_all_jobs, job_list, theta_true_data = analyzer.get_df_all_jobs(save_csv=save_csv)
         
         # Get best data from ep experiment
         df_best, job_list_best = analyzer.get_best_data()

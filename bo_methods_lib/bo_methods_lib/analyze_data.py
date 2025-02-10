@@ -1063,7 +1063,7 @@ class General_Analysis:
                     data_true[z_choices[z]] = data_true_val
                     data_true_med[z_choices[z]] = data_true_med_val
                     # If the z_choice is sse and the method has a log objective function value, un logscale data
-                    if sp_data["meth_name_val"] in [2, 4]:
+                    if sp_data["meth_name_val"] in [2, 4] and sp_data["cs_name_val"] not in [15, 16]:
                         z_data = np.exp(z_data.values.astype(float))
                 else:
                     data_true[z_choices[z]] = None
@@ -2042,8 +2042,8 @@ class All_CS_Analysis(General_Analysis):
             If the cs_nums is not a list of case study numbers in [1,2,3,10,11,12,13,14]
         """
         assert all(
-            item in [1, 2, 3, 10, 11, 12, 13, 14] for item in cs_nums
-        ), "cs_nums must be a list of case study numbers [1,2,3,10,11,12,13,14]"
+            item in [1, 2, 3, 10, 11, 12, 13, 14, 15] for item in cs_nums
+        ), "cs_nums must be a list of case study numbers [1,2,3,10,11,12,13,14,15]"
         assert isinstance(cs_nums, list), "cs_nums must be a list"
         em_cs = [get_cs_class_from_val(cs_val).name for cs_val in cs_nums]
 
@@ -2672,6 +2672,7 @@ class LS_Analysis(General_Analysis):
             # Set num_x based off cs number
             self.cs_x_dict = {
                 "Simple Linear": 5,
+                "Simple Multimodal": 10,
                 "Muller x0": 25,
                 "Muller y0": 25,
                 "Yield-Loss": 10,
@@ -3258,6 +3259,7 @@ class Deriv_Free_Anlys(General_Analysis):
             # Set num_x based off cs number
             self.cs_x_dict = {
                 "Simple Linear": 5,
+                "Simple Multimodal": 10,
                 "Muller x0": 5,
                 "Muller y0": 5,
                 "Yield-Loss": 10,

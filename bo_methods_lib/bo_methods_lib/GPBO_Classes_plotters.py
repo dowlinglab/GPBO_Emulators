@@ -2515,6 +2515,7 @@ class All_CS_Plotter(Plotters):
             "Large Linear",
             "Muller y0",
             "Log Logistic",
+            "Simple Multimodal",
             "Yield-Loss",
             "Simple Linear",
             "Muller x0",
@@ -2620,7 +2621,7 @@ class All_CS_Plotter(Plotters):
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
 
         y_locs = np.arange(len(self.analyzer.cs_list)) * (
-            bar_size * (len(self.analyzer.meth_val_list) + add_value) + padding
+            bar_size * (len(self.analyzer.cs_list)) + padding
         )
 
         axes = axes.flatten()
@@ -2770,6 +2771,7 @@ class All_CS_Plotter(Plotters):
             "Large Linear",
             "Muller y0",
             "Log Logistic",
+            "Simple Multimodal",
             "Yield-Loss",
             "Simple Linear",
             "Muller x0",
@@ -2811,6 +2813,7 @@ class All_CS_Plotter(Plotters):
         added_labels = set()
 
         cs_name_to_constant = {"Simple Linear": 20, 
+                               "Simple Multimodal": 20,
                                "Large Linear": 50, 
                                "Muller x0": 40, 
                                "Muller y0": 20, 
