@@ -1331,7 +1331,7 @@ class General_Analysis:
                 results_GP[run_idx].list_gp_emulator_class[bo_iter - 1]
             )
             simulator = copy.copy(results[run_idx].simulator_class)
-            if hasattr(simulator, 'indices_to_consider'):
+            if hasattr(simulator, 'indeces_to_consider'):
                 simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
             exp_data = copy.copy(
                 results[0].exp_data_class
@@ -1474,7 +1474,7 @@ class General_Analysis:
             gp_emulator = loaded_results_GPs[run_num].list_gp_emulator_class[bo_iter]
             exp_data = loaded_results[run_num].exp_data_class
             simulator = loaded_results[run_num].simulator_class
-            if hasattr(simulator, 'indices_to_consider'):
+            if hasattr(simulator, 'indeces_to_consider'):
                 simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
             ep_at_iter = (
                 loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
@@ -2656,7 +2656,7 @@ class LS_Analysis(General_Analysis):
             # Get Experimental data and Simulator objects used in problem
             exp_data = results[0].exp_data_class
             simulator = results[0].simulator_class
-            if hasattr(simulator, 'indices_to_consider'):
+            if hasattr(simulator, 'indeces_to_consider'):
                 simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
 
         else:
@@ -3242,7 +3242,7 @@ class Deriv_Free_Anlys(General_Analysis):
             # Get Experimental data and Simulator objects used in problem
             exp_data = results[0].exp_data_class
             simulator = results[0].simulator_class
-            if hasattr(simulator, 'indices_to_consider'):
+            if hasattr(simulator, 'indeces_to_consider'):
                 simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
 
         else:
