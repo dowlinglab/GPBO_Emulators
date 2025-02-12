@@ -79,8 +79,12 @@ def run_ep_or_sf_exp(job):
         lenscl = job.sp.lenscl
 
     # Define Simulator Class (Export your Simulator Object Here)
+    # simulator = simulator_helper_test_fxns(
+    #     job.sp.cs_name_val, job.sp.noise_mean, job.sp.noise_std, job.sp.seed
+    # )
+    #All simulator objects will have the same seed. This keeps restarts/jobs consistent for data generation
     simulator = simulator_helper_test_fxns(
-        job.sp.cs_name_val, job.sp.noise_mean, job.sp.noise_std, job.sp.seed
+        job.sp.cs_name_val, job.sp.noise_mean, job.sp.noise_std, 1
     )
     
     # Generate Exp Data (OR Add your own experimental data as a Data class object)
