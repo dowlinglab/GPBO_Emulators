@@ -100,6 +100,10 @@ def run_ep_or_sf_exp(job):
 
     exp_data = simulator.gen_exp_data(job.sp.num_x_data, gen_meth_x, set_seed, x_vals, noise_std)
 
+    #Check to make sure x_vals and y_vals are correct
+    print(exp_data.x_vals)
+    print(exp_data.y_vals)
+
     # Set simulator noise_std artifically as 5% of y_exp mean (So that noise will be set rather than trained)
     simulator.noise_std = np.abs(np.mean(exp_data.y_vals)) * noise_std
 
