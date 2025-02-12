@@ -445,7 +445,7 @@ class CaseStudyParameters:
             assert (
                 isinstance(self.seed, int) == True
             ), "Seed number must be an integer or None"
-            np.random.seed(self.seed)
+            # np.random.seed(self.seed)
         self.acq_tol = acq_tol
         self.obj_tol = obj_tol
 
@@ -576,6 +576,8 @@ class Simulator:
         self.calc_y_fxn = calc_y_fxn
         self.calc_y_fxn_args = calc_y_fxn_args
         self.seed = set_seed
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
     def __set_true_params(self):
         """
@@ -741,10 +743,10 @@ class Simulator:
         y_data: np.ndarray The simulated y training data
         """
         # Set seed
-        if set_seed is not None:
-            np.random.seed(set_seed)
-        elif self.seed is not None:
-            np.random.seed(self.seed)
+        # if set_seed is not None:
+        #     np.random.seed(set_seed)
+        # elif self.seed is not None:
+        #     np.random.seed(self.seed)
 
         if noise_std is None:
             assert isinstance(noise_std_pct, (float, int)) and noise_std_pct >= 0, "noise_std_pct must be positive float or int"
@@ -1413,10 +1415,14 @@ class Data:
         # Shuffles Random Data. Will calling this once in case study parameters mean I don't need this? (No. It doesn't)
         if self.seed is not None:
             # Set seed to number specified by shuffle seed
-            np.random.seed(self.seed)
-
+            rng = np.random.default_rng(self.seed)
+        else:
+            rng = np.random.default_rng()
+            # np.random.seed(self.seed)
+        
         # Shuffle all_idx data in such a way that theta values will be randomized
-        np.random.shuffle(all_idx)
+        rng.shuffle(all_idx)
+        
         # Set train test indeces
         train_idx = all_idx[:len_train_idc]
         test_idx = all_idx[len_train_idc:]
@@ -1815,7 +1821,7 @@ class GP_Emulator:
         tf.compat.v1.get_default_graph()
         tf.compat.v1.set_random_seed(retrain_count)
         tf.random.set_seed(retrain_count)
-        np.random.seed(retrain_count)
+        rng = np.random.default_rng(retrain_count)
         gpflow.config.set_default_float(np.float64)
 
         # Set bounds for hyperparameters
@@ -1875,22 +1881,35 @@ class GP_Emulator:
         # On all other iterations, use random guesses
         else:
             if self.lenscl is None:
+                # initial_lenscls = np.array(
+                #     np.random.uniform(0.1, 100.0, x_train.shape[1]), dtype="float64"
+                # )
                 initial_lenscls = np.array(
-                    np.random.uniform(0.1, 100.0, x_train.shape[1]), dtype="float64"
+                    rng.uniform(0.1, 100.0, x_train.shape[1]), dtype="float64"
                 )
                 lenscls = self.bounded_parameter(
                     lenscl_bnds[0], lenscl_bnds[1], initial_lenscls
                 )
             if self.outputscl is None:
+                # tau = self.bounded_parameter(
+                #     var_bnds[0],
+                #     var_bnds[1],
+                #     np.array(np.random.lognormal(0.0, 1.0), dtype="float64"),
+                # )
                 tau = self.bounded_parameter(
                     var_bnds[0],
                     var_bnds[1],
-                    np.array(np.random.lognormal(0.0, 1.0), dtype="float64"),
+                    np.array(rng.lognormal(0.0, 1.0), dtype="float64"),
                 )
+            # white_var = self.bounded_parameter(
+            #     white_var_bnds[0],
+            #     white_var_bnds[1],
+            #     np.array(np.random.uniform(0.05, 10), dtype="float64"),
+            # )
             white_var = self.bounded_parameter(
                 white_var_bnds[0],
                 white_var_bnds[1],
-                np.array(np.random.uniform(0.05, 10), dtype="float64"),
+                np.array(rng.uniform(0.05, 10), dtype="float64"),
             )
 
         return lenscls, tau, white_var
@@ -4255,15 +4274,15 @@ class Expected_Improvement:
         mc_samples = self.samples_mc_sg  # Set 2000 MC samples
         # Use set seed for integration
         if self.seed is not None:
-            np.random.seed(self.seed)
+            use_seed = self.seed
         else:
             # Always use the same seed if one is not set
-            np.random.seed(1)
+            use_seed = 1
 
         eigvals, eigvecs = np.linalg.eigh(covar)
 
         # Get random standard variables
-        rng = np.random.default_rng(self.seed)
+        rng = np.random.default_rng(use_seed)
         random_vars_stand = rng.multivariate_normal(
             np.zeros(dim), np.eye(dim), mc_samples
         )
@@ -4955,9 +4974,9 @@ class Expected_Improvement:
 
         # Set seed
         if self.seed is not None:
-            np.random.seed(self.seed)
+            rng = np.random.default_rng(self.seed)
         else:
-            np.random.seed(1)
+            rng = np.random.default_rng(1)
 
         # Determine mean of all original samples and its shape
         theta_orig = np.mean(pilot_sample, axis=0)
@@ -4967,7 +4986,7 @@ class Expected_Improvement:
 
         # Create bootstrap samples
         for ibs in range(ns):
-            samples = np.random.choice(
+            samples = rng.choice(
                 pilot_sample, size=pilot_sample.shape[0], replace=True
             )
             theta_bs[ibs, ...] = np.mean(samples, axis=0)
@@ -5654,13 +5673,15 @@ class GPBO_Driver:
         else:
             # Set seed
             if self.cs_params.seed is not None:
-                np.random.seed(self.cs_params.seed)
+                rng = np.random.default_rng(self.cs_params.seed)
+            else:
+                rng = np.random.default_rng()
 
             # Find unique theta values and make array of indices
             points = self.gp_emulator.gp_val_data.get_unique_theta()
             idcs = np.arange(len(points))
             # Get random indices to use (sample w/out replacement)
-            idcs_to_use = np.random.choice(
+            idcs_to_use = rng.choice(
                 idcs, self.cs_params.reoptimize_obj + 1, False
             )
             # Get theta values associated with those indices
@@ -5767,7 +5788,9 @@ class GPBO_Driver:
         """
         # Set seed
         if self.cs_params.seed is not None:
-            np.random.seed(self.cs_params.seed)
+            rng = np.random.default_rng(self.cs_params.seed)
+        else:
+            rng = np.random.default_rng()
 
         # Check if there are nan values in theta
         if np.isnan(theta).any():
@@ -5863,7 +5886,8 @@ class GPBO_Driver:
                 np.isclose(self.__min_obj_class.acq, obj, rtol=1e-7)
                 and opt_obj == "sse"
             ):
-                random_number = random.randint(0, 1)
+                # random_number = rng.randint(0, 1)
+                random_number = rng.integers(0,1)
                 if random_number > 0:
                     self.__min_obj_class = self.gp_emulator.cand_data
                 else:
@@ -6529,7 +6553,6 @@ class GPBO_Driver:
         ------
         Two instances of BO_Results are used since opening the GP files is often tedious and we may not need to open them to analyze the results
         """
-
         # Initialize gp_emualtor class
         gp_emulator = self.__gen_emulator()
         self.gp_emulator = gp_emulator

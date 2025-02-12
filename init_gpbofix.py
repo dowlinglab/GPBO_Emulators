@@ -8,7 +8,7 @@ project = signac.init_project("GPBO_Fix")
 
 # Set Method and Case Study
 gp_pack = "gpflow"
-cs_val_list = [16,17] #See bo_methods_lib/bo_methods_lib/GPBO_Class_fxns.py for more details
+cs_val_list = [16] #See bo_methods_lib/bo_methods_lib/GPBO_Class_fxns.py for more details
 meth_val_list = [1, 2, 3, 4, 5, 6, 7]  # Conv, Log Conv., Ind., Log Ind., Sparse Grid, Monte Carlo, E[SSE]
 
 # Set Initial Parameters
