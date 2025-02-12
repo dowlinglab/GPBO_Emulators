@@ -207,47 +207,25 @@ class General_Analysis:
         jobs = [job for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
 
         return jobs
-
+    
     def str_to_array_df_col(self, str_arr):
-        """
-        Used to turn arrays from csvs loaded to pd dataframes from strings into arrays
 
-        Parameters
-        ----------
-        str_arr: str
-            The string to turn into an array
-
-        Returns
-        -------
-        array_from_str: np.ndarray
-            The array from the string
-
-        Raises
-        ------
-        AssertionError
-            If str_arr is not a string
-
-        Notes
-        -----
-        This function is used as a lambda function in the apply method of a pandas dataframe column. It is not guaraneteed to work outside of this context.
-        """
-        assert isinstance(str_arr, str), "str_arr must be a string"
-        # Find the index of the first space
-        try:
-            first_space_index = str_arr.index(" ")
-        except:
-            first_space_index = -1
-        # Remove the first space if its the 2nd character (the first will be [)
-        if first_space_index == 1:
-            str_no_space1 = (
-                str_arr[:first_space_index] + str_arr[first_space_index + 1 :]
-            )
+        if isinstance(str_arr, str):
+            # Use regex to normalize spaces inside the brackets
+            # cleaned_str = re.sub(r'\s+', ' ', str_arr)  # Replace multiple spaces with a single space
+            # cleaned_str = re.sub(r'\[\s+', '[', cleaned_str)  # Remove spaces after the opening bracket
+            # cleaned_str = re.sub(r'\s+\]', ']', cleaned_str)  # Remove spaces before the closing bracket
+            cleaned_str1 = re.sub(r'\s+', ' ', str_arr.strip())
+            cleaned_str = re.sub(r'(-?\d+\.\d*|\d+)\s+', r'\1, ', cleaned_str1)
+            array_from_str = np.array(ast.literal_eval(f'[{cleaned_str}]'))
+        elif isinstance(str_arr, (list)):
+            # Return the original value if it isn't a string
+            array_from_str = np.array(str_arr)
         else:
-            str_no_space1 = str_arr
-        # Turn the string into an array be subbing spaces with a ,
-        array_from_str = np.array(ast.literal_eval(re.sub(r"\s+", ",", str_no_space1)))
+            array_from_str = str_arr
         if len(array_from_str) == 1:
             array_from_str = array_from_str[0]
+
         return array_from_str
 
     def get_df_all_jobs(self, criteria_dict=None, save_csv=False):
@@ -315,25 +293,18 @@ class General_Analysis:
                 df_job, theta_true_data_w_bnds = self.get_study_data_signac(
                     job, save_csv
                 )
+                #Change all Theta columns to arrays
+                df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].to_numpy()
+                df_job["Theta Min Obj"] = df_job["Theta Min Obj"].to_numpy()
+                df_job["Theta Obj GP Cum"] = df_job["Theta Obj GP Cum"].to_numpy()
+                df_job["Theta Obj Act Cum"] = df_job["Theta Obj Act Cum"].to_numpy()
+                df_job["Theta Acq Act Cum"] = df_job["Theta Acq Act Cum"].to_numpy()
+
             elif found_data1:
-                try:
-                    df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(
-                        self.str_to_array_df_col
-                    )
-                    df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(
-                        self.str_to_array_df_col
-                    )
-                    df_job["Theta Obj GP Cum"] = df_job["Theta Obj GP Cum"].apply(
-                        self.str_to_array_df_col
-                    )
-                    df_job["Theta Obj Act Cum"] = df_job["Theta Obj Act Cum"].apply(
-                        self.str_to_array_df_col
-                    )
-                    df_job["Theta Acq Act Cum"] = df_job["Theta Acq Act Cum"].apply(
-                        self.str_to_array_df_col
-                    )
-                except:
-                    df_job.head()
+                # Apply parsing to relevant columns
+                columns_to_convert = ["Theta Opt Acq", "Theta Min Obj", "Theta Obj GP Cum", "Theta Obj Act Cum", "Theta Acq Act Cum"]
+                for col in columns_to_convert:
+                    df_job[col] = df_job[col].apply(self.str_to_array_df_col)
 
                 # Add cs name data to the dataframe
                 df_job["CS Name Val"] = job.sp.cs_name_val
@@ -715,9 +686,7 @@ class General_Analysis:
             The dataframe with the L2 norm values added
         """
         # Calculate the difference between the true values and the GP best values in the dataframe for each parameter
-        theta_min_obj = np.array(
-            list(df_data["Theta Min Obj"].to_numpy()[:]), dtype=np.float64
-        )
+        theta_min_obj = np.vstack(df_data["Theta Min Obj"])
         theta_true_dict, theta_bounds = theta_true_data
         theta_true = np.array(list(theta_true_dict.values()), dtype=np.float64)
         # Create scaler to scale values between 0 and 1 based on the bounds
@@ -952,22 +921,9 @@ class General_Analysis:
             )
             theta_true_data = theta_true_data_w_bnds[0]
         elif found_data1:
-            df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].apply(
-                self.str_to_array_df_col
-            )
-            df_job["Theta Min Obj"] = df_job["Theta Min Obj"].apply(
-                self.str_to_array_df_col
-            )
-            df_job["Theta Obj GP Cum"] = df_job["Theta Obj GP Cum"].apply(
-                self.str_to_array_df_col
-            )
-            df_job["Theta Obj Act Cum"] = df_job["Theta Obj Act Cum"].apply(
-                self.str_to_array_df_col
-            )
-            df_job["Theta Acq Act Cum"] = df_job["Theta Acq Act Cum"].apply(
-                self.str_to_array_df_col
-            )
-
+            columns_to_convert = ["Theta Opt Acq", "Theta Min Obj", "Theta Obj GP Cum", "Theta Obj Act Cum", "Theta Acq Act Cum"]
+            for col in columns_to_convert:
+                df_job[col] = df_job[col].apply(self.str_to_array_df_col)
         # Get statepoint info
         with open(job.fn("signac_statepoint.json"), "r") as json_file:
             # Load the JSON data
@@ -2579,8 +2535,24 @@ class LS_Analysis(General_Analysis):
         )
         # Calculate y values and sse for theta_best with noise
         theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data, simulator.noise_mean, simulator.noise_std
+            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.seed
         )
+
+        #Calculate y values and sse for theta_best without noise
+        # theta_guess_data.y_vals = simulator.gen_y_data(
+        #     theta_guess_data, simulator.noise_mean, 0, simulator.seed, self.noise_std_pct
+        # )
+
+        # theta_guess_no_noise = simulator.gen_y_data(
+        #     theta_guess_data, simulator.noise_mean, 0, simulator.seed, self.noise_std_pct
+        # )
+
+        # if self.iter_count == 0:
+        #     print("Sim Noise", simulator.noise_std)
+        #     print("Sim Seed", simulator.seed)
+        #     print("Theta Guess", theta_guess)
+        #     print("Theta guess y", theta_guess_data.y_vals)
+            # print("T Guess no noise", theta_guess_no_noise)
 
         error = exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten()
 
@@ -2627,6 +2599,13 @@ class LS_Analysis(General_Analysis):
         jobs = sorted(
             self.project.find_jobs(self.criteria_dict), key=lambda job: job._id
         )
+
+        if self.criteria_dict["cs_name_val"] not in [16,17]:
+            noise_std_pct = 0.05
+        else:
+            noise_std_pct = 0.01
+        self.noise_std_pct = noise_std_pct
+        
         valid_files = [
             job.fn("BO_Results.gz")
             for job in jobs
@@ -2682,6 +2661,8 @@ class LS_Analysis(General_Analysis):
                 "2D Log Logistic": 25,
             }
             self.num_x = self.cs_x_dict[cs_name_dict]
+
+
             if self.criteria_dict["cs_name_val"] in [2,3,10,14]:
                 exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
             else:
@@ -2691,11 +2672,11 @@ class LS_Analysis(General_Analysis):
                     x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])
                 else:
                     x_vals = None
-                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed, x_vals)
-            if self.criteria_dict["cs_name_val"] not in [16,17]:
-                simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
-            else:
-                simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.01
+
+                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed, x_vals, noise_std_pct)
+
+            simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*noise_std_pct
+
             ftol = 1e-7
 
         self.simulator = simulator
@@ -2865,18 +2846,14 @@ class LS_Analysis(General_Analysis):
             if self.save_csv:
                 self.save_data(ls_results, ls_data_path)
         elif found_data1:
-            ls_results["Theta Min Obj"] = ls_results["Theta Min Obj"].apply(
-                self.str_to_array_df_col
-            )
-            ls_results["Theta Min Obj Cum."] = ls_results["Theta Min Obj Cum."].apply(
-                self.str_to_array_df_col
-            )
-            try:
-                ls_results["l2 norm"] = ls_results["l2 norm"].apply(
-                    self.str_to_array_df_col
-                )
-            except:
-                pass
+            columns_to_convert = ["Theta Min Obj", "Theta Min Obj Cum.", "l2 norm"]
+            for col in columns_to_convert:
+                try:
+                    ls_results[col] = ls_results[col].apply(
+                        self.str_to_array_df_col
+                    )
+                except:
+                    pass  
 
         return ls_results
 
@@ -2995,7 +2972,8 @@ class LS_Analysis(General_Analysis):
                 self.save_data(local_min_sets, ls_data_path)
 
         elif found_data1:
-            local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
+            local_min_sets["Theta Min Obj Cum."] = local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
+            # local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
 
         return local_min_sets
 
@@ -3486,17 +3464,13 @@ class Deriv_Free_Anlys(General_Analysis):
                 self.save_data(ls_results, ls_data_path)
 
         elif found_data1:
-            ls_results["Theta Min Obj"] = ls_results["Theta Min Obj"].apply(
-                self.str_to_array_df_col
-            )
-            ls_results["Theta Min Obj Cum."] = ls_results["Theta Min Obj Cum."].apply(
-                self.str_to_array_df_col
-            )
-            try:
-                ls_results["l2 norm"] = ls_results["l2 norm"].apply(
-                    self.str_to_array_df_col
-                )
-            except:
-                pass
+            columns_to_convert = ["Theta Min Obj", "Theta Min Obj Cum.", "l2 norm"]
+            for col in columns_to_convert:
+                try:
+                    ls_results[col] = ls_results[col].apply(
+                        self.str_to_array_df_col
+                    )
+                except:
+                    pass  
 
         return ls_results
