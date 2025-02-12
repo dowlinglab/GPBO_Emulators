@@ -86,10 +86,22 @@ def run_ep_or_sf_exp(job):
     # Generate Exp Data (OR Add your own experimental data as a Data class object)
     set_seed = 1  # Set set_seed to 1 for data generation
     gen_meth_x = Gen_meth_enum(job.sp.gen_meth_x)
-    exp_data = simulator.gen_exp_data(job.sp.num_x_data, gen_meth_x, set_seed)
+    if job.sp.cs_name_val == 16:
+        x_vals = np.array([0.0,0.1115,0.2475,0.4076,0.5939,0.8230,0.9214,0.9296,0.985,1.000])
+    elif job.sp.cs_name_val == 17:
+        x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])    
+    else:
+        x_vals = None
+
+    if job.sp.cs_name_val in [16,17]:
+        noise_std = 0.01
+    else:
+        noise_std = 0.05
+
+    exp_data = simulator.gen_exp_data(job.sp.num_x_data, gen_meth_x, set_seed, x_vals, noise_std)
 
     # Set simulator noise_std artifically as 5% of y_exp mean (So that noise will be set rather than trained)
-    simulator.noise_std = np.abs(np.mean(exp_data.y_vals)) * 0.05
+    simulator.noise_std = np.abs(np.mean(exp_data.y_vals)) * noise_std
 
     # Create Exploration Bias Class
     if ep_enum.value == 1:
@@ -136,6 +148,7 @@ def run_ep_or_sf_exp(job):
         job.sp.sep_fact,
         set_seed,
         False,
+        x_vals
     )
 
     # Gen sse_sim_data and sse_sim_val_data
@@ -156,6 +169,7 @@ def run_ep_or_sf_exp(job):
             job.sp.sep_fact,
             set_seed,
             True,
+            x_vals
         )
         val_sse_data = simulator.sim_data_to_sse_sim_data(
             method, val_data, exp_data, job.sp.sep_fact, True

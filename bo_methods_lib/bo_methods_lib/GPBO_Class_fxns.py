@@ -22,7 +22,9 @@ def get_cs_class_from_val(cs_num):
         13,
         14,
         15,
-    ], "cs_num must be 1,2,3,10,11,12,13,14,15 not {}".format(cs_num)
+        16,
+        17,
+    ], "cs_num must be 1,2,3,10,11,12,13,14,15,16,17 not {}".format(cs_num)
     # Get class based on cs number
     if cs_num == 1:
         cs_class = CS1()
@@ -40,6 +42,10 @@ def get_cs_class_from_val(cs_num):
         cs_class = CS14()
     elif cs_num == 15:
         cs_class = CS15()
+    elif cs_num == 16:
+        cs_class = CS16()
+    elif cs_num == 17:
+        cs_class = CS17()
 
     return cs_class
 
@@ -78,7 +84,9 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
         13,
         14,
         15,
-    ], "cs_num must be 1,2,3,10,11,12,13,14,15"
+        16,
+        17,
+    ], "cs_num must be 1,2,3,10,11,12,13,14,15,16,17 not {}".format(cs_num)
     # Get class based on cs number
     if cs_num == 1:
         cs_class = CS1()
@@ -96,6 +104,10 @@ def simulator_helper_test_fxns(cs_num, noise_mean, noise_std, seed):
         cs_class = CS14()
     elif cs_num == 15:
         cs_class = CS15()
+    elif cs_num == 16:
+        cs_class = CS16()
+    elif cs_num == 17:
+        cs_class = CS17()
 
     return Simulator(
         cs_class.idcs_to_consider,
@@ -821,3 +833,176 @@ def calc_cs15_polynomial(true_model_coefficients, x, args=None):
     y_poly = (true_model_coefficients[0] * x**3 - true_model_coefficients[1] * x**2 + 2*x - 1)**2 + (true_model_coefficients[0] - true_model_coefficients[1])**2 + (x**2 - 1)**2
 
     return y_poly
+
+class CS16:
+    """
+    Class containing constants for the Water + Glycerol VLE Case Study
+
+    Methods:
+    --------
+    __init__(): Initializes the class
+    """
+
+    def __init__(self):
+        self.name = "Water-Glycerol"
+        self.param_name_str = "t1t2"
+        self.idcs_to_consider = [0, 1]
+        self.theta_names = ["theta_1", "theta_2"]
+        self.bounds_x_l = [0]
+        self.bounds_x_u = [1]
+        self.bounds_theta_l = [-1e3,-1e3]
+        self.bounds_theta_u = [1.2e3,1.2e3]
+        self.theta_ref = np.array([27.584,-195.9166])
+        self.calc_y_fxn = uniquac_model
+        self.calc_y_fxn_args =  {"r" :[0.92, 3.5857], #H2O + Glycerol
+                                "q" :[1.4, 3.06],
+                                "T" : 100+273.15, #K
+                                "R" : 1.98721 , #cal/molK
+                                "A": [8.07225,7.10850],
+                                "B": [1730.63, 1537.78],
+                                "C": [233.426, 210.39],
+                                "mode": "P"
+                                }
+
+class CS17:
+    """
+    Class containing constants for the Acetonitrile (ACN) + Water VLE Case Study
+
+    Methods:
+    --------
+    __init__(): Initializes the class
+    """
+
+    def __init__(self):
+        self.name = "ACN-Water"
+        self.param_name_str = "t1t2"
+        self.idcs_to_consider = [0, 1]
+        self.theta_names = ["theta_1", "theta_2"]
+        self.bounds_x_l = [0]
+        self.bounds_x_u = [1]
+        self.bounds_theta_l = [-1e4,-5e3]
+        self.bounds_theta_u = [1e4,1e4]
+        self.theta_ref = np.array([436.4803,225.3647])
+        self.calc_y_fxn = uniquac_model
+        self.calc_y_fxn_args =  {"r" :[1.8701,0.92], #ACN, H2O
+                                "q" :[1.7240,1.4],
+                                "T" : 50+273.15, #K
+                                "R" : 1.98721 , #cal/molK
+                                "A": [7.33986,8.07131],
+                                "B": [1482.29,1730.63],
+                                "C": [250.523,233.426],
+                                "mode": "y"
+                                } 
+
+
+
+def uniquac_model(unknown_params, xP, args):
+    """
+    Compute activity coefficients using the UNIQUAC model for a binary mixture.
+
+    Parameters:
+    unknown_params : np.array
+        A vector containing the unknown interaction energy parameters Δu_ij.
+    xP : np.array or float
+        Mole fractions x1 (x2 is inferred).
+    args : dict
+        A dictionary containing necessary additional parameters:
+        - "r": np.array, volume parameters for components
+        - "q": np.array, surface area parameters for components
+        - "R": float, gas constant
+        - "T": float, temperature
+        - "z": float, coordination number (default 10)
+        - "A", "B", "C": Antoine equation parameters for vapor pressure
+
+    Returns:
+    np.array or float
+        Vapor pressure P.
+    """
+    # Extract parameters
+    r = np.array(args["r"])
+    q = np.array(args["q"])
+    z = args.get("z", 10)
+    R = args["R"]
+    T = args["T"]
+    A, B, C = np.array(args["A"]), np.array(args["B"]), np.array(args["C"])
+    mode = args["mode"]
+    
+    # Precompute constants
+    l = (z / 2) * (r - q) - (r - 1)
+    tau = np.exp(-unknown_params / (R * T))
+    psat = 10 ** (A - B / (C + (T - 273.15)))
+
+    # Ensure xP is at least 1D
+    x1 = np.atleast_2d(xP).reshape(-1,1)
+    x2 = 1 - x1
+    x = np.hstack([x1, x2])
+
+    # Initialize gamma with ones
+    gamma = np.ones_like(x, dtype=float)
+
+    # Identify valid indices where both x1 and x2 are nonzero
+    valid_mask = (x1.flatten() > 0) & (x2.flatten() > 0)
+
+    if np.any(valid_mask):
+        # Apply valid_mask correctly to both dimensions
+        valid_x = x[valid_mask, :]  # Shape (M, 2) where M is number of valid rows
+
+        sum_xq = np.dot(valid_x, q)
+        sum_xr = np.dot(valid_x, r)
+
+        theta = (valid_x * q) / sum_xq[:, None]
+        psi = (valid_x * r) / sum_xr[:, None]
+
+        lngC = (
+            np.log(psi / valid_x) + (z / 2) * q * np.log(theta / psi) + psi[:, ::-1] * (l - r * l[::-1] / r[::-1])
+        )
+
+        lngR = (
+            -q * np.log(theta + theta[:, ::-1] * tau[::-1]) + theta[:, ::-1] * q * (
+                tau[::-1] / (theta + theta[:, ::-1] * tau[::-1]) - tau / (theta[:, ::-1] + theta * tau)
+            )
+        )
+
+        gamma[valid_mask, :] = np.exp(lngC + lngR)
+        
+    # Handle infinite dilution cases
+    if np.any(~valid_mask):
+        # Compute gamma at infinite dilution for both components
+        gamma_inf = np.zeros(2)
+
+        # term1 = 1- (r[0]/r[1]) +np.log(r[0]/r[1])
+        # term2 = -5*q[0]*(1-(r[0]*q[1])/(r[1]*q[0]) + np.log((r[0]*q[1])/(r[1]*q[0])))
+
+        term1 = np.log(r[0]/r[1])
+        term2a = 5*np.log((q[0]*r[1])/(q[1]*r[0])) - np.log(tau[1]) + 1 -tau[0]
+        term2 = q[0]*term2a
+        term3 = l[0]-(r[0]/r[1])*l[1]
+        gamma_inf[0] = np.exp(term1 + term2 + term3)
+
+        term1_x2 = np.log(r[1]/r[0])
+        term2a_x2 = 5*np.log((q[1]*r[0])/(q[0]*r[1])) - np.log(tau[0]) + 1 -tau[1]
+        term2_x2 = q[1]*term2a_x2
+        term3_x2 = l[1]-(r[1]/r[0])*l[0]
+        gamma_inf[1] = np.exp(term1_x2 + term2_x2 + term3_x2)
+
+    gamma1 = gamma[:, 0]
+    gamma2 = gamma[:, 1]
+
+    #Manually alter gamma values at infinite dilution
+    if np.any(x2.flatten() == 0):
+        gamma2[-1] = gamma_inf[1]
+    if np.any(x1.flatten() == 0):
+        gamma1[0] = gamma_inf[0]
+        
+
+    P = np.sum(x * gamma * psat, axis=1)
+    y = x*gamma*psat/P[:, None]
+    if mode == "P":
+        var = P # Return scalar if input was scalar-like
+    elif mode == "gamma":
+        var = gamma1 #Return gamma1
+    elif mode == "y":
+        var = y[:,0] #Return y1
+
+    # return var[0] if var.shape == (1,) else var # Return scalar if input was scalar-like
+    return var

@@ -2039,11 +2039,11 @@ class All_CS_Analysis(General_Analysis):
         Raises
         ------
         AssertionError
-            If the cs_nums is not a list of case study numbers in [1,2,3,10,11,12,13,14]
+            If the cs_nums is not a list of case study numbers in [1,2,3,10,11,12,13,14,15,16,17]
         """
         assert all(
-            item in [1, 2, 3, 10, 11, 12, 13, 14, 15] for item in cs_nums
-        ), "cs_nums must be a list of case study numbers [1,2,3,10,11,12,13,14,15]"
+            item in [1, 2, 3, 10, 11, 12, 13, 14, 15, 16, 17] for item in cs_nums
+        ), "cs_nums must be a list of case study numbers [1,2,3,10,11,12,13,14,15,16,17]"
         assert isinstance(cs_nums, list), "cs_nums must be a list"
         em_cs = [get_cs_class_from_val(cs_val).name for cs_val in cs_nums]
 
@@ -2685,8 +2685,17 @@ class LS_Analysis(General_Analysis):
             if self.criteria_dict["cs_name_val"] in [2,3,10,14]:
                 exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
             else:
-                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed)
-            simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
+                if self.criteria_dict["cs_name_val"] in [16]:
+                    x_vals = np.array([0.0,0.1115,0.2475,0.4076,0.5939,0.8230,0.9214,0.9296,0.985,1.000])
+                elif self.criteria_dict["cs_name_val"] in [17]:
+                    x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])
+                else:
+                    x_vals = None
+                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed, x_vals)
+            if self.criteria_dict["cs_name_val"] not in [16,17]:
+                simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
+            else:
+                simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.01
             ftol = 1e-7
 
         self.simulator = simulator
@@ -3272,8 +3281,17 @@ class Deriv_Free_Anlys(General_Analysis):
             if self.criteria_dict["cs_name_val"] in [2,3,10,14]:
                 exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
             else:
-                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed)
-            simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
+                if self.criteria_dict["cs_name_val"] in [16]:
+                    x_vals = np.array([0.0,0.1115,0.2475,0.4076,0.5939,0.8230,0.9214,0.9296,0.985,1.000])
+                elif self.criteria_dict["cs_name_val"] in [17]:
+                    x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])
+                else:
+                    x_vals = None
+                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed, x_vals)
+            if self.criteria_dict["cs_name_val"] not in [16,17]:
+                simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
+            else:
+                simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.01
             ftol = 1e-7
 
         self.simulator = simulator

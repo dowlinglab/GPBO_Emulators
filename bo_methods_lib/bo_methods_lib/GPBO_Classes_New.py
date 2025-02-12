@@ -463,7 +463,7 @@ class Simulator:
     __create_param_data(num_points, bounds, gen_meth, seed): Generates data based off of bounds, and sampling scheme
     __vector_to_1D_array(array): Converts a vector to a 1D array
     gen_y_data(data, noise_mean, noise_std): Generates y data with noise
-    gen_exp_data(num_x_data, gen_meth_x): Generates experimental data
+    gen_exp_data(num_x_data, gen_meth_x, set_seed=None, x_vals = None): Generates experimental data
     gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, sep_fact, gen_val_data): Generates simulation data
     gen_theta_vals(num_theta_data): Generates parameter sets
     sim_data_to_sse_sim_data(method, sim_data, exp_data, sep_fact, gen_val_data)
@@ -723,7 +723,7 @@ class Simulator:
             array = array.reshape(-1, 1)
         return array
 
-    def gen_y_data(self, data, noise_mean, noise_std, set_seed=None):
+    def gen_y_data(self, data, noise_mean, noise_std, set_seed=None, noise_std_pct = 0.05):
         """
         Creates simulated data based on the function self.calc_y_fxn
 
@@ -745,6 +745,9 @@ class Simulator:
             np.random.seed(set_seed)
         elif self.seed is not None:
             np.random.seed(self.seed)
+
+        if noise_std is None:
+            assert isinstance(noise_std_pct, (float, int)) and noise_std_pct >= 0, "noise_std_pct must be positive float or int"
 
         # Define an array to store y values in
         y_data = []
@@ -769,7 +772,7 @@ class Simulator:
         # Creates noise values with a certain stdev and mean from a normal distribution
         if noise_std is None:
             # If noise is none, set the noise as 5% of the mean value
-            noise_std = np.abs(np.mean(y_data)) * 0.05
+            noise_std = np.abs(np.mean(y_data)) * noise_std_pct
         else:
             noise_std = noise_std
 
@@ -780,7 +783,7 @@ class Simulator:
 
         return y_data
 
-    def gen_exp_data(self, num_x_data, gen_meth_x, set_seed=None):
+    def gen_exp_data(self, num_x_data, gen_meth_x, set_seed=None, x_vals=None, noise_std_pct = 0.05):
         """
         Generates experimental data in an instance of the Data class
 
@@ -792,6 +795,10 @@ class Simulator:
             Whether to generate X data with LHS or grid method
         set_seed: int or None, default None
             Seed with which t0 generate experimental data. None sets the seed to the class seed
+        x_vals: np.ndarray or None, default None
+            X values to use for experimental data. If None, x_vals will be generated based on bounds and num_x_data
+        noise_std_pct: float or int, default 0.05
+            Percentage of the mean of the y data to use as the standard deviation of the noise
 
         Returns
         --------
@@ -808,19 +815,26 @@ class Simulator:
         assert (
             isinstance(set_seed, int) or set_seed is None
         ), "set_seed must be int or None"
+        assert x_vals is None or isinstance(x_vals, np.ndarray), "x_vals must be np.ndarray or None"
         # Set generation data seed
         if set_seed is not None:
             new_seed = set_seed
         else:
             new_seed = self.seed
+
+        assert isinstance(noise_std_pct, (int,float)) and noise_std_pct > 0, "noise_std_pct must be a positive int/float"
         # check that num_data > 0
         if num_x_data <= 0 or isinstance(num_x_data, int) == False:
             raise ValueError("num_x_data must be a positive integer")
 
-        # Create x vals based on bounds and num_x_data
-        x_vals = self.__vector_to_1D_array(
-            self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, new_seed)
-        )
+        # Create x vals based on bounds and num_x_data if x_vals are not specified
+        if x_vals is None:
+            x_vals = self.__vector_to_1D_array(
+                self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, new_seed)
+            )
+        else:
+            x_vals = self.__vector_to_1D_array(x_vals)
+    
         # Reshape theta_true to correct dimensions and stack it once for each xexp value
         theta_true = self.theta_true.reshape(1, -1)
         theta_true_repeated = np.vstack([theta_true] * len(x_vals))
@@ -840,7 +854,7 @@ class Simulator:
             new_seed,
         )
         # Generate y data for exp_data calss instance
-        exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std)
+        exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std, noise_std_pct = noise_std_pct)
 
         return exp_data
 
@@ -853,6 +867,7 @@ class Simulator:
         sep_fact,
         set_seed=None,
         gen_val_data=False,
+        x_vals = None,
     ):
         """
         Generates simulated data in an instance of the Data class
@@ -873,6 +888,8 @@ class Simulator:
             Seed to generate initial training data with. If None, seed will be the seed of the class
         gen_val_data: bool, default False
             Whether validation data (no y vals) or simulation data (has y vals) will be generated
+        x_vals: np.ndarray or None, default None
+            X values to use for simulation data. If None, x_vals will be generated based on bounds and num_x_data
 
         Returns
         --------
@@ -913,9 +930,12 @@ class Simulator:
 
         # Set bounds on theta which we are regressing given bounds_theta and indeces to consider
         # X data we always want the same between simulation and validation data
-        x_data = self.__vector_to_1D_array(
-            self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, sim_seed)
-        )
+        if x_vals is None:
+            x_data = self.__vector_to_1D_array(
+                self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, sim_seed)
+            )
+        else:
+            x_data = self.__vector_to_1D_array(x_vals)
 
         # Infer how many times to repeat theta and x values given whether they were generated by LHS or a meshgrid
         # X and theta repeated at least once per time the other is generated
