@@ -1063,7 +1063,7 @@ class General_Analysis:
                     data_true[z_choices[z]] = data_true_val
                     data_true_med[z_choices[z]] = data_true_med_val
                     # If the z_choice is sse and the method has a log objective function value, un logscale data
-                    if sp_data["meth_name_val"] in [2, 4] and sp_data["cs_name_val"] not in [15, 16]:
+                    if sp_data["meth_name_val"] in [2, 4] and sp_data["cs_name_val"] not in [15, 16, 17]:
                         z_data = np.exp(z_data.values.astype(float))
                 else:
                     data_true[z_choices[z]] = None
