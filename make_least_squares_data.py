@@ -17,7 +17,7 @@ save_figs = True
 project = signac.get_project("GPBO_Fix")
 seed = 1
 
-for val in [15]:
+for val in [15,17]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,
