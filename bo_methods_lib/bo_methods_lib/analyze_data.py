@@ -878,6 +878,76 @@ class General_Analysis:
                 warnings.warn("z_choices must be 'acq', 'sse', or 'min_sse'.")
         return col_name, data_names
 
+    def get_best_error(self, job):
+        # jobs = sorted(
+        #     self.project.find_jobs(self.criteria_dict), key=lambda job: job._id
+        # )
+        
+        # valid_files = [
+        #     job.fn("BO_Results_GPs.gz")
+        #     for job in jobs
+        #     if os.path.exists(job.fn("BO_Results_GPs.gz"))
+        # ]
+        #Look for be data for job
+        tab_data_path1 = os.path.join(job.fn("analysis_data"), "init_be_data.csv")
+        tab_data_path2 = os.path.join(job.fn("analysis_data"), "init_be_theta_data.csv")
+
+        found_data1, be_list = self.load_data(tab_data_path1)
+        found_data2, be_theta_list = self.load_data(tab_data_path2)
+
+        if not found_data1 or not found_data2 or self.save_csv:
+            if os.path.exists(job.fn("BO_Results_GPs.gz")):
+            # if len(valid_files) > 0:
+                # smallest_file = min(valid_files, key=lambda x: os.path.getsize(x))
+                # Find the job corresponding to the smallest file size
+                # smallest_file_index = valid_files.index(smallest_file)
+                # job = jobs[smallest_file_index]
+                smallest_file = job.fn("BO_Results_GPs.gz")
+                # Open the statepoint of the job
+                with open(job.fn("signac_statepoint.json"), "r") as json_file:
+                    # Load the JSON data
+                    sp_data = json.load(json_file)
+                method = GPBO_Methods(Method_name_enum(sp_data["meth_name_val"]))
+                #Open the smallest data file and pull the smallest sse_val from the training data
+                results_GPs = open_file_helper(smallest_file)
+                results = open_file_helper(job.fn("BO_Results.gz"))
+                exp_data = results[0].exp_data_class #Exp Data will not change between runs
+
+                be_list = []
+                be_theta_list = []
+                for result in results_GPs:
+                    gp_emulator = result.list_gp_emulator_class[0]
+                    if method.emulator == False:
+                        # Type 1 best error is inferred from training data
+                        best_error, be_theta, train_idx = gp_emulator.calc_best_error()
+                    else:
+                        # Type 2 best error must be calculated given the experimental data
+                        best_error, be_theta, best_errors_x, train_idx = (
+                            gp_emulator.calc_best_error(method, exp_data)
+                        )
+
+                    if sp_data["meth_name_val"] == 2: #or ( sp_data["meth_name_val"] == 4 and sp_data["cs_name_val"] not in [15, 16, 17]):
+                        best_error = np.exp(best_error)
+                    be_list.append(best_error)
+                    be_theta_list.append(be_theta)
+                be_list = np.array(be_list)
+                be_theta_list = np.array(be_theta_list)
+                df_be = pd.DataFrame(be_list, columns=["best_error"])
+                df_be_theta = pd.DataFrame(be_theta_list)
+
+                #Save the data
+                self.save_data(df_be, tab_data_path1)
+                self.save_data(df_be_theta, tab_data_path2)
+            else:
+                be_list = None
+                be_theta_list = None
+        else:
+            be_list = be_list.to_numpy()
+            be_theta_list = be_theta_list.to_numpy()
+
+        return be_list, be_theta_list
+
+
     def __preprocess_analyze(self, job, z_choice, data_type):
         """
         Preprocesses data for analysis based on data type

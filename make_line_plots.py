@@ -20,12 +20,12 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 
 # Set Stuff
 meth_name_val_list = [1, 2, 3, 4, 5, 6, 7]
-save_csv = True  # Set to False if you don't want to save/resave csvs
+save_csv = False  # Set to False if you don't want to save/resave csvs
 save_figs = True
 modes = ["act", "gp", "acq"]
 project = signac.get_project("GPBO_Fix")
 
-for val in [15, 17]:
+for val in [1,2,3,10,11,12,13,14,15]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,
@@ -52,7 +52,7 @@ for val in [15, 17]:
         ]
 
         # Make Parity Plots
-        plotters.make_parity_plots()
+        # plotters.make_parity_plots()
 
         # Get best plots for all objectives with all 7 methods on each subplot
         plotters.plot_objs_all_methods(z_choices)
@@ -62,10 +62,10 @@ for val in [15, 17]:
             plotters.plot_one_obj_all_methods(z_choices[i])
 
         #Can optionally make plots for hyperparameters and theta values
-        for i in range(len(job_list_best)):
-            #Plot hyperparameters
-            plotters.plot_hypers(job_list_best[i])
+        # for i in range(len(job_list_best)):
+        #     #Plot hyperparameters
+        #     plotters.plot_hypers(job_list_best[i])
 
-            #Plot param values at min_sse, the best theta_values of min_sse overall, and param values at max ei
-            for j in range(len(z_choices)):
-                plotters.plot_thetas(job_list_best[i], z_choices[j], title = titles[j])
+        #     #Plot param values at min_sse, the best theta_values of min_sse overall, and param values at max ei
+        #     for j in range(len(z_choices)):
+        #         plotters.plot_thetas(job_list_best[i], z_choices[j], title = titles[j])

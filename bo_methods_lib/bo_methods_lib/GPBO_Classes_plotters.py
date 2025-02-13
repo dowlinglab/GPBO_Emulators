@@ -174,6 +174,7 @@ class Plotters:
             data, data_names, data_true, sp_data, data_true_med = (
                 self.analyzer.analyze_obj_vals(job_pointer[i], z_choice)
             )
+            be, be_theta = self.analyzer.get_best_error(job_pointer[i])
             GPBO_method_val = sp_data["meth_name_val"]
            
             shrt_name = GPBO_Methods(Method_name_enum(GPBO_method_val)).report_name
@@ -215,7 +216,11 @@ class Plotters:
                     data_df_j = np.log(data_df_j)
 
                 #Add iterations to the beginning
-                data_df_j_w_train = np.concatenate((np.full(num_train_points, data_df_j[0]), data_df_j))
+                data_train = be[j] if be is not None else data_df_j[0]
+                data_df_j_w_train = np.concatenate((np.full(num_train_points, data_train), data_df_j))
+                if z_choice == "min_sse":
+                    #Replace values higher than data_train in data_df_j_w_train with data_train
+                    data_df_j_w_train[data_df_j_w_train > data_train] = data_train
 
                 # For result where run num list is the number of runs, print a solid line
                 # print(ax_idx, emph_runs[ax_idx], run_number)
@@ -450,6 +455,7 @@ class Plotters:
         data, data_names, data_true, sp_data = self.analyzer.analyze_thetas(
             job, z_choice
         )
+        be, be_theta = self.analyzer.get_best_error(job)
         GPBO_method_val = sp_data["meth_name_val"]
         # Create label based on method #
         meth_label = self.method_names[GPBO_method_val - 1]
@@ -465,7 +471,7 @@ class Plotters:
         else:
             title = meth_label + " Parameter Values"
 
-        fig = self.__plot_2D_general(data, data_names, data_true, y_label, title, False, num_train_points)
+        fig = self.__plot_2D_general(data, data_names, data_true, y_label, title, False, num_train_points, be_theta)
         # save or show figure
         if self.save_figs:
             save_path_to = os.path.join(job.fn(""), "line_plots", "params_" + z_choice)
@@ -474,7 +480,7 @@ class Plotters:
             plt.show()
             plt.close()
 
-    def __plot_2D_general(self, data, data_names, data_true, y_label, title, log_data, num_train_points = 0):
+    def __plot_2D_general(self, data, data_names, data_true, y_label, title, log_data, num_train_points = 0, be=None):
         """
         Plots 2D values of the same data type (ei, sse, min sse) on multiple subplots
 
@@ -534,7 +540,8 @@ class Plotters:
 
                     #duplicate the first value num_train_points times to show the number of training points
                     if num_train_points > 0:
-                        data_df_j = np.concatenate((np.full(num_train_points, data_df_j[0]), data_df_j))
+                        data_train = be[j, i] if be is not None else data_df_j[0]
+                        data_df_j = np.concatenate((np.full(num_train_points, data_train), data_df_j))
                         x_label = "Loss Evaluations"
                     else:
                         x_label = "BO Iterations"
@@ -680,6 +687,7 @@ class Plotters:
             data, data_names, data_true, sp_data, data_true_med = (
                 self.analyzer.analyze_obj_vals(job_pointer[i], z_choices)
             )
+            be, be_theta = self.analyzer.get_best_error(job_pointer[i])
             GPBO_method_val = sp_data["meth_name_val"]
             #Get number of iterations to add at the beginning by grabbing the length of theta_true
             cs_class = get_cs_class_from_val(sp_data["cs_name_val"])
@@ -733,8 +741,12 @@ class Plotters:
                             miny = float(np.maximum(miny, np.min(data_df_j)))
                             maxy = float(np.maximum(maxy, np.max(data_df_j)))
 
+                        data_train = be[j] if be is not None else data_df_j[0]
                         #duplicate the first value num_train_points times to show the number of training points
-                        data_df_j_w_train = np.concatenate((np.full(num_train_points, data_df_j[0]), data_df_j))
+                        data_df_j_w_train = np.concatenate((np.full(num_train_points, data_train), data_df_j))
+                        if z_choices[k] == "min_sse":
+                            #Replace values higher than data_train in data_df_j_w_train with data_train
+                            data_df_j_w_train[data_df_j_w_train > data_train] = data_train
 
                         # For the best result, print a solid line
                         if emph_runs[GPBO_method_val - 1] == run_number:
