@@ -576,8 +576,8 @@ class Simulator:
         self.calc_y_fxn = calc_y_fxn
         self.calc_y_fxn_args = calc_y_fxn_args
         self.seed = set_seed
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        # if self.seed is not None:
+        #     np.random.seed(self.seed)
 
     def __set_true_params(self):
         """
@@ -743,10 +743,10 @@ class Simulator:
         y_data: np.ndarray The simulated y training data
         """
         # Set seed
-        # if set_seed is not None:
-        #     np.random.seed(set_seed)
-        # elif self.seed is not None:
-        #     np.random.seed(self.seed)
+        if set_seed is not None:
+            np.random.seed(set_seed)
+        elif self.seed is not None:
+            np.random.seed(self.seed)
 
         if noise_std is None:
             assert isinstance(noise_std_pct, (float, int)) and noise_std_pct >= 0, "noise_std_pct must be positive float or int"
