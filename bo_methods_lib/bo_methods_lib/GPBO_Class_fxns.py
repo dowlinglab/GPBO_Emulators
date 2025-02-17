@@ -847,7 +847,7 @@ class CS16:
         self.name = "Water-Glycerol"
         self.param_name_str = "t1t2"
         self.idcs_to_consider = [0, 1]
-        self.theta_names = ["theta_1", "theta_2"]
+        self.theta_names = ["tau_{12}", "tau_{21}"]
         self.bounds_x_l = [0]
         self.bounds_x_u = [1]
         self.bounds_theta_l = [-1e3,-1e3]
@@ -877,7 +877,7 @@ class CS17:
         self.name = "ACN-Water"
         self.param_name_str = "t1t2"
         self.idcs_to_consider = [0, 1]
-        self.theta_names = ["theta_1", "theta_2"]
+        self.theta_names = ["tau_{12}", "tau_{21}"]
         self.bounds_x_l = [0]
         self.bounds_x_u = [1]
         self.bounds_theta_l = [-1e4,-5e3]
