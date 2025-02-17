@@ -25,7 +25,7 @@ dict_k = {}  # Stores raw condition numbers for each case study and BO method
 dict_stats = {}  # Stores the statistics (log averages, min, max, median)
 
 # Iterate through the different case study values
-for val in [11,14,2,15,1,12,13,3,10]:
+for val in [11,14,2,15,1,17,12,13,3,10]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,
