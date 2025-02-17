@@ -1040,6 +1040,7 @@ class Plotters:
             theta_next = param_info_dict["opt_acq"]
             train_theta = param_info_dict["train"]
             plot_axis_names = param_info_dict["names"]
+            
             idcs_to_plot = param_info_dict["idcs"]
             z, title2, tit2_pre = self.__get_z_plot_names_hms(z_choice, sim_sse_var_ei)
 
@@ -1263,6 +1264,9 @@ class Plotters:
                 ax[ax_row, ax_col], xx, yy, None, None, label_name
             )
 
+            if all_sp_data[0]["cs_name_val"] in [16, 17]:
+                ax[ax_row, ax_col].ticklabel_format(style='scientific', axis='both', scilimits=(-2, 2))
+
         # Get legend information and make colorbar on 1st plot
         handles, labels = ax[0, 0].get_legend_handles_labels()
         if log_data is True and not need_unscale:
@@ -1293,7 +1297,11 @@ class Plotters:
 
         # Print the title and labels as appropriate
         # Define x and y labels
-        if "theta" in plot_axis_names[0]:
+        #For case studies 16 and 17, change the parameter names to be the correct ones from calc_y_fxns
+        if all_sp_data[0]["cs_name_val"] in [16, 17]:
+            plot_axis_names = tuple('tau_{12}' if name == 'theta_1' else 'tau_{21}' for name in plot_axis_names)
+
+        if "theta" in plot_axis_names[0] or "tau" in plot_axis_names[0]:
             xlabel = r"$\mathbf{" + "\\" + plot_axis_names[0] + "}$"
             ylabel = r"$\mathbf{" + "\\" + plot_axis_names[1] + "}$"
         else:
@@ -1314,12 +1322,18 @@ class Plotters:
         #     #         bbox_to_anchor=(0.2, 0.85), borderaxespad=0)
         #     fig.legend(handles, labels, loc= "upper left", fontsize = self.other_fntsz,
         #             bbox_to_anchor=(0.23, 0.87), borderaxespad=0)
+
+        anchory = 0.49 if all_sp_data[0]["cs_name_val"] not in [16, 17] else 0.45
+
+        from matplotlib.ticker import ScalarFormatter
+
+
         fig.legend(
             handles,
             labels,
             loc="upper right",
             fontsize=self.other_fntsz,
-            bbox_to_anchor=(0.98, 0.49),
+            bbox_to_anchor=(0.98, anchory),
             borderaxespad=0,
         )
 
@@ -1573,6 +1587,8 @@ class Plotters:
 
                 # Set plot details
                 self.__set_subplot_details(ax, xx, yy, None, None, all_z_titles[i])
+                if sp_data["cs_name_val"] in [16, 17]:
+                    ax.ticklabel_format(style='scientific', axis='both', scilimits=(-2, 2))
 
                 # Use a custom formatter for the colorbar
                 fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
@@ -1592,9 +1608,13 @@ class Plotters:
         if title is None:
             title = self.method_names[GPBO_method_val - 1]
 
+        #For case studies 16 and 17, change the parameter names to be the correct ones from calc_y_fxns
+        if sp_data["cs_name_val"] in [16, 17]:
+            plot_axis_names = tuple('tau_{12}' if name == 'theta_1' else 'tau_{21}' for name in plot_axis_names)
+
         # Print the title and labels as appropriate
         # Define x and y labels
-        if "theta" in plot_axis_names[0]:
+        if "theta" in plot_axis_names[0] or "tau" in plot_axis_names[0]:
             xlabel = r"$\mathbf{" + "\\" + plot_axis_names[0] + "}$"
             ylabel = r"$\mathbf{" + "\\" + plot_axis_names[1] + "}$"
         else:
@@ -2184,7 +2204,7 @@ class Plotters:
 
         title2 = z_titles[i] 
             
-        if "theta" in param_names[0]:
+        if "theta" in param_names[0] or "tau" in param_names[0]:
             xlabel = r'$\mathbf{'+ "\\" + param_names[0]+ '}$'
             ylabel = r'$\mathbf{'+ "\\" + param_names[1]+ '}$'
         else:
@@ -2527,9 +2547,10 @@ class All_CS_Plotter(Plotters):
             "Large Linear",
             "Muller y0",
             "Log Logistic",
-            "Simple Multimodal",
             "Yield-Loss",
+            "ACN-Water",
             "Simple Linear",
+            "Simple Multimodal",
             "Muller x0",
             "2D Log Logistic",
             "BOD Curve",
@@ -2631,6 +2652,7 @@ class All_CS_Plotter(Plotters):
 
         t_label_lst = list(df_averages["CS Name"].unique())
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
+        t_label_lst = [item.replace("ACN-Water", "ACN-Water VLE") for item in t_label_lst]
 
         y_locs = np.arange(len(self.analyzer.cs_list)) * (
             bar_size * (len(self.analyzer.cs_list)) + padding
@@ -2783,9 +2805,10 @@ class All_CS_Plotter(Plotters):
             "Large Linear",
             "Muller y0",
             "Log Logistic",
-            "Simple Multimodal",
             "Yield-Loss",
+            "ACN-Water",
             "Simple Linear",
+            "Simple Multimodal",
             "Muller x0",
             "2D Log Logistic",
             "BOD Curve",
@@ -2819,6 +2842,7 @@ class All_CS_Plotter(Plotters):
 
         t_label_lst = list(df_averages["CS Name"].unique())
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
+        t_label_lst = [item.replace("ACN-Water", "ACN-Water VLE") for item in t_label_lst]
 
         y_locs  = np.arange(len(self.analyzer.cs_list)) * (height_per_group +padding)
         axes = axes.flatten()
@@ -2826,6 +2850,7 @@ class All_CS_Plotter(Plotters):
 
         cs_name_to_constant = {"Simple Linear": 20, 
                                "Simple Multimodal": 20,
+                               "ACN-Water": 20,
                                "Large Linear": 50, 
                                "Muller x0": 40, 
                                "Muller y0": 20, 
