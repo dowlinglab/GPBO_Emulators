@@ -1818,6 +1818,7 @@ class All_CS_Analysis(General_Analysis):
         self.cs_x_dict = {
             "Simple Linear": 5,
             "Simple Multimodal": 10,
+            "ACN-Water": 10,
             "Muller x0": 25,
             "Muller y0": 25,
             "Yield-Loss": 10,
@@ -2728,6 +2729,7 @@ class LS_Analysis(General_Analysis):
             self.cs_x_dict = {
                 "Simple Linear": 5,
                 "Simple Multimodal": 10,
+                "ACN-Water": 10,
                 "Muller x0": 25,
                 "Muller y0": 25,
                 "Yield-Loss": 10,
@@ -3323,6 +3325,7 @@ class Deriv_Free_Anlys(General_Analysis):
             self.cs_x_dict = {
                 "Simple Linear": 5,
                 "Simple Multimodal": 10,
+                "ACN-Water": 10,
                 "Muller x0": 5,
                 "Muller y0": 5,
                 "Yield-Loss": 10,

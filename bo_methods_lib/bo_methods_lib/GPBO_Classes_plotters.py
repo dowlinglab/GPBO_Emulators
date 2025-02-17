@@ -1040,7 +1040,6 @@ class Plotters:
             theta_next = param_info_dict["opt_acq"]
             train_theta = param_info_dict["train"]
             plot_axis_names = param_info_dict["names"]
-            
             idcs_to_plot = param_info_dict["idcs"]
             z, title2, tit2_pre = self.__get_z_plot_names_hms(z_choice, sim_sse_var_ei)
 
@@ -1324,9 +1323,6 @@ class Plotters:
         #             bbox_to_anchor=(0.23, 0.87), borderaxespad=0)
 
         anchory = 0.49 if all_sp_data[0]["cs_name_val"] not in [16, 17] else 0.45
-
-        from matplotlib.ticker import ScalarFormatter
-
 
         fig.legend(
             handles,
