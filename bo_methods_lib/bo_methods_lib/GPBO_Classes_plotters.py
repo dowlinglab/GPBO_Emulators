@@ -2859,14 +2859,21 @@ class All_CS_Plotter(Plotters):
             if i == 0:
                 #Make a DF including just GPBO info
                 filtered_df = df_averages[df_averages["BO Method"].isin(self.method_names)]
-                #Get only the values of the BO Method where Median Loss is the minimum
+                #Get only the values of the BO Method where Median Loss is the minimum               
+                #     meth_averages = (
+                #     filtered_df.loc[filtered_df.groupby("CS Name")["Median Loss"].idxmin()]
+                # )
                 meth_averages = (
-                    filtered_df.loc[filtered_df.groupby("CS Name")["Median Loss"].idxmin()]
-                )
+                filtered_df.loc[
+                    filtered_df.groupby("CS Name")["Median Loss"]
+                    .apply(lambda x: x.idxmin() if not x.isna().all() else None)
+                    .dropna()
+                ]
+            )
+
                 #Find index of the method in the method names list
                 meth_best = df_bests.loc[~df_bests["BO Method"].isin(s_meths)]
                 
-                # print(meth_averages)
                 #Add number of fxn evals to each method
                 # meth_best.loc[:,"Max Evals"] = meth_best["CS Name"].map(cs_name_to_constant) + meth_best["Max Evals"]
                 # meth_averages.loc[:,"Avg Evals Tot"] = meth_averages["CS Name"].map(cs_name_to_constant) + meth_averages["Avg Evals Tot"]           

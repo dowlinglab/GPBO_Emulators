@@ -2415,7 +2415,7 @@ class All_CS_Analysis(General_Analysis):
         
         # df_best_nec = pd.merge(df_all_best_GPBO, df_all_best_other, on=shared_columns, how="inner")
 
-        if self.save_csv:
+        if self.save_csv or not os.path.exists(self.study_results_dir + "all_cs_all_meth_best.csv"):
             save_path = os.path.join(self.study_results_dir, "all_cs_all_meth_best.csv")
             self.save_data(df_best_nec, save_path)
 
@@ -2515,7 +2515,7 @@ class All_CS_Analysis(General_Analysis):
         )
         df_avg_all = pd.concat([df_avg_best_w_acq, df_avg_other_meths_best], axis=0)
 
-        if self.save_csv:
+        if self.save_csv or not os.path.exists(self.study_results_dir + "all_cs_avg_best.csv"):
             save_path = os.path.join(self.study_results_dir, "all_cs_avg_best.csv")
             self.save_data(df_avg_all, save_path)
         return df_avg_all
