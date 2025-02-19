@@ -25,7 +25,7 @@ save_figs = True
 modes = ["act", "gp", "acq"]
 project = signac.get_project("GPBO_Fix")
 
-for val in [1,2,3,10,11,12,13,14,15]:
+for val in [1,2,3,10,11,12,13,14,15,16,17]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,
