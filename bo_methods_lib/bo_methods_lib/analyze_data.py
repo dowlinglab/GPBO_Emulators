@@ -2842,7 +2842,7 @@ class LS_Analysis(General_Analysis):
             len_x = exp_data.get_num_x_vals()
 
             # Set seed
-            np.random.seed(self.seed)
+            # np.random.seed(self.seed)
             ## specify initial guesses
             # Note: We do not use the same starting points as with GPBO.
             # MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
