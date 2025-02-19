@@ -1016,10 +1016,18 @@ class General_Analysis:
             )
             best_run = df_sorted["Run"].iloc[0]
             data_true = ls_results[ls_results["Run"] == best_run].copy()
-            median_run = df_sorted["Run"].iloc[len(df_sorted) // 2]
+
+            #Get the lowest value from each run
+            lowest_values_per_run = df_sorted.groupby("Run").first().reset_index()
+            # Calculate the median of "Min Obj Cum."
+            median_value = lowest_values_per_run["Min Obj Cum."].median()
+            # Find the run with the "Min Obj Cum." closest to the median
+            lowest_values_per_run["Abs Diff"] = (lowest_values_per_run["Min Obj Cum."] - median_value).abs()
+            median_run = lowest_values_per_run.loc[lowest_values_per_run["Abs Diff"].idxmin(), "Run"]
+            # median_run = df_sorted["Run"].iloc[len(df_sorted) // 2]
             data_median = ls_results[ls_results["Run"] == median_run].copy()
-            # data_true = min(ls_results["Min Obj Cum."])
             data = np.zeros((tot_runs, max_iters, len(z_choice)))
+            
         elif data_type == "params":
             data_true = theta_true_data
             data = np.zeros((tot_runs, max_iters, len(list(theta_true_data.keys()))))
