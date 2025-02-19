@@ -42,9 +42,9 @@ It contains the following files/subdirectories: <br />
 5. workspace/ will appear to save all raw results generated during the workflow after running init_gpbofix.py. This file is not tracked by git due to its size. the workspace/ folder for this study can be downloaded on Google Drive (see section 'Workflow Files and Results') <br />
     
 Running the analysis (steps 6 -11 below) will cause results directories to appear with relevant human readable data and plots. Subdirectories further categorize the results by case study and methods analyzed. <br />
-1. Results_acq/ shows data where we analyze the best results based on how efficiently the acquisition function was optimized. <br />
-2. Results_act/ shows data where we analyze the best results based on how efficiently the actual SSE was optimized. <br />
-3. Results_gp/ shows data where we analyze the best results based on how efficiently the GP predicted SSE was optimized. <br />
+1. GPBO_Fix/Results_acq/ shows data where we analyze the best results based on how efficiently the acquisition function was optimized. <br />
+2. GPBO_Fix/Results_act/ shows data where we analyze the best results based on how efficiently the actual SSE was optimized. <br />
+3. GPBO_Fix/Results_gp/ shows data where we analyze the best results based on how efficiently the GP predicted SSE was optimized. <br />
 
 We note that this repository is based on the branch ``update_and_merge`` in the ``dowlinglab/Toy_Problem`` repository, which is private.
 
@@ -54,7 +54,7 @@ Each iteration was managed with ``signac-flow``. Inside ``GPBO_Fix``, you will f
 run the workflow. Note that you may not get the exact same simulation
 results due to differences in software versions, random seeds, etc.
 The raw results from this study are available in [Google Drive](https://drive.google.com/drive/folders/0ACWzGAdosdy_Uk9PVA). These files are necessary to download and add to ``GPBO_Emulators/GPBO_Fix`` to reproduce all figures and tables identified in the paper. As such, the directory ``GPBO_Emulators/GPBO_Fix/workspace`` must exist and contain all files from the google drive before analysis scripts are run. The analysis scripts work by parsing the signac workflow data and manipulating the data into a form conducive for analysis. The files are saved on google drive because the files in which the GP models reside are often on the order of gigabytes. For other plots, we also use Google Drive because the workspace folder has hundreds of subdirectories (many of which are also large) which makes storage on GitHub impractical.
-When reproducing the results of this workflow, more practical, human readable csv files and figures are stored under ``Results_xxx/cs_name_val_y/``, where ``xxx`` represents a different analysis scheme and ``y`` represent a different (set of) case study. For example data pertaining to the BOD Curve case study for all methods where the actual SSE values were analyzed would be generated in the ``Results_act/cs_name_val_11/ep_enum_val_1/gp_package_gpflow/meth_name_val_in_1_2_3_4_5_6_7`` directory. We specifically note that the best runs for each case study and method are provided under ``Results_xxx/cs_name_val_y/best_results.csv``. These results for each case study make up results.xlsx in the supporting information (SI). We also specifically note nonlinear least squares results categorizing the number of minima are found in ``Results_act/cs_name_val_y``.
+When reproducing the results of this workflow, more practical, human readable csv files and figures are stored under ``GPBO_Fix/Results_xxx/cs_name_val_y/``, where ``xxx`` represents a different analysis scheme and ``y`` represent a different (set of) case study. For example data pertaining to the BOD Curve case study for all methods where the actual SSE values were analyzed would be generated in the ``GPBO_Fix/Results_act/cs_name_val_11/ep_enum_val_1/gp_package_gpflow/meth_name_val_in_1_2_3_4_5_6_7`` directory. We specifically note that the best runs for each case study and method are provided under ``GPBO_Fix/Results_xxx/cs_name_val_y/best_results.csv``. These results for each case study make up results.xlsx in the supporting information (SI). We also specifically note nonlinear least squares results categorizing the number of minima are found in ``GPBO_Fix/Results_act/cs_name_val_y``.
 
 ### Workflow Code
 All of the scripts for running the workflow are provided in
@@ -63,7 +63,7 @@ All scipts for analyzing the data in ``GPBO_Fix/workflow`` are provided in ``GPB
 
 ### Figures
 All scripts required to generate the primary figures in the
-manuscript and SI are reported under ``GPBO_Emulators/make_*.py``. When running analysis scripts, these figures are saved under ``Results_xxx/cs_name_val_y/*``.
+manuscript and SI are reported under ``GPBO_Emulators/make_*.py``. When running analysis scripts, these figures are saved under ``GPBO_Fix/Results_xxx/cs_name_val_y/*``.
 
 ## Installation
 To run this software, you must have access to all packages in the gpbo-emul environment (gpbo-emul.yml) which can be installed using the instructions in the next section.
@@ -118,11 +118,11 @@ To run the GPBO workflow, follow the following steps:
 ### Final Analysis
 The final processing and figure generation steps can be run using the following once all signac jobs have finished.
 
-**WARNING**: Running these scripts will overwrite your local copy of our workflow results (``Results_xxx/*``) with the results from your workflow runs. <br />
+**WARNING**: Running these scripts will overwrite your local copy of our workflow results (``GPBO_Fix/Results_xxx/*``) with the results from your workflow runs. <br />
 
 1. Make bar charts for the objective data, time data, and derivative-free method data (Figures 2, 8, and 9) and get all data shown in full-results.xlsx <br />
    When this method is run, the data for Table 3, results.xlsx, and full-results.xlsx are generated.
-   Note: results_xlsx is not automatically assembled. It is comprised of Results_act/\*/\*/\*/\*/best_results.csv for each method.
+   Note: results_xlsx is not automatically assembled. It is comprised of GPBO_Fix/Results_act/\*/\*/\*/\*/best_results.csv for each method.
    ```
      python make_bar_charts.py
    ```
