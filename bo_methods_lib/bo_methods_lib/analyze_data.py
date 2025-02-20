@@ -222,12 +222,12 @@ class General_Analysis:
             # cleaned_str = re.sub(r'\s+\]', ']', cleaned_str)  # Remove spaces before the closing bracket
             cleaned_str1 = re.sub(r'\s+', ' ', str_arr.strip())
             cleaned_str = re.sub(r'(-?\d+\.\d*|\d+)\s+', r'\1, ', cleaned_str1)
-            array_from_str = np.array(ast.literal_eval(f'[{cleaned_str}]'))
+            array_from_str = np.array(ast.literal_eval(f'[{cleaned_str}]'), dtype=float)
         elif isinstance(str_arr, (list)):
             # Return the original value if it isn't a string
-            array_from_str = np.array(str_arr)
+            array_from_str = np.array(str_arr, dtype=float)
         else:
-            array_from_str = str_arr
+            array_from_str = np.array(str_arr, dtype=float)
         if len(array_from_str) == 1:
             array_from_str = array_from_str[0]
 
@@ -2978,6 +2978,72 @@ class LS_Analysis(General_Analysis):
 
         return ls_results
 
+    def hist_categ_min(self, local_min_sets, tot_runs):
+        """
+        Creates objective and parameter histograms for the minima found by least squares"""
+        cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
+
+        ls_hist_fig_path = os.path.join(
+            self.make_dir_name_from_criteria(cs_name_dict),
+            "ls_local_min_hist_" + str(tot_runs)  + ".png",
+        )
+
+
+        #Get the unique instacnes of theta and the counts of each instance
+        unique_theta = np.vstack(local_min_sets['Theta Min Obj Cum.'].values)
+        theta_counts = local_min_sets['Num Occurrences'].values
+        #Find the index in unique_theta closest to simulator.theta_true
+        distances = np.linalg.norm(unique_theta - self.simulator.theta_true, axis=1)
+        closest_index = np.argmin(distances)
+
+        #Get % local minima found
+        percent_local_min = 100*(sum(local_min_sets['Num Occurrences'])/tot_runs)
+        text_str = "Local min found " + f"{percent_local_min:.2g}" + " % of the time"
+        
+
+        #Get theta labels, bolding the one closest to theta_true
+        theta_labels = np.vectorize(lambda val: f"{val:.2g}")(unique_theta)
+        theta_labels = theta_labels.astype(float).tolist()
+        theta_labels = [
+            r"$\mathbf{" + str(label) + "}$" if i == closest_index else label
+            for i, label in enumerate(theta_labels)
+        ]
+
+        # Map Theta values to indices for plotting
+        theta_indices = np.arange(len(unique_theta))
+
+        # Histogram for Theta using custom x labels
+        fig, ax = plt.subplots(2, 1, sharex=True, figsize=(19, 10))
+
+        ax[0].bar(theta_indices, theta_counts, alpha=0.7, edgecolor="black")
+        ax[0].set_xticks(theta_indices)
+        ax[0].set_xticklabels(theta_labels, rotation=45, ha="right")  # Custom labels for x-axis
+        ax[0].set_ylabel("Frequency", fontsize=20)
+        ax[0].grid(axis="y", linestyle="--", alpha=0.7)
+        ax[0].text(0.95, 0.95, text_str, transform=ax[0].transAxes,
+                fontsize=12, verticalalignment='top', horizontalalignment='right',
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='black', boxstyle='round,pad=0.5'))
+
+        # Plot for "Min Obj"
+        ax[1].bar(theta_indices, local_min_sets['Min Obj Cum.'], alpha=0.7, edgecolor="black")
+        ax[1].set_xticks(theta_indices)
+        ax[1].set_xticklabels(theta_labels, rotation=45, ha="right")  # Custom labels for x-axis
+        ax[1].set_xlabel("Parameter Values", fontsize=20)
+        ax[1].set_ylabel("Objective Values", fontsize=20)
+        ax[1].grid(axis="y", linestyle="--", alpha=0.7)
+        ax[1].set_yscale("log")
+
+        fig.suptitle("Histograms of Local Minima", fontsize=16)
+        plt.tight_layout()
+
+        # if self.save_csv:
+        plt.savefig(ls_hist_fig_path)
+        # else:
+        #     plt.show()
+        
+        return 
+        
+
     def categ_min(self, tot_runs=None):
         """
         categorize the minima found by least squares
@@ -3013,6 +3079,11 @@ class LS_Analysis(General_Analysis):
             self.make_dir_name_from_criteria(cs_name_dict),
             "ls_local_min_" + tot_runs_str + ".csv",
         )
+        
+        if tot_runs is None:
+            simulator, exp_data, tot_runs_cs, ftol = self.__get_simulator_exp_data()
+            tot_runs = tot_runs_cs
+        
         found_data1, local_min_sets = self.load_data(ls_data_path)
         
         save_csv_org = self.save_csv
@@ -3026,6 +3097,7 @@ class LS_Analysis(General_Analysis):
             ls_results_sort = ls_results.sort_values(
                 by=["Min Obj Cum.", "Iter"], ascending=True
             )
+            #Drop all except the best for each run
             ls_results = ls_results_sort.drop_duplicates(subset="Run", keep="first")
 
             # Set save csv to True so that best restarts csv data is saved
@@ -3036,20 +3108,22 @@ class LS_Analysis(General_Analysis):
                 ["Theta Min Obj Cum.", "Min Obj Cum.", "Optimality", "Termination"]
             ].copy(deep=True)
 
+
+            # Drop minima with optimality > 1e-4
+            all_sets = all_sets[all_sets["Optimality"] < 1e-4]
+
             # Make all arrays tuples
             np_theta = all_sets["Theta Min Obj Cum."]
             all_sets["Theta Min Obj Cum."] = tuple(map(tuple, np_theta))
 
             # Drop duplicate minima
-            all_sets = all_sets.drop_duplicates(
-                subset="Theta Min Obj Cum.", keep="first"
-            )
-            # Drop minima with optimality > 1e-4
-            all_sets = all_sets[all_sets["Optimality"] < 1e-4]
+            # all_sets = all_sets.drop_duplicates(
+            #     subset="Theta Min Obj Cum.", keep="first"
+            # )
 
             # Set seed
-            if self.seed != None:
-                np.random.seed(self.seed)
+            # if self.seed != None:
+            #     np.random.seed(self.seed)
 
             #Scale values between 0 and 1 with minmax scaler
             theta_bounds = self.simulator.bounds_theta_reg
@@ -3063,6 +3137,8 @@ class LS_Analysis(General_Analysis):
             #Convert the condensed distance matrix to square form
             dist_sq = squareform(dist)
 
+            # Initialize an array to count occurrences of each unique set
+            minima_count = np.zeros(all_param_sets.shape[0], dtype=int)
             #Initialize a boolean array to keep track of unique sets
             unique_mask = np.ones(all_param_sets.shape[0], dtype=bool)
 
@@ -3073,6 +3149,7 @@ class LS_Analysis(General_Analysis):
                     continue
                 # Mark sets within the threshold distance as non-unique
                 within_threshold = dist_sq[i] <= 0.01
+                minima_count[i] += np.sum(within_threshold)
                 unique_mask[within_threshold] = False
                 unique_mask[i] = True  # Keep the current set
 
@@ -3081,6 +3158,7 @@ class LS_Analysis(General_Analysis):
 
             # Change tuples to arrays
             local_min_sets = local_min_sets.copy()  # Ensure you're working with a copy
+            local_min_sets["Num Occurrences"] = minima_count[unique_mask]
             local_min_sets["Theta Min Obj Cum."] = local_min_sets["Theta Min Obj Cum."].apply(np.array)
 
             # Put in order of lowest sse and reset index
@@ -3089,12 +3167,17 @@ class LS_Analysis(General_Analysis):
             )
             local_min_sets = local_min_sets.reset_index(drop=True)
 
+            #Show plot of parameter and objective histograms
+            self.hist_categ_min(local_min_sets, tot_runs)
+
             if self.save_csv:
                 self.save_data(local_min_sets, ls_data_path)
 
         elif found_data1:
             local_min_sets["Theta Min Obj Cum."] = local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
             # local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
+            if "Num Occurrences" in local_min_sets.columns:
+                self.hist_categ_min(local_min_sets, tot_runs)
 
         return local_min_sets
 
