@@ -8,6 +8,8 @@ from collections.abc import Iterable
 from sklearn.preprocessing import MinMaxScaler
 from scipy.spatial.distance import pdist, squareform
 import pygad
+import string
+
 
 from .GPBO_Class_fxns import *
 from .GPBO_Classes_New import *
@@ -2977,72 +2979,108 @@ class LS_Analysis(General_Analysis):
                     pass  
 
         return ls_results
-
-    def hist_categ_min(self, local_min_sets, tot_runs):
+    
+    def compare_min(self, tot_runs=None):
         """
-        Creates objective and parameter histograms for the minima found by least squares"""
-        cs_name_dict = {key: self.criteria_dict[key] for key in ["cs_name_val"]}
+        categorize the minima found by least squares and GPBO
 
-        ls_hist_fig_path = os.path.join(
-            self.make_dir_name_from_criteria(cs_name_dict),
-            "ls_local_min_hist_" + str(tot_runs)  + ".png",
+        Parameters
+        ----------
+        tot_runs: int or None, default None
+            The total number of runs to perform
+
+        Returns
+        -------
+        local_min_sets: pd.DataFrame
+            The local minima found by least squares
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+
+        Notes
+        -----
+        If None, tot_runs will default to 5
+        """
+        assert self.simulator != None, "simulator must be defined"
+        assert (
+            isinstance(tot_runs, int) or tot_runs is None
+        ), "tot_runs must be int or None"
+        if isinstance(tot_runs, int):
+            assert tot_runs > 0, "tot_runs must be > 0 if int"
+        
+        if tot_runs is None:
+            simulator, exp_data, tot_runs_cs, ftol = self.__get_simulator_exp_data()
+            tot_runs = tot_runs_cs
+        
+        #Get local mins from NLS
+        save_csv_org = self.save_csv
+        self.save_csv = False
+        #Get all ls data
+        df_ls = self.categ_min(tot_runs)
+        ###Get all data from experiments
+        df_all_jobs, job_list, theta_true_data = self.get_df_all_jobs(
+            self.criteria_dict, False)
+        self.save_csv = save_csv_org
+
+        #Get emulator GPBO data
+        df_GPBO = df_all_jobs.loc[df_all_jobs.groupby(['BO Method', 'CS Name Val', 'Run Number'])['Min Obj Act Cum'].idxmin()]
+        df_GPBO_best = df_GPBO[~df_GPBO['BO Method'].isin(['Conventional', 'Log Conventional'])]
+        # df_GPBO_best = df_GPBO[df_GPBO['BO Method'].isin(['E[SSE]', 'Log Independence'])]
+        
+        condition = (
+                (df_GPBO_best["BO Method"] == "Log Conventional") |
+                (
+                    (df_GPBO_best["BO Method"] == "Log Independence") &
+                    ~df_GPBO_best["CS Name Val"].isin([15, 16, 17])
+                )
+            )
+        
+        # Multiply values in column B by 3 where the condition is true
+        df_GPBO_best.loc[condition, "Min Obj Act Cum"] = np.exp(
+            df_GPBO_best.loc[condition, "Min Obj Act Cum"]
         )
 
+        theta_bounds = self.simulator.bounds_theta_reg
+        scaler = MinMaxScaler()
+        scaler = MinMaxScaler()
+        scaler.fit([theta_bounds[0], theta_bounds[1]])
+        all_param_sets_GPBO = np.array(list(map(np.array, df_GPBO_best["Theta Obj Act Cum"].apply(self.str_to_array_df_col))))
+        all_param_sets_ls = np.array(list(map(np.array, df_ls["Theta Min Obj Cum."].apply(self.str_to_array_df_col))))
 
-        #Get the unique instacnes of theta and the counts of each instance
-        unique_theta = np.vstack(local_min_sets['Theta Min Obj Cum.'].values)
-        theta_counts = local_min_sets['Num Occurrences'].values
-        #Find the index in unique_theta closest to simulator.theta_true
-        distances = np.linalg.norm(unique_theta - self.simulator.theta_true, axis=1)
-        closest_index = np.argmin(distances)
+        GPBO_scl = scaler.transform(all_param_sets_GPBO)
+        ls_scl = scaler.transform(all_param_sets_ls)
+        #Initialize a boolean array to keep track of unique sets
+        unique_mask = np.ones(all_param_sets_GPBO.shape[0], dtype=bool)
+        # Initialize a counter for the number of matches
+        match_count_vector = np.zeros(len(ls_scl), dtype=int)
+        match_sse_vector = np.zeros(len(ls_scl), dtype=float)
 
-        #Get % local minima found
-        percent_local_min = 100*(sum(local_min_sets['Num Occurrences'])/tot_runs)
-        text_str = "Local min found " + f"{percent_local_min:.2g}" + " % of the time"
-        
+        # Iterate over rows from GPBO solutions
+        for i, row in enumerate(GPBO_scl):
+            # Calculate distances between each row in GPBO and each row in ls_scl
+            distances = np.linalg.norm(ls_scl - row, axis=1)
+            # If any distance is less than 0.1, there is a match
+            matched_indices = np.where(distances < 0.1)[0]   
+            #Print the matched indices
 
-        #Get theta labels, bolding the one closest to theta_true
-        theta_labels = np.vectorize(lambda val: f"{val:.2g}")(unique_theta)
-        theta_labels = theta_labels.astype(float).tolist()
-        theta_labels = [
-            r"$\mathbf{" + str(label) + "}$" if i == closest_index else label
-            for i, label in enumerate(theta_labels)
-        ]
+            if matched_indices.size > 0:
+                unique_mask[i] = True
+                # match_sse_vector[matched_indices] = df_GPBO_best.iloc[i]["Min Obj Act Cum"]
+                # Increment the count for each matching row in ls_scl
+                for idx in matched_indices:
+                    match_count_vector[idx] += 1
+                    #fill in match_sse_vector with the sse of the matched row
+                    if match_sse_vector[idx] == 0:
+                        match_sse_vector[idx] = df_GPBO_best.iloc[i]["Min Obj Act Cum"]
+                    else:
+                        match_sse_vector[idx] = np.minimum(df_GPBO_best.iloc[i]["Min Obj Act Cum"], match_sse_vector[idx])
+                    # match_sse_vector[idx] = np.minimum(df_GPBO_best.iloc[i]["Min Obj Act Cum"], match_sse_vector[idx]) 
+        df_ls["GPBO Matches"] = match_count_vector
+        df_ls["GPBO SSE"] = match_sse_vector
 
-        # Map Theta values to indices for plotting
-        theta_indices = np.arange(len(unique_theta))
-
-        # Histogram for Theta using custom x labels
-        fig, ax = plt.subplots(2, 1, sharex=True, figsize=(19, 10))
-
-        ax[0].bar(theta_indices, theta_counts, alpha=0.7, edgecolor="black")
-        ax[0].set_xticks(theta_indices)
-        ax[0].set_xticklabels(theta_labels, rotation=45, ha="right")  # Custom labels for x-axis
-        ax[0].set_ylabel("Frequency", fontsize=20)
-        ax[0].grid(axis="y", linestyle="--", alpha=0.7)
-        ax[0].text(0.95, 0.95, text_str, transform=ax[0].transAxes,
-                fontsize=12, verticalalignment='top', horizontalalignment='right',
-                bbox=dict(facecolor='white', alpha=0.7, edgecolor='black', boxstyle='round,pad=0.5'))
-
-        # Plot for "Min Obj"
-        ax[1].bar(theta_indices, local_min_sets['Min Obj Cum.'], alpha=0.7, edgecolor="black")
-        ax[1].set_xticks(theta_indices)
-        ax[1].set_xticklabels(theta_labels, rotation=45, ha="right")  # Custom labels for x-axis
-        ax[1].set_xlabel("Parameter Values", fontsize=20)
-        ax[1].set_ylabel("Objective Values", fontsize=20)
-        ax[1].grid(axis="y", linestyle="--", alpha=0.7)
-        ax[1].set_yscale("log")
-
-        fig.suptitle("Histograms of Local Minima", fontsize=16)
-        plt.tight_layout()
-
-        # if self.save_csv:
-        plt.savefig(ls_hist_fig_path)
-        # else:
-        #     plt.show()
-        
-        return 
-        
+        return df_ls, len(df_GPBO_best)
 
     def categ_min(self, tot_runs=None):
         """
@@ -3167,17 +3205,11 @@ class LS_Analysis(General_Analysis):
             )
             local_min_sets = local_min_sets.reset_index(drop=True)
 
-            #Show plot of parameter and objective histograms
-            self.hist_categ_min(local_min_sets, tot_runs)
-
             if self.save_csv:
                 self.save_data(local_min_sets, ls_data_path)
 
         elif found_data1:
             local_min_sets["Theta Min Obj Cum."] = local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
-            # local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
-            if "Num Occurrences" in local_min_sets.columns:
-                self.hist_categ_min(local_min_sets, tot_runs)
 
         return local_min_sets
 

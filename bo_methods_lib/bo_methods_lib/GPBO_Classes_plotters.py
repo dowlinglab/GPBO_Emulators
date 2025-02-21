@@ -2084,6 +2084,116 @@ class Plotters:
 
         return
     
+    def hist_categ_min(self, tot_runs, w_gpbo=True, w_gpbo_sse=False):
+        """
+        Creates objective and parameter histograms for the minima found by least squares"""
+
+        if not w_gpbo:
+            local_min_sets = self.analyzer.categ_min(tot_runs)
+        else:
+            local_min_sets, gpbo_runs = self.analyzer.compare_min(tot_runs)
+        cs_name_dict = {key: self.analyzer.criteria_dict[key] for key in ["cs_name_val"]}
+
+        add_gp = "gpbo_" if w_gpbo is True else ""
+        ls_hist_fig_path = os.path.join(
+            self.analyzer.make_dir_name_from_criteria(cs_name_dict),
+            "ls_"+add_gp+"local_min_hist_" + str(tot_runs)
+        )
+
+        #Get the unique instacnes of theta and the counts of each instance
+        unique_theta = np.vstack(local_min_sets['Theta Min Obj Cum.'].values)
+        theta_counts = local_min_sets['Num Occurrences'].values
+        #Find the index in unique_theta closest to simulator.theta_true
+        distances = np.linalg.norm(unique_theta - self.analyzer.simulator.theta_true, axis=1)
+        closest_index = np.argmin(distances)
+
+        #Get % local minima found
+        percent_local_min = 100*(sum(local_min_sets['Num Occurrences'])/tot_runs)
+        text_str = "NLS local min found " + f"{percent_local_min:.0f}" + " % of the time"
+
+        if w_gpbo is True:
+            theta_counts2 = local_min_sets["GPBO Matches"].values
+            percent_local_min2 = 100*(sum(theta_counts2)/gpbo_runs)
+            text_str2 = "GPBO local min found " + f"{percent_local_min2:.0f}" + " % of the time"
+        
+        #Get theta labels, bolding the one closest to theta_true
+        theta_labels = np.vectorize(lambda val: f"{val:.2g}")(unique_theta)
+        theta_labels = theta_labels.astype(float).tolist()
+        theta_labels = [
+            r"$\mathbf{" + str(label) + "}$" if i == closest_index else label
+            for i, label in enumerate(theta_labels)
+        ]
+
+        # Map Theta values to indices for plotting
+        theta_indices = np.arange(len(unique_theta))
+
+        # Histogram for Theta using custom x labels
+        fig, ax = plt.subplots(2, 1, sharex=True, figsize=(19, 10))
+
+        ax[0].bar(theta_indices, theta_counts, alpha=0.7, edgecolor="black", label = "NLS")
+        if w_gpbo is True:
+            ax[0].bar(theta_indices, theta_counts2, alpha=0.7, edgecolor="black", label = "GPBO")
+            ax[0].text(0.95, 0.85, text_str2, transform=ax[0].transAxes,
+                fontsize=12, verticalalignment='top', horizontalalignment='right',
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='black', boxstyle='round,pad=0.5'))
+        ax[0].set_xticks(theta_indices)
+        ax[0].set_xticklabels(theta_labels, rotation=45, ha="right")  # Custom labels for x-axis
+        ax[0].set_ylabel("Frequency", fontsize=20)
+        ax[0].tick_params(axis='y', labelsize=14)
+        ax[0].grid(axis="y", linestyle="--", alpha=0.7)
+        ax[0].text(0.95, 0.95, text_str, transform=ax[0].transAxes,
+                fontsize=12, verticalalignment='top', horizontalalignment='right',
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='black', boxstyle='round,pad=0.5'))
+        
+
+        # Plot for "Min Obj"
+        y_str_obj = "SSE Loss Function, " + r"$\mathscr{L}(\mathbf{\theta^{\prime}})$"
+        x_str_obj = "Parameter Values, " + r"$\mathbf{\theta^{\prime}}$"
+        ax[1].bar(theta_indices, local_min_sets['Min Obj Cum.'], alpha=0.7, edgecolor="black")
+        if w_gpbo is True and w_gpbo_sse is True:
+            ax[1].bar(theta_indices, local_min_sets['GPBO SSE'], alpha
+            =0.7, edgecolor="black")
+        ax[1].set_xticks(theta_indices)
+        ax[1].set_xticklabels(theta_labels, rotation=45, ha="right")  # Custom labels for x-axis
+        ax[1].set_xlabel(x_str_obj, fontsize=20)
+        ax[1].set_ylabel(y_str_obj, fontsize=20)
+        ax[1].tick_params(axis='y', labelsize=14)
+        ax[1].grid(axis="y", linestyle="--", alpha=0.7)
+        ax[1].set_yscale("log")
+
+        for n, axs in enumerate(ax):
+            axs.text(
+                0.05,
+                1.05,
+                "(" + string.ascii_uppercase[n] + ")",
+                transform=axs.transAxes,
+                size=20,
+                weight="bold",
+            )
+
+        handles, labels = ax[0].get_legend_handles_labels()
+        if w_gpbo is True:
+            fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.95), ncol=2)
+            fig.suptitle("Local Minima Found by NLS and Emulator GPBO", fontsize=16)
+        else:
+            fig.suptitle("Local Minima Found by NLS", fontsize=16)
+        plt.tight_layout()
+
+        #Save or show figure
+        if self.save_figs:
+            save_path_to = os.path.join(ls_hist_fig_path)
+            self.__save_fig(save_path_to)
+        else:
+            plt.show()
+            plt.close()
+
+        # if self.save_csv:
+        # plt.savefig(ls_hist_fig_path)
+        # else:
+        #     plt.show()
+        
+        return 
+    
     def plot_nlr_heat_maps(self, test_mesh, all_z_data, z_titles, levels, param_info_dict, log_data, title = None):
         '''
         Plots comparison of y_sim, GP_mean, and GP_stdev
