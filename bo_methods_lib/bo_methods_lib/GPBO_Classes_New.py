@@ -5819,9 +5819,9 @@ class GPBO_Driver:
         """
         # Set seed
         if self.cs_params.seed is not None:
-            rng = np.random.default_rng(self.cs_params.seed)
+            rng = self.rng_set
         else:
-            rng = np.random.default_rng()
+            rng = self.rng_rand
 
         # Check if there are nan values in theta
         if np.isnan(theta).any():
