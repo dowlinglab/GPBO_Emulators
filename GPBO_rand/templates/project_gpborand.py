@@ -83,6 +83,7 @@ def run_ep_or_sf_exp(job):
     simulator = simulator_helper_test_fxns(
         job.sp.cs_name_val, job.sp.noise_mean, job.sp.noise_std, 1
     )
+    rng = simulator.rng_set
     
     # Generate Exp Data (OR Add your own experimental data as a Data class object)
     set_seed = 1  # Set set_seed to 1 for data generation
@@ -99,7 +100,8 @@ def run_ep_or_sf_exp(job):
     else:
         noise_std = 0.05
 
-    exp_data = simulator.gen_exp_data(job.sp.num_x_data, gen_meth_x, set_seed, x_vals, noise_std)
+    set_rng = True
+    exp_data = simulator.gen_exp_data(job.sp.num_x_data, gen_meth_x, set_rng, x_vals, noise_std)
 
     #Check to make sure x_vals and y_vals are correct
     print(exp_data.x_vals)
@@ -151,7 +153,7 @@ def run_ep_or_sf_exp(job):
         gen_meth_theta,
         gen_meth_x,
         job.sp.sep_fact,
-        set_seed,
+        set_rng,
         False,
         x_vals
     )

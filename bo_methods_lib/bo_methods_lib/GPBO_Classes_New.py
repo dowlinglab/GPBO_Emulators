@@ -654,7 +654,7 @@ class Simulator:
         # Define number of dimensions
         dimensions = bounds.shape[1]
         # Define sampler
-        sampler = qmc.LatinHypercube(d=dimensions, rng=rng)
+        sampler = qmc.LatinHypercube(d=dimensions, seed=rng)
         lhs_data = sampler.random(n=num_points)
 
         # Generate LHS data given bounds
@@ -774,7 +774,7 @@ class Simulator:
         # Creates noise values with a certain stdev and mean from a normal distribution
         if noise_std is None:
             # If noise is none, set the noise as 5% of the mean value
-            noise_std = np.abs(np.mean(y_data)) * noise_std_pct
+            noise_std = np.abs(np.median(y_data)) * noise_std_pct
         else:
             noise_std = noise_std
 
@@ -818,8 +818,10 @@ class Simulator:
         # Set generation data seed
         if rng_set == False:
             rng = self.rng_rand
+            seed = None
         else:
             rng = self.rng_set
+            seed = self.seed
 
         assert isinstance(noise_std_pct, (int,float)) and noise_std_pct > 0, "noise_std_pct must be a positive int/float"
         # check that num_data > 0
@@ -829,7 +831,7 @@ class Simulator:
         # Create x vals based on bounds and num_x_data if x_vals are not specified
         if x_vals is None:
             x_vals = self.__vector_to_1D_array(
-                self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, rng)
+                self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, seed)
             )
         else:
             x_vals = self.__vector_to_1D_array(x_vals)
@@ -913,6 +915,15 @@ class Simulator:
         else:
             rng = self.rng_set
 
+        if gen_val_data == True and self.seed is not None:
+            seed_theta = self.seed + 1
+            seed_x = self.seed
+        elif self.seed is None:
+            seed_theta = None
+            seed_x = None
+        else:
+            seed_theta = self.seed
+
         if isinstance(gen_val_data, bool) == False:
             raise ValueError("gen_val_data must be bool")
 
@@ -927,7 +938,7 @@ class Simulator:
         # X data we always want the same between simulation and validation data
         if x_vals is None:
             x_data = self.__vector_to_1D_array(
-                self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, rng)
+                self.__create_param_data(num_x_data, self.bounds_x, gen_meth_x, seed)
             )
         else:
             x_data = self.__vector_to_1D_array(x_vals)
@@ -972,7 +983,7 @@ class Simulator:
         # Generate simulation data theta_vals and create instance of data class
         sim_theta_vals = self.__vector_to_1D_array(
             self.__create_param_data(
-                num_theta_data, self.bounds_theta_reg, gen_meth_theta, rng
+                num_theta_data, self.bounds_theta_reg, gen_meth_theta, seed
             )
         )
 
@@ -1010,8 +1021,10 @@ class Simulator:
         """
         if rng_set == False:
             rng = self.rng_rand
+            seed = None
         else:
             rng = self.rng_set
+            seed = self.seed
 
         assert (
             isinstance(num_theta_data, int) and num_theta_data > 0
@@ -1025,7 +1038,7 @@ class Simulator:
         # Generate simulation data theta_vals and create instance of data class
         theta_vals = self.__vector_to_1D_array(
             self.__create_param_data(
-                num_theta_data, self.bounds_theta_reg, gen_meth_theta, rng
+                num_theta_data, self.bounds_theta_reg, gen_meth_theta, seed
             )
         )
 
@@ -1980,7 +1993,7 @@ class GP_Emulator:
 
         return gp_model
 
-    def train_gp(self):
+    def train_gp(self, set_rng = False):
         """
         Trains the GP with restarts given training data.
 
@@ -2003,19 +2016,20 @@ class GP_Emulator:
             self.feature_train_data is not None
         ), "Must have training data. Run set_train_test_data() to generate"
 
+        rng = self.rng_rand if set_rng == False else self.rng_set
         # Train the model multiple times and keep track of the model with the lowest minimum training loss
         best_minimum_loss = float("inf")
         best_model = None
 
         # If we are not retraining the GP, set the model once with default/set hyperparameters
         if self.retrain_GP == 0:
-            best_model = self.set_gp_model(0)
+            best_model = self.set_gp_model(0, rng)
         # Otherwise train the model and keep the best model over all retrains
         else:
             # While you still have retrains left
             for i in range(self.retrain_GP):
                 # Create and fit the model
-                gp_model = self.set_gp_model(i)
+                gp_model = self.set_gp_model(i, rng)
                 # Build optimizer
                 optimizer = gpflow.optimizers.Scipy()
                 # Fit GP to training data
@@ -2498,7 +2512,7 @@ class Type_1_GP_Emulator(GP_Emulator):
 
         return feature_eval_data
 
-    def set_train_test_data(self, sep_fact, set_seed):
+    def set_train_test_data(self, sep_fact, set_rng = False):
         """
         Splits simulated data into training and testing data
 
@@ -2529,7 +2543,6 @@ class Type_1_GP_Emulator(GP_Emulator):
             sep_fact, (float, int)
         ), "Separation factor must be float or int > 0"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
-        assert isinstance(set_seed, int), "seed must be int!"
         assert isinstance(
             self.gp_sim_data, Data
         ), "self.gp_sim_data must be instance of Data"
@@ -2550,7 +2563,7 @@ class Type_1_GP_Emulator(GP_Emulator):
         ), "Must have simulation theta bounds to create train/test data"
 
         # Get train test idx
-        train_idx, test_idx = self.gp_sim_data.train_test_idx_split()
+        train_idx, test_idx = self.gp_sim_data.train_test_idx_split(set_rng)
 
         # Get train data and set it as an instance of the data class
         theta_train = self.gp_sim_data.theta_vals[train_idx]
@@ -3265,7 +3278,7 @@ class Type_2_GP_Emulator(GP_Emulator):
 
         return feature_eval_data
 
-    def set_train_test_data(self, sep_fact, set_seed):
+    def set_train_test_data(self, sep_fact, set_rng=False):
         """
         Splits the simulation data into GP training/testing data
 
@@ -3296,7 +3309,6 @@ class Type_2_GP_Emulator(GP_Emulator):
             sep_fact, (float, int)
         ), "Separation factor must be float or int > 0"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
-        assert isinstance(set_seed, int), "seed must be int!"
         assert isinstance(
             self.gp_sim_data, Data
         ), "self.gp_sim_data must be instance of Data"
@@ -3317,7 +3329,7 @@ class Type_2_GP_Emulator(GP_Emulator):
         ), "Must have simulation theta bounds to create train/test data"
 
         # Find train indeces
-        train_idx, test_idx = self.gp_sim_data.train_test_idx_split()
+        train_idx, test_idx = self.gp_sim_data.train_test_idx_split(set_rng)
 
         # Find unique theta_values
         unique_theta_vals = self.gp_sim_data.get_unique_theta()
@@ -3349,7 +3361,7 @@ class Type_2_GP_Emulator(GP_Emulator):
             self.gp_sim_data.bounds_theta,
             self.gp_sim_data.bounds_x,
             sep_fact,
-            set_seed,
+            self.seed,
         )
         self.train_data = train_data
 
@@ -4274,7 +4286,7 @@ class Expected_Improvement:
                 break
         return depth
 
-    def __set_rand_vars(self, rng, mean=None, covar=None):
+    def __set_rand_vars(self, mean=None, covar=None):
         """
         Sets random variables for MC integration
 
@@ -4290,6 +4302,7 @@ class Expected_Improvement:
         random_vars: np.ndarray
             Array of multivariate normal random variables
         """
+        rng = self.rng_rand if self.seed is not None else self.rng_set
         dim = len(self.exp_data.y_vals)
         mc_samples = self.samples_mc_sg  # Set 2000 MC samples
         # Use set seed for integration
@@ -5598,13 +5611,13 @@ class GPBO_Driver:
         # Note: Could make this generate 2 sets of starting points based on whether you want to optimize sse or ei
         # For sparse grid and mc methods
         if self.method.sparse_grid == True or self.method.mc == True:
-            starting_pts = self.__gen_start_pts_mc_sparse(best_error_metrics)
+            starting_pts = self.__gen_start_pts_mc_sparse(best_error_metrics, rng)
         else:
-            starting_pts = self.__gen_start_pts_not_mc_sparse()
+            starting_pts = self.__gen_start_pts_not_mc_sparse(rng)
 
         return starting_pts
 
-    def __gen_start_pts_mc_sparse(self, best_error_metrics):
+    def __gen_start_pts_mc_sparse(self, best_error_metrics, rng):
         """
         Makes starting point for optimization with scipy if using sparse grid or Monte Carlo methods
 
@@ -5620,7 +5633,7 @@ class GPBO_Driver:
         """
         # Generate n LHS Theta vals
         num_mc_theta = 500
-        theta_vals = self.simulator.gen_theta_vals(num_mc_theta)
+        theta_vals = self.simulator.gen_theta_vals(num_mc_theta, rng)
 
         # Add repeated theta_vals and experimental x values
         rep_theta_vals = np.repeat(theta_vals, len(self.exp_data.x_vals), axis=0)
@@ -5677,7 +5690,7 @@ class GPBO_Driver:
 
         return starting_pts
 
-    def __gen_start_pts_not_mc_sparse(self):
+    def __gen_start_pts_not_mc_sparse(self, rng):
         """
         Makes starting point for optimization with scipy if not using sparse grid or Monte Carlo methods
 
@@ -5694,7 +5707,7 @@ class GPBO_Driver:
         ):
             # Create validation points equal to number of retrain_GP
             starting_pts = self.simulator.gen_theta_vals(
-                self.cs_params.reoptimize_obj + 1
+                self.cs_params.reoptimize_obj + 1, rng
             )
         # Otherwise, your starting point array is your validation data unique theta values
         else:
@@ -5703,10 +5716,6 @@ class GPBO_Driver:
             #     rng = np.random.default_rng(self.cs_params.seed)
             # else:
             #     rng = np.random.default_rng()
-            if self.cs_params.seed is not None:
-                rng = self.rng_set
-            else:
-                rng = self.rng_rand
 
             # Find unique theta values and make array of indices
             points = self.gp_emulator.gp_val_data.get_unique_theta()
@@ -5720,7 +5729,7 @@ class GPBO_Driver:
 
         return starting_pts
 
-    def __opt_with_scipy(self, opt_obj):
+    def __opt_with_scipy(self, opt_obj, rng):
         """
         Optimizes a function with scipy.optimize
 
@@ -5779,7 +5788,7 @@ class GPBO_Driver:
                     theta_guess,
                     bounds=bnds,
                     method=obj_opt_method,
-                    args=(opt_obj, best_error_metrics),
+                    args=(opt_obj, best_error_metrics, rng),
                 )
             except ValueError:
                 # If the intialized theta causes scipy.optimize to choose nan values, skip it
@@ -5795,7 +5804,7 @@ class GPBO_Driver:
 
         return best_val, best_class
 
-    def __scipy_fxn(self, theta, opt_obj, best_error_metrics):
+    def __scipy_fxn(self, theta, opt_obj, best_error_metrics, rng):
         """
         Calculates either -ei, sse objective, or E[SSE] at a candidate parameter set value
 
@@ -5818,11 +5827,6 @@ class GPBO_Driver:
 
         """
         # Set seed
-        if self.cs_params.seed is not None:
-            rng = self.rng_set
-        else:
-            rng = self.rng_rand
-
         # Check if there are nan values in theta
         if np.isnan(theta).any():
             # If there are nan values, set neg ei to 1 (ei = -1)
@@ -6112,7 +6116,7 @@ class GPBO_Driver:
         # Augment training theta, x, and y/sse data
         self.gp_emulator.add_next_theta_to_train_data(theta_best_data)
 
-    def create_data_instance_from_theta(self, theta_array, get_y=True):
+    def create_data_instance_from_theta(self, theta_array, set_rng=False, get_y=True):
         """
         Creates instance of Data from an np.ndarray parameter set
 
@@ -6133,6 +6137,11 @@ class GPBO_Driver:
         AssertionError
             If any of the required parameters are missing or not of the correct type or value
         """
+        if set_rng == True:
+            rng = self.rng_set
+        else:
+            rng = self.rng_rand
+
         assert isinstance(theta_array, np.ndarray), "theta_array must be np.ndarray"
         assert len(theta_array.shape) == 1, "theta_array must be 1D"
         assert isinstance(
@@ -6162,7 +6171,7 @@ class GPBO_Driver:
         if get_y:
             # Calculate y values and sse for theta_best with noise
             theta_arr_data.y_vals = self.simulator.gen_y_data(
-                theta_arr_data, self.simulator.noise_mean, self.simulator.noise_std
+                theta_arr_data, self.simulator.noise_mean, self.simulator.noise_std, rng
             )
 
         # Set the best data to be in sse form if using a type 1 GP
@@ -6177,7 +6186,7 @@ class GPBO_Driver:
 
         return theta_arr_data
 
-    def __run_bo_iter(self, iteration):
+    def __run_bo_iter(self, iteration, rng):
         """
         Runs a single GPBO iteration
 
@@ -6237,15 +6246,15 @@ class GPBO_Driver:
         self.ep_bias.set_ep()
 
         # Set Optimization starting points for this iteration
-        self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics)
+        self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics, rng)
 
         # Call optimize E[SSE] or log(E[SSE]) objective function
         # Note if we didn't want actual sse values, we would have to set get_y = False in create_data_instance_from_theta in __opt_with_scipy
-        min_sse, min_theta_data = self.__opt_with_scipy("sse")
+        min_sse, min_theta_data = self.__opt_with_scipy("sse", rng)
 
         # Call optimize EI acquistion fxn (If not using E[SSE])
         if self.method.method_name.value != 7:
-            opt_acq, acq_theta_data = self.__opt_with_scipy("neg_ei")
+            opt_acq, acq_theta_data = self.__opt_with_scipy("neg_ei", rng)
             if self.method.emulator == True:
                 ei_args = (
                     acq_theta_data,
@@ -6263,7 +6272,7 @@ class GPBO_Driver:
                     best_error_metrics,
                 )
         else:
-            opt_acq, acq_theta_data = self.__opt_with_scipy("E_sse")
+            opt_acq, acq_theta_data = self.__opt_with_scipy("E_sse", rng)
 
         # If type 2, turn it into sse_data
         # Set the best data to be in sse form if using a type 2 GP and find the min sse
@@ -6371,7 +6380,7 @@ class GPBO_Driver:
 
         return iter_df, iter_max_ei_terms, gp_emulator_curr
 
-    def __run_bo_to_term(self):
+    def __run_bo_to_term(self, rng):
         """
         Runs GPBO to termination
 
@@ -6435,7 +6444,7 @@ class GPBO_Driver:
             for i in range(self.cs_params.bo_iter_tot):
                 # Output results of 1 bo iter and the emulator used to get the results
                 iter_df, iter_max_ei_terms, gp_emulator_class = self.__run_bo_iter(
-                    i
+                    i, rng
                 )  # Change me later
                 # Add results to dataframe
                 results_df = pd.concat(
@@ -6569,7 +6578,7 @@ class GPBO_Driver:
 
         return results_df, max_ei_details_df, list_gp_emulator_class, why_term
 
-    def __run_bo_workflow(self):
+    def __run_bo_workflow(self, rng):
         """
         Runs a GPBO method through all bo iterations and reports the data for that run of the method
 
@@ -6598,7 +6607,7 @@ class GPBO_Driver:
 
         ##Call bo_iter
         results_df, max_ei_details_df, list_gp_emulator_class, why_term = (
-            self.__run_bo_to_term()
+            self.__run_bo_to_term(rng)
         )
 
         # Set results
@@ -6619,7 +6628,7 @@ class GPBO_Driver:
 
         return bo_results_res, bo_results_GPs
 
-    def run_bo_restarts(self):
+    def run_bo_restarts(self, set_rng):
         """
         Runs multiple GPBO restarts
 
@@ -6634,6 +6643,11 @@ class GPBO_Driver:
         ------
         gpbo_res_simple includes the Configuration, Simulator class, Experiment Data Results DataFrame, and termination criteria results
         """
+
+        if set_rng == True:
+            rng = self.rng_set
+        else:
+            rng = self.rng_rand
         gpbo_res_simple = []
         gpbo_res_GP = []
         simulator_class = self.simulator
@@ -6662,7 +6676,7 @@ class GPBO_Driver:
         }
 
         for i in range(self.cs_params.bo_run_tot):
-            bo_results_res, bo_results_GPs = self.__run_bo_workflow()
+            bo_results_res, bo_results_GPs = self.__run_bo_workflow(rng)
             # Update the seed in configuration
             configuration["Seed"] = self.cs_params.seed
             # Add this updated copy of configuration with the new seed to the bo_results
