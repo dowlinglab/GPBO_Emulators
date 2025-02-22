@@ -6244,8 +6244,8 @@ class GPBO_Driver:
             min_sse_theta_data = min_theta_data
             acq_sse_theta_data = acq_theta_data
 
-        print(acq_sse_theta_data.y_vals)
-        print(acq_sse_theta_data.theta_vals)
+        # print(acq_sse_theta_data.y_vals)
+        # print(acq_sse_theta_data.theta_vals)
 
         # Evaluate max EI terms at theta
         if self.cs_params.save_data and not self.method.method_name.value == 7:
@@ -6636,6 +6636,13 @@ class GPBO_Driver:
         for i in range(self.cs_params.bo_run_tot):
             #Reset driver rng at each run to update seed for driver class
             self.reset_rng()
+
+            # print("Run", i+1)
+            # print("Sim Theta: \n", self.sim_data.get_unique_theta()[0:5,:])
+            # print("Sim x: \n", np.squeeze(self.sim_data.get_unique_x()))
+            # print("Sim y: \n", self.sim_data.y_vals[0:5])
+            # print("Exp x: \n", np.squeeze(self.exp_data.x_vals.flatten()))
+            # print("Exp y: \n", self.exp_data.y_vals)
             # print(self.rng_set.integers(0,1e8))
             # print(self.simulator.rng_set.integers(0,1e8))
 

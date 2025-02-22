@@ -8,7 +8,7 @@ project = signac.init_project("GPBO_rand")
 
 # Set Method and Case Study
 gp_pack = "gpflow"
-cs_val_list = [1,2,3,10,11,12,13,14,15,16,17] #See bo_methods_lib/bo_methods_lib/GPBO_Class_fxns.py for more details
+cs_val_list = [1,2,3,10,11,12,13,14,15,17] #See bo_methods_lib/bo_methods_lib/GPBO_Class_fxns.py for more details
 meth_val_list = [1, 2, 3, 4, 5, 6, 7]  # Conv, Log Conv., Ind., Log Ind., Sparse Grid, Monte Carlo, E[SSE]
 
 # Set Initial Parameters
@@ -51,7 +51,7 @@ bo_runs_total = {1: 5,
                 15: 5,
                 16: 5,
                 17: 5,} #Total number of runs (restarts)
-runs_per_jobs_max = {1: 1,
+runs_per_jobs_max = {1: 2,
                 2: 1,
                 3: 1,
                 10: 1,
