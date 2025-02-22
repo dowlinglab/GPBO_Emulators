@@ -4,7 +4,7 @@ import os
 import json
 import bo_methods_lib
 
-project = signac.init_project("GPBO_RNG")
+project = signac.init_project("GPBO_rand")
 
 # Set Method and Case Study
 gp_pack = "gpflow"
@@ -19,8 +19,11 @@ gen_heat_map_data = False #Do not generate heat map data
 normalize = True #Standardize data w/ RobustScaler
 noise_mean = 0 #Set noise mean to 0
 noise_std = None #Set noise std to None (calculated automatically)
+noise_std_pct = 0.01
 kernel_enum_val = 1 #Set kernel to Matern 5/2
 lenscl = None #Set lenscl to None (trainable)
+sim_seed = 1 #Set seed for simulator random number generator
+initial_seed = 1 # Initial seed for case study random number generator
 if isinstance(lenscl, list):
     lenscl = json.dumps(lenscl)
 outputscl = None #Set outputscl to None (trainable)
@@ -48,17 +51,17 @@ bo_runs_total = {1: 5,
                 15: 5,
                 16: 5,
                 17: 5,} #Total number of runs (restarts)
-runs_per_jobs_max = {1: 5,
+runs_per_jobs_max = {1: 1,
                 2: 1,
                 3: 1,
                 10: 1,
-                11: 5,
-                12: 5,
-                13: 3,
+                11: 1,
+                12: 1,
+                13: 1,
                 14: 1,
-                15: 5,
-                16: 5,
-                17: 5} #Number of runs per job
+                15: 1,
+                16: 1,
+                17: 1} #Number of runs per job
 save_data = False #Do not save extra ei data
 ei_tol = 1e-7 #Set EI tolerance to 1e-7
 obj_tol = 1e-7 #Set objective tolerance to 1e-7
@@ -78,10 +81,10 @@ gen_meth_x = 2 #Generate x data using a grid
 gen_meth_theta_val = None #Don't generate validation data
 num_val_pts = 0 #Number of validation points
 num_theta_multiplier = 10  # How many simulation data points to generate is equal to num_theta_multiplier*number of parameters
-initial_seed = 1 # Initial seed for random number generator
 
 # Loop over Case Studies
 for cs_name_val in cs_val_list:
+    print("CS",cs_name_val)
     bo_iter_tot = bo_iters_tot[cs_name_val]
     bo_run_total = bo_runs_total[cs_name_val]
     runs_per_job_max = runs_per_jobs_max[cs_name_val]
@@ -91,6 +94,7 @@ for cs_name_val in cs_val_list:
     # Loop over methods
     for meth_name_val in meth_val_list:
         # Loop over number of runs
+        print("Meth:", meth_name_val)
         for bo_run_num in range(1, bo_run_total + 1, runs_per_job_max):
             # Note: bo_run_num is the run number of the first run in the job
             # If adding the max number of runs to the run number does not exceed the max range, use it
@@ -99,6 +103,10 @@ for cs_name_val in cs_val_list:
             # Otherwise, the number of runs in the job is the difference between the range max and the run number
             else:
                 runs_per_job = bo_run_total + 1 - bo_run_num
+            
+            #Set seed is different (equal to the run) for each run for a given method and case study
+            cs_run_seed = int(initial_seed + (bo_run_num - 1))
+            
             # Create job parameter dict
             sp = {
                 "cs_name_val": cs_name_val,
@@ -111,6 +119,7 @@ for cs_name_val in cs_val_list:
                 "gen_heat_map_data": gen_heat_map_data,
                 "noise_mean": noise_mean,
                 "noise_std": noise_std,
+                "noise_std_pct": noise_std_pct,
                 "kernel_enum_val": kernel_enum_val,
                 "lenscl": lenscl,
                 "outputscl": outputscl,
@@ -121,7 +130,8 @@ for cs_name_val in cs_val_list:
                 "bo_runs_in_job": runs_per_job,
                 "bo_run_num": bo_run_num,
                 "save_data": save_data,
-                "seed": int(initial_seed + 2 * (bo_run_num - 1)), #Set seed is different for each job's case studies
+                "seed": cs_run_seed, #int(initial_seed + 2 * (bo_run_num - 1)), 
+                "sim_seed": sim_seed,
                 "ei_tol": ei_tol,
                 "obj_tol": obj_tol,
                 "num_x_data": num_x_data,
@@ -129,7 +139,7 @@ for cs_name_val in cs_val_list:
                 "gen_meth_x": gen_meth_x,
                 "gen_meth_theta_val": gen_meth_theta_val,
                 "num_theta_multiplier": num_theta_multiplier,
-                "num_val_pts": num_val_pts,
+                "num_val_pts": num_val_pts
             }
             # Create jobs for exploration bias study
             job = project.open_job(sp).init()
