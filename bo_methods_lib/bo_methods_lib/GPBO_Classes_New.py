@@ -1052,7 +1052,7 @@ class Simulator:
         return theta_vals
 
     def sim_data_to_sse_sim_data(
-        self, method, sim_data, exp_data, sep_fact, y_vals_sse=False
+        self, method, sim_data, exp_data, sep_fact, y_to_sse=False
     ):
         """
         Creates objective function simulation data based on state points, parameter sets, the GPBO method, and self.calc_y_fxn
@@ -1067,8 +1067,8 @@ class Simulator:
             Class containing at least the x_data and y_data for the experimental data
         sep_fact: float or int
             The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        y_vals_sse: bool, default False
-            Whether y_vals_sse will be set as y (True) or sse(y) (False)
+        y_to_sse: bool, default False
+            Whether sim_data.y_vals will be set as y (True) or sse(y) (False)
 
         Returns
         --------
@@ -1080,7 +1080,7 @@ class Simulator:
         AssertionError
             If sep_fact is not between 0 and 1
         ValueError
-            If y_vals_sse is not a boolean
+            If y_to_sse is not a boolean
         """
 
         assert isinstance(
@@ -1088,8 +1088,8 @@ class Simulator:
         ), "Separation factor must be float or int > 0"
         assert 0 < sep_fact <= 1, "sep_fact must be > 0 and less than or equal to 1!"
 
-        if isinstance(y_vals_sse, bool) == False:
-            raise ValueError("y_vals_sse must be bool")
+        if isinstance(y_to_sse, bool) == False:
+            raise ValueError("y_to_sse must be bool")
 
         # Find length of theta and x in data arrays
         len_theta = sim_data.get_num_theta()
@@ -1117,7 +1117,7 @@ class Simulator:
             sep_fact,
         )
 
-        if y_vals_sse == False:
+        if y_to_sse == False:
             # Define all y_sims
             y_sim = sim_data.y_vals
 

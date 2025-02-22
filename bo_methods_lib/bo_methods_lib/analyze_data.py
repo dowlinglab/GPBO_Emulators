@@ -1394,9 +1394,11 @@ class General_Analysis:
                     Gen_meth_enum(1),
                     Gen_meth_enum(2),
                     1.0,
-                    simulator.seed,
+                    simulator.sim_seed,
                     False,
+                    x_vals = exp_data.x_vals
                 )
+
                 if method.emulator == False:
                     test_data_sim = simulator.sim_data_to_sse_sim_data(
                         method, test_data_sim, exp_data, 1.0, False
@@ -1642,17 +1644,16 @@ class General_Analysis:
                     simulator.bounds_theta_reg,
                     simulator.bounds_x,
                     cs_params.sep_fact,
-                    cs_params.seed,
                 )
             else:
                 heat_map_data = heat_map_data_org
 
-            # Generate heat map data and sse heat map data sim y values
-            heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0, 0)
+            # Generate heat map data and sse heat map data sim y values (noiseless)
+            heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0, 0, self.simulator.rng_set)
 
             # Create sse data from regular y data
             heat_map_sse_data = simulator.sim_data_to_sse_sim_data(
-                method, heat_map_data, exp_data, cs_params.sep_fact, gen_val_data=False
+                method, heat_map_data, exp_data, cs_params.sep_fact, y_to_sse=False
             )
             # Set the mean and variance to the correct heat map data object
             if not method.emulator:
@@ -1714,7 +1715,6 @@ class General_Analysis:
                         simulator.bounds_theta_reg,
                         simulator.bounds_x,
                         cs_params.sep_fact,
-                        cs_params.seed,
                     )
                     candidate.theta_vals = candidate_theta_vals
                     gp_emulator.cand_data = candidate
@@ -2653,25 +2653,24 @@ class LS_Analysis(General_Analysis):
             simulator.bounds_theta_reg,
             simulator.bounds_x,
             1,
-            simulator.seed,
         )
         # Calculate y values and sse for theta_best with noise
         theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.seed
+            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.set_rng
         )
 
         #Calculate y values and sse for theta_best without noise
         # theta_guess_data.y_vals = simulator.gen_y_data(
-        #     theta_guess_data, simulator.noise_mean, 0, simulator.seed, self.noise_std_pct
+        #     theta_guess_data, simulator.noise_mean, 0, y_to_sse
         # )
 
         # theta_guess_no_noise = simulator.gen_y_data(
-        #     theta_guess_data, simulator.noise_mean, 0, simulator.seed, self.noise_std_pct
+        #     theta_guess_data, simulator.noise_mean, 0, y_to_sse
         # )
 
         # if self.iter_count == 0:
         #     print("Sim Noise", simulator.noise_std)
-        #     print("Sim Seed", simulator.seed)
+        #     print("Sim Seed", simulator.sim_seed)
         #     print("Theta Guess", theta_guess)
         #     print("Theta guess y", theta_guess_data.y_vals)
             # print("T Guess no noise", theta_guess_no_noise)
@@ -2722,10 +2721,7 @@ class LS_Analysis(General_Analysis):
             self.project.find_jobs(self.criteria_dict), key=lambda job: job._id
         )
 
-        if self.criteria_dict["cs_name_val"] not in [16,17]:
-            noise_std_pct = 0.05
-        else:
-            noise_std_pct = 0.01
+        noise_std_pct = 0.01
         self.noise_std_pct = noise_std_pct
         
         valid_files = [
@@ -2760,6 +2756,7 @@ class LS_Analysis(General_Analysis):
             if hasattr(simulator, 'indeces_to_consider'):
                 simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
 
+        #Only autogenerate data if no jobs are found
         else:
             # Set tot_runs cs as 5 as a default
             tot_runs_cs = 5
@@ -2785,20 +2782,21 @@ class LS_Analysis(General_Analysis):
             }
             self.num_x = self.cs_x_dict[cs_name_dict]
 
-
             if self.criteria_dict["cs_name_val"] in [2,3,10,14]:
-                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
+                gen_meth_en_theta = Gen_meth_enum(2)
             else:
-                if self.criteria_dict["cs_name_val"] in [16]:
-                    x_vals = np.array([0.0,0.1115,0.2475,0.4076,0.5939,0.8230,0.9214,0.9296,0.985,1.000])
-                elif self.criteria_dict["cs_name_val"] in [17]:
-                    x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])
-                else:
-                    x_vals = None
+                gen_meth_en_theta = Gen_meth_enum(1)
 
-                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed, x_vals, noise_std_pct)
+            if self.criteria_dict["cs_name_val"] in [16]:
+                x_vals = np.array([0.0,0.1115,0.2475,0.4076,0.5939,0.8230,0.9214,0.9296,0.985,1.000])
+            elif self.criteria_dict["cs_name_val"] in [17]:
+                x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])
+            else:
+                x_vals = None
 
-            simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*noise_std_pct
+            exp_data = simulator.gen_exp_data(self.num_x, gen_meth_en_theta, x_vals, noise_std_pct)
+
+            simulator.noise_std = np.abs(np.median(exp_data.y_vals))*noise_std_pct
 
             ftol = 1e-7
 
@@ -2854,10 +2852,10 @@ class LS_Analysis(General_Analysis):
             # Set seed
             # np.random.seed(self.seed)
             ## specify initial guesses
-            # Note: We do not use the same starting points as with GPBO.
+            # Note: We will not use the initial GPBO training points as starting points for the NLS
             # MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
-            # Note: Starting points for optimization are saved in the driver, which is not saved in BO_Results.gz
-            theta_guess = self.simulator.gen_theta_vals(num_restarts)
+            rng_seed = simulator.sim_seed
+            theta_guess = self.simulator.gen_theta_vals(num_restarts, rng_seed)
 
             # Initialize results dataframe
             column_names = [
@@ -3314,11 +3312,10 @@ class Deriv_Free_Anlys(General_Analysis):
             self.simulator.bounds_theta_reg,
             self.simulator.bounds_x,
             1,
-            self.simulator.seed,
         )
         # Calculate y values and sse for theta_best with noise
         theta_guess_data.y_vals = self.simulator.gen_y_data(
-            theta_guess_data, self.simulator.noise_mean, self.simulator.noise_std
+            theta_guess_data, self.simulator.noise_mean, self.simulator.noise_std, self.simulator.set_rng
         )
 
         sse = np.sum((self.exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten())**2)
@@ -3381,11 +3378,10 @@ class Deriv_Free_Anlys(General_Analysis):
             simulator.bounds_theta_reg,
             simulator.bounds_x,
             1,
-            simulator.seed,
         )
         # Calculate y values and sse for theta_best with noise
         theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data, simulator.noise_mean, simulator.noise_std
+            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.set_rng
         )
 
         error = np.sum((exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten())**2)
@@ -3492,21 +3488,25 @@ class Deriv_Free_Anlys(General_Analysis):
                 "Log Logistic": 10,
                 "2D Log Logistic": 5,
             }
+            noise_std_pct = 0.01
             self.num_x = self.cs_x_dict[cs_name_dict]
+
             if self.criteria_dict["cs_name_val"] in [2,3,10,14]:
-                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(2), self.seed)
+                gen_meth_en_theta = Gen_meth_enum(2)
             else:
-                if self.criteria_dict["cs_name_val"] in [16]:
-                    x_vals = np.array([0.0,0.1115,0.2475,0.4076,0.5939,0.8230,0.9214,0.9296,0.985,1.000])
-                elif self.criteria_dict["cs_name_val"] in [17]:
-                    x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])
-                else:
-                    x_vals = None
-                exp_data = simulator.gen_exp_data(self.num_x, Gen_meth_enum(1), self.seed, x_vals)
-            if self.criteria_dict["cs_name_val"] not in [16,17]:
-                simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
+                gen_meth_en_theta = Gen_meth_enum(1)
+
+            if self.criteria_dict["cs_name_val"] in [16]:
+                x_vals = np.array([0.0,0.1115,0.2475,0.4076,0.5939,0.8230,0.9214,0.9296,0.985,1.000])
+            elif self.criteria_dict["cs_name_val"] in [17]:
+                x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])
             else:
-                simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.01
+                x_vals = None
+
+            exp_data = simulator.gen_exp_data(self.num_x, gen_meth_en_theta, x_vals, noise_std_pct)
+
+            simulator.noise_std = np.abs(np.median(exp_data.y_vals))*noise_std_pct
+
             ftol = 1e-7
 
         self.simulator = simulator
@@ -3560,12 +3560,12 @@ class Deriv_Free_Anlys(General_Analysis):
             len_x = exp_data.get_num_x_vals()
 
             # Set seed
-            np.random.seed(self.seed)
+            # np.random.seed(self.seed)
             ## specify initial guesses
-            # Note: We do not use the same starting points as with GPBO.
+            # Note: We do not use the initial training thetas for GPBO as starting pts for NLS.
             # MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
             # Note: Starting points for optimization are saved in the driver, which is not saved in BO_Results.gz
-            theta_guess = self.simulator.gen_theta_vals(num_restarts)
+            theta_guess = self.simulator.gen_theta_vals(num_restarts, self.simulator.sim_seed)
 
             # Initialize results dataframe
             column_names = [
@@ -3630,7 +3630,7 @@ class Deriv_Free_Anlys(General_Analysis):
                                 gene_space = gene_space,
                                 num_genes=self.exp_data.get_dim_theta(),
                                 fitness_func=self.__pygad_func,
-                                random_seed=self.simulator.seed + i,
+                                random_seed=self.simulator.sim_seed + i,
                                 stop_criteria = [sat_str])
                     Solution.run()
 
