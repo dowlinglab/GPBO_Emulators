@@ -1539,6 +1539,7 @@ class General_Analysis:
                 ep_bias,
                 gen_meth_theta,
             )
+            driver.reset_rng()
 
             # Get best error metrics
             be_data, best_error_metrics = driver._GPBO_Driver__get_best_error()
@@ -2655,17 +2656,17 @@ class LS_Analysis(General_Analysis):
             1,
         )
         # Calculate y values and sse for theta_best with noise
-        theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.set_rng
-        )
-
-        #Calculate y values and sse for theta_best without noise
         # theta_guess_data.y_vals = simulator.gen_y_data(
-        #     theta_guess_data, simulator.noise_mean, 0, y_to_sse
+        #     theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.rng_set
         # )
 
+        #Calculate y values and sse for theta_best without noise
+        theta_guess_data.y_vals = simulator.gen_y_data(
+            theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
+        )
+
         # theta_guess_no_noise = simulator.gen_y_data(
-        #     theta_guess_data, simulator.noise_mean, 0, y_to_sse
+        #     theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
         # )
 
         # if self.iter_count == 0:
@@ -2978,7 +2979,7 @@ class LS_Analysis(General_Analysis):
 
         return ls_results
     
-    def compare_min(self, tot_runs=None):
+    def compare_min(self, tot_runs=None, meth_list = ["E[SSE]", "Log Independence"]):
         """
         categorize the minima found by least squares and GPBO
 
@@ -3024,20 +3025,23 @@ class LS_Analysis(General_Analysis):
 
         #Get emulator GPBO data
         df_GPBO = df_all_jobs.loc[df_all_jobs.groupby(['BO Method', 'CS Name Val', 'Run Number'])['Min Obj Act Cum'].idxmin()]
-        df_GPBO_best = df_GPBO[~df_GPBO['BO Method'].isin(['Conventional', 'Log Conventional'])]
+        df_GPBO_best = df_GPBO[df_GPBO['BO Method'].isin(meth_list)]
         # df_GPBO_best = df_GPBO[df_GPBO['BO Method'].isin(['E[SSE]', 'Log Independence'])]
         
+        # condition = (
+        #         (df_GPBO_best["BO Method"] == "Log Conventional") |
+        #         (
+        #             (df_GPBO_best["BO Method"] == "Log Independence") &
+        #             ~df_GPBO_best["CS Name Val"].isin([15, 16, 17])
+        #         )
+        #     )
         condition = (
-                (df_GPBO_best["BO Method"] == "Log Conventional") |
-                (
-                    (df_GPBO_best["BO Method"] == "Log Independence") &
-                    ~df_GPBO_best["CS Name Val"].isin([15, 16, 17])
+                (df_GPBO_best["BO Method"] == "Log Conventional")
                 )
-            )
         
         # Multiply values in column B by 3 where the condition is true
         df_GPBO_best.loc[condition, "Min Obj Act Cum"] = np.exp(
-            df_GPBO_best.loc[condition, "Min Obj Act Cum"]
+            df_GPBO_best.loc[condition, "Min Obj Act Cum"].copy()
         )
 
         theta_bounds = self.simulator.bounds_theta_reg
@@ -3147,6 +3151,10 @@ class LS_Analysis(General_Analysis):
 
             # Drop minima with optimality > 1e-4
             all_sets = all_sets[all_sets["Optimality"] < 1e-4]
+
+            # if len(all_sets[all_sets["Optimality"] < 1e-4]) == 0:
+            #     all_sets = all_sets[all_sets["Optimality"] < 1e-3]
+            #     print(all_sets[all_sets["Optimality"] < 1e-3])
 
             # Make all arrays tuples
             np_theta = all_sets["Theta Min Obj Cum."]
@@ -3315,7 +3323,7 @@ class Deriv_Free_Anlys(General_Analysis):
         )
         # Calculate y values and sse for theta_best with noise
         theta_guess_data.y_vals = self.simulator.gen_y_data(
-            theta_guess_data, self.simulator.noise_mean, self.simulator.noise_std, self.simulator.set_rng
+            theta_guess_data, self.simulator.noise_mean, self.simulator.noise_std, self.simulator.rng_set
         )
 
         sse = np.sum((self.exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten())**2)
@@ -3381,7 +3389,7 @@ class Deriv_Free_Anlys(General_Analysis):
         )
         # Calculate y values and sse for theta_best with noise
         theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.set_rng
+            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.rng_set
         )
 
         error = np.sum((exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten())**2)

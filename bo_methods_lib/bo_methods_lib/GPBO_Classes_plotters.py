@@ -294,11 +294,21 @@ class Plotters:
 
                 meth_bo_max_evals[ax_idx] = max_x
                 x_space = np.linspace(1, max_x, max_x)
+                
+                #Concatenate the minimum and maxium value of y to data_df_j_w_train if y exists
+                if ls_xset:
+                    data_df_j_w_train_bnd = np.concatenate([data_df_j_w_train,[np.min(y), np.max(y)]])
+                else:
+                    data_df_j_w_train_bnd = data_df_j_w_train
+
+                # print(data_df_j_w_train_bnd)
+
                 self.__set_subplot_details(
-                    ax[ax_row, ax_col], x_space, data_df_j_w_train, None, None, title
+                    ax[ax_row, ax_col], x_space, data_df_j_w_train_bnd, None, None, title
                 )
+
             self.__set_subplot_details(
-                ax[-1, -1], x_space, data_df_j_w_train, None, None, "All Methods"
+                ax[-1, -1], x_space, data_df_j_w_train_bnd, None, None, "All Methods"
             )
 
         # Set handles and labels and scale axis if necessary
@@ -938,6 +948,294 @@ class Plotters:
             return all_z_data[0], all_z_titles[0], all_z_titles_pre[0]
         else:
             return all_z_data, all_z_titles, all_z_titles_pre
+
+    def plot_local_min_hms(self, pair, levels, tot_runs_nls, log_data=False, title=None):
+        """
+        Plots the frequency of local minima given the surface for NLS (true surface) and GPBO (predicted surface) for all GBPO methods
+
+        Parameters
+        ----------
+        pair: int
+            The pair of data parameters. pair 0 is the 1st pair
+        levels: int, list(int), or None
+            Number of zbins to skip when drawing contour lines
+        log_data: bool, default False
+            Plots contour data on natural log scale if True
+        title: str or None, default None
+            Title of plot
+
+        Raises
+        ------
+        AssertionError
+            If any of the required parameters are missing or not of the correct type or value
+            If meshgrids are not the correct shape
+            If there are not enough levels for the number of subplots
+        Warning
+            If log_data is True and minimum values to plot is less than or equal to 0
+
+        Notes
+        -------
+        For this function, each method is its own subplot. Each plot must be generated separately for each objective function choice.
+            """
+
+        assert isinstance(pair, int), "pair must be an integer"
+        assert isinstance(levels, (int, list, type(None))), "levels must be an int or list"
+        if isinstance(levels, list):
+            assert all(isinstance(item, int) for item in levels), "levels must be int"
+        assert isinstance(log_data, bool), "log_data must be boolean"
+        assert isinstance(title, str) or title is None, "title must be a string or None"
+
+        # Get best data for each method
+        df_best, job_list_best = self.analyzer.get_best_data()
+        print(len(df_best))
+        # Back out best runs from job_list_best
+        emph_runs = df_best["Run Number"].values
+        emph_iters = df_best["BO Iter"].values
+        # emph_iters = (df_best['Max Evals'] / 10).round().astype(int).values
+
+        # Make figures and define number of subplots based on number of different methods + 1 sse_sim map
+        subplots_needed = len(job_list_best) + 1
+        # meth_to_plt = [key for key, val in self.gpbo_meth_dict.items() if val in meth_list_plt]
+        z_choice = "sse_mean"
+        fig, ax, num_subplots, plot_mapping = self.__create_subplots(
+            subplots_needed, sharex=False, sharey=False, threeD = True
+        )
+
+        # Define plot levels
+        if levels is None:
+            tot_lev = None
+        elif (isinstance(levels, Iterable) and len(levels) == 1) or isinstance(
+            levels, int
+        ):
+            tot_lev = [levels] * (num_subplots)
+        else:
+            tot_lev = levels
+        assert (
+            tot_lev is None or len(tot_lev) == num_subplots
+        ), "Levels must be None or have the same length as number of subplots"
+
+        all_z_data = []
+        all_sp_data = []
+        all_freq_data = []
+
+        # Get all data for subplots needed
+        # Loop over number of subplots needed
+        for i in range(len(job_list_best)): 
+            method_list_plt = [df_best["BO Method"].iloc[i]]     
+            get_ei = False
+            # Get data
+            analysis_list = self.analyzer.analyze_heat_maps(
+                job_list_best[i], emph_runs[i], emph_iters[i], pair, get_ei=get_ei
+            )
+            sim_sse_var_ei, test_mesh, param_info_dict, sp_data = analysis_list
+            # Set correct values based on propagation of errors for gp
+            sim_sse_var_ei = self.__scale_z_data(sim_sse_var_ei, sp_data, log_data)
+
+            theta_true = param_info_dict["true"]
+
+            plot_axis_names = param_info_dict["names"]
+            idcs_to_plot = param_info_dict["idcs"]
+            z, title2, tit2_pre = self.__get_z_plot_names_hms(z_choice, sim_sse_var_ei)
+
+            # Get x and y data from test_mesh
+            xx, yy = test_mesh  # NxN, NxN
+            # Assert sattements
+            assert xx.shape == yy.shape, "Test_mesh must be 2 NxN arrays"
+            assert z.shape == xx.shape, "Array z must be NxN"
+
+            all_z_data.append(z)
+            all_sp_data.append(sp_data)
+            local_min_sets, gpbo_runs = self.analyzer.compare_min(tot_runs_nls, method_list_plt)
+            gpbo_freq = local_min_sets["GPBO Matches"].to_numpy()
+            all_freq_data.append(gpbo_freq)
+
+            if (i == len(job_list_best) - 1) and z_choice == "sse_mean":
+                z_sim, title3, tit3_pre = self.__get_z_plot_names_hms(
+                    "sse_sim", sim_sse_var_ei
+                )
+                all_z_data.append(z_sim)
+                #Get local min data
+                local_min_sets = self.analyzer.categ_min(tot_runs_nls)
+                nls_freq = local_min_sets["Num Occurrences"].to_numpy()
+                all_freq_data.append(nls_freq)
+
+
+        # Initialize need_unscale to False
+        need_unscale = False
+
+        # Unlog scale the data if vmin is 0 and log_data = True
+        if np.amin(all_z_data) == -np.inf or np.isnan(np.amin(all_z_data)):
+            need_unscale = True
+            if log_data:
+                warnings.warn("Cannot plot log scaled data! Reverting to original")
+                z = np.exp(all_z_data[i])
+
+        # Find the maximum and minimum values in your data to normalize the color scale
+        vmin = min(np.min(arr) for arr in all_z_data)
+        vmax = max(np.max(arr) for arr in all_z_data)
+        # Check if data scales 2+ orders of magnitude
+        mag_diff = (
+            int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0
+            if vmin > 0
+            else False
+        )
+
+        # Create a common color normalization for all subplots
+        # Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3
+        if log_data == True or need_unscale or not mag_diff:
+            norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False)
+            cbar_ticks = np.linspace(vmin, vmax, self.zbins)
+            new_ticks = matplotlib.ticker.MaxNLocator(
+                nbins=7, min_n_ticks=4
+            )  # Set up to 12 ticks
+
+        else:
+            norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
+            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
+            new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+
+        #Set theta values to plot
+        theta_vals = np.vstack(local_min_sets["Theta Min Obj Cum."])
+        thetas = theta_vals[:,idcs_to_plot]
+
+        # Set x and y labels
+        if "theta" in plot_axis_names[0] or "tau" in plot_axis_names[0]:
+            xlabel = r"$\mathbf{" + "\\" + plot_axis_names[0] + "}$"
+            ylabel = r"$\mathbf{" + "\\" + plot_axis_names[1] + "}$"
+        else:
+            xlabel = r"$\mathbf{" + plot_axis_names[0] + "}$"
+            ylabel = r"$\mathbf{" + plot_axis_names[1] + "}$"
+
+        # Set plot details
+        # Loop over number of subplots
+        for i in range(subplots_needed):
+            if i != len(job_list_best):
+                # Get method value from json file
+                GPBO_method_val = all_sp_data[i]["meth_name_val"]
+                ax_idx = int(GPBO_method_val - 1)
+                ax_row, ax_col = plot_mapping[i]
+            else:
+                ax_idx = len(job_list_best)
+                ax_row, ax_col = plot_mapping[ax_idx]
+
+            z = all_z_data[i]
+
+            use_scientific = np.amin(abs(z)) < 1e-1 or np.amax(abs(z)) > 1000
+            if use_scientific:
+                fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
+            else:
+                fmt = "%2.2f"
+
+            if np.all(z == z[0]):
+                z = abs(np.random.normal(scale=1e-14, size=z.shape))
+
+            # print(z)
+            # print(z.min())
+
+            # Create a colormap and colorbar for each subplot
+            if log_data == True:
+                cs_fig = ax[ax_row, ax_col].contourf(
+                    xx,
+                    yy,
+                    z,
+                    levels=self.zbins,  # cbar_ticks
+                    cmap=plt.cm.get_cmap(self.cmap),
+                    norm=norm,
+                    zdir = "z",
+                    offset = 0,
+                )
+            else:
+                cs_fig = ax[ax_row, ax_col].contourf(
+                    xx,
+                    yy,
+                    z,
+                    levels=self.zbins,
+                    cmap=plt.cm.get_cmap(self.cmap),
+                    norm=norm,
+                    zdir = "z",
+                    offset = 0,
+                )
+
+            # Create a line contour for each colormap
+            if levels is not None:
+                assert len(tot_lev) >= i + 1, "Must have as many levels as methods"
+                num_levels = len(cbar_ticks)
+                indices = np.linspace(0, len(cs_fig.levels) - 1, num_levels, dtype=int)
+                indices = np.unique(np.sort(indices))
+                selected_levels = cs_fig.levels[indices]
+
+                cs2_fig = ax[ax_row, ax_col].contour(
+                    xx,
+                    yy,
+                    z,
+                    levels=selected_levels,  # levels=cs_fig.levels[::tot_lev[i]]
+                    colors="k",
+                    alpha=0.7,
+                    linestyles="dashed",
+                    linewidths=3,
+                    norm=norm,
+                    zdir = "z",
+                    offset = 0,
+                )
+
+            # plot theta frequencies
+            dx = dy = 0.2
+            ax[ax_row, ax_col].bar3d(thetas[:, 0], thetas[:, 1], 0, dx, dy, all_freq_data[i], color='blue', alpha=0.8)
+
+            # Set plot details
+            if i != len(job_list_best):
+                label_name = self.method_names[ax_idx]
+            else:
+                label_name = "NLS" #tit3_pre + title3
+            zlabel = "Frequency"
+            self.__set_subplot_details(
+                ax[ax_row, ax_col], xx, yy, xlabel, ylabel, label_name, plot_z =all_freq_data[i], zlabel = zlabel
+            )
+
+            if all_sp_data[0]["cs_name_val"] in [16, 17]:
+                ax[ax_row, ax_col].ticklabel_format(style='scientific', axis='both', scilimits=(-2, 2))
+
+        # Get legend information and make colorbar on 1st plot
+        handles, labels = ax[0, 0].get_legend_handles_labels()
+        if log_data is True and not need_unscale:
+            title2 = "log(" + title2 + ")"
+
+        cb_ax = fig.add_axes([1.03, 0, 0.04, 1])
+        cbar = fig.colorbar(
+            cs_fig,
+            orientation="vertical",
+            ax=ax,
+            cax=cb_ax,
+            format=fmt,
+            use_gridspec=True,
+        )
+        try:
+            cbar.ax.locator_params(axis="y", numticks=7)
+        except:
+            cbar.ax.locator_params(axis="y", nbins=7)
+        cbar.ax.tick_params(labelsize=self.other_fntsz)
+
+        cbar.ax.set_ylabel(
+            tit2_pre + title2, fontsize=self.other_fntsz, fontweight="bold"
+        )
+
+        # Print the title
+        if title is not None:
+            title = title
+
+        # Print the title and labels as appropriate
+        # Define x and y labels
+        #For case studies 16 and 17, change the parameter names to be the correct ones from calc_y_fxns
+        if all_sp_data[0]["cs_name_val"] in [16, 17]:
+            plot_axis_names = tuple('tau_{12}' if name == 'theta_1' else 'tau_{21}' for name in plot_axis_names)
+        
+        plt.tight_layout()
+
+        # for axs in ax[-1]:
+        #     axs.set_xlabel(xlabel, fontsize=self.other_fntsz)
+
+        # for axs in ax[:, 0]:
+        #     axs.set_ylabel(ylabel, fontsize=self.other_fntsz)
 
     def plot_hms_all_methods(self, pair, z_choice, levels, log_data=False, title=None):
         """
@@ -1802,7 +2100,7 @@ class Plotters:
         if close:
             plt.close()
 
-    def __create_subplots(self, num_subplots, sharex="row", sharey="none"):
+    def __create_subplots(self, num_subplots, sharex="row", sharey="none", threeD = False):
         """
         Creates Subplots based on the amount of data
 
@@ -1850,6 +2148,10 @@ class Plotters:
 
         # Creat subplots
         gridspec_kw = {"wspace": 0.4, "hspace": 0.2}
+        if threeD:
+            subplot_kw = {"projection": "3d"}
+        else:
+            subplot_kw = {}
         fig, axes = plt.subplots(
             row_num,
             col_num,
@@ -1857,6 +2159,7 @@ class Plotters:
             squeeze=False,
             sharex=sharex,
             sharey=sharey,
+            subplot_kw = subplot_kw,
         )
 
         # Turn off unused axes
@@ -1873,7 +2176,7 @@ class Plotters:
 
         return fig, axes, total_ax_num, plot_mapping
 
-    def __set_subplot_details(self, ax, plot_x, plot_y, xlabel, ylabel, title):
+    def __set_subplot_details(self, ax, plot_x, plot_y, xlabel, ylabel, title, plot_z = None, zlabel = None):
         """
         Function for setting plot settings
 
@@ -1927,14 +2230,19 @@ class Plotters:
             pad = 6 + 4 * title.count("_")
             ax.set_title(title, fontsize=self.other_fntsz, fontweight="bold", pad=pad)
         if xlabel is not None:
-            pad = 6 + 4 * xlabel.count("_")
+            pad = 6 + 5* xlabel.count("_")
             ax.set_xlabel(
                 xlabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
             )
         if ylabel is not None:
-            pad = 6 + 2 * ylabel.count("_")
+            pad = 6 + 5 * ylabel.count("_")
             ax.set_ylabel(
                 ylabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
+            )
+        if zlabel is not None:
+            pad = 6 + 5 * zlabel.count("_")
+            ax.set_zlabel(
+                zlabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
             )
 
         # Turn on tick parameters and bin number
@@ -1946,18 +2254,36 @@ class Plotters:
         ax.tick_params(which="minor", direction="in", top=True, right=True)
 
         # Set a and y bounds and aspect ratio
-        if plot_x is not None and not np.isclose(
-            np.min(plot_x), np.max(plot_x), rtol=1e-6
-        ):
-            ax.set_xlim(left=np.min(plot_x), right=np.max(plot_x))
+        if plot_z is None:
+            if plot_x is not None and not np.isclose(
+                np.min(plot_x), np.max(plot_x), rtol=1e-6
+            ):
+                ax.set_xlim(left=np.min(plot_x), right=np.max(plot_x))
 
-        if plot_y is not None and abs(np.min(plot_y)) <= 1e-16:
-            ax.set_ylim(bottom=1e-16)
+            if plot_y is not None and abs(np.min(plot_y)) <= 1e-16:
+                ax.set_ylim(ymin=1e-16, ymax = np.max(plot_y)*1.1)
 
-        if plot_y is not None and np.min(plot_y) == 0:
-            ax.set_ylim(bottom=np.min(plot_y) - 0.05, top=np.max(plot_y) + 0.05)
+            if plot_y is not None and (np.min(plot_y) == np.max(plot_y) == 0):
+                ax.set_ylim(bottom=np.min(plot_y) - 0.05, top=np.max(plot_y) + 0.05)
 
-        ax.set_box_aspect(1)
+            ax.set_box_aspect(1)
+        else:
+            ax.zaxis.set_tick_params(labelsize=self.other_fntsz, direction="in")
+            ax.locator_params(axis="z", nbins=self.ybins)
+            if plot_x is not None and not np.isclose(
+                np.min(plot_x), np.max(plot_x), rtol=1e-6
+            ):
+                ax.set_xlim(left=np.min(plot_x), right=np.max(plot_x))
+            
+            if plot_y is not None and not np.isclose(
+                np.min(plot_y), np.max(plot_y), rtol=1e-6
+            ):
+                ax.set_ylim(bottom=np.min(plot_y), top=np.max(plot_y))
+
+            if plot_z is not None:
+                max_value = np.maximum(np.max(plot_z), 5)
+                ax.set_zlim(zmin=0, zmax=max_value)
+            ax.set_box_aspect([1, 1, 1])
 
         return ax
 
