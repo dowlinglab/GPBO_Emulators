@@ -81,7 +81,7 @@ class Plotters:
         self.ybins = 5
         self.zbins = 900
         self.title_fntsz = 24
-        self.other_fntsz = 24
+        self.other_fntsz = 20
         self.colors = [
             "red",
             "blue",
@@ -987,7 +987,6 @@ class Plotters:
 
         # Get best data for each method
         df_best, job_list_best = self.analyzer.get_best_data()
-        print(len(df_best))
         # Back out best runs from job_list_best
         emph_runs = df_best["Run Number"].values
         emph_iters = df_best["BO Iter"].values
@@ -998,16 +997,18 @@ class Plotters:
         # meth_to_plt = [key for key, val in self.gpbo_meth_dict.items() if val in meth_list_plt]
         z_choice = "sse_mean"
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(
-            subplots_needed, sharex=False, sharey=False, threeD = True
+            subplots_needed, sharex=False, sharey=False, threeD = True, x_size=6, y_size=6
         )
 
         # Define plot levels
+        zbins = self.zbins
         if levels is None:
             tot_lev = None
         elif (isinstance(levels, Iterable) and len(levels) == 1) or isinstance(
             levels, int
         ):
             tot_lev = [levels] * (num_subplots)
+            zbins = levels
         else:
             tot_lev = levels
         assert (
@@ -1084,19 +1085,24 @@ class Plotters:
         # Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3
         if log_data == True or need_unscale or not mag_diff:
             norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False)
-            cbar_ticks = np.linspace(vmin, vmax, self.zbins)
             new_ticks = matplotlib.ticker.MaxNLocator(
                 nbins=7, min_n_ticks=4
             )  # Set up to 12 ticks
+            nticks = new_ticks.tick_values(vmin, vmax)
+            cbar_ticks = np.linspace(vmin, vmax, len(nticks))
+            
 
         else:
             norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
             new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+            nticks = new_ticks.tick_values(vmin, vmax)
+            cbar_ticks = np.linspace(vmin, vmax, len(nticks))
 
         #Set theta values to plot
         theta_vals = np.vstack(local_min_sets["Theta Min Obj Cum."])
         thetas = theta_vals[:,idcs_to_plot]
+        dx = (np.max(xx) - np.min(xx))*0.05
+        dy = (np.max(yy) - np.min(yy))*0.05
 
         # Set x and y labels
         if "theta" in plot_axis_names[0] or "tau" in plot_axis_names[0]:
@@ -1129,37 +1135,23 @@ class Plotters:
             if np.all(z == z[0]):
                 z = abs(np.random.normal(scale=1e-14, size=z.shape))
 
-            # print(z)
-            # print(z.min())
-
             # Create a colormap and colorbar for each subplot
-            if log_data == True:
-                cs_fig = ax[ax_row, ax_col].contourf(
-                    xx,
-                    yy,
-                    z,
-                    levels=self.zbins,  # cbar_ticks
-                    cmap=plt.cm.get_cmap(self.cmap),
-                    norm=norm,
-                    zdir = "z",
-                    offset = 0,
-                )
-            else:
-                cs_fig = ax[ax_row, ax_col].contourf(
-                    xx,
-                    yy,
-                    z,
-                    levels=self.zbins,
-                    cmap=plt.cm.get_cmap(self.cmap),
-                    norm=norm,
-                    zdir = "z",
-                    offset = 0,
-                )
+            cs_fig = ax[ax_row, ax_col].contourf(
+                xx,
+                yy,
+                z,
+                levels=len(cbar_ticks),  #zbins # cbar_ticks
+                cmap=plt.cm.get_cmap(self.cmap),
+                norm=norm,
+                zdir = "z",
+                offset = 0,
+            )
 
             # Create a line contour for each colormap
             if levels is not None:
                 assert len(tot_lev) >= i + 1, "Must have as many levels as methods"
                 num_levels = len(cbar_ticks)
+                # print(num_levels)
                 indices = np.linspace(0, len(cs_fig.levels) - 1, num_levels, dtype=int)
                 indices = np.unique(np.sort(indices))
                 selected_levels = cs_fig.levels[indices]
@@ -1179,8 +1171,9 @@ class Plotters:
                 )
 
             # plot theta frequencies
-            dx = dy = 0.2
-            ax[ax_row, ax_col].bar3d(thetas[:, 0], thetas[:, 1], 0, dx, dy, all_freq_data[i], color='blue', alpha=0.8)
+            ax[ax_row, ax_col].bar3d(thetas[0, 0]-dx/2, thetas[0, 1]-dy/2, 0, dx, dy, all_freq_data[i][0], color='green', alpha=0.4)
+            if len(thetas) > 1:
+                ax[ax_row, ax_col].bar3d(thetas[1:, 0]-dx/2, thetas[1:, 1]-dy/2, 0, dx, dy, all_freq_data[i][1:], color='blue', alpha=0.4)
 
             # Set plot details
             if i != len(job_list_best):
@@ -1191,9 +1184,22 @@ class Plotters:
             self.__set_subplot_details(
                 ax[ax_row, ax_col], xx, yy, xlabel, ylabel, label_name, plot_z =all_freq_data[i], zlabel = zlabel
             )
+            
 
             if all_sp_data[0]["cs_name_val"] in [16, 17]:
-                ax[ax_row, ax_col].ticklabel_format(style='scientific', axis='both', scilimits=(-2, 2))
+                ax[ax_row, ax_col].ticklabel_format(style='scientific', axis='y', scilimits=(-2, 2))
+                ax[ax_row, ax_col].ticklabel_format(style='scientific', axis='x', scilimits=(-2, 2))
+                # ax[ax_row, ax_col].w_zaxis.set_tick_params(rotation=90)
+                ax[ax_row, ax_col].xaxis.get_offset_text().set_fontsize(self.other_fntsz)  # Adjust size as needed
+                ax[ax_row, ax_col].yaxis.get_offset_text().set_fontsize(self.other_fntsz)
+                ax[ax_row, ax_col].zaxis.get_offset_text().set_fontsize(self.other_fntsz)  # For 3D plots
+
+            ax[ax_row, ax_col].tick_params(axis='y', rotation=-30)
+            ax[ax_row, ax_col].tick_params(axis='x', rotation=45)
+            # ax[ax_row, ax_col].tick_params(axis='x', rotation=90)
+
+
+
 
         # Get legend information and make colorbar on 1st plot
         handles, labels = ax[0, 0].get_legend_handles_labels()
@@ -1230,6 +1236,7 @@ class Plotters:
             plot_axis_names = tuple('tau_{12}' if name == 'theta_1' else 'tau_{21}' for name in plot_axis_names)
         
         plt.tight_layout()
+        plt.subplots_adjust(wspace=0.25,hspace=0.25)
 
         # for axs in ax[-1]:
         #     axs.set_xlabel(xlabel, fontsize=self.other_fntsz)
@@ -2100,7 +2107,7 @@ class Plotters:
         if close:
             plt.close()
 
-    def __create_subplots(self, num_subplots, sharex="row", sharey="none", threeD = False):
+    def __create_subplots(self, num_subplots, sharex="row", sharey="none", threeD = False, x_size = 6, y_size = 6):
         """
         Creates Subplots based on the amount of data
 
@@ -2155,7 +2162,7 @@ class Plotters:
         fig, axes = plt.subplots(
             row_num,
             col_num,
-            figsize=(col_num * 6, row_num * 6),
+            figsize=(col_num * x_size, row_num * y_size),
             squeeze=False,
             sharex=sharex,
             sharey=sharey,
@@ -2230,24 +2237,24 @@ class Plotters:
             pad = 6 + 4 * title.count("_")
             ax.set_title(title, fontsize=self.other_fntsz, fontweight="bold", pad=pad)
         if xlabel is not None:
-            pad = 6 + 5* xlabel.count("_")
+            pad = 4* xlabel.count("_") + self.other_fntsz*1.1
             ax.set_xlabel(
                 xlabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
             )
         if ylabel is not None:
-            pad = 6 + 5 * ylabel.count("_")
+            pad = 4 * ylabel.count("_") + self.other_fntsz*1.1
             ax.set_ylabel(
                 ylabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
             )
         if zlabel is not None:
-            pad = 6 + 5 * zlabel.count("_")
+            pad = 5 * zlabel.count("_") + self.other_fntsz
             ax.set_zlabel(
                 zlabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
             )
 
         # Turn on tick parameters and bin number
-        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction="in")
-        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction="in")
+        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction="in", pad = 5)
+        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction="in", pad = 5)
         ax.locator_params(axis="y", nbins=self.ybins)
         ax.locator_params(axis="x", nbins=self.xbins)
         ax.minorticks_on()  # turn on minor ticks
@@ -2268,7 +2275,7 @@ class Plotters:
 
             ax.set_box_aspect(1)
         else:
-            ax.zaxis.set_tick_params(labelsize=self.other_fntsz, direction="in")
+            ax.zaxis.set_tick_params(labelsize=self.other_fntsz, direction="in", pad = 10)
             ax.locator_params(axis="z", nbins=self.ybins)
             if plot_x is not None and not np.isclose(
                 np.min(plot_x), np.max(plot_x), rtol=1e-6

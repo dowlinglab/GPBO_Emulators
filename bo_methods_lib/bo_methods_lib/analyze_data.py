@@ -3039,9 +3039,10 @@ class LS_Analysis(General_Analysis):
                 (df_GPBO_best["BO Method"] == "Log Conventional")
                 )
         
+        df_GPBO_best = df_GPBO_best.copy()
         # Multiply values in column B by 3 where the condition is true
         df_GPBO_best.loc[condition, "Min Obj Act Cum"] = np.exp(
-            df_GPBO_best.loc[condition, "Min Obj Act Cum"].copy()
+            df_GPBO_best.loc[condition, "Min Obj Act Cum"]
         )
 
         theta_bounds = self.simulator.bounds_theta_reg
@@ -3211,7 +3212,7 @@ class LS_Analysis(General_Analysis):
             )
             local_min_sets = local_min_sets.reset_index(drop=True)
 
-            if self.save_csv:
+            if self.save_csv or not os.path.exists(ls_data_path):
                 self.save_data(local_min_sets, ls_data_path)
 
         elif found_data1:
