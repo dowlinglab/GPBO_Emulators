@@ -1090,13 +1090,13 @@ class Plotters:
             )  # Set up to 12 ticks
             nticks = new_ticks.tick_values(vmin, vmax)
             cbar_ticks = np.linspace(vmin, vmax, len(nticks))
-            
-
         else:
             norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
             new_ticks = matplotlib.ticker.LogLocator(numticks=7)
             nticks = new_ticks.tick_values(vmin, vmax)
             cbar_ticks = np.linspace(vmin, vmax, len(nticks))
+            # cbar_ticks = np.concatenate([np.linspace(vmin, 1e3, 7), [vmax]])
+        # print(cbar_ticks)
 
         #Set theta values to plot
         theta_vals = np.vstack(local_min_sets["Theta Min Obj Cum."])
@@ -1135,14 +1135,19 @@ class Plotters:
             if np.all(z == z[0]):
                 z = abs(np.random.normal(scale=1e-14, size=z.shape))
 
+            cmap = plt.cm.get_cmap(self.cmap)
+            # Create a BoundaryNorm with discrete levels
+            discrete_cmap = colors.ListedColormap(cmap(np.linspace(0, 1, len(cbar_ticks)-1)))
+            boundary_norm = colors.BoundaryNorm(cbar_ticks, discrete_cmap.N)
+
             # Create a colormap and colorbar for each subplot
             cs_fig = ax[ax_row, ax_col].contourf(
                 xx,
                 yy,
                 z,
-                levels=len(cbar_ticks),  #zbins # cbar_ticks
-                cmap=plt.cm.get_cmap(self.cmap),
-                norm=norm,
+                levels=len(cbar_ticks),  # cbar_ticks, #When doing zoom in activate this
+                cmap=cmap ,#discrete_cmap,
+                norm=norm ,#boundary_norm ,
                 zdir = "z",
                 offset = 0,
             )
@@ -1213,6 +1218,7 @@ class Plotters:
             ax=ax,
             cax=cb_ax,
             format=fmt,
+            #ticks = cbar_ticks, #When doing zoom in activate this
             use_gridspec=True,
         )
         try:

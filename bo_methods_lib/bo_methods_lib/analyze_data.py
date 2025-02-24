@@ -1776,7 +1776,6 @@ class General_Analysis:
 
         return all_data, test_mesh, param_info_dict, sp_data
 
-
 class All_CS_Analysis(General_Analysis):
     """
     Class for analyzing GPBO workflow results from all case studies. Child class of General_Analysis
@@ -3060,12 +3059,17 @@ class LS_Analysis(General_Analysis):
         match_count_vector = np.zeros(len(ls_scl), dtype=int)
         match_sse_vector = np.zeros(len(ls_scl), dtype=float)
 
+        # print(df_GPBO_best["Theta Obj Act Cum"])
+        # print("GPBO SCL", GPBO_scl)
+        # print("LS SCL", ls_scl)
+
         # Iterate over rows from GPBO solutions
         for i, row in enumerate(GPBO_scl):
             # Calculate distances between each row in GPBO and each row in ls_scl
             distances = np.linalg.norm(ls_scl - row, axis=1)
+            # print(distances)
             # If any distance is less than 0.1, there is a match
-            matched_indices = np.where(distances < 0.1)[0]   
+            matched_indices = np.where(distances < 0.05)[0]   
             #Print the matched indices
 
             if matched_indices.size > 0:
