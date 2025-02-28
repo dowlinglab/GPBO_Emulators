@@ -111,6 +111,7 @@ To run the GPBO workflow, follow the following steps:
 5. Run the simulations
    ```
      python project_GPBO_Fix.py submit -o run_ep_or_sf_exp
+     python project_gpborand.py submit -o run_ep_or_sf_exp
    ```     
 
 **Note: rm -r workspace/ signac_project_document.json signac.rc will remove everything and allow you to start fresh if you mess up**

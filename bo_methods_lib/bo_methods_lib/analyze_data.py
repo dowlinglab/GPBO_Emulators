@@ -2239,22 +2239,25 @@ class All_CS_Analysis(General_Analysis):
                 (df_all_best["CS Name"].isin(em_cs))
                 & (df_all_best["BO Method"].isin([method]))
             ]
-            em_small_l2 = em_df[em_df["L2 Norm Theta"] <= 10**-2]
-            per_em = (len(em_small_l2) / len(em_df)) * 100
-            range_min_specified = em_df["L2 Norm Theta"].min()
-            range_max_specified = em_df["L2 Norm Theta"].max()
-            median_specified = em_df["L2 Norm Theta"].median()
-            results.append(
-                {
-                    "Method": method,
-                    "CS Names": str(em_cs),
-                    "Type": "Emulator",
-                    "Percentage L2 < 10^-2": per_em,
-                    "Range Min": range_min_specified,
-                    "Range Max": range_max_specified,
-                    "Median": median_specified,
-                }
-            )
+            if len(em_df) > 0:
+                em_small_l2 = em_df[em_df["L2 Norm Theta"] <= 10**-2]
+                per_em = (len(em_small_l2) / len(em_df)) * 100
+                range_min_specified = em_df["L2 Norm Theta"].min()
+                range_max_specified = em_df["L2 Norm Theta"].max()
+                median_specified = em_df["L2 Norm Theta"].median()
+                results.append(
+                    {
+                        "Method": method,
+                        "CS Names": str(em_cs),
+                        "Type": "Emulator",
+                        "Percentage L2 < 10^-2": per_em,
+                        "Range Min": range_min_specified,
+                        "Range Max": range_max_specified,
+                        "Median": median_specified,
+                    }
+                )
+            else:
+                pass
 
         # Convert results list to DataFrame
         results_df = pd.DataFrame(results)
@@ -3216,7 +3219,7 @@ class LS_Analysis(General_Analysis):
             )
             local_min_sets = local_min_sets.reset_index(drop=True)
 
-            if self.save_csv or not os.path.exists(ls_data_path):
+            if self.save_csv: # or not os.path.exists(ls_data_path):
                 self.save_data(local_min_sets, ls_data_path)
 
         elif found_data1:
