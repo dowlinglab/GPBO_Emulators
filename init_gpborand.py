@@ -8,8 +8,8 @@ project = signac.init_project("GPBO_rand")
 
 # Set Method and Case Study
 gp_pack = "gpflow"
-cs_val_list = [1,2,3,10,11,12,13,14,15,17] #See bo_methods_lib/bo_methods_lib/GPBO_Class_fxns.py for more details
-meth_val_list = [1, 2, 3, 4, 5, 6, 7]  # Conv, Log Conv., Ind., Log Ind., Sparse Grid, Monte Carlo, E[SSE]
+cs_val_list = [1,11,12,13,15,17] #See bo_methods_lib/bo_methods_lib/GPBO_Class_fxns.py for more details
+meth_val_list = [4]  # Conv, Log Conv., Ind., Log Ind., Sparse Grid, Monte Carlo, E[SSE]
 
 # Set Initial Parameters
 ep0 = 1  # Set initial ep as an even mix between exploration and exploitation
