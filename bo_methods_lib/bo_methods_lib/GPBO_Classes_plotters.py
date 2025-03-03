@@ -11,7 +11,7 @@ import json
 from matplotlib import colormaps
 from collections.abc import Iterable
 import string
-from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_percentage_error
 from matplotlib.lines import Line2D
 import sklearn
 
@@ -76,7 +76,7 @@ class Plotters:
         # Constructor method
         self.analyzer = analyzer
         self.save_figs = save_figs
-        self.cmap = "autumn"
+        self.cmap = "YlOrRd_r"
         self.xbins = 5
         self.ybins = 5
         self.zbins = 900
@@ -949,7 +949,7 @@ class Plotters:
         else:
             return all_z_data, all_z_titles, all_z_titles_pre
 
-    def plot_local_min_hms(self, pair, levels, tot_runs_nls, log_data=False, title=None):
+    def plot_local_min_hms(self, pair, tot_runs_nls, levels = 10, log_data=False, title=None):
         """
         Plots the frequency of local minima given the surface for NLS (true surface) and GPBO (predicted surface) for all GBPO methods
 
@@ -957,8 +957,8 @@ class Plotters:
         ----------
         pair: int
             The pair of data parameters. pair 0 is the 1st pair
-        levels: int, list(int), or None
-            Number of zbins to skip when drawing contour lines
+        levels: int or list(int)
+            Number of contour lines to draw for each method
         log_data: bool, default False
             Plots contour data on natural log scale if True
         title: str or None, default None
@@ -979,9 +979,7 @@ class Plotters:
             """
 
         assert isinstance(pair, int), "pair must be an integer"
-        assert isinstance(levels, (int, list, type(None))), "levels must be an int or list"
-        if isinstance(levels, list):
-            assert all(isinstance(item, int) for item in levels), "levels must be int"
+        assert isinstance(levels, (int)), "levels must be an int"
         assert isinstance(log_data, bool), "log_data must be boolean"
         assert isinstance(title, str) or title is None, "title must be a string or None"
 
@@ -999,21 +997,6 @@ class Plotters:
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(
             subplots_needed, sharex=False, sharey=False, threeD = True, x_size=6, y_size=6
         )
-
-        # Define plot levels
-        zbins = self.zbins
-        if levels is None:
-            tot_lev = None
-        elif (isinstance(levels, Iterable) and len(levels) == 1) or isinstance(
-            levels, int
-        ):
-            tot_lev = [levels] * (num_subplots)
-            zbins = levels
-        else:
-            tot_lev = levels
-        assert (
-            tot_lev is None or len(tot_lev) == num_subplots
-        ), "Levels must be None or have the same length as number of subplots"
 
         all_z_data = []
         all_sp_data = []
@@ -1092,11 +1075,18 @@ class Plotters:
             cbar_ticks = np.linspace(vmin, vmax, len(nticks))
         else:
             norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-            new_ticks = matplotlib.ticker.LogLocator(numticks=7)
-            nticks = new_ticks.tick_values(vmin, vmax)
-            cbar_ticks = np.linspace(vmin, vmax, len(nticks))
-            # cbar_ticks = np.concatenate([np.linspace(vmin, 1e3, 7), [vmax]])
-        # print(cbar_ticks)
+            # new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+            # nticks = new_ticks.tick_values(vmin, vmax)
+            # cbar_ticks = np.linspace(vmin, vmax, len(nticks))
+            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), levels) #Set 7 equally spaced ticks
+            #Get log10 scale bounds
+            min_power = np.floor(np.log10(vmin))  # Round down the logarithm to get the closest power of 10
+            max_power = np.ceil(np.log10(vmax))  # Round up the logarithm to get the closest power of 10
+            # Create the ticks at powers of 10 within this range
+            tick_num = int(max_power - min_power)
+            if tick_num -2 < 3:
+                tick_num *= 2
+            nticks = np.logspace(min_power, max_power, tick_num + 1)
 
         #Set theta values to plot
         theta_vals = np.vstack(local_min_sets["Theta Min Obj Cum."])
@@ -1145,7 +1135,8 @@ class Plotters:
                 xx,
                 yy,
                 z,
-                levels=len(cbar_ticks),  # cbar_ticks, #When doing zoom in activate this
+                levels=cbar_ticks, # cbar_ticks, #When doing zoom in activate this
+                tick_positions=nticks,
                 cmap=cmap ,#discrete_cmap,
                 norm=norm ,#boundary_norm ,
                 zdir = "z",
@@ -1154,7 +1145,6 @@ class Plotters:
 
             # Create a line contour for each colormap
             if levels is not None:
-                assert len(tot_lev) >= i + 1, "Must have as many levels as methods"
                 num_levels = len(cbar_ticks)
                 # print(num_levels)
                 indices = np.linspace(0, len(cs_fig.levels) - 1, num_levels, dtype=int)
@@ -1218,7 +1208,7 @@ class Plotters:
             ax=ax,
             cax=cb_ax,
             format=fmt,
-            #ticks = cbar_ticks, #When doing zoom in activate this
+            ticks = nticks, #cbar_ticks, #When doing zoom in activate this
             use_gridspec=True,
         )
         try:
@@ -1250,7 +1240,7 @@ class Plotters:
         # for axs in ax[:, 0]:
         #     axs.set_ylabel(ylabel, fontsize=self.other_fntsz)
 
-    def plot_hms_all_methods(self, pair, z_choice, levels, log_data=False, title=None):
+    def plot_hms_all_methods(self, pair, z_choice, levels = 10, log_data=False, title=None):
         """
         Plots comparison of y_sim, GP_mean, GP_stdev, and the acquisition function values for all methods
         Parameters
@@ -1259,8 +1249,8 @@ class Plotters:
             The pair of data parameters. pair 0 is the 1st pair
         z_choice: str
             "sse_sim", "sse_mean", "sse_var", or "acq". The values that will be plotted
-        levels: int, list(int), or None
-            Number of zbins to skip when drawing contour lines
+        levels: int, default 10
+            Number of contour lines to draw.
         log_data: bool, default False
             Plots data on natural log scale if True
         title: str or None, default None
@@ -1287,9 +1277,7 @@ class Plotters:
             "sse_var",
             "acq",
         ], "z_choice must be one of 'sse_sim', 'sse_mean', 'sse_var', or 'acq'"
-        assert isinstance(levels, (int, list, type(None))), "levels must be an int or list"
-        if isinstance(levels, list):
-            assert all(isinstance(item, int) for item in levels), "levels must be int"
+        assert isinstance(levels, (int)), "levels must be an int"
         assert isinstance(log_data, bool), "log_data must be boolean"
         assert isinstance(title, str) or title is None, "title must be a string or None"
 
@@ -1307,19 +1295,6 @@ class Plotters:
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(
             subplots_needed, sharex=True, sharey=True
         )
-
-        # Define plot levels
-        if levels is None:
-            tot_lev = None
-        elif (isinstance(levels, Iterable) and len(levels) == 1) or isinstance(
-            levels, int
-        ):
-            tot_lev = [levels] * (num_subplots)
-        else:
-            tot_lev = levels
-        assert (
-            tot_lev is None or len(tot_lev) == num_subplots
-        ), "Levels must be None or have the same length as number of subplots"
 
         all_z_data = []
         all_sp_data = []
@@ -1407,8 +1382,23 @@ class Plotters:
 
             else:
                 norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-                cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
-                new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+                # new_ticks = matplotlib.ticker.LogLocator(numticks=7)
+                # nticks = new_ticks.tick_values(vmin, vmax)
+                # cbar_ticks = nticks #np.logspace(np.log10(vmin), np.log10(vmax), len(nticks))
+                # cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), len(nticks))
+                cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), levels) #Set 7 equally spaced ticks
+                #Get log10 scale bounds
+                min_power = np.floor(np.log10(vmin))  # Round down the logarithm to get the closest power of 10
+                max_power = np.ceil(np.log10(vmax))  # Round up the logarithm to get the closest power of 10
+                # print(min_power, max_power)
+                # print(cbar_ticks)
+                # Create the ticks at powers of 10 within this range
+                tick_num = int(max_power - min_power)
+                if tick_num -2 < 3:
+                    tick_num *= 2
+                nticks = np.logspace(min_power, max_power, tick_num + 1)
+                # nticks = np.logspace(min_power, max_power, int(max_power - min_power + 1))
+                # print(nticks)
 
         # Set plot details
         # Loop over number of subplots
@@ -1479,14 +1469,14 @@ class Plotters:
                     xx,
                     yy,
                     z,
-                    levels=self.zbins,
+                    levels=cbar_ticks, #self.zbins,
+                    tick_positions=nticks,
                     cmap=plt.cm.get_cmap(self.cmap),
                     norm=norm,
                 )
 
             # Create a line contour for each colormap
             if levels is not None:
-                assert len(tot_lev) >= i + 1, "Must have as many levels as methods"
                 num_levels = len(cbar_ticks)
                 indices = np.linspace(0, len(cs_fig.levels) - 1, num_levels, dtype=int)
                 selected_levels = cs_fig.levels[indices]
@@ -1591,6 +1581,7 @@ class Plotters:
                 cax=cb_ax,
                 format=fmt,
                 use_gridspec=True,
+                ticks = nticks,
             )
             try:
                 cbar.ax.locator_params(axis="y", numticks=7)
@@ -1666,7 +1657,7 @@ class Plotters:
         return plt.show()
 
     def plot_hms_gp_compare(
-        self, job, run_num, bo_iter, pair, z_choices, levels, log_data=False, title=None
+        self, job, run_num, bo_iter, pair, z_choices, levels = 7, log_data=False, title=None
     ):
         """
         Plots comparison of y_sim, GP_mean, and GP_stdev
@@ -1726,16 +1717,15 @@ class Plotters:
                 "acq",
             ], "z_choices elements must be 'sse_sim', 'sse_mean', 'sse_var', or 'acq'"
 
+        assert isinstance(levels, (int, list)), "levels must be an int or list"
         # Define plot levels
-        if levels is None:
-            tot_lev = None
-        elif len(levels) == 1:
-            tot_lev = levels * len(z_choices)
+        if isinstance(levels, int):
+            levels = [levels] * len(z_choices)
         else:
-            tot_lev = levels
-        assert tot_lev is None or len(tot_lev) == len(
+            levels = levels
+        assert len(levels) == len(
             z_choices
-        ), "Levels must be None or have the same length as z_choices"
+        ), "levels must be int or have the same length as z_choices"
         # Get all data for subplots needed
         get_ei = True if "acq" in z_choices else False
         analysis_list = self.analyzer.analyze_heat_maps(
@@ -1769,6 +1759,8 @@ class Plotters:
             z_choices, sim_sse_var_ei
         )
 
+        sse_cond = None
+
         # Loop over number of subplots
         for i, ax in enumerate(axes.flatten()):
             if i < subplots_needed:
@@ -1777,7 +1769,7 @@ class Plotters:
                 need_unscale = False
 
                 # Unlog scale the data if vmin is 0 and log_data = True
-                if np.min(z) == -np.inf or np.isnan(np.min(z)):
+                if np.min(z) == -np.inf or np.isnan(np.min(z)) or np.min(z) == 0:
                     need_unscale = True
                     if log_data:
                         warnings.warn(
@@ -1805,28 +1797,34 @@ class Plotters:
                 else:
                     title2 = all_z_titles[i]
 
+                condition = log_data or vmin < 0 or not mag_diff
+                if "sse" in z_choices[i]:
+                    if sse_cond is None:
+                        sse_cond = condition
+                    condition = sse_cond
                 # Choose an appropriate colormap and scaling based on vmin, vmax, and log_data
                 # If not using log data, vmin > 0, and the data scales 3 orders+ of magnitude use log10 to view plots
-                if log_data or vmin < 0 or not mag_diff:
+                if condition:
                     norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
-                    locator = matplotlib.ticker.MaxNLocator(
-                        nbins=7, min_n_ticks=5
-                    )  # Set up to 12 ticks
-                    cbar_ticks = locator.tick_values(vmin, vmax)
+                    cbar_ticks = np.linspace(vmin, vmax, levels[i])
+                    nticks = cbar_ticks
 
                 else:
                     norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-                    locator = matplotlib.ticker.MaxNLocator(nbins=7, min_n_ticks=5)
-                    tick_positions = locator.tick_values(np.log10(vmin), np.log10(vmax))
-                    cbar_ticks = 10**tick_positions
-                    use_log10 = True
+                    cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), levels[i]) #Set 5 equally spaced ticks
+                    #Get log10 scale bounds
+                    min_power = np.floor(np.log10(vmin))  # Round down the logarithm to get the closest power of 10
+                    max_power = np.ceil(np.log10(vmax))  # Round up the logarithm to get the closest power of 10
+                    # Create the ticks at powers of 10 within this range
+                    nticks = np.logspace(min_power, max_power, int(max_power - min_power + 1))
 
                 # Create a colormap and colorbar normalization for each subplot
                 cs_fig = ax.contourf(
                     xx,
                     yy,
                     z,
-                    levels=self.zbins,
+                    levels=cbar_ticks, #self.zbins,
+                    # tick_positions=nticks,
                     cmap=plt.cm.get_cmap(self.cmap),
                     norm=norm,
                 )
@@ -1903,8 +1901,12 @@ class Plotters:
                 divider1 = make_axes_locatable(ax)
                 cax1 = divider1.append_axes("right", size="5%", pad="6%")
                 cbar = fig.colorbar(
-                    cs_fig, ax=ax, cax=cax1, ticks=cbar_ticks, use_gridspec=True
-                )  # format = fmt
+                cs_fig,
+                ax=ax,
+                cax=cax1,
+                use_gridspec=True,
+                ticks = cbar_ticks,
+            )
                 cbar.ax.yaxis.set_major_formatter(fmt)
                 cbar.ax.tick_params(labelsize=int(self.other_fntsz / 2))
 
@@ -2372,13 +2374,14 @@ class Plotters:
                     color="blue",
                 )
 
-                RMSE = mean_squared_error(sim_data, gp_mean, squared=False)
+                # RMSE = mean_squared_error(sim_data, gp_mean, squared=False)
+                MAPD = mean_absolute_percentage_error(sim_data, gp_mean)*100
                 R2 = r2_score(sim_data, gp_mean)
                 # Set plot details
                 ax.text(
                     0.95,
                     0.05,
-                    "RMSE: " + "{:.2f}".format(RMSE),
+                    "MAPD: " + "{:.2f}".format(MAPD) + "%",
                     horizontalalignment="right",  # Align text to the right
                     verticalalignment="bottom",  # Align text to the bottom
                     transform=ax.transAxes,  # Use axis coordinates (0 to 1 range)
