@@ -1129,8 +1129,10 @@ class Simulator:
             block_errors = (y_sim_resh - exp_data.y_vals[np.newaxis, :]) ** 2
             # Sum squared errors for each block
             sum_error_sq = np.sum(block_errors, axis=1)
-            # objective function only log if using 1B or 2B
+            # objective function only log if using 1B
             if method.obj.value == 2:
+                #Set a minimum error to avoid log(0)
+                sum_error_sq[sum_error_sq == 0] = 1e-16
                 sum_error_sq = np.log(sum_error_sq)  # Scaler
 
             # Add y_values to data class instance
