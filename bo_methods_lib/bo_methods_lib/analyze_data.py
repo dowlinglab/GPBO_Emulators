@@ -1105,7 +1105,7 @@ class General_Analysis:
                     data_true_med[z_choices[z]] = data_true_med_val
                     # If the z_choice is sse and the method has a log objective function value, un logscale data
                     # if sp_data["meth_name_val"] in [2, 4]:
-                    if sp_data["meth_name_val"] == 2 or ( sp_data["meth_name_val"] == 4 and sp_data["cs_name_val"] not in [15, 16, 17]):
+                    if sp_data["meth_name_val"] == 2: #or ( sp_data["meth_name_val"] == 4 and sp_data["cs_name_val"] not in [15, 16, 17]):
                         z_data = np.exp(z_data.values.astype(float))
                 else:
                     data_true[z_choices[z]] = None
@@ -1763,13 +1763,13 @@ class General_Analysis:
                 acq_new = copy.deepcopy(heat_map_sse_data.acq)
                 all_data += [acq_new.reshape(theta_pts, theta_pts).T]
             except:
-                print(
-                    heat_map_sse_data.sse,
-                    heat_map_sse_data.sse_var,
-                    get_ei,
-                    data_needs_ei,
-                    heat_map_sse_data.acq,
-                )
+                # print(
+                #     heat_map_sse_data.sse,
+                #     heat_map_sse_data.sse_var,
+                #     get_ei,
+                #     data_needs_ei,
+                #     heat_map_sse_data.acq,
+                # )
                 all_data += [heat_map_sse_data.acq.reshape(theta_pts, theta_pts).T]
         else:
             all_data += [None]
@@ -1957,16 +1957,16 @@ class All_CS_Analysis(General_Analysis):
             obj_col_sse_min = "Min Obj GP Cum"
 
         # Scale the objective function values for log conv and log indep
-        # condition = df_all_jobs["BO Method"].isin(
-        #     ["Log Conventional", "Log Independence"]
-        # )
-        condition = (
-                (df_all_jobs["BO Method"] == "Log Conventional") |
-                (
-                    (df_all_jobs["BO Method"] == "Log Independence") &
-                    ~df_all_jobs["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
-                )
-            )
+        condition = df_all_jobs["BO Method"].isin(
+            ["Log Conventional"]
+        )
+        # condition = (
+        #         (df_all_jobs["BO Method"] == "Log Conventional") |
+        #         (
+        #             (df_all_jobs["BO Method"] == "Log Independence") &
+        #             ~df_all_jobs["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
+        #         )
+        #     )
         
         # Multiply values in column B by 3 where the condition is true
         df_all_jobs.loc[condition, obj_col_sse_min] = np.exp(
@@ -2164,17 +2164,17 @@ class All_CS_Analysis(General_Analysis):
         st_meths = ["Conventional", "Log Conventional"]
 
         # Scale the objective function values for log conv and log indep
-        # condition = df_all_best["BO Method"].isin(
-        #     ["Log Conventional", "Log Independence"]
-        # )
+        condition = df_all_best["BO Method"].isin(
+            ["Log Conventional"]
+        )
 
-        condition = (
-                (df_all_best["BO Method"] == "Log Conventional") |
-                (
-                    (df_all_best["BO Method"] == "Log Independence") &
-                    ~df_all_best["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
-                )
-            )
+        # condition = (
+        #         (df_all_best["BO Method"] == "Log Conventional") |
+        #         (
+        #             (df_all_best["BO Method"] == "Log Independence") &
+        #             ~df_all_best["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
+        #         )
+        #     )
         
         # Multiply values in column B by 3 where the condition is true
         df_all_best.loc[condition, obj_col_sse_min] = np.exp(
@@ -2413,17 +2413,17 @@ class All_CS_Analysis(General_Analysis):
         df_all_best, df_all_best_all_meth = self.get_best_data_all_methods(other_meths)
         
         # Scale the objective function values for log conv and log indep
-        # condition = df_all_best["BO Method"].isin(
-        #     ["Log Conventional", "Log Independence"]
-        # )
+        condition = df_all_best["BO Method"].isin(
+            ["Log Conventional"]
+        )
 
-        condition = (
-                (df_all_best["BO Method"] == "Log Conventional") |
-                (
-                    (df_all_best["BO Method"] == "Log Independence") &
-                    ~df_all_best["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
-                )
-            )
+        # condition = (
+        #         (df_all_best["BO Method"] == "Log Conventional") |
+        #         (
+        #             (df_all_best["BO Method"] == "Log Independence") &
+        #             ~df_all_best["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
+        #         )
+        #     )
                     
 
         # Multiply values in column B by exp where the condition is true
@@ -2479,17 +2479,17 @@ class All_CS_Analysis(General_Analysis):
 
         df_all_best, df_all_best_all_meth = self.get_best_data_all_methods(other_meths)
         # Scale the objective function values for log conv and log indep
-        # condition = df_all_best["BO Method"].isin(
-        #     ["Log Conventional", "Log Independence"]
-        # )
+        condition = df_all_best["BO Method"].isin(
+            ["Log Conventional"]
+        )
 
-        condition = (
-                (df_all_best["BO Method"] == "Log Conventional") |
-                (
-                    (df_all_best["BO Method"] == "Log Independence") &
-                    ~df_all_best["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
-                )
-            )
+        # condition = (
+        #         (df_all_best["BO Method"] == "Log Conventional") |
+        #         (
+        #             (df_all_best["BO Method"] == "Log Independence") &
+        #             ~df_all_best["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
+        #         )
+        #     )
         # Multiply values in column B by exp where the condition is true
         df_all_best.loc[condition, obj_col_sse_min] = np.exp(
             df_all_best.loc[condition, obj_col_sse_min]
