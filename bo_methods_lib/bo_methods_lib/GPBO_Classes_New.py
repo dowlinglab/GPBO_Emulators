@@ -4630,7 +4630,8 @@ class Expected_Improvement:
 
         # Create a mask for values where pred_stdev > 0
         pos_stdev_mask = gp_var > 0
-        best_errors_x_all = np.log(self.best_error_x)
+        # best_errors_x_all = np.log(self.best_error_x)
+        best_errors_x_all = np.log(np.where(self.best_error_x < 1e-16, 1e-16, self.best_error_x))
 
         # Assuming all standard deviations are not zero
         if np.any(pos_stdev_mask):
@@ -4640,9 +4641,6 @@ class Expected_Improvement:
             gp_mean_val = gp_mean[valid_indices]
             y_target_val = y_target[valid_indices]
             best_errors_x = copy.deepcopy(best_errors_x_all)[valid_indices]
-            best_errors_x[
-                best_errors_x == 0
-            ] += 1e-15  # Add a small value to any zero value to avoid problems in ei calculations
             # Important when stdev is close to 0
             with np.errstate(divide="warn"):
                 # Creates upper and lower bounds and described by Alex Dowling's Derivation
@@ -4658,10 +4656,16 @@ class Expected_Improvement:
                 bound_upper = np.maximum(bound_a, bound_b)
 
                 # Calculate EI
+                # print(gp_mean_val)
+                # print(pred_stdev_val)
+                # print(y_target_val)
+                # print(self.ep_bias.ep_curr)
+                # print(best_errors_x)
                 args = (gp_mean_val, pred_stdev_val, y_target_val, self.ep_bias.ep_curr)
                 ei_term_1 = (best_errors_x * self.ep_bias.ep_curr) * (
                     norm.cdf(bound_upper) - norm.cdf(bound_lower)
                 )
+                # print(ei_term_1)
                 ei_term_2_out = np.array(
                     [
                         integrate.quad(
