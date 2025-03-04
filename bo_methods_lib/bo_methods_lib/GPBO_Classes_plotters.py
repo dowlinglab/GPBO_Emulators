@@ -2385,12 +2385,14 @@ class Plotters:
 
                 # RMSE = mean_squared_error(sim_data, gp_mean, squared=False)
                 MAPD = mean_absolute_percentage_error(sim_data, gp_mean)
+                MAE = sklearn.metrics.mean_absolute_error(sim_data, gp_mean)
                 R2 = r2_score(sim_data, gp_mean)
                 # Set plot details
                 ax.text(
                     0.95,
                     0.05,
-                    "MAPD: " + "{:.2f}".format(MAPD) + "%",
+                    # "MAPD: " + "{:.2f}".format(MAPD) + "%",
+                    "MAE: " + "{:.2f}".format(MAE),
                     horizontalalignment="right",  # Align text to the right
                     verticalalignment="bottom",  # Align text to the bottom
                     transform=ax.transAxes,  # Use axis coordinates (0 to 1 range)
