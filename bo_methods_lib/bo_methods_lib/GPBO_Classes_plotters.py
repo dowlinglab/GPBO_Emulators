@@ -1324,7 +1324,7 @@ class Plotters:
             MAE = sklearn.metrics.mean_absolute_error(
                 sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten()
             )
-            MAPD = mean_absolute_percentage_error(sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten())*100
+            MAPD = mean_absolute_percentage_error(sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten())
             if i == 0:
                 print("CS Name: ", df_best["CS Name"].values[0])
             print(df_best["BO Method"].values[i])
@@ -2384,7 +2384,7 @@ class Plotters:
                 )
 
                 # RMSE = mean_squared_error(sim_data, gp_mean, squared=False)
-                MAPD = mean_absolute_percentage_error(sim_data, gp_mean)*100
+                MAPD = mean_absolute_percentage_error(sim_data, gp_mean)
                 R2 = r2_score(sim_data, gp_mean)
                 # Set plot details
                 ax.text(
