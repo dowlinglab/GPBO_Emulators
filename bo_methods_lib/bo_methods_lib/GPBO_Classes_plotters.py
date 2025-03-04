@@ -1319,8 +1319,12 @@ class Plotters:
             MAE = sklearn.metrics.mean_absolute_error(
                 sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten()
             )
+            MAPD = mean_absolute_percentage_error(sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten())*100
+            if i == 0:
+                print("CS Name: ", df_best["CS Name"].values[0])
             print(df_best["BO Method"].values[i])
             print("MAE: ", MAE)
+            print("MAPD: ", MAPD)
             theta_true = param_info_dict["true"]
             theta_opt = param_info_dict["min_sse"]
             theta_next = param_info_dict["opt_acq"]
@@ -1407,7 +1411,7 @@ class Plotters:
                 # Get method value from json file
                 GPBO_method_val = all_sp_data[i]["meth_name_val"]
                 ax_idx = int(GPBO_method_val - 1)
-                ax_row, ax_col = plot_mapping[ax_idx]
+                ax_row, ax_col = plot_mapping[i]
             else:
                 ax_idx = len(job_list_best)
                 ax_row, ax_col = plot_mapping[ax_idx]
