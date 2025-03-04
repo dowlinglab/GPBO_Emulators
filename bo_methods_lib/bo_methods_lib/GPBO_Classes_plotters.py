@@ -691,6 +691,9 @@ class Plotters:
         ]
         for index in sorted(indices_to_insert):
             emph_runs.insert(index, 0)
+        #Initialize min and max for acq
+        miny = 1e-16
+        maxy = 0
         # Loop over different methdods (number of subplots)
         for i in range(len(job_pointer)):
             # Get data
@@ -709,7 +712,6 @@ class Plotters:
 
             # Create label based on method #
             label = self.method_names[GPBO_method_val - 1]
-
             # Loop over number of data types
             for k, ax in enumerate(axes.flatten()):
                 # Only plot data if axis is visible
@@ -717,8 +719,6 @@ class Plotters:
                     #             for k in range(data.shape[-1]):
                     # The index of the data type is k, and one data type is in the last row of the data
                     one_data_type = data[:, :, k]
-                    miny = 1e-16
-                    maxy = 0
 
                     # Get Number of runs in the job
                     runs_in_job = sp_data["bo_runs_in_job"]
@@ -748,8 +748,10 @@ class Plotters:
                             data_df_j = np.log(data_df_j)
 
                         if z_choices[k] == "acq":
+                            # print(np.min(data_df_j), np.max(data_df_j))
                             miny = float(np.maximum(miny, np.min(data_df_j)))
                             maxy = float(np.maximum(maxy, np.max(data_df_j)))
+                        print(miny, maxy, "\n")
 
                         data_train = be[j] if be is not None else data_df_j[0]
                         #duplicate the first value num_train_points times to show the number of training points
@@ -836,7 +838,7 @@ class Plotters:
                         self.__set_subplot_details(
                             ax,
                             bo_space_org,
-                            np.array([miny]),
+                            np.array([miny,maxy]),
                             x_label,
                             rf"${data_names[k]}$",
                             None,
