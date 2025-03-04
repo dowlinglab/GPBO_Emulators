@@ -19,13 +19,13 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 # warnings.filterwarnings(action='ignore', category=InconsistentVersionWarning)
 
 # Set Stuff
-meth_name_val_list = [1, 2, 3, 4, 5, 6, 7]
-save_csv = False  # Set to False if you don't want to save/resave csvs
+meth_name_val_list = [1, 2, 3, 5, 6, 7]
+save_csv = True  # Set to False if you don't want to save/resave csvs
 save_figs = True
 modes = ["act", "gp", "acq"]
-project = signac.get_project("GPBO_Fix")
+project = signac.get_project("GPBO_rand")
 
-for val in [1,2,3,10,11,12,13,14,15,16,17]:
+for val in [1]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,
@@ -52,7 +52,7 @@ for val in [1,2,3,10,11,12,13,14,15,16,17]:
         ]
 
         # Make Parity Plots
-        # plotters.make_parity_plots()
+        plotters.make_parity_plots()
 
         # Get best plots for all objectives with all 7 methods on each subplot
         plotters.plot_objs_all_methods(z_choices)
