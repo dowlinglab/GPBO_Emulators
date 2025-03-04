@@ -81,7 +81,7 @@ class Plotters:
         self.ybins = 5
         self.zbins = 900
         self.title_fntsz = 24
-        self.other_fntsz = 20
+        self.other_fntsz = 24
         self.colors = [
             "red",
             "blue",
@@ -924,11 +924,13 @@ class Plotters:
         for z_choice in z_choices:
             if "sse_sim" == z_choice:
                 title = r"$\mathscr{L}(\mathbf{\theta})$"
+                # title = r"$g(\mathbf{\theta})$"
                 all_z_data.append(sse_sim)
                 all_z_titles.append(title)
                 all_z_titles_pre.append("SSE Loss Function, ")
             elif "sse_mean" == z_choice:
                 title = r"$\tilde{\mathscr{L}}(\mathbf{\theta})$"
+                # title = r"$\tilde{g}(\mathbf{\theta})$"
                 all_z_data.append(sse_mean)
                 all_z_titles.append(title)
                 all_z_titles_pre.append("(Predicted) SSE Loss Function, ")
@@ -938,6 +940,9 @@ class Plotters:
                 all_z_titles.append(
                     r"$\mathbf{\sigma}^2_{\tilde{\mathscr{L}}(\mathbf{\theta})}$"
                 )
+                # all_z_titles.append(
+                #     r"$\mathbf{\sigma}^2_{\tilde{g}(\mathbf{\theta})}$"
+                # )
             elif "acq" == z_choice:
                 all_z_data.append(ei)
                 all_z_titles.append(r"$\Xi(\mathbf{\theta})$")
