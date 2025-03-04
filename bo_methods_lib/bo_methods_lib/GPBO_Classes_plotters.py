@@ -748,10 +748,13 @@ class Plotters:
                             data_df_j = np.log(data_df_j)
 
                         if z_choices[k] == "acq":
-                            # print(np.min(data_df_j), np.max(data_df_j))
                             miny = float(np.maximum(miny, np.min(data_df_j)))
-                            maxy = float(np.maximum(maxy, np.max(data_df_j)))
-                        print(miny, maxy, "\n")
+                        else:
+                            if np.min(data_df_j) < 0:
+                                miny = np.min(data_df_j)
+                            else:
+                                miny = float(np.maximum(miny, np.min(data_df_j)))
+                        maxy = float(np.maximum(maxy, np.max(data_df_j)))
 
                         data_train = be[j] if be is not None else data_df_j[0]
                         #duplicate the first value num_train_points times to show the number of training points
@@ -844,8 +847,9 @@ class Plotters:
                             None,
                         )
                     else:
+                        use_y = np.concatenate([np.array([miny,maxy]),[np.min(y), np.max(y)]]) if ls_xset else np.array([miny,maxy])
                         self.__set_subplot_details(
-                            ax, bo_space_org, None, x_label, rf"${data_names[k]}$", None
+                            ax, bo_space_org, use_y, x_label, rf"${data_names[k]}$", None
                         )
 
         # Get legend and handles
