@@ -1,8 +1,9 @@
 import numpy as np
 import signac
 from itertools import combinations
-from bo_methods_lib.bo_methods_lib.analyze_data import General_Analysis
+from bo_methods_lib.bo_methods_lib.analyze_data import General_Analysis, LS_Analysis
 from bo_methods_lib.bo_methods_lib.GPBO_Classes_plotters import Plotters
+from bo_methods_lib.bo_methods_lib.GPBO_Class_fxns import simulator_helper_test_fxns
 
 # Ignore warnings
 import warnings
@@ -15,12 +16,13 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 import signac
 
 meth_name_val_list = [1, 2, 3, 4, 5, 6, 7]
+tot_runs_nls = 1000
 save_csv = True  # Set to False if you don't want to save/resave csvs
 save_figs = True
 modes = ["act", "gp", "acq"]
-project = signac.get_project("GPBO_Fix")
+project = signac.get_project("GPBO_rand")
 
-for val in [15]:
+for val in [1, 11, 15, 17]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,
@@ -29,6 +31,11 @@ for val in [15]:
     }
 
     for mode in modes:
+        # simulator = simulator_helper_test_fxns(val, 0, None, 1) #This is a dummy simulator object
+        # analyzer = General_Analysis(criteria_dict, project, mode, save_csv)
+        analyzer_NLS = LS_Analysis(criteria_dict, project, save_csv)
+        plotters_NLS = Plotters(analyzer_NLS, save_figs)
+
         analyzer = General_Analysis(criteria_dict, project, mode, save_csv)
         plotters = Plotters(analyzer, save_figs)
 
@@ -56,9 +63,12 @@ for val in [15]:
         # Loop over parameter pairs
         if pairs < 3:
             for pair in range(pairs):
+                #Plot local minima for each method
+                if mode == "act":
+                    plotters_NLS.plot_local_min_hms(pair, tot_runs_nls)
                 # And all objectives
                 for z_choice in z_choices:
                     # Plot heat maps for one objective with each method in a different subplot
                     plotters.plot_hms_all_methods(
-                        pair, z_choice, levels, log_data=False
-                    )
+                            pair, z_choice, log_data=False
+                        )

@@ -1650,7 +1650,7 @@ class General_Analysis:
                 heat_map_data = heat_map_data_org
 
             # Generate heat map data and sse heat map data sim y values (noiseless)
-            heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0, 0, self.simulator.rng_set)
+            heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0, 0, simulator.rng_set)
 
             # Create sse data from regular y data
             heat_map_sse_data = simulator.sim_data_to_sse_sim_data(
@@ -3004,15 +3004,16 @@ class LS_Analysis(General_Analysis):
         -----
         If None, tot_runs will default to 5
         """
-        assert self.simulator != None, "simulator must be defined"
+        # assert self.simulator != None, "simulator must be defined"
         assert (
             isinstance(tot_runs, int) or tot_runs is None
         ), "tot_runs must be int or None"
         if isinstance(tot_runs, int):
             assert tot_runs > 0, "tot_runs must be > 0 if int"
         
-        if tot_runs is None:
+        if tot_runs is None or self.simulator is None:
             simulator, exp_data, tot_runs_cs, ftol = self.__get_simulator_exp_data()
+        if tot_runs is None:
             tot_runs = tot_runs_cs
         
         #Get local mins from NLS

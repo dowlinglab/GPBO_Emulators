@@ -1204,9 +1204,6 @@ class Plotters:
             ax[ax_row, ax_col].tick_params(axis='x', rotation=45)
             # ax[ax_row, ax_col].tick_params(axis='x', rotation=90)
 
-
-
-
         # Get legend information and make colorbar on 1st plot
         handles, labels = ax[0, 0].get_legend_handles_labels()
         if log_data is True and not need_unscale:
@@ -1244,6 +1241,17 @@ class Plotters:
         
         plt.tight_layout()
         plt.subplots_adjust(wspace=0.25,hspace=0.25)
+
+        # save or show figure
+        if self.save_figs:
+            save_path = self.analyzer.make_dir_name_from_criteria(
+            self.analyzer.criteria_dict)
+            save_path_dir = os.path.join(save_path, "line_plots", "local_min_3d")
+            save_path_to = os.path.join(save_path_dir, z_choice)
+            self.__save_fig(save_path_to)
+        else:
+            plt.show()
+            plt.close()
 
         # for axs in ax[-1]:
         #     axs.set_xlabel(xlabel, fontsize=self.other_fntsz)
@@ -1389,11 +1397,9 @@ class Plotters:
             # Create a common color normalization for all subplots
             # Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3
             if log_data == True or need_unscale or not mag_diff:
-                norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False)
-                cbar_ticks = np.linspace(vmin, vmax, self.zbins)
-                new_ticks = matplotlib.ticker.MaxNLocator(
-                    nbins=7, min_n_ticks=4
-                )  # Set up to 12 ticks
+                norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
+                cbar_ticks = np.linspace(vmin, vmax, levels) #Set 7 equally spaced ticks
+                nticks = cbar_ticks
 
             else:
                 norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
@@ -1456,18 +1462,23 @@ class Plotters:
                 # Create a common color normalization for all subplots
                 # Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3
                 if log_data == True or need_unscale or not mag_diff:
-                    norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False)
-                    locator = matplotlib.ticker.MaxNLocator(
-                        nbins=9, min_n_ticks=4
-                    )  # Set up to 12 ticks
-                    cbar_ticks = locator.tick_values(vmin, vmax)
+                    norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
+                    cbar_ticks = np.linspace(vmin, vmax, levels) #Set 7 equally spaced ticks
+                    nticks = cbar_ticks
 
                 else:
-                    norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-                    locator = matplotlib.ticker.MaxNLocator(nbins=9, min_n_ticks=4)
-                    tick_positions = locator.tick_values(np.log10(vmin), np.log10(vmax))
-                    cbar_ticks = 10**tick_positions
                     use_log10 = True
+
+                    norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
+                    cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), levels) #Set 7 equally spaced ticks
+                    #Get log10 scale bounds
+                    min_power = np.floor(np.log10(vmin))  # Round down the logarithm to get the closest power of 10
+                    max_power = np.ceil(np.log10(vmax))  # Round up the logarithm to get the closest power of 10
+                    # Create the ticks at powers of 10 within this range
+                    tick_num = int(max_power - min_power)
+                    if tick_num -2 < 3:
+                        tick_num *= 2
+                    nticks = np.logspace(min_power, max_power, tick_num + 1)
 
             # Create a colormap and colorbar for each subplot
             if log_data == True:
@@ -2389,7 +2400,7 @@ class Plotters:
                     color="blue",
                 )
 
-                # RMSE = mean_squared_error(sim_data, gp_mean, squared=False)
+                RMSE = mean_squared_error(sim_data, gp_mean, squared=False)
                 MAPD = mean_absolute_percentage_error(sim_data, gp_mean)
                 MAE = sklearn.metrics.mean_absolute_error(sim_data, gp_mean)
                 R2 = r2_score(sim_data, gp_mean)
