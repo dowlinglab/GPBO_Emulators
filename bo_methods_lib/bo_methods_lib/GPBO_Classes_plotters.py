@@ -1341,9 +1341,10 @@ class Plotters:
             MAPD = mean_absolute_percentage_error(sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten())
             if i == 0:
                 print("CS Name: ", df_best["CS Name"].values[0])
-            print(df_best["BO Method"].values[i])
-            print("MAE: ", MAE)
-            print("MAPD: ", MAPD)
+            if z_choice == "sse_mean":
+                print(df_best["BO Method"].values[i])
+                print("MAE: ", MAE)
+                print("MAPD: ", MAPD)
             theta_true = param_info_dict["true"]
             theta_opt = param_info_dict["min_sse"]
             theta_next = param_info_dict["opt_acq"]
@@ -2409,7 +2410,7 @@ class Plotters:
                     0.95,
                     0.05,
                     # "MAPD: " + "{:.2f}".format(MAPD) + "%",
-                    "MAE: " + "{:.2f}".format(MAE),
+                    "RMSE: " + "{:.2f}".format(RMSE),
                     horizontalalignment="right",  # Align text to the right
                     verticalalignment="bottom",  # Align text to the bottom
                     transform=ax.transAxes,  # Use axis coordinates (0 to 1 range)

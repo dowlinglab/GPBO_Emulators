@@ -1394,7 +1394,7 @@ class General_Analysis:
                     Gen_meth_enum(1),
                     Gen_meth_enum(2),
                     1.0,
-                    simulator.sim_seed,
+                    simulator.val_seed,
                     False,
                     x_vals = exp_data.x_vals
                 )
