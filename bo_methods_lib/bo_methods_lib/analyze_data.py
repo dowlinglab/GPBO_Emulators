@@ -1013,8 +1013,10 @@ class General_Analysis:
             ls_analyzer = LS_Analysis(self.criteria_dict, self.project, self.save_csv)
             ls_results = ls_analyzer.least_squares_analysis()
             # Make a df that is only the iters of the best run
+            #For NLS, use the higher iteration run when Min Obj is the same
+            #Since NLS has no "maximum" in these cases
             df_sorted = ls_results.sort_values(
-                by=["Min Obj Cum.", "Iter"], ascending=[True, False]
+                by=["Iter", "Min Obj Cum."], ascending=[False, True]
             )
             best_run = df_sorted["Run"].iloc[0]
             data_true = ls_results[ls_results["Run"] == best_run].copy()

@@ -1299,7 +1299,7 @@ class Plotters:
         assert isinstance(levels, (int)), "levels must be an int"
         assert isinstance(log_data, bool), "log_data must be boolean"
         assert isinstance(title, str) or title is None, "title must be a string or None"
-
+        print("Z Choice: ", z_choice)
         # Get best data for each method
         df_best, job_list_best = self.analyzer.get_best_data()
         # Back out best runs from job_list_best
@@ -1345,6 +1345,7 @@ class Plotters:
                 print(df_best["BO Method"].values[i])
                 print("MAE: ", MAE)
                 print("MAPD: ", MAPD)
+                print("Avg Gamma: ", np.mean(sim_sse_var_ei[2].flatten()/sim_sse_var_ei[1].flatten()))
             theta_true = param_info_dict["true"]
             theta_opt = param_info_dict["min_sse"]
             theta_next = param_info_dict["opt_acq"]
@@ -3014,8 +3015,13 @@ class All_CS_Plotter(Plotters):
                 4, sharex=False, sharey=True
             )
 
-        bar_size = 1 / (len(self.analyzer.cs_list) + add_value)
-        padding = 1 / (len(self.analyzer.cs_list))
+        # bar_size = 1 / (len(self.analyzer.cs_list) + add_value)
+        # padding = 1 / (len(self.analyzer.cs_list))
+        height_per_group = 1 / len(self.analyzer.cs_list)
+        bars_per_group = len(self.method_names) + add_value
+        bar_size = height_per_group/bars_per_group
+        padding = bar_size
+
 
         # Get jobs associated with the case studies given
         df_averages = self.analyzer.get_averages_best()
@@ -3131,9 +3137,10 @@ class All_CS_Plotter(Plotters):
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
         t_label_lst = [item.replace("ACN-Water", "ACN-Water VLE") for item in t_label_lst]
 
-        y_locs = np.arange(len(self.analyzer.cs_list)) * (
-            bar_size * (len(self.analyzer.cs_list)) + padding
-        )
+        # y_locs = np.arange(len(self.analyzer.cs_list)) * (
+        #     bar_size * (len(self.analyzer.cs_list)) + padding
+        # )
+        y_locs  = np.arange(len(self.analyzer.cs_list)) * (height_per_group +padding)
 
         axes = axes.flatten()
         for i in range(len(self.analyzer.meth_val_list) + add_value):
@@ -3169,12 +3176,17 @@ class All_CS_Plotter(Plotters):
 
                 if i == 0:
                     # Set plot details on last iter
+                    height_per_group = bar_size * (len(self.method_names) + add_value) + padding  # Total height of one group, including padding
+                    tick_positions = y_locs + (height_per_group / 2)  # y_locs + padding * len(self.analyzer.cs_list) / 2
+                    # Set plot details on last iter
                     self.__set_subplot_details(axes[j], None, None, titles[j])
                     axes[j].set(
-                        yticks=y_locs + padding * len(self.analyzer.cs_list) / 2,
+                        yticks= tick_positions,
                         yticklabels=t_label_lst,
                         ylim=[0 - padding, len(y_locs)],
                     )
+                    axes[j].set_ylim([0-padding, len(tick_positions)])
+                    axes[j].set_ylim(axes[j].get_ylim()[0], max(tick_positions) + height_per_group / 2)
 
         if mode == "time":
             axes[0].set_xscale("log")
