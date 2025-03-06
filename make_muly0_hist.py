@@ -29,12 +29,12 @@ simulator = simulator_helper_test_fxns(cs_name_val, noise_mean, noise_std, seed)
 num_theta_data = len(simulator.indices_to_consider)*10
 set_seed = 1 #Set set_seed to 1 for data generation
 gen_meth_x = Gen_meth_enum(gen_meth_x)
-exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x, set_seed)
-#Set simulator noise_std artifically as 5% of y_exp mean (So that noise will be set rather than trained)
-simulator.noise_std = np.abs(np.mean(exp_data.y_vals))*0.05
+exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x, None, 0.01)
+#Set simulator noise_std artifically as 1% of y_exp median (So that noise will be set rather than trained)
+simulator.noise_std = np.abs(np.median(exp_data.y_vals))*0.01
 #Note at present, training data is always the same between jobs since we set the data generation seed to 1
-all_gp_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, 1.0, seed, False)
-all_val_data = simulator.gen_sim_data(10, 10, Gen_meth_enum(1), Gen_meth_enum(1), 1.0, seed + 1, False)
+all_gp_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, 1.0, seed, False, None)
+all_val_data = simulator.gen_sim_data(10, 10, Gen_meth_enum(1), Gen_meth_enum(1), 1.0, seed + 1, False, None)
 
 
 #Scale training data if necessary
@@ -56,7 +56,7 @@ percentile_95_train = np.percentile(y[~np.isnan(y)], 95)
 percentile_95_test = np.percentile(y_test[~np.isnan(y_test)], 95)
 print(f"train 95%: {percentile_95_train}, test 95%: {percentile_95_test}")
 
-val1 = -1.5
+val1 = -1.2
 val2 = 2
 train_between = np.sum((y >= val1) & (y <= val2))
 train_proportion = train_between / len(y)
@@ -65,7 +65,7 @@ train_proportion = train_between / len(y)
 test_between = np.sum((y_test >= val1) & (y_test <= val2))
 test_proportion = test_between / len(y_test)
 
-print("Percent train/test data which fall in interval [-1.5,2]")
+print("Percent train/test data which fall in interval [-1.2,2]")
 print(train_proportion, test_proportion)
 
 # Add labels and title

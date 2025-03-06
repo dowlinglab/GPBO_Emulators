@@ -3074,8 +3074,8 @@ class LS_Analysis(General_Analysis):
             # Calculate distances between each row in GPBO and each row in ls_scl
             distances = np.linalg.norm(ls_scl - row, axis=1)
             # print(distances)
-            # If any distance is less than 0.1, there is a match
-            matched_indices = np.where(distances < 0.05)[0]   
+            # If any distance is less than 0.001, there is a match
+            matched_indices = np.where(distances < 0.001)[0]   
             #Print the matched indices
 
             if matched_indices.size > 0:
@@ -3083,10 +3083,12 @@ class LS_Analysis(General_Analysis):
                 # match_sse_vector[matched_indices] = df_GPBO_best.iloc[i]["Min Obj Act Cum"]
                 # Increment the count for each matching row in ls_scl
                 for idx in matched_indices:
+                    # print(df_GPBO_best.iloc[i]["Theta Min Obj"])
+                    # print(all_param_sets_ls[idx], "\n")
                     match_count_vector[idx] += 1
                     #fill in match_sse_vector with the sse of the matched row
                     if match_sse_vector[idx] == 0:
-                        match_sse_vector[idx] = df_GPBO_best.iloc[i]["Min Obj Act Cum"]
+                        match_sse_vector[idx] = df_GPBO_best.iloc[i]["Min Obj Act Cum"]                       
                     else:
                         match_sse_vector[idx] = np.minimum(df_GPBO_best.iloc[i]["Min Obj Act Cum"], match_sse_vector[idx])
                     # match_sse_vector[idx] = np.minimum(df_GPBO_best.iloc[i]["Min Obj Act Cum"], match_sse_vector[idx]) 

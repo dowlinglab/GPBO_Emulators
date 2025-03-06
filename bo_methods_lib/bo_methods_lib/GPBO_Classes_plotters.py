@@ -1154,14 +1154,12 @@ class Plotters:
                 offset = 0,
             )
 
-            # Create a line contour for each colormap
+            # # Create a line contour for each colormap
             if levels is not None:
                 num_levels = len(cbar_ticks)
-                # print(num_levels)
                 indices = np.linspace(0, len(cs_fig.levels) - 1, num_levels, dtype=int)
                 indices = np.unique(np.sort(indices))
                 selected_levels = cs_fig.levels[indices]
-
                 cs2_fig = ax[ax_row, ax_col].contour(
                     xx,
                     yy,
@@ -1175,7 +1173,7 @@ class Plotters:
                     zdir = "z",
                     offset = 0,
                 )
-
+            
             # plot theta frequencies
             ax[ax_row, ax_col].bar3d(thetas[0, 0]-dx/2, thetas[0, 1]-dy/2, 0, dx, dy, all_freq_data[i][0], color='green', alpha=0.4)
             if len(thetas) > 1:
@@ -1190,6 +1188,8 @@ class Plotters:
             self.__set_subplot_details(
                 ax[ax_row, ax_col], xx, yy, xlabel, ylabel, label_name, plot_z =all_freq_data[i], zlabel = zlabel
             )
+            if i == len(job_list_best) and sp_data["cs_name_val"] != 15:
+                ax[ax_row, ax_col].set_zlim(zmax=tot_runs_nls)
             
 
             if all_sp_data[0]["cs_name_val"] in [16, 17]:
@@ -1239,6 +1239,7 @@ class Plotters:
         if all_sp_data[0]["cs_name_val"] in [16, 17]:
             plot_axis_names = tuple('tau_{12}' if name == 'theta_1' else 'tau_{21}' for name in plot_axis_names)
         
+        plt.draw()
         plt.tight_layout()
         plt.subplots_adjust(wspace=0.25,hspace=0.25)
 
@@ -2324,6 +2325,9 @@ class Plotters:
                 ax.set_ylim(bottom=np.min(plot_y), top=np.max(plot_y))
 
             if plot_z is not None:
+                # if np.max(plot_z) > 10:
+                #     max_value = np.maximum(np.max(plot_z), 1000)
+                # else:
                 max_value = np.maximum(np.max(plot_z), 5)
                 ax.set_zlim(zmin=0, zmax=max_value)
             ax.set_box_aspect([1, 1, 1])
