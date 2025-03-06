@@ -5322,7 +5322,7 @@ class BO_Results:
                    list_gp_emulator_class), "entries of list list_gp_emulator_class must be Type_1_GP_Emulator or Type_2_GP_Emulator"
         assert isinstance(results_df, pd.DataFrame) or results_df is None, "results_df must be a pandas DataFrame or None"
         assert isinstance(max_ei_details_df, pd.DataFrame) or max_ei_details_df is None, "max_ei_details_df must be a pandas DataFrame or None"
-        assert isinstance(why_term, (str, int)) or why_term is None, "why_term must be a string, int, or None"
+        assert isinstance(why_term, str) or why_term is None, "why_term must be a string or None"
         assert isinstance(heat_map_data_dict, dict) or heat_map_data_dict is None, "heat_map_data_dict must be a dictionary or None"
         # Constructor method
         self.configuration = configuration
@@ -5452,27 +5452,6 @@ class GPBO_Driver:
         # This object is used for optimization
         self.__min_obj_class = None
         # self.reset_rng()
-
-    def __make_BO_results_temp(self, results_df, why_term, max_ei_details_df, list_gp_emulator_class):
-        "Makes BO results from minimum data"
-
-        # Set results for all compiled iterations for that run
-        bo_results_res = BO_Results(
-            None, None, self.exp_data, None, results_df, None, why_term, None
-        )
-
-        bo_results_GPs = BO_Results(
-            None,
-            None,
-            None,
-            list_gp_emulator_class,
-            None,
-            max_ei_details_df,
-            None,
-            None,
-        )
-        return bo_results_res, bo_results_GPs
-
 
     def __gen_emulator(self):
         """
@@ -6357,7 +6336,7 @@ class GPBO_Driver:
 
         return iter_df, iter_max_ei_terms, gp_emulator_curr
 
-    def __run_bo_to_term(self, run_num, job = None):
+    def __run_bo_to_term(self):
         """
         Runs GPBO to termination
 
@@ -6399,41 +6378,26 @@ class GPBO_Driver:
             "MSE Obj Act",
             "Time/Iter",
         ]
-
         results_df = pd.DataFrame(columns=column_names)
         max_ei_details_df = pd.DataFrame()
         list_gp_emulator_class = []
-        # Initialize count
-        obj_counter = 0
-        self.ep_bias.ep_curr = None
-
-        cond1 = len(self.gpbo_res_GP) > 0
-        cond2 = len(self.gpbo_res_GP) == run_num + 1
-        cond3 = job is not None
-
-        #Check for files in job for gpbo_res_simple and gpbo_res_GP
-        if cond1 and cond2 and cond3:
-            results_df = self.gpbo_res_simple[run_num].results_df
-            self.ep_bias.ep_curr = self.gpbo_res_simple[run_num].results_df["Exploration Bias"].iloc[-1]
-            #The obj_counter is set as why_term until termination happens
-            obj_counter = self.gpbo_res_simple[run_num].why_term
-            list_gp_emulator_class = self.gpbo_res_GP[run_num].list_gp_emulator_class
-
-        #Start at the next iteration after data ends. If no data, start at 0
-        iter_start = len(list_gp_emulator_class)
 
         # Initilize terminate flags
         acq_flag = False
         obj_flag = False
+        max_bud_flag = False
         terminate = False
 
         # Set why_term strings
         why_terms = ["acq", "obj", "max_budget"]
 
+        # Initialize count
+        obj_counter = 0
+
         # Do Bo iters while stopping criteria is not met
         while terminate == False:
             # Loop over number of max bo iters
-            for i in range(iter_start, self.cs_params.bo_iter_tot, 1):
+            for i in range(self.cs_params.bo_iter_tot):
                 # Output results of 1 bo iter and the emulator used to get the results
                 iter_df, iter_max_ei_terms, gp_emulator_class = self.__run_bo_iter(
                     i
@@ -6468,8 +6432,9 @@ class GPBO_Driver:
                     # And the improvement is defined as 0, since it must be non-negative
                     improvement = 0
 
-                # Add gp emulator data from that iteration to list (before stopping criteria)
+                # Add gp emulator data from that iteration to list
                 list_gp_emulator_class.append(gp_emulator_class)
+
                 # Call stopping criteria after 1st iteration and update improvement counter
                 # If the improvement is negligible, add to counter
                 if improvement < self.cs_params.obj_tol:
@@ -6517,23 +6482,6 @@ class GPBO_Driver:
                 # Continue if no stopping criteria are met
                 else:
                     terminate = False
-                
-                bo_results_res, bo_results_GPs = self.__make_BO_results_temp(results_df, obj_counter, max_ei_details_df, list_gp_emulator_class)
-            
-                if len(self.gpbo_res_simple) == len(self.gpbo_res_GP) != run_num + 1:
-                    self.gpbo_res_simple.append(bo_results_res)
-                    self.gpbo_res_GP.append(bo_results_GPs)
-                    print("res simp: ", len(self.gpbo_res_simple))
-                else:
-                    self.gpbo_res_simple[run_num] = bo_results_res
-                    self.gpbo_res_GP[run_num] = bo_results_GPs
-
-                #At each iteration, save to BO results as if they were results for the whole run
-                if job is not None:
-                    # Add simulator class
-                    bo_results_res.simulator_class = copy.deepcopy(self.simulator)
-                    #Save results at each iteration so that if the job takes a while it can be continued
-                    self.save_results_run(job)
 
         # Reset the index of the pandas df
         results_df = results_df.reset_index()
@@ -6587,7 +6535,7 @@ class GPBO_Driver:
 
         return results_df, max_ei_details_df, list_gp_emulator_class, why_term
 
-    def __run_bo_workflow(self, run_num, job = None):
+    def __run_bo_workflow(self):
         """
         Runs a GPBO method through all bo iterations and reports the data for that run of the method
 
@@ -6602,50 +6550,41 @@ class GPBO_Driver:
         ------
         Two instances of BO_Results are used since opening the GP files is often tedious and we may not need to open them to analyze the results
         """
-        
-        #If a results object for this run exists, load it
-        cond1 = len(self.gpbo_res_GP) > 0
-        cond2 = len(self.gpbo_res_GP) == run_num + 1
-        cond3 = job is not None
-        # cond3 = self.gpbo_res_GP[run_num].gp_emulator_class is not None
+        # Initialize gp_emualtor class
+        gp_emulator = self.__gen_emulator()
+        self.gp_emulator = gp_emulator
 
-        #If results exist for this run and is being saved, use the emulator class from the last iteration
-        if cond1 and cond2 and cond3:
-            self.gp_emulator = self.gpbo_res_GP[run_num].list_gp_emulator_class[-1]
-        #If results do not exist for this run, initialize the emulator class
-        else:
-            # Initialize gp_emualtor class
-            gp_emulator = self.__gen_emulator()
-            self.gp_emulator = gp_emulator
+        # Choose training data
+        train_data, test_data = self.gp_emulator.set_train_test_data(
+            self.cs_params.sep_fact, self.cs_params.seed
+        )
 
-            # Choose training data
-            train_data, test_data = self.gp_emulator.set_train_test_data(
-                self.cs_params.sep_fact, self.cs_params.seed
-            )
+        # print(train_data.y_vals)
+
+        # Reset ep_bias to None for each workflow restart
+        self.ep_bias.ep_curr = None
 
         ##Call bo_iter
         results_df, max_ei_details_df, list_gp_emulator_class, why_term = (
-            self.__run_bo_to_term(run_num, job)
+            self.__run_bo_to_term()
         )
 
-        # # Set results for all compiled iterations for that run
-        # bo_results_res = BO_Results(
-        #     None, None, self.exp_data, None, results_df, None, why_term, None
-        # )
+        # Set results
+        bo_results_res = BO_Results(
+            None, None, self.exp_data, None, results_df, None, why_term, None
+        )
 
-        # bo_results_GPs = BO_Results(
-        #     None,
-        #     None,
-        #     None,
-        #     list_gp_emulator_class,
-        #     None,
-        #     max_ei_details_df,
-        #     None,
-        #     None,
-        # )
-        bo_results_res, bo_results_GPs = self.__make_BO_results_temp(results_df, why_term, max_ei_details_df, list_gp_emulator_class)
+        bo_results_GPs = BO_Results(
+            None,
+            None,
+            None,
+            list_gp_emulator_class,
+            None,
+            max_ei_details_df,
+            None,
+            None,
+        )
 
-        # return bo_results_res, bo_results_GPs
         return bo_results_res, bo_results_GPs
     
     def reset_rng(self):
@@ -6657,7 +6596,7 @@ class GPBO_Driver:
         if self.simulator.sim_seed is not None:
             self.simulator.rng_set = np.random.default_rng(self.simulator.sim_seed)
     
-    def run_bo_restarts(self, job = None):
+    def run_bo_restarts(self):
         """
         Runs multiple GPBO restarts
 
@@ -6672,24 +6611,9 @@ class GPBO_Driver:
         ------
         gpbo_res_simple includes the Configuration, Simulator class, Experiment Data Results DataFrame, and termination criteria results
         """
+
         gpbo_res_simple = []
         gpbo_res_GP = []
-        run_start = 0
-
-        if job is not None:
-            #Check for files in job for gpbo_res_simple and gpbo_res_GP
-            if job.isfile("BO_Results.gz") and job.isfile("BO_Results_GPs.gz"):
-                #Load the data from the files
-                fileObj1 = gzip.open(job.fn("BO_Results.gz"), "rb")
-                gpbo_res_simple = pickle.load(fileObj1)
-                fileObj1.close()
-                fileObj2 = gzip.open(job.fn("BO_Results_GPs.gz"), "rb")
-                gpbo_res_GP = pickle.load(fileObj2)
-                fileObj2.close()
-
-        self.gpbo_res_simple = gpbo_res_simple
-        self.gpbo_res_GP = gpbo_res_GP
-        
         simulator_class = self.simulator
         configuration = {
             "DateTime String": self.cs_params.DateTime,
@@ -6715,35 +6639,28 @@ class GPBO_Driver:
             "Theta Generation Enum Value": self.gen_meth_theta.value,
         }
 
-        #If some runs have already been completed
-        if len(self.gpbo_res_simple) > 0:
-            # Check if all of the iterations of that runs have been completed 
-            if len(self.gpbo_res_GP[-1].list_gp_emulator_class) < self.cs_params.bo_iter_tot:
-                #If not, complete the last run before continuing
-                run_start = len(gpbo_res_simple) -1
-            else:
-                #If the run is complete, start from the next run
-                run_start = len(gpbo_res_simple)
-
-        #Get the seed based on the run number
-        if self.cs_params.seed is not None:
-            self.cs_params.seed += run_start
-
-        #Complete remaining runs
-        for i in range(run_start, self.cs_params.bo_run_tot, 1):
+        for i in range(self.cs_params.bo_run_tot):
             #Reset driver rng at each run to update seed for driver class
             self.reset_rng()
 
-            #Run the bo workflow and get the results
-            bo_results_res, bo_results_GPs = self.__run_bo_workflow(i, job)
+            # print("Run", i+1)
+            # print("Sim Theta: \n", self.sim_data.get_unique_theta()[0:5,:])
+            # print("Sim x: \n", np.squeeze(self.sim_data.get_unique_x()))
+            # print("Sim y: \n", self.sim_data.y_vals[0:5])
+            # print("Exp x: \n", np.squeeze(self.exp_data.x_vals.flatten()))
+            # print("Exp y: \n", self.exp_data.y_vals)
+            # print(self.rng_set.integers(0,1e8))
+            # print(self.simulator.rng_set.integers(0,1e8))
+
+            bo_results_res, bo_results_GPs = self.__run_bo_workflow()
 
             # Update the seed in configuration
             configuration["Seed"] = self.cs_params.seed
-            # Add this copy of configuration with the new seed to the bo_results
+            # Add this updated copy of configuration with the new seed to the bo_results
             bo_results_res.configuration = configuration.copy()
-            # # Add simulator class
+            # Add simulator class
             bo_results_res.simulator_class = copy.deepcopy(simulator_class)
-            # On the 1st iteration of the first run, create heat map data if we are actually generating the data
+            # On the 1st iteration, create heat map data if we are actually generating the data
             if i == 0:
                 if self.cs_params.gen_heat_map_data == True:
                     # Generate heat map data for each combination of parameter values stored in a dictionary
@@ -6751,37 +6668,53 @@ class GPBO_Driver:
                     # Save these heat map values in the bo_results object
                     # Only store in first list entry to avoid repeated data which stays the same for each iteration.
                     bo_results_GPs.heat_map_data_dict = heat_map_data_dict
-
-            #Save the results to the gpbo_res_simple and gpbo_res_GP lists
-            self.gpbo_res_simple[i] = bo_results_res
-            self.gpbo_res_GP[i] = bo_results_GPs
-
-            # #At each restart, resave gpbo_res_simple and gpbo_res_GP to the data file
-            if job is not None:
-                self.save_results_run(job)
-
+            gpbo_res_simple.append(bo_results_res)
+            gpbo_res_GP.append(bo_results_GPs)
             # Add 1 to the seed to get different seeds when the seeds are set at each restart
             if self.cs_params.seed is not None:
                 self.cs_params.seed += 1
+            
 
-        return self.gpbo_res_simple, self.gpbo_res_GP
+        return gpbo_res_simple, gpbo_res_GP
 
-    def save_results_run(self, job):
-        """
-        Defines where to save data to and saves data accordingly
+    # def save_data(self, restart_bo_results):
+    #     """
+    #     Defines where to save data to and saves data accordingly
 
-        Parameters
-        ----------
-        restart_bo_results: list of class instances of BO_results, The results of all restarts of the BO workflow for reproduction
-        """
-        ##Define a path for the data. (Use the name of the case study and date)
-        #Get Date only from DateTime String
-        savepath1 = job.fn("BO_Results.gz")
-        fileObj1 = gzip.open(savepath1, "wb", compresslevel=1)
-        pickled_results1 = pickle.dump(self.gpbo_res_simple, fileObj1)
-        fileObj1.close()
+    #     Parameters
+    #     ----------
+    #     restart_bo_results: list of class instances of BO_results, The results of all restarts of the BO workflow for reproduction
+    #     """
+    #     ##Define a path for the data. (Use the name of the case study and date)
+    #     #Get Date only from DateTime String
+    #     if self.cs_params.DateTime is not None:
+    #         #Note, This one uses / in DateTime and not -
+    #         split_date_parts = self.cs_params.DateTime.split("/")
+    #         Run_Date = "/".join(split_date_parts[:-1])
+    #     else:
+    #         Run_Date = "No_Date"
 
-        savepath2 = job.fn("BO_Results_GPs.gz")
-        fileObj2 = gzip.open(savepath2, "wb", compresslevel=2)
-        pickled_results2 = pickle.dump(self.gpbo_res_GP, fileObj2)
-        fileObj2.close()
+    #     path = Run_Date + "/" + "Data_Files/" + self.cs_params.cs_name
+
+    #     ##Create directory if it doesn't already exist
+    #     # Extract the directory and filename from the given path
+    #     directory = os.path.split(path)[0]
+    #     filename = "%s.%s" % (os.path.split(path)[1], "gz")
+    #     if directory == '':
+    #         directory = '.'
+
+    #     # If the directory does not exist, create it
+    #     if not os.path.exists(directory):
+    #         os.makedirs(directory)
+
+    #     # The final path to save to is
+    #     savepath = os.path.join(directory, filename)
+
+    #     #Open the file
+    #     fileObj = gzip.open(savepath, 'wb', compresslevel  = 1)
+
+    #     #Turn this class into a pickled object and save to the file
+    #     pickled_results = pickle.dump(restart_bo_results, fileObj)
+
+    #     # Close the file
+    #     fileObj.close()
