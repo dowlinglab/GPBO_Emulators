@@ -6511,10 +6511,12 @@ class GPBO_Driver:
                 else:
                     terminate = False
                 
-                #If we make it to saving the data for this iteration, set list_gp_emulator_class as self.GP_emulator to use the most recent seeds and errors
-                list_gp_emulator_class[-1] = self.gp_emulator
+                #Save results
+                #make a new list of emulator classes to save which includes a copy of the original list + newest GP object
+                list_emulator_class_temp = copy.deepcopy(list_gp_emulator_class.copy())
+                list_emulator_class_temp[-1] = copy.deepcopy(self.gp_emulator)
                 #Make temporary BO results for this iter
-                bo_results_res, bo_results_GPs = self.__make_BO_results_temp(results_df, obj_counter, max_ei_details_df, list_gp_emulator_class)
+                bo_results_res, bo_results_GPs = self.__make_BO_results_temp(results_df, obj_counter, max_ei_details_df, list_emulator_class_temp)
                 # Add simulator class and save the rng seeds that are being used
                 bo_results_res.simulator_class = copy.deepcopy(self.simulator)
                 bo_results_GPs.driver_rng = copy.deepcopy(self.rng_set)
