@@ -9,7 +9,7 @@ project = signac.init_project("GPBO_test")
 # Set Method and Case Study
 gp_pack = "gpflow"
 cs_val_list = [1] #See bo_methods_lib/bo_methods_lib/GPBO_Class_fxns.py for more details
-meth_val_list = [1]  # Conv, Log Conv., Ind., Log Ind., Sparse Grid, Monte Carlo, E[SSE]
+meth_val_list = [1,3,6]  # Conv, Log Conv., Ind., Log Ind., Sparse Grid, Monte Carlo, E[SSE]
 
 # Set Initial Parameters
 ep0 = 1  # Set initial ep as an even mix between exploration and exploitation
@@ -27,9 +27,9 @@ initial_seed = 1 # Initial seed for case study random number generator
 if isinstance(lenscl, list):
     lenscl = json.dumps(lenscl)
 outputscl = None #Set outputscl to None (trainable)
-retrain_GP = 5 #Retrain GP 25 times per iteration
-reoptimize_obj = 5 #Reoptimize objective optimizations 25 times per iteration
-bo_iters_tot = {1: 5,
+retrain_GP = 25 #Retrain GP 25 times per iteration
+reoptimize_obj = 25 #Reoptimize objective optimizations 25 times per iteration
+bo_iters_tot = {1: 50,
                 2: 75,
                 3: 75,
                 10: 50,
@@ -40,7 +40,7 @@ bo_iters_tot = {1: 5,
                 15: 50,
                 16: 50,
                 17: 50} #Total number of iterations
-bo_runs_total = {1: 2,
+bo_runs_total = {1: 5,
                 2: 10,
                 3: 10,
                 10: 5,
@@ -51,7 +51,7 @@ bo_runs_total = {1: 2,
                 15: 5,
                 16: 5,
                 17: 5,} #Total number of runs (restarts)
-runs_per_jobs_max = {1: 2,
+runs_per_jobs_max = {1: 1,
                 2: 1,
                 3: 1,
                 10: 1,
