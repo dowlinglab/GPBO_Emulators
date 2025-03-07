@@ -6610,12 +6610,10 @@ class GPBO_Driver:
             self.gp_emulator = self.gpbo_res_GP[run_num].list_gp_emulator_class[-1]
             self.rng_set = self.gpbo_res_GP[run_num].driver_rng
             self.simulator.rng_set = self.gpbo_res_simple[run_num].sim_rng
-
         #If results do not exist for this run, initialize the emulator class
         else:
             #Reset driver rng at each run to update seed for driver class
             self.reset_rng()
-
             # Initialize gp_emualtor class
             gp_emulator = self.__gen_emulator()
             self.gp_emulator = gp_emulator
