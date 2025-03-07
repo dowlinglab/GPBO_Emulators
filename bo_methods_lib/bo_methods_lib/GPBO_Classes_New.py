@@ -6165,11 +6165,6 @@ class GPBO_Driver:
         #Initialize the iterations seed with start_seed as a backup
         iter_seed = self.simulator.start_seed
 
-        # print("iter: ", iteration)
-        # print("driver rng: ",self.rng_set.integers(1, 1e8))
-        # print("Sim rng: ", self.simulator.rng_set.integers(1, 1e8))
-        # print("Em rng: ", self.gp_emulator.rng_set.integers(1, 1e8))
-
         #Generate a random number for the seed to generate initial LHS samples with that is not the same as the sim or val seeds 
         if self.cs_params.seed is not None:
             for i in range(10):
@@ -6179,20 +6174,14 @@ class GPBO_Driver:
                     break
         else:
             iter_seed = None
-
-        # print("iteration: ",iteration)
-        # print("start iter seed", iter_seed)
         
         time_start = time.time()
 
         # Train GP model (this step updates the model to a trained model)
         self.gp_emulator.train_gp()
 
-        # print(self.gp_emulator.trained_hyperparams)
-
         # Calcuate best error
         best_err_data, best_error_metrics = self.__get_best_error()
-        # print(best_error_metrics[0])
 
         # Add not log best error to ep_bias
         if iteration == 0 or self.ep_bias.ep_enum.value == 4:
@@ -6227,7 +6216,6 @@ class GPBO_Driver:
 
         # Set Optimization starting points for this iteration
         self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics, iter_seed)
-        print(self.opt_start_pts[0:5])
 
         # Call optimize E[SSE] or log(E[SSE]) objective function
         # Note if we didn't want actual sse values, we would have to set get_y = False in create_data_instance_from_theta in __opt_with_scipy
@@ -6280,9 +6268,6 @@ class GPBO_Driver:
             min_sse_theta_data = min_theta_data
             acq_sse_theta_data = acq_theta_data
 
-        # print(acq_sse_theta_data.y_vals)
-        # print(acq_sse_theta_data.theta_vals)
-
         # Evaluate max EI terms at theta
         if self.cs_params.save_data and not self.method.method_name.value == 7:
             ei_max, iter_max_ei_terms = self.gp_emulator.eval_ei_misc(*ei_args)
@@ -6307,8 +6292,7 @@ class GPBO_Driver:
 
         # Call __augment_train_data to append training data
         self.__augment_train_data(acq_theta_data)
-        # print(acq_theta_data.y_vals)
-        # print(self.gp_emulator.train_data.get_unique_theta())
+
 
         # Calc time/ iter
         time_end = time.time()
@@ -6547,10 +6531,6 @@ class GPBO_Driver:
                 #Save results
                 if job is not None:
                     self.save_results_run(job)
-
-
-                # if i == iter_start + 2:
-                #     raise ValueError("Test error")
                 
         # Reset the index of the pandas df
         results_df = results_df.reset_index()
@@ -6624,19 +6604,18 @@ class GPBO_Driver:
         cond1 = len(self.gpbo_res_GP) > 0
         cond2 = len(self.gpbo_res_GP) == run_num + 1
         cond3 = job is not None
-        # cond3 = self.gpbo_res_GP[run_num].gp_emulator_class is not None
 
         #If results exist for this run and is being saved, use the emulator class from the last iteration
         if cond1 and cond2 and cond3:
             self.gp_emulator = self.gpbo_res_GP[run_num].list_gp_emulator_class[-1]
             self.rng_set = self.gpbo_res_GP[run_num].driver_rng
             self.simulator.rng_set = self.gpbo_res_simple[run_num].sim_rng
-            # print("rng from old")
+
         #If results do not exist for this run, initialize the emulator class
         else:
             #Reset driver rng at each run to update seed for driver class
             self.reset_rng()
-            # print("rng reset")
+
             # Initialize gp_emualtor class
             gp_emulator = self.__gen_emulator()
             self.gp_emulator = gp_emulator
@@ -6652,20 +6631,6 @@ class GPBO_Driver:
         )
 
         # # Set results for all compiled iterations for that run
-        # bo_results_res = BO_Results(
-        #     None, None, self.exp_data, None, results_df, None, why_term, None
-        # )
-
-        # bo_results_GPs = BO_Results(
-        #     None,
-        #     None,
-        #     None,
-        #     list_gp_emulator_class,
-        #     None,
-        #     max_ei_details_df,
-        #     None,
-        #     None,
-        # )
         bo_results_res, bo_results_GPs = self.__make_BO_results_temp(results_df, why_term, max_ei_details_df, list_gp_emulator_class)
 
         # return bo_results_res, bo_results_GPs
