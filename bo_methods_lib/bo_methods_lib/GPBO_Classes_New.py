@@ -6164,6 +6164,12 @@ class GPBO_Driver:
         
         #Initialize the iterations seed with start_seed as a backup
         iter_seed = self.simulator.start_seed
+
+        # print("iter: ", iteration)
+        # print("driver rng: ",self.rng_set.integers(1, 1e8))
+        # print("Sim rng: ", self.simulator.rng_set.integers(1, 1e8))
+        # print("Em rng: ", self.gp_emulator.rng_set.integers(1, 1e8))
+
         #Generate a random number for the seed to generate initial LHS samples with that is not the same as the sim or val seeds 
         if self.cs_params.seed is not None:
             for i in range(10):
@@ -6174,6 +6180,7 @@ class GPBO_Driver:
         else:
             iter_seed = None
 
+        # print("iteration: ",iteration)
         # print("start iter seed", iter_seed)
         
         time_start = time.time()
@@ -6185,6 +6192,7 @@ class GPBO_Driver:
 
         # Calcuate best error
         best_err_data, best_error_metrics = self.__get_best_error()
+        # print(best_error_metrics[0])
 
         # Add not log best error to ep_bias
         if iteration == 0 or self.ep_bias.ep_enum.value == 4:
@@ -6219,6 +6227,7 @@ class GPBO_Driver:
 
         # Set Optimization starting points for this iteration
         self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics, iter_seed)
+        print(self.opt_start_pts[0:5])
 
         # Call optimize E[SSE] or log(E[SSE]) objective function
         # Note if we didn't want actual sse values, we would have to set get_y = False in create_data_instance_from_theta in __opt_with_scipy
@@ -6518,23 +6527,31 @@ class GPBO_Driver:
                 else:
                     terminate = False
                 
+                #If we make it to saving the data for this iteration, set list_gp_emulator_class as self.GP_emulator to use the most recent seeds and errors
+                list_gp_emulator_class[-1] = self.gp_emulator
+                #Make temporary BO results for this iter
                 bo_results_res, bo_results_GPs = self.__make_BO_results_temp(results_df, obj_counter, max_ei_details_df, list_gp_emulator_class)
-            
+                # Add simulator class and save the rng seeds that are being used
+                bo_results_res.simulator_class = copy.deepcopy(self.simulator)
+                bo_results_GPs.driver_rng = copy.deepcopy(self.rng_set)
+                bo_results_res.sim_rng = copy.deepcopy(self.simulator.rng_set)
+                
+                #Save results at each iteration so that if the job takes a while it can be continued
                 if len(self.gpbo_res_simple) == len(self.gpbo_res_GP) != run_num + 1:
                     self.gpbo_res_simple.append(bo_results_res)
                     self.gpbo_res_GP.append(bo_results_GPs)
-                    print("res simp: ", len(self.gpbo_res_simple))
                 else:
                     self.gpbo_res_simple[run_num] = bo_results_res
                     self.gpbo_res_GP[run_num] = bo_results_GPs
 
-                #At each iteration, save to BO results as if they were results for the whole run
+                #Save results
                 if job is not None:
-                    # Add simulator class
-                    bo_results_res.simulator_class = copy.deepcopy(self.simulator)
-                    #Save results at each iteration so that if the job takes a while it can be continued
                     self.save_results_run(job)
 
+
+                # if i == iter_start + 2:
+                #     raise ValueError("Test error")
+                
         # Reset the index of the pandas df
         results_df = results_df.reset_index()
 
@@ -6612,8 +6629,14 @@ class GPBO_Driver:
         #If results exist for this run and is being saved, use the emulator class from the last iteration
         if cond1 and cond2 and cond3:
             self.gp_emulator = self.gpbo_res_GP[run_num].list_gp_emulator_class[-1]
+            self.rng_set = self.gpbo_res_GP[run_num].driver_rng
+            self.simulator.rng_set = self.gpbo_res_simple[run_num].sim_rng
+            # print("rng from old")
         #If results do not exist for this run, initialize the emulator class
         else:
+            #Reset driver rng at each run to update seed for driver class
+            self.reset_rng()
+            # print("rng reset")
             # Initialize gp_emualtor class
             gp_emulator = self.__gen_emulator()
             self.gp_emulator = gp_emulator
@@ -6678,11 +6701,14 @@ class GPBO_Driver:
 
         if job is not None:
             #Check for files in job for gpbo_res_simple and gpbo_res_GP
+            # if os.path.exists("BO_Results.gz") and os.path.exists("BO_Results_GPs.gz"):
             if job.isfile("BO_Results.gz") and job.isfile("BO_Results_GPs.gz"):
                 #Load the data from the files
                 fileObj1 = gzip.open(job.fn("BO_Results.gz"), "rb")
+                # fileObj1 = gzip.open("BO_Results.gz", "rb")
                 gpbo_res_simple = pickle.load(fileObj1)
                 fileObj1.close()
+                # fileObj2 = gzip.open("BO_Results_GPs.gz", "rb")
                 fileObj2 = gzip.open(job.fn("BO_Results_GPs.gz"), "rb")
                 gpbo_res_GP = pickle.load(fileObj2)
                 fileObj2.close()
@@ -6731,9 +6757,6 @@ class GPBO_Driver:
 
         #Complete remaining runs
         for i in range(run_start, self.cs_params.bo_run_tot, 1):
-            #Reset driver rng at each run to update seed for driver class
-            self.reset_rng()
-
             #Run the bo workflow and get the results
             bo_results_res, bo_results_GPs = self.__run_bo_workflow(i, job)
 
