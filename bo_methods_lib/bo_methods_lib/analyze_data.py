@@ -2660,14 +2660,14 @@ class LS_Analysis(General_Analysis):
             1,
         )
         # Calculate y values and sse for theta_best with noise
-        # theta_guess_data.y_vals = simulator.gen_y_data(
-        #     theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.rng_set
-        # )
+        theta_guess_data.y_vals = simulator.gen_y_data(
+            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.rng_set
+        )
 
         #Calculate y values and sse for theta_best without noise
-        theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
-        )
+        # theta_guess_data.y_vals = simulator.gen_y_data(
+        #     theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
+        # )
 
         # theta_guess_no_noise = simulator.gen_y_data(
         #     theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
@@ -2678,9 +2678,14 @@ class LS_Analysis(General_Analysis):
         #     print("Sim Seed", simulator.sim_seed)
         #     print("Theta Guess", theta_guess)
         #     print("Theta guess y", theta_guess_data.y_vals)
-            # print("T Guess no noise", theta_guess_no_noise)
+        #     print("T Guess no noise", theta_guess_no_noise)
 
         error = exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten()
+
+        # if self.iter_count == 0:
+        #     erra = exp_data.y_vals.flatten() - theta_guess_no_noise.flatten()
+        #     print("Error", error)
+        #     print(" Error no noise", erra)
 
         # Append intermediate values to list
         self.iter_param_data.append(theta_guess)
@@ -2701,7 +2706,7 @@ class LS_Analysis(General_Analysis):
         self.iter_l2_norm.append(float(theta_l2_norm))
         self.iter_count += 1
 
-        return error
+        return error #np.sum(error**2)
 
     def __get_simulator_exp_data(self):
         """
@@ -2905,11 +2910,25 @@ class LS_Analysis(General_Analysis):
                     verbose=0,
                     ftol=ftol,
                 )
+
+                # Solution = optimize.minimize(
+                #     self.__ls_scipy_func,
+                #     theta_guess[i],
+                #     jac="3-point",
+                #     bounds=simulator.bounds_theta_reg.T,
+                #     method="Nelder-Mead",
+                #     args=(self.exp_data, self.simulator),
+                # )
+
+                # Solution = optimize.shgo(
+                #         lambda theta_guess: self.__ls_scipy_func(theta_guess, self.exp_data, self.simulator),
+                #         bounds = self.simulator.bounds_theta_reg.T,
+                #         sampling_method="sobol",
+                #     )
+
                 # End timer and calculate total run time
                 time_end = time.time()
                 time_per_run = time_end - time_start
-                # Get sse_min from cost
-                sse_min = 2 * Solution.cost
 
                 # Get list of iteration, sse, and parameter data
                 iter_list = np.array(range(self.iter_count)) + 1
@@ -3056,7 +3075,6 @@ class LS_Analysis(General_Analysis):
         scaler.fit([theta_bounds[0], theta_bounds[1]])
         all_param_sets_GPBO = np.array(list(map(np.array, df_GPBO_best["Theta Obj Act Cum"].apply(self.str_to_array_df_col))))
         all_param_sets_ls = np.array(list(map(np.array, df_ls["Theta Min Obj Cum."].apply(self.str_to_array_df_col))))
-
         GPBO_scl = scaler.transform(all_param_sets_GPBO)
         ls_scl = scaler.transform(all_param_sets_ls)
         #Initialize a boolean array to keep track of unique sets

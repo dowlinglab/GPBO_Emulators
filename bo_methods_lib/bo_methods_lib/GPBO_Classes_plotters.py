@@ -2460,14 +2460,15 @@ class Plotters:
 
         return
     
-    def hist_categ_min(self, tot_runs, w_gpbo=True, w_gpbo_sse=False):
+    def hist_categ_min(self, tot_runs, w_gpbo=True, w_gpbo_sse=False, meth_list = [4,7]):
         """
         Creates objective and parameter histograms for the minima found by least squares"""
 
+        meth_list = [self.method_names[val - 1] for val in meth_list]
         if not w_gpbo:
             local_min_sets = self.analyzer.categ_min(tot_runs)
         else:
-            local_min_sets, gpbo_runs = self.analyzer.compare_min(tot_runs)
+            local_min_sets, gpbo_runs = self.analyzer.compare_min(tot_runs, meth_list = meth_list)
         cs_name_dict = {key: self.analyzer.criteria_dict[key] for key in ["cs_name_val"]}
 
         add_gp = "gpbo_" if w_gpbo is True else ""
@@ -2484,13 +2485,13 @@ class Plotters:
         closest_index = np.argmin(distances)
 
         #Get % local minima found
-        percent_local_min = 100*(sum(local_min_sets['Num Occurrences'])/tot_runs)
-        text_str = "NLS local min found " + f"{percent_local_min:.0f}" + " % of the time"
+        percent_local_min = 100*(local_min_sets['Num Occurrences'].iloc[0]/tot_runs)
+        text_str = "NLS true min found " + f"{percent_local_min:.0f}" + " % of the time"
 
         if w_gpbo is True:
             theta_counts2 = local_min_sets["GPBO Matches"].values
-            percent_local_min2 = 100*(sum(theta_counts2)/gpbo_runs)
-            text_str2 = "GPBO local min found " + f"{percent_local_min2:.0f}" + " % of the time"
+            percent_local_min2 = 100*(theta_counts2[0]/gpbo_runs)
+            text_str2 = "GPBO true min found " + f"{percent_local_min2:.0f}" + " % of the time"
         
         #Get theta labels, bolding the one closest to theta_true
         theta_labels = np.vectorize(lambda val: f"{val:.2g}")(unique_theta)
@@ -2509,7 +2510,7 @@ class Plotters:
         ax[0].bar(theta_indices, theta_counts, alpha=0.7, edgecolor="black", label = "NLS")
         if w_gpbo is True:
             ax[0].bar(theta_indices, theta_counts2, alpha=0.7, edgecolor="black", label = "GPBO")
-            ax[0].text(0.95, 0.85, text_str2, transform=ax[0].transAxes,
+            ax[0].text(0.95, 0.80, text_str2, transform=ax[0].transAxes,
                 fontsize=12, verticalalignment='top', horizontalalignment='right',
                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='black', boxstyle='round,pad=0.5'))
         ax[0].set_xticks(theta_indices)
