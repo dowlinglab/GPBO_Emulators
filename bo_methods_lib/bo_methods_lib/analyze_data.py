@@ -1016,7 +1016,7 @@ class General_Analysis:
             #For NLS, use the higher iteration run when Min Obj is the same
             #Since NLS has no "maximum" in these cases
             df_sorted = ls_results.sort_values(
-                by=["Iter", "Min Obj Cum."], ascending=[False, True]
+                by=["Min Obj Cum.", "Iter"], ascending=[True, False]
             )
             best_run = df_sorted["Run"].iloc[0]
             data_true = ls_results[ls_results["Run"] == best_run].copy()
