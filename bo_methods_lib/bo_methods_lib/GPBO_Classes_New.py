@@ -6681,7 +6681,7 @@ class GPBO_Driver:
         self.gpbo_res_simple = gpbo_res_simple
         self.gpbo_res_GP = gpbo_res_GP
         
-        simulator_class = self.simulator
+        simulator_class = copy.deepcopy(self.simulator)
         configuration = {
             "DateTime String": self.cs_params.DateTime,
             "Method Name Enum Value": self.method.method_name.value,
@@ -6729,8 +6729,8 @@ class GPBO_Driver:
             configuration["Seed"] = self.cs_params.seed
             # Add this copy of configuration with the new seed to the bo_results
             bo_results_res.configuration = configuration.copy()
-            # # Add simulator class
-            bo_results_res.simulator_class = copy.deepcopy(simulator_class)
+            # # Add simulator class before any changes were made to the rng
+            bo_results_res.simulator_class = simulator_class
             # On the 1st iteration of the first run, create heat map data if we are actually generating the data
             if i == 0:
                 if self.cs_params.gen_heat_map_data == True:
