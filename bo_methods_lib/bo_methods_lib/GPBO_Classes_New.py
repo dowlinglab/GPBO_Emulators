@@ -513,7 +513,7 @@ class Simulator:
         noise_mean: float, int
             The mean of the noise
         noise_std: float, int, or None
-            The standard deviation of the noise. If None, 5% of mean of Y-exp will be used
+            The standard deviation of the noise. If None, 1% of median of Y-exp will be used
         set_seed: int or None
             Determines seed for randomizations. None if seed is random
         calc_y_fxn: function
@@ -798,10 +798,10 @@ class Simulator:
         # If noise is none
         if noise_std is None:
             # Set the noise as 1% of the median as a default. 
-            if np.median(y_data) != 0:
+            if not math.isclose(np.median(y_data),0):
                 noise_std = np.abs(np.median(y_data)) * noise_std_pct
             #If the median value is 0, use 1% of the mean as the default.
-            elif np.mean(y_data) != 0:
+            elif not math.isclose(np.mean(y_data),0):
                 noise_std = np.abs(np.mean(y_data)) * noise_std_pct
             #If both values are zero, Use 1% of the abs max value
             else:
@@ -1771,8 +1771,13 @@ class GP_Emulator:
             noise_guess = float((self.noise_std / sclr) ** 2)
 
         else:
-            # Otherwise, set the guess as 5% the taining data median
-            data_mean = np.abs(np.median(self.gp_sim_data.y_vals))
+            # Otherwise, set the guess as 1% the taining data median
+            if not math.isclose(np.median(self.gp_sim_data.y_vals),0):
+                data_mean = np.abs(np.median(self.gp_sim_data.y_vals))
+            elif not math.isclose(np.mean(self.gp_sim_data.y_vals),0):
+                data_mean = np.abs(np.mean(self.gp_sim_data.y_vals))
+            else:
+                data_mean = np.max(np.abs(self.gp_sim_data.y_vals))
             noise_guess = np.float64(data_mean * 0.01 / sclr) ** 2
 
         if not lb < noise_guess < ub:
@@ -6719,15 +6724,15 @@ class GPBO_Driver:
 
         if job is not None:
             #Check for files in job for gpbo_res_simple and gpbo_res_GP
-            if os.path.exists("BO_Results.gz") and os.path.exists("BO_Results_GPs.gz"):
-            # if job.isfile("BO_Results.gz") and job.isfile("BO_Results_GPs.gz"):
+            # if os.path.exists("BO_Results.gz") and os.path.exists("BO_Results_GPs.gz"):
+            if job.isfile("BO_Results.gz") and job.isfile("BO_Results_GPs.gz"):
                 #Load the data from the files
-                # fileObj1 = gzip.open(job.fn("BO_Results.gz"), "rb")
-                fileObj1 = gzip.open("BO_Results.gz", "rb")
+                fileObj1 = gzip.open(job.fn("BO_Results.gz"), "rb")
+                # fileObj1 = gzip.open("BO_Results.gz", "rb")
                 gpbo_res_simple = pickle.load(fileObj1)
                 fileObj1.close()
-                fileObj2 = gzip.open("BO_Results_GPs.gz", "rb")
-                # fileObj2 = gzip.open(job.fn("BO_Results_GPs.gz"), "rb")
+                fileObj2 = gzip.open(job.fn("BO_Results_GPs.gz"), "rb")
+                # fileObj2 = gzip.open("BO_Results_GPs.gz", "rb")
                 gpbo_res_GP = pickle.load(fileObj2)
                 fileObj2.close()
 
@@ -6819,14 +6824,14 @@ class GPBO_Driver:
         """
         ##Define a path for the data. (Use the name of the case study and date)
         #Get Date only from DateTime String
-        # savepath1 = job.fn("BO_Results.gz")
-        savepath1 = "BO_Results.gz"
+        savepath1 = job.fn("BO_Results.gz")
+        # savepath1 = "BO_Results.gz"
         fileObj1 = gzip.open(savepath1, "wb", compresslevel=1)
         pickled_results1 = pickle.dump(self.gpbo_res_simple, fileObj1)
         fileObj1.close()
 
-        # savepath2 = job.fn("BO_Results_GPs.gz")
-        savepath2 = "BO_Results_GPs.gz"
+        savepath2 = job.fn("BO_Results_GPs.gz")
+        # savepath2 = "BO_Results_GPs.gz"
         fileObj2 = gzip.open(savepath2, "wb", compresslevel=2)
         pickled_results2 = pickle.dump(self.gpbo_res_GP, fileObj2)
         fileObj2.close()
