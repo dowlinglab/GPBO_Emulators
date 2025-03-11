@@ -207,8 +207,8 @@ def run_ep_or_sf_exp(job):
         job.sp.save_data,
         None,
         job.sp.seed,
-        job.sp.ei_tol,
         job.sp.obj_tol,
+        job.sp.ei_tol,
     )
     # Initialize driver class
     driver = GPBO_Driver(

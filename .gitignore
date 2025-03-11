@@ -6,6 +6,7 @@
 Results_*
 GPBO_rand*
 GPBO_test*
+GPBO_nonoise*
 GPBO_Fix/workspace
 GPBO_Fix/.signac
 GPBO_Fix/signac_project_document.json
