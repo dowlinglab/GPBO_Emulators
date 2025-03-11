@@ -2,6 +2,7 @@ import numpy as np
 import random
 from numpy.random import default_rng
 import warnings
+from datetime import datetime
 
 np.warnings = warnings
 import math
@@ -273,61 +274,67 @@ class CaseStudyParameters:
 
     def __init__(
         self,
-        cs_name,
-        ep0,
-        sep_fact,
-        normalize,
-        kernel,
-        lenscl,
-        outputscl,
-        retrain_GP,
-        reoptimize_obj,
-        gen_heat_map_data,
-        bo_iter_tot,
-        bo_run_tot,
-        save_data,
-        DateTime,
-        set_seed,
-        obj_tol,
-        acq_tol,
+        cs_name = "New_Case_Study", #Initialize Name
+        ep0 = 1.0, 
+        sep_fact = 1.0,
+        normalize = True,
+        kernel =  Kernel_enum(1),
+        lenscl = None,
+        outputscl = None,
+        retrain_GP = 25,
+        reoptimize_obj = 25,
+        gen_heat_map_data = False,
+        bo_iter_tot = 10,
+        bo_run_tot = 1,
+        save_data = False,
+        DateTime = None,
+        set_seed = 1,
+        obj_tol = 1e-7,
+        acq_tol = 1e-7,
+        get_y_sse = False,
+        w_noise = False,
     ):
         """
         Parameters
         ----------
-        cs_name: string
+        cs_name: string, default "New_Case_Study"
             The name associated with the case study being evaluated
-        ep0: float or int
+        ep0: float or int, default 1.0
             The starting value for exploration bias parameter alpha
-        sep_fact: float or int
+        sep_fact: float or int, default 1.0
             The separation factor that decides what percentage of data will be training data. Between 0 and 1.
-        normalize: bool
+        normalize: bool, default True
             Determines whether feature data will be standardized (using sklearn RobustScaler)
-        kernel: Kernel_enum
+        kernel: Kernel_enum, default Kernel_enum(3) (RBF Kernel)
             Determines which GP Kerenel to use
-        lenscl: float, np.ndarray, or None
+        lenscl: float, np.ndarray, or None, default None
             Value of the lengthscale hyperparameter - None if hyperparameters will be trained
-        outputscl: float or None
+        outputscl: float or None, default None
             Determines value of outputscale - None if hyperparameters will be updated during training
-        retrain_GP: int
+        retrain_GP: int, default 25
             Number of times to (re)do GP training. Note, if zero, GP will not be trained at all and default/initial hyperparameters will be used
-        reoptimize_obj: int
+        reoptimize_obj: int, default 25
             Number of times to reoptimize ei/sse with different starting values. Note, 0 = 1 optimization
-        gen_heat_map_data: bool
+        gen_heat_map_data: bool, default False
             Determines whether validation data are generated to create heat maps
-        bo_iter_tot: int
+        bo_iter_tot: int, default 10
             Maximum number of BO iterations per restart
-        bo_run_tot: int
+        bo_run_tot: int, default 1
             Total number of BO algorithm restarts
-        save_data: bool
+        save_data: bool, default False
             Determines whether ei data for argmax(ei) theta will be saved
-        DateTime: str or None
+        DateTime: str or None, default None (current date and time)
             Determines the date and time for the run
-        set_seed: int or None
+        set_seed: int or None, default 1
             Determines seed for randomizations. None if seed is random
-        obj_tol: float
+        obj_tol: float, default 1e-7
             Objective difference at which to terminate algorithm (rho_1)
-        acq_tol: float
+        acq_tol: float, default 1e-7
             Acquisition function value at which to terminate algorithm (rho_2)
+        get_y_sse: bool, default False
+            Determines whether to calculate the simulated y value when SSE is locally minimized
+        w_noise: bool, default False
+            Determines whether to include noise in the simulation data
 
         Raises
         ------
@@ -383,6 +390,9 @@ class CaseStudyParameters:
         if isinstance(lenscl, list):
             lenscl = np.array(lenscl)
 
+        assert isinstance(get_y_sse, bool), "get_y_sse must be bool"
+        assert isinstance(w_noise, bool), "w_noise must be bool"
+
         assert (
             isinstance(lenscl, (float, int, np.ndarray)) or lenscl is None
         ), "lenscl must be float, int, np.ndarray, or None"
@@ -420,6 +430,9 @@ class CaseStudyParameters:
             isinstance(obj_tol, (float, int)) and obj_tol >= 0
         ), "obj_tol must be a positive float or integer"
 
+        if DateTime is None:
+            DateTime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         # Constructor method
         # Ensure name is a string
         if isinstance(cs_name, Enum) == True:
@@ -442,6 +455,8 @@ class CaseStudyParameters:
         self.seed = set_seed
         self.acq_tol = acq_tol
         self.obj_tol = obj_tol
+        self.get_y_sse = get_y_sse
+        self.w_noise = w_noise
 
 
 class Simulator:
@@ -780,9 +795,19 @@ class Simulator:
         y_data = np.array(y_data).flatten()
 
         # Creates noise values with a certain stdev and mean from a normal distribution
+        # If noise is none
         if noise_std is None:
-            # If noise is none, set the noise as 5% of the mean value
-            noise_std = np.abs(np.median(y_data)) * noise_std_pct
+            # Set the noise as 1% of the median as a default. 
+            if np.median(y_data) != 0:
+                noise_std = np.abs(np.median(y_data)) * noise_std_pct
+            #If the median value is 0, use 1% of the mean as the default.
+            elif np.mean(y_data) != 0:
+                noise_std = np.abs(np.mean(y_data)) * noise_std_pct
+            #If both values are zero, Use 1% of the abs max value
+            else:
+                noise_std = np.max(np.abs(y_data)) * noise_std_pct
+            #Set temp noise to the noise value that was just generated. This value is only used if gen_exp_data is called
+            self.temp_noise = noise_std
         else:
             noise_std = noise_std
 
@@ -864,6 +889,10 @@ class Simulator:
         #We will always use the set_rng for data generation
         exp_data.y_vals = self.gen_y_data(exp_data, self.noise_mean, self.noise_std, self.rng_exp, noise_std_pct = noise_std_pct)
 
+        #Set simulator noise after exp_data is generated if self.noise_std is None
+        if self.noise_std == None:
+            self.noise_std = self.temp_noise
+
         return exp_data
 
     def gen_sim_data(
@@ -876,6 +905,7 @@ class Simulator:
         set_seed = None,
         gen_val_data=False,
         x_vals = None,
+        w_noise = False,
     ):
         """
         Generates simulated data in an instance of the Data class
@@ -898,6 +928,8 @@ class Simulator:
             Whether validation data (no y vals) or simulation data (has y vals) will be generated
         x_vals: np.ndarray or None, default None
             X values to use for simulation data. If None, x_vals will be generated based on bounds and num_x_data
+        w_noise: bool, default False
+            Whether to generate data with noise
 
         Returns
         --------
@@ -1001,8 +1033,12 @@ class Simulator:
         sim_data.x_vals = np.vstack([x_data] * repeat_x)
 
         # Add y_vals for sim_data
-        # Training data should be generated with the same mean and variance as the experimental data
-        sim_data.y_vals = self.gen_y_data(sim_data, self.noise_mean, self.noise_std, rng)
+        if w_noise == False:
+            #Default to noiseless training data
+            sim_data.y_vals = self.gen_y_data(sim_data, self.noise_mean, 0, rng)
+        else:
+            # Generate train data with noise if some noise is specified
+            sim_data.y_vals = self.gen_y_data(sim_data, self.noise_mean, self.noise_std, rng)
 
         return sim_data
 
@@ -1117,7 +1153,7 @@ class Simulator:
             sep_fact,
         )
 
-        if y_to_sse == False:
+        if y_to_sse == False and sim_data.y_vals is not None:
             # Define all y_sims
             y_sim = sim_data.y_vals
 
@@ -4658,16 +4694,10 @@ class Expected_Improvement:
                 bound_upper = np.maximum(bound_a, bound_b)
 
                 # Calculate EI
-                # print(gp_mean_val)
-                # print(pred_stdev_val)
-                # print(y_target_val)
-                # print(self.ep_bias.ep_curr)
-                # print(best_errors_x)
                 args = (gp_mean_val, pred_stdev_val, y_target_val, self.ep_bias.ep_curr)
                 ei_term_1 = (best_errors_x * self.ep_bias.ep_curr) * (
                     norm.cdf(bound_upper) - norm.cdf(bound_lower)
                 )
-                # print(ei_term_1)
                 ei_term_2_out = np.array(
                     [
                         integrate.quad(
@@ -5489,7 +5519,7 @@ class GPBO_Driver:
             all_val_data = self.val_sse_data
             k = np.maximum(self.exp_data.get_num_x_vals() - 1, 1)
             # If using objective sse use var of a chi^2 distribution (2k)
-            if not self.method.obj.value == 2:
+            if not self.method.obj.value == 2 and self.simulator.noise_std is not None:
                 noise_scl_fact = np.sqrt(2 * k)
                 noise_std = self.simulator.noise_std * noise_scl_fact
             # If using objective ln(sse) guess the noise std
@@ -5690,7 +5720,7 @@ class GPBO_Driver:
 
         return starting_pts
 
-    def __opt_with_scipy(self, opt_obj):
+    def __opt_with_scipy(self, opt_obj, get_y = False, w_noise = False):
         """
         Optimizes a function with scipy.optimize
 
@@ -5698,6 +5728,10 @@ class GPBO_Driver:
         ----------
         opt_obj: str
             Which objective to calculate. neg_ei, E[SSE], or SSE
+        get_y: bool, default False
+            Whether to return the y values of the optimized theta
+        w_noise: bool, default False
+            Whether to return the y values with noise
 
         Returns
         --------
@@ -5759,9 +5793,10 @@ class GPBO_Driver:
         best_class = self.__min_obj_class
 
         best_class_simple = self.create_data_instance_from_theta(
-            self.__min_obj_class.theta_vals[0]
+            self.__min_obj_class.theta_vals[0], get_y=get_y, w_noise=w_noise
         )
-        best_class.y_vals = best_class_simple.y_vals
+        if get_y:
+            best_class.y_vals = best_class_simple.y_vals
 
         return best_val, best_class
 
@@ -6075,7 +6110,7 @@ class GPBO_Driver:
         # Augment training theta, x, and y/sse data
         self.gp_emulator.add_next_theta_to_train_data(theta_best_data)
 
-    def create_data_instance_from_theta(self, theta_array, get_y=True):
+    def create_data_instance_from_theta(self, theta_array, get_y=True, w_noise = False):
         """
         Creates instance of Data from an np.ndarray parameter set
 
@@ -6085,6 +6120,8 @@ class GPBO_Driver:
             Array of parameter values to turn into an instance of Data
         get_y: bool, default True
             Whether to calculate y values for theta_array
+        w_noise: bool, default False
+            Whether to add noise to the y values
 
         Returns
         --------
@@ -6124,10 +6161,16 @@ class GPBO_Driver:
             self.cs_params.sep_fact,
         )
         if get_y:
-            # Calculate y values and sse for theta_best with noise
-            theta_arr_data.y_vals = self.simulator.gen_y_data(
-                theta_arr_data, self.simulator.noise_mean, self.simulator.noise_std, rng
-            )
+            if w_noise:
+                # Calculate y values and sse for theta_best with noise
+                theta_arr_data.y_vals = self.simulator.gen_y_data(
+                    theta_arr_data, self.simulator.noise_mean, self.simulator.noise_std, rng
+                )
+            else:
+                # Calculate y values and sse for theta_best without noise
+                theta_arr_data.y_vals = self.simulator.gen_y_data(
+                    theta_arr_data, self.simulator.noise_mean, 0, rng
+                )
 
         # Set the best data to be in sse form if using a type 1 GP
         if self.method.emulator == False:
@@ -6218,12 +6261,12 @@ class GPBO_Driver:
         self.opt_start_pts = self.__make_starting_opt_pts(best_error_metrics, iter_seed)
 
         # Call optimize E[SSE] or log(E[SSE]) objective function
-        # Note if we didn't want actual sse values, we would have to set get_y = False in create_data_instance_from_theta in __opt_with_scipy
-        min_sse, min_theta_data = self.__opt_with_scipy("sse")
+        # Note if we didn't want actual sse values, we would have to set get_y_sse = False
+        min_sse, min_theta_data = self.__opt_with_scipy("sse", get_y = self.cs_params.get_y_sse, w_noise = self.cs_params.w_noise)
 
         # Call optimize EI acquistion fxn (If not using E[SSE])
         if self.method.method_name.value != 7:
-            opt_acq, acq_theta_data = self.__opt_with_scipy("neg_ei")
+            opt_acq, acq_theta_data = self.__opt_with_scipy("neg_ei", get_y = True, w_noise = self.cs_params.w_noise)
             if self.method.emulator == True:
                 ei_args = (
                     acq_theta_data,
@@ -6241,7 +6284,7 @@ class GPBO_Driver:
                     best_error_metrics,
                 )
         else:
-            opt_acq, acq_theta_data = self.__opt_with_scipy("E_sse")
+            opt_acq, acq_theta_data = self.__opt_with_scipy("E_sse", get_y = True, w_noise = self.cs_params.w_noise)
 
         # If type 2, turn it into sse_data
         # Set the best data to be in sse form if using a type 2 GP and find the min sse
@@ -6274,7 +6317,6 @@ class GPBO_Driver:
 
         # Turn min_sse_sim value into a float (this makes analyzing data from csvs and dataframes easier)
         min_sse_gp = float(min_sse)
-        min_sse_sim = float(min_sse_theta_data.y_vals)
         opt_acq_sim = float(acq_sse_theta_data.y_vals)
 
         # calculate improvement if using Boyle's method to update the exploration bias
@@ -6320,11 +6362,17 @@ class GPBO_Driver:
             if self.method.obj.value == 2
             else opt_acq_sim / num_exp_x
         )
-        MSE_obj_act = (
-            np.exp(min_sse_sim) / num_exp_x
-            if self.method.obj.value == 2
-            else min_sse_sim / num_exp_x
-        )
+        if self.cs_params.get_y_sse:
+            min_sse_sim = float(min_sse_theta_data.y_vals)
+            MSE_obj_act = (
+                np.exp(min_sse_sim) / num_exp_x
+                if self.method.obj.value == 2
+                else min_sse_sim / num_exp_x
+            )
+        else:
+            min_sse_sim = None
+            MSE_obj_act = None
+
         MSE_obj_gp = (
             np.exp(min_sse_gp) / num_exp_x
             if self.method.obj.value == 2
@@ -6550,7 +6598,10 @@ class GPBO_Driver:
         results_df["Total Run Time"] = float(results_df["Time/Iter"].sum())
 
         results_df["Min Obj GP Cum"] = np.minimum.accumulate(results_df["Min Obj GP"])
-        results_df["Min Obj Act Cum"] = np.minimum.accumulate(results_df["Min Obj Act"])
+        if self.cs_params.get_y_sse == True:
+            results_df["Min Obj Act Cum"] = np.minimum.accumulate(results_df["Min Obj Act"])
+        else:
+            results_df["Min Obj Act Cum"] = None
         results_df["Acq Obj Act Cum"] = np.minimum.accumulate(results_df["Acq Obj Act"])
 
         # Add cumulative values to the dataframe
@@ -6563,10 +6614,12 @@ class GPBO_Driver:
                     results_df.at[i, "Theta Acq Act Cum"] = (
                         results_df["Theta Acq Act Cum"].iloc[i - 1].copy()
                     )
-                if (
+                #If we are tracking actual values, update as normal, otherwise follow the same trend os the GP SSE
+                if (self.cs_params.get_y_sse == True and
                     results_df["Min Obj Act Cum"].iloc[i]
-                    >= results_df["Min Obj Act Cum"].iloc[i - 1]
-                ):
+                    >= results_df["Min Obj Act Cum"].iloc[i - 1] 
+                ) or (self.cs_params.get_y_sse == False and results_df["Min Obj GP Cum"].iloc[i]
+                    >= results_df["Min Obj GP Cum"].iloc[i - 1]):
                     results_df.at[i, "Theta Obj Act Cum"] = (
                         results_df["Theta Obj Act Cum"].iloc[i - 1].copy()
                     )
@@ -6666,22 +6719,22 @@ class GPBO_Driver:
 
         if job is not None:
             #Check for files in job for gpbo_res_simple and gpbo_res_GP
-            # if os.path.exists("BO_Results.gz") and os.path.exists("BO_Results_GPs.gz"):
-            if job.isfile("BO_Results.gz") and job.isfile("BO_Results_GPs.gz"):
+            if os.path.exists("BO_Results.gz") and os.path.exists("BO_Results_GPs.gz"):
+            # if job.isfile("BO_Results.gz") and job.isfile("BO_Results_GPs.gz"):
                 #Load the data from the files
-                fileObj1 = gzip.open(job.fn("BO_Results.gz"), "rb")
-                # fileObj1 = gzip.open("BO_Results.gz", "rb")
+                # fileObj1 = gzip.open(job.fn("BO_Results.gz"), "rb")
+                fileObj1 = gzip.open("BO_Results.gz", "rb")
                 gpbo_res_simple = pickle.load(fileObj1)
                 fileObj1.close()
-                # fileObj2 = gzip.open("BO_Results_GPs.gz", "rb")
-                fileObj2 = gzip.open(job.fn("BO_Results_GPs.gz"), "rb")
+                fileObj2 = gzip.open("BO_Results_GPs.gz", "rb")
+                # fileObj2 = gzip.open(job.fn("BO_Results_GPs.gz"), "rb")
                 gpbo_res_GP = pickle.load(fileObj2)
                 fileObj2.close()
 
         self.gpbo_res_simple = gpbo_res_simple
         self.gpbo_res_GP = gpbo_res_GP
         
-        simulator_class = copy.deepcopy(self.simulator)
+        simulator_class = self.simulator
         configuration = {
             "DateTime String": self.cs_params.DateTime,
             "Method Name Enum Value": self.method.method_name.value,
@@ -6704,6 +6757,8 @@ class GPBO_Driver:
             "MC SG Max Points": self.sg_mc_samples,
             "Obj Improvement Tolerance": self.cs_params.obj_tol,
             "Theta Generation Enum Value": self.gen_meth_theta.value,
+            "Gen y with Noise": self.cs_params.w_noise,
+            "Gen y for Minimized SSE": self.cs_params.get_y_sse,
         }
 
         #If some runs have already been completed
@@ -6729,8 +6784,8 @@ class GPBO_Driver:
             configuration["Seed"] = self.cs_params.seed
             # Add this copy of configuration with the new seed to the bo_results
             bo_results_res.configuration = configuration.copy()
-            # # Add simulator class before any changes were made to the rng
-            bo_results_res.simulator_class = simulator_class
+            # # Add simulator class after rng changes (allows us to restart from the next run)
+            bo_results_res.simulator_class = copy.deepcopy(simulator_class)
             # On the 1st iteration of the first run, create heat map data if we are actually generating the data
             if i == 0:
                 if self.cs_params.gen_heat_map_data == True:
@@ -6764,12 +6819,14 @@ class GPBO_Driver:
         """
         ##Define a path for the data. (Use the name of the case study and date)
         #Get Date only from DateTime String
-        savepath1 = job.fn("BO_Results.gz")
+        # savepath1 = job.fn("BO_Results.gz")
+        savepath1 = "BO_Results.gz"
         fileObj1 = gzip.open(savepath1, "wb", compresslevel=1)
         pickled_results1 = pickle.dump(self.gpbo_res_simple, fileObj1)
         fileObj1.close()
 
-        savepath2 = job.fn("BO_Results_GPs.gz")
+        # savepath2 = job.fn("BO_Results_GPs.gz")
+        savepath2 = "BO_Results_GPs.gz"
         fileObj2 = gzip.open(savepath2, "wb", compresslevel=2)
         pickled_results2 = pickle.dump(self.gpbo_res_GP, fileObj2)
         fileObj2.close()
