@@ -2660,14 +2660,14 @@ class LS_Analysis(General_Analysis):
             1,
         )
         # Calculate y values and sse for theta_best with noise
-        theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.rng_set
-        )
+        # theta_guess_data.y_vals = simulator.gen_y_data(
+        #     theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.rng_set
+        # )
 
         #Calculate y values and sse for theta_best without noise
-        # theta_guess_data.y_vals = simulator.gen_y_data(
-        #     theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
-        # )
+        theta_guess_data.y_vals = simulator.gen_y_data(
+            theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
+        )
 
         # theta_guess_no_noise = simulator.gen_y_data(
         #     theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
