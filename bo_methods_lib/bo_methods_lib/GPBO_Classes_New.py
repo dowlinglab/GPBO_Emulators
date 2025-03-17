@@ -854,7 +854,7 @@ class Simulator:
         """
         assert x_vals is None or isinstance(x_vals, np.ndarray), "x_vals must be np.ndarray or None"
 
-        assert isinstance(noise_std_pct, (int,float)) and noise_std_pct > 0, "noise_std_pct must be a positive int/float"
+        assert isinstance(noise_std_pct, (int,float)) and noise_std_pct >= 0, "noise_std_pct must be a positive int/float"
         # check that num_data > 0
         if num_x_data <= 0 or isinstance(num_x_data, int) == False:
             raise ValueError("num_x_data must be a positive integer")
