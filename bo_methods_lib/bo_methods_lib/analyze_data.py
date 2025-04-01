@@ -186,8 +186,10 @@ class General_Analysis:
         if is_nested:
             result_dir = "/".join(parts)
         else:
-            project_name = os.path.basename(self.project.fn("").rstrip('/'))
-            result_dir = os.path.join(project_name, "Results_" + self.mode, "/".join(parts))
+            project_name = os.path.basename(self.project.fn("").rstrip("/"))
+            result_dir = os.path.join(
+                project_name, "Results_" + self.mode, "/".join(parts)
+            )
         # result_dir = (
         #     "/".join(parts)
         #     if is_nested
@@ -214,7 +216,7 @@ class General_Analysis:
         jobs = [job for job in jobs if os.path.exists(job.fn("BO_Results.gz"))]
 
         return jobs
-    
+
     def str_to_array_df_col(self, str_arr):
 
         if isinstance(str_arr, str):
@@ -222,9 +224,9 @@ class General_Analysis:
             # cleaned_str = re.sub(r'\s+', ' ', str_arr)  # Replace multiple spaces with a single space
             # cleaned_str = re.sub(r'\[\s+', '[', cleaned_str)  # Remove spaces after the opening bracket
             # cleaned_str = re.sub(r'\s+\]', ']', cleaned_str)  # Remove spaces before the closing bracket
-            cleaned_str1 = re.sub(r'\s+', ' ', str_arr.strip())
-            cleaned_str = re.sub(r'(-?\d+\.\d*|\d+)\s+', r'\1, ', cleaned_str1)
-            array_from_str = np.array(ast.literal_eval(f'[{cleaned_str}]'), dtype=float)
+            cleaned_str1 = re.sub(r"\s+", " ", str_arr.strip())
+            cleaned_str = re.sub(r"(-?\d+\.\d*|\d+)\s+", r"\1, ", cleaned_str1)
+            array_from_str = np.array(ast.literal_eval(f"[{cleaned_str}]"), dtype=float)
         elif isinstance(str_arr, (list)):
             # Return the original value if it isn't a string
             array_from_str = np.array(str_arr, dtype=float)
@@ -267,7 +269,9 @@ class General_Analysis:
 
         """
         assert isinstance(save_csv, bool), "save_csv must be a boolean"
-        assert isinstance(criteria_dict, dict) or criteria_dict is None, "criteria_dict must be a dictionary or None"
+        assert (
+            isinstance(criteria_dict, dict) or criteria_dict is None
+        ), "criteria_dict must be a dictionary or None"
         # Intialize dataframe and job list for all jobs in criteria_dict
         df_all_jobs = pd.DataFrame()
         job_list = []
@@ -300,7 +304,7 @@ class General_Analysis:
                 df_job, theta_true_data_w_bnds = self.get_study_data_signac(
                     job, save_csv
                 )
-                #Change all Theta columns to arrays
+                # Change all Theta columns to arrays
                 df_job["Theta Opt Acq"] = df_job["Theta Opt Acq"].to_numpy()
                 df_job["Theta Min Obj"] = df_job["Theta Min Obj"].to_numpy()
                 df_job["Theta Obj GP Cum"] = df_job["Theta Obj GP Cum"].to_numpy()
@@ -309,7 +313,13 @@ class General_Analysis:
 
             elif found_data1:
                 # Apply parsing to relevant columns
-                columns_to_convert = ["Theta Opt Acq", "Theta Min Obj", "Theta Obj GP Cum", "Theta Obj Act Cum", "Theta Acq Act Cum"]
+                columns_to_convert = [
+                    "Theta Opt Acq",
+                    "Theta Min Obj",
+                    "Theta Obj GP Cum",
+                    "Theta Obj Act Cum",
+                    "Theta Acq Act Cum",
+                ]
                 for col in columns_to_convert:
                     df_job[col] = df_job[col].apply(self.str_to_array_df_col)
 
@@ -427,10 +437,10 @@ class General_Analysis:
 
         return df_job, true_data_w_bnds
 
-    def get_best_all_runs(self, criteria_dict = None):
+    def get_best_all_runs(self, criteria_dict=None):
         """
         Gets the best (as described from self.mode) performing data for each method in the criteria dict
-    
+
         Returns
         -------
         df_best: pd.DataFrame, The best data for each method
@@ -442,29 +452,38 @@ class General_Analysis:
             obj_col = "Acq Obj Act Cum"
         elif self.mode == "gp":
             obj_col = "Min Obj GP Cum"
-        #Get data from Criteria dict if you need it
+        # Get data from Criteria dict if you need it
         df, jobs, theta_true_data_w_bnds = self.get_df_all_jobs(criteria_dict)
         # data_best_path = os.path.join(self.study_results_dir, "best_run_results.csv")
         # data_exists, df_best = self.load_data(data_best_path)
         # if not data_exists or self.save_csv:
-        #Start by sorting pd dataframe by lowest obj func value overall, then by BO Iter and Run Number
-        df_sorted = df.sort_values(by=[obj_col, 'BO Iter', 'Run Number',], ascending=True)
-        #Then take only the 1st instance for each method, case and run
-        df_best = df_sorted.drop_duplicates(subset=['BO Method', 'Run Number'], keep='first').copy()
-        #Calculate the L2 norm of the best runs
+        # Start by sorting pd dataframe by lowest obj func value overall, then by BO Iter and Run Number
+        df_sorted = df.sort_values(
+            by=[
+                obj_col,
+                "BO Iter",
+                "Run Number",
+            ],
+            ascending=True,
+        )
+        # Then take only the 1st instance for each method, case and run
+        df_best = df_sorted.drop_duplicates(
+            subset=["BO Method", "Run Number"], keep="first"
+        ).copy()
+        # Calculate the L2 norm of the best runs
         df_best = self.__calc_l2_norm(df_best, theta_true_data_w_bnds)
-        #Sort df_best
+        # Sort df_best
         df_best = self.sort_by_meth(df_best)
 
-        #Get list of best jobs
+        # Get list of best jobs
         job_list_best = self.__get_job_list(df_best)
 
-        #Put in a csv file in a directory based on the job
+        # Put in a csv file in a directory based on the job
         # if self.save_csv:
         #     self.save_data(df_best, data_best_path)
 
         return df_best, job_list_best
-    
+
     def get_best_data(self):
         """
         Gets the best (as described from self.mode) performing data for each method in the criteria dict
@@ -657,7 +676,9 @@ class General_Analysis:
             If "BO Method" is not in the columns of df_data
         """
         assert isinstance(df_data, pd.DataFrame), "df_data must be a pd.DataFrame"
-        assert "BO Method" in df_data.columns, "Job ID must be in the columns of df_data"
+        assert (
+            "BO Method" in df_data.columns
+        ), "Job ID must be in the columns of df_data"
         # Put rows in order of method
         order = [
             "Conventional",
@@ -734,7 +755,14 @@ class General_Analysis:
         assert isinstance(path, str), "path_end must be str"
         # Split path into parts
         ext = os.path.splitext(path)[-1]
-        assert ext in [".csv", ".npy", ".pkl", ".pickle", ".gz", ".json"], "File type not supported"
+        assert ext in [
+            ".csv",
+            ".npy",
+            ".pkl",
+            ".pickle",
+            ".gz",
+            ".json",
+        ], "File type not supported"
         # Extract directory name
         dirname = os.path.dirname(path)
         # #Make directory if it doesn't already exist
@@ -775,7 +803,14 @@ class General_Analysis:
         assert isinstance(save_path, str), "path_end must be str"
         # Split path into parts
         ext = os.path.splitext(save_path)[-1]
-        assert ext in [".csv", ".npy", ".pkl", ".pickle", ".gz", ".json"], "File type not supported"
+        assert ext in [
+            ".csv",
+            ".npy",
+            ".pkl",
+            ".pickle",
+            ".gz",
+            ".json",
+        ], "File type not supported"
         # Extract directory name
         dirname = os.path.dirname(save_path)
         # Make directory if it doesn't already exist
@@ -889,13 +924,13 @@ class General_Analysis:
         # jobs = sorted(
         #     self.project.find_jobs(self.criteria_dict), key=lambda job: job._id
         # )
-        
+
         # valid_files = [
         #     job.fn("BO_Results_GPs.gz")
         #     for job in jobs
         #     if os.path.exists(job.fn("BO_Results_GPs.gz"))
         # ]
-        #Look for be data for job
+        # Look for be data for job
         tab_data_path1 = os.path.join(job.fn("analysis_data"), "init_be_data.csv")
         tab_data_path2 = os.path.join(job.fn("analysis_data"), "init_be_theta_data.csv")
 
@@ -904,7 +939,7 @@ class General_Analysis:
 
         if not found_data1 or not found_data2 or self.save_csv:
             if os.path.exists(job.fn("BO_Results_GPs.gz")):
-            # if len(valid_files) > 0:
+                # if len(valid_files) > 0:
                 # smallest_file = min(valid_files, key=lambda x: os.path.getsize(x))
                 # Find the job corresponding to the smallest file size
                 # smallest_file_index = valid_files.index(smallest_file)
@@ -915,10 +950,12 @@ class General_Analysis:
                     # Load the JSON data
                     sp_data = json.load(json_file)
                 method = GPBO_Methods(Method_name_enum(sp_data["meth_name_val"]))
-                #Open the smallest data file and pull the smallest sse_val from the training data
+                # Open the smallest data file and pull the smallest sse_val from the training data
                 results_GPs = open_file_helper(smallest_file)
                 results = open_file_helper(job.fn("BO_Results.gz"))
-                exp_data = results[0].exp_data_class #Exp Data will not change between runs
+                exp_data = results[
+                    0
+                ].exp_data_class  # Exp Data will not change between runs
 
                 be_list = []
                 be_theta_list = []
@@ -933,7 +970,9 @@ class General_Analysis:
                             gp_emulator.calc_best_error(method, exp_data)
                         )
 
-                    if sp_data["meth_name_val"] == 2: #or ( sp_data["meth_name_val"] == 4 and sp_data["cs_name_val"] not in [15, 16, 17]):
+                    if (
+                        sp_data["meth_name_val"] == 2
+                    ):  # or ( sp_data["meth_name_val"] == 4 and sp_data["cs_name_val"] not in [15, 16, 17]):
                         best_error = np.exp(best_error)
                     be_list.append(best_error)
                     be_theta_list.append(be_theta)
@@ -942,7 +981,7 @@ class General_Analysis:
                 df_be = pd.DataFrame(be_list, columns=["best_error"])
                 df_be_theta = pd.DataFrame(be_theta_list)
 
-                #Save the data
+                # Save the data
                 self.save_data(df_be, tab_data_path1)
                 self.save_data(df_be_theta, tab_data_path2)
             else:
@@ -953,7 +992,6 @@ class General_Analysis:
             be_theta_list = be_theta_list.to_numpy()
 
         return be_list, be_theta_list
-
 
     def __preprocess_analyze(self, job, z_choice, data_type):
         """
@@ -998,7 +1036,13 @@ class General_Analysis:
             )
             theta_true_data = theta_true_data_w_bnds[0]
         elif found_data1:
-            columns_to_convert = ["Theta Opt Acq", "Theta Min Obj", "Theta Obj GP Cum", "Theta Obj Act Cum", "Theta Acq Act Cum"]
+            columns_to_convert = [
+                "Theta Opt Acq",
+                "Theta Min Obj",
+                "Theta Obj GP Cum",
+                "Theta Obj Act Cum",
+                "Theta Acq Act Cum",
+            ]
             for col in columns_to_convert:
                 df_job[col] = df_job[col].apply(self.str_to_array_df_col)
         # Get statepoint info
@@ -1013,25 +1057,29 @@ class General_Analysis:
             ls_analyzer = LS_Analysis(self.criteria_dict, self.project, self.save_csv)
             ls_results = ls_analyzer.least_squares_analysis()
             # Make a df that is only the iters of the best run
-            #For NLS, use the higher iteration run when Min Obj is the same
-            #Since NLS has no "maximum" in these cases
+            # For NLS, use the higher iteration run when Min Obj is the same
+            # Since NLS has no "maximum" in these cases
             df_sorted = ls_results.sort_values(
                 by=["Min Obj Cum.", "Iter"], ascending=[True, False]
             )
             best_run = df_sorted["Run"].iloc[0]
             data_true = ls_results[ls_results["Run"] == best_run].copy()
 
-            #Get the lowest value from each run
+            # Get the lowest value from each run
             lowest_values_per_run = df_sorted.groupby("Run").first().reset_index()
             # Calculate the median of "Min Obj Cum."
             median_value = lowest_values_per_run["Min Obj Cum."].median()
             # Find the run with the "Min Obj Cum." closest to the median
-            lowest_values_per_run["Abs Diff"] = (lowest_values_per_run["Min Obj Cum."] - median_value).abs()
-            median_run = lowest_values_per_run.loc[lowest_values_per_run["Abs Diff"].idxmin(), "Run"]
+            lowest_values_per_run["Abs Diff"] = (
+                lowest_values_per_run["Min Obj Cum."] - median_value
+            ).abs()
+            median_run = lowest_values_per_run.loc[
+                lowest_values_per_run["Abs Diff"].idxmin(), "Run"
+            ]
             # median_run = df_sorted["Run"].iloc[len(df_sorted) // 2]
             data_median = ls_results[ls_results["Run"] == median_run].copy()
             data = np.zeros((tot_runs, max_iters, len(z_choice)))
-            
+
         elif data_type == "params":
             data_true = theta_true_data
             data = np.zeros((tot_runs, max_iters, len(list(theta_true_data.keys()))))
@@ -1107,7 +1155,9 @@ class General_Analysis:
                     data_true_med[z_choices[z]] = data_true_med_val
                     # If the z_choice is sse and the method has a log objective function value, un logscale data
                     # if sp_data["meth_name_val"] in [2, 4]:
-                    if sp_data["meth_name_val"] == 2: #or ( sp_data["meth_name_val"] == 4 and sp_data["cs_name_val"] not in [15, 16, 17]):
+                    if (
+                        sp_data["meth_name_val"] == 2
+                    ):  # or ( sp_data["meth_name_val"] == 4 and sp_data["cs_name_val"] not in [15, 16, 17]):
                         z_data = np.exp(z_data.values.astype(float))
                 else:
                     data_true[z_choices[z]] = None
@@ -1375,8 +1425,10 @@ class General_Analysis:
                 results_GP[run_idx].list_gp_emulator_class[bo_iter - 1]
             )
             simulator = copy.copy(results[run_idx].simulator_class)
-            if hasattr(simulator, 'indeces_to_consider'):
-                simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
+            if hasattr(simulator, "indeces_to_consider"):
+                simulator.indices_to_consider = (
+                    simulator.indeces_to_consider
+                )  # For backwards compatibility
             exp_data = copy.copy(
                 results[0].exp_data_class
             )  # Experimental data won't change
@@ -1398,7 +1450,7 @@ class General_Analysis:
                     1.0,
                     simulator.val_seed,
                     False,
-                    x_vals = exp_data.x_vals
+                    x_vals=exp_data.x_vals,
                 )
 
                 if method.emulator == False:
@@ -1520,8 +1572,10 @@ class General_Analysis:
             gp_emulator = loaded_results_GPs[run_num].list_gp_emulator_class[bo_iter]
             exp_data = loaded_results[run_num].exp_data_class
             simulator = loaded_results[run_num].simulator_class
-            if hasattr(simulator, 'indeces_to_consider'):
-                simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
+            if hasattr(simulator, "indeces_to_consider"):
+                simulator.indices_to_consider = (
+                    simulator.indeces_to_consider
+                )  # For backwards compatibility
             ep_at_iter = (
                 loaded_results[run_num].results_df["Exploration Bias"].iloc[bo_iter]
             )
@@ -1652,7 +1706,9 @@ class General_Analysis:
                 heat_map_data = heat_map_data_org
 
             # Generate heat map data and sse heat map data sim y values (noiseless)
-            heat_map_data.y_vals = simulator.gen_y_data(heat_map_data, 0, 0, simulator.rng_set)
+            heat_map_data.y_vals = simulator.gen_y_data(
+                heat_map_data, 0, 0, simulator.rng_set
+            )
 
             # Create sse data from regular y data
             heat_map_sse_data = simulator.sim_data_to_sse_sim_data(
@@ -1778,6 +1834,7 @@ class General_Analysis:
 
         return all_data, test_mesh, param_info_dict, sp_data
 
+
 class All_CS_Analysis(General_Analysis):
     """
     Class for analyzing GPBO workflow results from all case studies. Child class of General_Analysis
@@ -1885,7 +1942,9 @@ class All_CS_Analysis(General_Analysis):
         df_all_jobs, job_list, __ = self.get_df_all_jobs()
         df_all_jobs = self.__sort_by_cs_meth(df_all_jobs)
 
-        if self.save_csv or not os.path.exists(self.study_results_dir + "full_results.csv"):
+        if self.save_csv or not os.path.exists(
+            self.study_results_dir + "full_results.csv"
+        ):
             # Save the data to a csv
             os.makedirs(self.study_results_dir, exist_ok=True)
             path_save = os.path.join(self.study_results_dir, "full_results.csv")
@@ -1959,9 +2018,7 @@ class All_CS_Analysis(General_Analysis):
             obj_col_sse_min = "Min Obj GP Cum"
 
         # Scale the objective function values for log conv and log indep
-        condition = df_all_jobs["BO Method"].isin(
-            ["Log Conventional"]
-        )
+        condition = df_all_jobs["BO Method"].isin(["Log Conventional"])
         # condition = (
         #         (df_all_jobs["BO Method"] == "Log Conventional") |
         #         (
@@ -1969,7 +2026,7 @@ class All_CS_Analysis(General_Analysis):
         #             ~df_all_jobs["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
         #         )
         #     )
-        
+
         # Multiply values in column B by 3 where the condition is true
         df_all_jobs.loc[condition, obj_col_sse_min] = np.exp(
             df_all_jobs.loc[condition, obj_col_sse_min]
@@ -2079,7 +2136,7 @@ class All_CS_Analysis(General_Analysis):
             self.save_data(df_avg_all, save_path)
 
         return df_avg_all
-    
+
     def get_percent_true_found(self, cs_nums):
         """
         Gets the percentage of how often the true parameter value was found
@@ -2166,9 +2223,7 @@ class All_CS_Analysis(General_Analysis):
         st_meths = ["Conventional", "Log Conventional"]
 
         # Scale the objective function values for log conv and log indep
-        condition = df_all_best["BO Method"].isin(
-            ["Log Conventional"]
-        )
+        condition = df_all_best["BO Method"].isin(["Log Conventional"])
 
         # condition = (
         #         (df_all_best["BO Method"] == "Log Conventional") |
@@ -2177,7 +2232,7 @@ class All_CS_Analysis(General_Analysis):
         #             ~df_all_best["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
         #         )
         #     )
-        
+
         # Multiply values in column B by 3 where the condition is true
         df_all_best.loc[condition, obj_col_sse_min] = np.exp(
             df_all_best.loc[condition, obj_col_sse_min]
@@ -2300,27 +2355,29 @@ class All_CS_Analysis(General_Analysis):
 
         return results_df
 
-    def get_best_data_all_methods(self,  other_meths = ["NLS"]):
+    def get_best_data_all_methods(self, other_meths=["NLS"]):
         """Get best data for all methods (including derivative free methods) and all case studies"""
         # Loop over each case study
-        for i, cs_name in enumerate(self.cs_list):   
+        for i, cs_name in enumerate(self.cs_list):
             # Create a criteria dictionary for the case study
             # Evaluate the best run for the case study for each method
             criteria_dict_use = copy.deepcopy(self.criteria_dict)
             criteria_dict_use["cs_name_val"] = cs_name
             # Evaluate the best run for the case study for each method
-            try: 
+            try:
                 df_best_runs, job_list_best_runs = self.get_best_all_runs(
                     criteria_dict_use
                 )
-                #Add training data iterations to Max Evals and BO Iters based on sp data
-                #Use the first file to get the theta multiplier
-                with open(job_list_best_runs[0].fn("signac_statepoint.json"), "r") as json_file:
+                # Add training data iterations to Max Evals and BO Iters based on sp data
+                # Use the first file to get the theta multiplier
+                with open(
+                    job_list_best_runs[0].fn("signac_statepoint.json"), "r"
+                ) as json_file:
                     # Load the JSON data
                     sp_data = json.load(json_file)
                 cs_class = get_cs_class_from_val(cs_name)
                 num_params = len(cs_class.idcs_to_consider)
-                num_train_points = sp_data["num_theta_multiplier"]*num_params
+                num_train_points = sp_data["num_theta_multiplier"] * num_params
                 df_best_runs["Max Evals"] += num_train_points
                 df_best_runs["BO Iter"] += num_train_points
 
@@ -2330,7 +2387,7 @@ class All_CS_Analysis(General_Analysis):
                 # Otherwise, concatenate the DataFrame to df_all_best
                 else:
                     df_all_best = pd.concat([df_all_best, df_best_runs], axis=0)
-                
+
                 df_all_best["F Max Evals"] = df_all_best["Max Evals"] * df_all_best[
                     "CS Name"
                 ].map(self.cs_x_dict)
@@ -2339,7 +2396,7 @@ class All_CS_Analysis(General_Analysis):
                 ].map(self.cs_x_dict)
 
             except:
-                pass         
+                pass
             # Add nonlinear least squares results
             # Get SSE data from least squares
             # Create a criteria dictionary for the case study
@@ -2347,24 +2404,44 @@ class All_CS_Analysis(General_Analysis):
             for count_meth, meth in enumerate(other_meths):
                 criteria_dict_other_meth = criteria_dict_use
                 if meth == "NLS":
-                    ls_analyzer = LS_Analysis(criteria_dict_other_meth, self.project, self.save_csv)
+                    ls_analyzer = LS_Analysis(
+                        criteria_dict_other_meth, self.project, self.save_csv
+                    )
                     other_meth_results = ls_analyzer.least_squares_analysis()
-                elif meth =="SHGO-Sob":
-                    shgo_analyzer = Deriv_Free_Anlys("SHGO-Sob", criteria_dict_other_meth, self.project, self.save_csv)
+                elif meth == "SHGO-Sob":
+                    shgo_analyzer = Deriv_Free_Anlys(
+                        "SHGO-Sob",
+                        criteria_dict_other_meth,
+                        self.project,
+                        self.save_csv,
+                    )
                     other_meth_results = shgo_analyzer.regression_analysis()
-                elif meth =="SHGO-Simp":
-                    shgo_analyzer = Deriv_Free_Anlys("SHGO-Simp", criteria_dict_other_meth, self.project, self.save_csv)
+                elif meth == "SHGO-Simp":
+                    shgo_analyzer = Deriv_Free_Anlys(
+                        "SHGO-Simp",
+                        criteria_dict_other_meth,
+                        self.project,
+                        self.save_csv,
+                    )
                     other_meth_results = shgo_analyzer.regression_analysis()
-                elif meth =="NM":
-                    nm_analyzer = Deriv_Free_Anlys("NM", criteria_dict_other_meth, self.project, self.save_csv)
+                elif meth == "NM":
+                    nm_analyzer = Deriv_Free_Anlys(
+                        "NM", criteria_dict_other_meth, self.project, self.save_csv
+                    )
                     other_meth_results = nm_analyzer.regression_analysis()
-                elif meth =="GA":
+                elif meth == "GA":
                     num_generations = 75 if cs_name in [2, 3] else 50
-                    ga_analyzer = Deriv_Free_Anlys("GA", criteria_dict_other_meth, self.project, self.save_csv, num_generations= num_generations)
+                    ga_analyzer = Deriv_Free_Anlys(
+                        "GA",
+                        criteria_dict_other_meth,
+                        self.project,
+                        self.save_csv,
+                        num_generations=num_generations,
+                    )
                     other_meth_results = ga_analyzer.regression_analysis()
                 else:
                     raise ValueError("Method not recognized")
-                     
+
                 # Make a df that is only the iters of the best run
                 df_sorted = other_meth_results.sort_values(
                     by=["Min Obj Cum.", "Run", "Iter"], ascending=True
@@ -2375,28 +2452,30 @@ class All_CS_Analysis(General_Analysis):
                 df_best_other_meth["BO Method"] = meth
                 df_best_other_meth.rename(columns={"Iter": "BO Iter"}, inplace=True)
 
-                if count_meth == 0 and i == 0: #Make df if first iteration over
+                if count_meth == 0 and i == 0:  # Make df if first iteration over
                     df_all_best_all_meth = df_best_other_meth
                 else:
                     # Concatenate the DataFrames along the rows axis
-                    df_all_best_all_meth = pd.concat([df_all_best_all_meth, df_best_other_meth], ignore_index=True)
+                    df_all_best_all_meth = pd.concat(
+                        [df_all_best_all_meth, df_best_other_meth], ignore_index=True
+                    )
 
         if "Max Evals" not in df_all_best_all_meth.columns:
             # Compute the maximum 'iter' for each 'run'
-            df_all_best_all_meth["Max Evals"] = df_all_best_all_meth.groupby(["CS Name", "Run"])[
-                "BO Iter"
-            ].transform("max")
+            df_all_best_all_meth["Max Evals"] = df_all_best_all_meth.groupby(
+                ["CS Name", "Run"]
+            )["BO Iter"].transform("max")
 
-        df_all_best_all_meth["F Max Evals"] = df_all_best_all_meth["Max Evals"] * df_all_best_all_meth[
-            "CS Name"
-        ].map(self.cs_x_dict)
-        df_all_best_all_meth["F Evals"] = df_all_best_all_meth["BO Iter"] * df_all_best_all_meth[
-            "CS Name"
-        ].map(self.cs_x_dict)
+        df_all_best_all_meth["F Max Evals"] = df_all_best_all_meth[
+            "Max Evals"
+        ] * df_all_best_all_meth["CS Name"].map(self.cs_x_dict)
+        df_all_best_all_meth["F Evals"] = df_all_best_all_meth[
+            "BO Iter"
+        ] * df_all_best_all_meth["CS Name"].map(self.cs_x_dict)
 
         return df_all_best, df_all_best_all_meth
 
-    def get_all_meths_best(self, other_meths = ["NLS"]):
+    def get_all_meths_best(self, other_meths=["NLS"]):
         """
         Get median/average data for multiple properties for all case studies. Used to reporduce Figure 2 in the paper
 
@@ -2413,11 +2492,9 @@ class All_CS_Analysis(General_Analysis):
             obj_col_sse_min = "Min Obj GP Cum"
 
         df_all_best, df_all_best_all_meth = self.get_best_data_all_methods(other_meths)
-        
+
         # Scale the objective function values for log conv and log indep
-        condition = df_all_best["BO Method"].isin(
-            ["Log Conventional"]
-        )
+        condition = df_all_best["BO Method"].isin(["Log Conventional"])
 
         # condition = (
         #         (df_all_best["BO Method"] == "Log Conventional") |
@@ -2426,44 +2503,65 @@ class All_CS_Analysis(General_Analysis):
         #             ~df_all_best["CS Name"].isin(["Simple Multimodal", "ACN-Water", "Water-Glycerol"])
         #         )
         #     )
-                    
 
         # Multiply values in column B by exp where the condition is true
         df_all_best.loc[condition, obj_col_sse_min] = np.exp(
             df_all_best.loc[condition, obj_col_sse_min]
         )
-    
-        #Create dataframe with the best results
-        df_all_best_GPBO = df_all_best.loc[df_all_best.groupby("CS Name")[obj_col_sse_min].idxmin()].drop_duplicates(subset=["CS Name"]).reset_index(drop=True)
-        df_all_best_GPBO.rename(columns={
-            obj_col_sse_min: "Best Loss",  # Rename obj_col_sse_min
-            "L2 Norm Theta": "Best L2 Norm"  # Rename L2 Norm Theta
-            }, inplace = True)
-        
-        df_all_best_other = (df_all_best_all_meth.loc[df_all_best_all_meth.groupby(["CS Name", "BO Method"])["Min Obj Cum."].idxmin()]).reset_index(drop=True)
-        df_all_best_other.rename(columns={
-            "Min Obj Cum.": "Best Loss",  # Rename obj_col_sse_min
-            "l2 norm": "Best L2 Norm"  # Rename L2 Norm Theta
-            }, inplace = True)
-        
-        shared_columns = list(set(df_all_best_GPBO.columns).intersection(df_all_best_other.columns))
+
+        # Create dataframe with the best results
+        df_all_best_GPBO = (
+            df_all_best.loc[df_all_best.groupby("CS Name")[obj_col_sse_min].idxmin()]
+            .drop_duplicates(subset=["CS Name"])
+            .reset_index(drop=True)
+        )
+        df_all_best_GPBO.rename(
+            columns={
+                obj_col_sse_min: "Best Loss",  # Rename obj_col_sse_min
+                "L2 Norm Theta": "Best L2 Norm",  # Rename L2 Norm Theta
+            },
+            inplace=True,
+        )
+
+        df_all_best_other = (
+            df_all_best_all_meth.loc[
+                df_all_best_all_meth.groupby(["CS Name", "BO Method"])[
+                    "Min Obj Cum."
+                ].idxmin()
+            ]
+        ).reset_index(drop=True)
+        df_all_best_other.rename(
+            columns={
+                "Min Obj Cum.": "Best Loss",  # Rename obj_col_sse_min
+                "l2 norm": "Best L2 Norm",  # Rename L2 Norm Theta
+            },
+            inplace=True,
+        )
+
+        shared_columns = list(
+            set(df_all_best_GPBO.columns).intersection(df_all_best_other.columns)
+        )
 
         # Create a new DataFrame with the shared columns
         df_all_best_GPBO = df_all_best_GPBO[shared_columns]
         df_all_best_other = df_all_best_other[shared_columns]
 
         # Optionally concatenate or merge the shared DataFrames (e.g., row-wise)
-        df_best_nec = pd.concat([df_all_best_GPBO, df_all_best_other], ignore_index=True)
-        
+        df_best_nec = pd.concat(
+            [df_all_best_GPBO, df_all_best_other], ignore_index=True
+        )
+
         # df_best_nec = pd.merge(df_all_best_GPBO, df_all_best_other, on=shared_columns, how="inner")
 
-        if self.save_csv or not os.path.exists(self.study_results_dir + "all_cs_all_meth_best.csv"):
+        if self.save_csv or not os.path.exists(
+            self.study_results_dir + "all_cs_all_meth_best.csv"
+        ):
             save_path = os.path.join(self.study_results_dir, "all_cs_all_meth_best.csv")
             self.save_data(df_best_nec, save_path)
 
         return df_best_nec
-    
-    def get_averages_best(self, other_meths = ["NLS"]):
+
+    def get_averages_best(self, other_meths=["NLS"]):
         """
         Get median/average data for multiple properties for all case studies. Used to reporduce Figure 2 in the paper
 
@@ -2481,9 +2579,7 @@ class All_CS_Analysis(General_Analysis):
 
         df_all_best, df_all_best_all_meth = self.get_best_data_all_methods(other_meths)
         # Scale the objective function values for log conv and log indep
-        condition = df_all_best["BO Method"].isin(
-            ["Log Conventional"]
-        )
+        condition = df_all_best["BO Method"].isin(["Log Conventional"])
 
         # condition = (
         #         (df_all_best["BO Method"] == "Log Conventional") |
@@ -2496,7 +2592,7 @@ class All_CS_Analysis(General_Analysis):
         df_all_best.loc[condition, obj_col_sse_min] = np.exp(
             df_all_best.loc[condition, obj_col_sse_min]
         )
-        #Rename best L2 norm column 
+        # Rename best L2 norm column
         # df_all_best.rename(columns={"L2 Norm Theta": "l2 norm"}, inplace=True)
         # Group the data by CS Name and BO Method, and get the mean and std for each group over all runs
         grouped_stats = (
@@ -2510,12 +2606,10 @@ class All_CS_Analysis(General_Analysis):
                     "Total Run Time": ["mean", "std"],
                     "F Evals": ["mean", "std"],
                     "F Max Evals": ["mean", "std"],
-                    
                 }
             )
             .reset_index()
         )
-
 
         grouped_stats_other_meths = (
             df_all_best_all_meth.groupby(["CS Name", "BO Method"])
@@ -2528,7 +2622,6 @@ class All_CS_Analysis(General_Analysis):
                     "Run Time": ["mean", "std"],
                     "F Evals": ["mean", "std"],
                     "F Max Evals": ["mean", "std"],
-                    
                 }
             )
             .reset_index()
@@ -2565,7 +2658,9 @@ class All_CS_Analysis(General_Analysis):
         )
         df_avg_all = pd.concat([df_avg_best_w_acq, df_avg_other_meths_best], axis=0)
 
-        if self.save_csv or not os.path.exists(self.study_results_dir + "all_cs_avg_best.csv"):
+        if self.save_csv or not os.path.exists(
+            self.study_results_dir + "all_cs_avg_best.csv"
+        ):
             save_path = os.path.join(self.study_results_dir, "all_cs_avg_best.csv")
             self.save_data(df_avg_all, save_path)
         return df_avg_all
@@ -2660,14 +2755,17 @@ class LS_Analysis(General_Analysis):
             1,
         )
         # Calculate y values and sse for theta_best with noise
-        # theta_guess_data.y_vals = simulator.gen_y_data(
-        #     theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.rng_set
-        # )
-
-        #Calculate y values and sse for theta_best without noise
         theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
+            theta_guess_data,
+            simulator.noise_mean,
+            simulator.noise_std,
+            simulator.rng_set,
         )
+
+        # Calculate y values and sse for theta_best without noise
+        # theta_guess_data.y_vals = simulator.gen_y_data(
+        #     theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
+        # )
 
         # theta_guess_no_noise = simulator.gen_y_data(
         #     theta_guess_data, simulator.noise_mean, 0, simulator.rng_set
@@ -2706,7 +2804,7 @@ class LS_Analysis(General_Analysis):
         self.iter_l2_norm.append(float(theta_l2_norm))
         self.iter_count += 1
 
-        return error #np.sum(error**2)
+        return error  # np.sum(error**2)
 
     def __get_simulator_exp_data(self):
         """
@@ -2731,9 +2829,6 @@ class LS_Analysis(General_Analysis):
             self.project.find_jobs(self.criteria_dict), key=lambda job: job._id
         )
 
-        noise_std_pct = 0.01
-        self.noise_std_pct = noise_std_pct
-        
         valid_files = [
             job.fn("BO_Results.gz")
             for job in jobs
@@ -2763,10 +2858,12 @@ class LS_Analysis(General_Analysis):
             # Get Experimental data and Simulator objects used in problem
             exp_data = results[0].exp_data_class
             simulator = results[0].simulator_class
-            if hasattr(simulator, 'indeces_to_consider'):
-                simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
+            if hasattr(simulator, "indeces_to_consider"):
+                simulator.indices_to_consider = (
+                    simulator.indeces_to_consider
+                )  # For backwards compatibility
 
-        #Only autogenerate data if no jobs are found
+        # Only autogenerate data if no jobs are found
         else:
             # Set tot_runs cs as 5 as a default
             tot_runs_cs = 5
@@ -2792,22 +2889,62 @@ class LS_Analysis(General_Analysis):
             }
             self.num_x = self.cs_x_dict[cs_name_dict]
 
-            if self.criteria_dict["cs_name_val"] in [2,3,10,14]:
+            if self.criteria_dict["cs_name_val"] in [2, 3, 10, 14]:
                 gen_meth_en_theta = Gen_meth_enum(2)
             else:
                 gen_meth_en_theta = Gen_meth_enum(1)
 
             if self.criteria_dict["cs_name_val"] in [16]:
-                x_vals = np.array([0.0,0.1115,0.2475,0.4076,0.5939,0.8230,0.9214,0.9296,0.985,1.000])
+                x_vals = np.array(
+                    [
+                        0.0,
+                        0.1115,
+                        0.2475,
+                        0.4076,
+                        0.5939,
+                        0.8230,
+                        0.9214,
+                        0.9296,
+                        0.985,
+                        1.000,
+                    ]
+                )
             elif self.criteria_dict["cs_name_val"] in [17]:
-                x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])
+                x_vals = np.array(
+                    [
+                        0.0087,
+                        0.0269,
+                        0.0568,
+                        0.1556,
+                        0.2749,
+                        0.4449,
+                        0.661,
+                        0.8096,
+                        0.9309,
+                        0.9578,
+                    ]
+                )
             else:
                 x_vals = None
 
-            exp_data = simulator.gen_exp_data(self.num_x, gen_meth_en_theta, x_vals, noise_std_pct)
+            noise_std_pct = 0.01
+            self.noise_std_pct = noise_std_pct
 
-            simulator.noise_std = np.abs(np.median(exp_data.y_vals))*noise_std_pct
+            exp_data = simulator.gen_exp_data(
+                self.num_x, gen_meth_en_theta, x_vals, noise_std_pct
+            )
 
+            if not math.isclose(np.median(exp_data.y_vals), 0):
+                noise_std = np.abs(np.median(exp_data.y_vals)) * noise_std_pct
+            # If the median value is 0, use 1% of the mean as the default.
+            elif not math.isclose(np.mean(exp_data.y_vals), 0):
+                noise_std = np.abs(np.mean(exp_data.y_vals)) * noise_std_pct
+            # If both values are zero, Use 1% of the abs max value
+            else:
+                noise_std = np.max(np.abs(exp_data.y_vals)) * noise_std_pct
+
+            # Set simulator noise to the noise value that was just generated.
+            simulator.noise_std = noise_std
             ftol = 1e-7
 
         self.simulator = simulator
@@ -2994,15 +3131,13 @@ class LS_Analysis(General_Analysis):
             columns_to_convert = ["Theta Min Obj", "Theta Min Obj Cum.", "l2 norm"]
             for col in columns_to_convert:
                 try:
-                    ls_results[col] = ls_results[col].apply(
-                        self.str_to_array_df_col
-                    )
+                    ls_results[col] = ls_results[col].apply(self.str_to_array_df_col)
                 except:
-                    pass  
+                    pass
 
         return ls_results
-    
-    def compare_min(self, tot_runs=None, meth_list = ["E[SSE]", "Log Independence"]):
+
+    def compare_min(self, tot_runs=None, meth_list=["E[SSE]", "Log Independence"]):
         """
         categorize the minima found by least squares and GPBO
 
@@ -3031,27 +3166,32 @@ class LS_Analysis(General_Analysis):
         ), "tot_runs must be int or None"
         if isinstance(tot_runs, int):
             assert tot_runs > 0, "tot_runs must be > 0 if int"
-        
+
         if tot_runs is None or self.simulator is None:
             simulator, exp_data, tot_runs_cs, ftol = self.__get_simulator_exp_data()
         if tot_runs is None:
             tot_runs = tot_runs_cs
-        
-        #Get local mins from NLS
+
+        # Get local mins from NLS
         save_csv_org = self.save_csv
         self.save_csv = False
-        #Get all ls data
+        # Get all ls data
         df_ls = self.categ_min(tot_runs)
         ###Get all data from experiments
         df_all_jobs, job_list, theta_true_data = self.get_df_all_jobs(
-            self.criteria_dict, False)
+            self.criteria_dict, False
+        )
         self.save_csv = save_csv_org
 
-        #Get emulator GPBO data
-        df_GPBO = df_all_jobs.loc[df_all_jobs.groupby(['BO Method', 'CS Name Val', 'Run Number'])['Min Obj Act Cum'].idxmin()]
-        df_GPBO_best = df_GPBO[df_GPBO['BO Method'].isin(meth_list)]
+        # Get emulator GPBO data
+        df_GPBO = df_all_jobs.loc[
+            df_all_jobs.groupby(["BO Method", "CS Name Val", "Run Number"])[
+                "Min Obj Act Cum"
+            ].idxmin()
+        ]
+        df_GPBO_best = df_GPBO[df_GPBO["BO Method"].isin(meth_list)]
         # df_GPBO_best = df_GPBO[df_GPBO['BO Method'].isin(['E[SSE]', 'Log Independence'])]
-        
+
         # condition = (
         #         (df_GPBO_best["BO Method"] == "Log Conventional") |
         #         (
@@ -3059,10 +3199,8 @@ class LS_Analysis(General_Analysis):
         #             ~df_GPBO_best["CS Name Val"].isin([15, 16, 17])
         #         )
         #     )
-        condition = (
-                (df_GPBO_best["BO Method"] == "Log Conventional")
-                )
-        
+        condition = df_GPBO_best["BO Method"] == "Log Conventional"
+
         df_GPBO_best = df_GPBO_best.copy()
         # Multiply values in column B by 3 where the condition is true
         df_GPBO_best.loc[condition, "Min Obj Act Cum"] = np.exp(
@@ -3073,11 +3211,25 @@ class LS_Analysis(General_Analysis):
         scaler = MinMaxScaler()
         scaler = MinMaxScaler()
         scaler.fit([theta_bounds[0], theta_bounds[1]])
-        all_param_sets_GPBO = np.array(list(map(np.array, df_GPBO_best["Theta Obj Act Cum"].apply(self.str_to_array_df_col))))
-        all_param_sets_ls = np.array(list(map(np.array, df_ls["Theta Min Obj Cum."].apply(self.str_to_array_df_col))))
+        all_param_sets_GPBO = np.array(
+            list(
+                map(
+                    np.array,
+                    df_GPBO_best["Theta Obj Act Cum"].apply(self.str_to_array_df_col),
+                )
+            )
+        )
+        all_param_sets_ls = np.array(
+            list(
+                map(
+                    np.array,
+                    df_ls["Theta Min Obj Cum."].apply(self.str_to_array_df_col),
+                )
+            )
+        )
         GPBO_scl = scaler.transform(all_param_sets_GPBO)
         ls_scl = scaler.transform(all_param_sets_ls)
-        #Initialize a boolean array to keep track of unique sets
+        # Initialize a boolean array to keep track of unique sets
         unique_mask = np.ones(all_param_sets_GPBO.shape[0], dtype=bool)
         # Initialize a counter for the number of matches
         match_count_vector = np.zeros(len(ls_scl), dtype=int)
@@ -3093,8 +3245,8 @@ class LS_Analysis(General_Analysis):
             distances = np.linalg.norm(ls_scl - row, axis=1)
             # print(distances)
             # If any distance is less than 0.001, there is a match
-            matched_indices = np.where(distances < 0.001)[0]   
-            #Print the matched indices
+            matched_indices = np.where(distances < 0.001)[0]
+            # Print the matched indices
 
             if matched_indices.size > 0:
                 unique_mask[i] = True
@@ -3104,12 +3256,15 @@ class LS_Analysis(General_Analysis):
                     # print(df_GPBO_best.iloc[i]["Theta Min Obj"])
                     # print(all_param_sets_ls[idx], "\n")
                     match_count_vector[idx] += 1
-                    #fill in match_sse_vector with the sse of the matched row
+                    # fill in match_sse_vector with the sse of the matched row
                     if match_sse_vector[idx] == 0:
-                        match_sse_vector[idx] = df_GPBO_best.iloc[i]["Min Obj Act Cum"]                       
+                        match_sse_vector[idx] = df_GPBO_best.iloc[i]["Min Obj Act Cum"]
                     else:
-                        match_sse_vector[idx] = np.minimum(df_GPBO_best.iloc[i]["Min Obj Act Cum"], match_sse_vector[idx])
-                    # match_sse_vector[idx] = np.minimum(df_GPBO_best.iloc[i]["Min Obj Act Cum"], match_sse_vector[idx]) 
+                        match_sse_vector[idx] = np.minimum(
+                            df_GPBO_best.iloc[i]["Min Obj Act Cum"],
+                            match_sse_vector[idx],
+                        )
+                    # match_sse_vector[idx] = np.minimum(df_GPBO_best.iloc[i]["Min Obj Act Cum"], match_sse_vector[idx])
         df_ls["GPBO Matches"] = match_count_vector
         df_ls["GPBO SSE"] = match_sse_vector
 
@@ -3150,13 +3305,13 @@ class LS_Analysis(General_Analysis):
             self.make_dir_name_from_criteria(cs_name_dict),
             "ls_local_min_" + tot_runs_str + ".csv",
         )
-        
+
         if tot_runs is None:
             simulator, exp_data, tot_runs_cs, ftol = self.__get_simulator_exp_data()
             tot_runs = tot_runs_cs
-        
+
         found_data1, local_min_sets = self.load_data(ls_data_path)
-        
+
         save_csv_org = self.save_csv
 
         if self.save_csv or not found_data1:
@@ -3168,7 +3323,7 @@ class LS_Analysis(General_Analysis):
             ls_results_sort = ls_results.sort_values(
                 by=["Min Obj Cum.", "Iter"], ascending=True
             )
-            #Drop all except the best for each run
+            # Drop all except the best for each run
             ls_results = ls_results_sort.drop_duplicates(subset="Run", keep="first")
 
             # Set save csv to True so that best restarts csv data is saved
@@ -3178,7 +3333,6 @@ class LS_Analysis(General_Analysis):
             all_sets = ls_results[
                 ["Theta Min Obj Cum.", "Min Obj Cum.", "Optimality", "Termination"]
             ].copy(deep=True)
-
 
             # Drop minima with optimality > 1e-4
             all_sets = all_sets[all_sets["Optimality"] < 1e-4]
@@ -3200,21 +3354,23 @@ class LS_Analysis(General_Analysis):
             # if self.seed != None:
             #     np.random.seed(self.seed)
 
-            #Scale values between 0 and 1 with minmax scaler
+            # Scale values between 0 and 1 with minmax scaler
             theta_bounds = self.simulator.bounds_theta_reg
             scaler = MinMaxScaler()
             scaler = MinMaxScaler()
             scaler.fit([theta_bounds[0], theta_bounds[1]])
-            all_param_sets = np.array(list(map(np.array, all_sets["Theta Min Obj Cum."].values)))
+            all_param_sets = np.array(
+                list(map(np.array, all_sets["Theta Min Obj Cum."].values))
+            )
             all_param_sets_scaled = scaler.transform(all_param_sets)
-            #Calculate the scaled euclidean distance between each pair of scaled points
-            dist = pdist(all_param_sets_scaled)/np.sqrt(all_param_sets.shape[1])
-            #Convert the condensed distance matrix to square form
+            # Calculate the scaled euclidean distance between each pair of scaled points
+            dist = pdist(all_param_sets_scaled) / np.sqrt(all_param_sets.shape[1])
+            # Convert the condensed distance matrix to square form
             dist_sq = squareform(dist)
 
             # Initialize an array to count occurrences of each unique set
             minima_count = np.zeros(all_param_sets.shape[0], dtype=int)
-            #Initialize a boolean array to keep track of unique sets
+            # Initialize a boolean array to keep track of unique sets
             unique_mask = np.ones(all_param_sets.shape[0], dtype=bool)
 
             # Iterate over the upper triangle of the distance matrix
@@ -3234,7 +3390,9 @@ class LS_Analysis(General_Analysis):
             # Change tuples to arrays
             local_min_sets = local_min_sets.copy()  # Ensure you're working with a copy
             local_min_sets["Num Occurrences"] = minima_count[unique_mask]
-            local_min_sets["Theta Min Obj Cum."] = local_min_sets["Theta Min Obj Cum."].apply(np.array)
+            local_min_sets["Theta Min Obj Cum."] = local_min_sets[
+                "Theta Min Obj Cum."
+            ].apply(np.array)
 
             # Put in order of lowest sse and reset index
             local_min_sets = local_min_sets.sort_values(
@@ -3242,11 +3400,13 @@ class LS_Analysis(General_Analysis):
             )
             local_min_sets = local_min_sets.reset_index(drop=True)
 
-            if self.save_csv: # or not os.path.exists(ls_data_path):
+            if self.save_csv:  # or not os.path.exists(ls_data_path):
                 self.save_data(local_min_sets, ls_data_path)
 
         elif found_data1:
-            local_min_sets["Theta Min Obj Cum."] = local_min_sets["Theta Min Obj Cum."].apply(self.str_to_array_df_col)
+            local_min_sets["Theta Min Obj Cum."] = local_min_sets[
+                "Theta Min Obj Cum."
+            ].apply(self.str_to_array_df_col)
 
         return local_min_sets
 
@@ -3265,7 +3425,18 @@ class Deriv_Free_Anlys(General_Analysis):
     """
 
     # Inherit objects from General_Analysis
-    def __init__(self, deriv_free_meth, criteria_dict, project, save_csv, num_generations = 50, num_parents_mating=5, sol_per_pop=25, exp_data=None, simulator=None):
+    def __init__(
+        self,
+        deriv_free_meth,
+        criteria_dict,
+        project,
+        save_csv,
+        num_generations=50,
+        num_parents_mating=5,
+        sol_per_pop=25,
+        exp_data=None,
+        simulator=None,
+    ):
         """
         Parameters
         ----------
@@ -3282,7 +3453,7 @@ class Deriv_Free_Anlys(General_Analysis):
         simulator: Simulator, default None
             The simulator object to evaluate
 
-        num_generations: int, default 50 
+        num_generations: int, default 50
             The number of generations to run the genetic algorithm. Defaults to the number of BO iters for a given case study or 50
         num_parents_mating: int, default 5
             The number of parents to mate in the genetic algorithm
@@ -3295,7 +3466,12 @@ class Deriv_Free_Anlys(General_Analysis):
             If any of the required parameters are missing or not of the correct type or value
         """
         assert isinstance(deriv_free_meth, str), "deriv_free_meth must be str"
-        assert deriv_free_meth in ["NM", "SHGO-Sob", "SHGO-Simp", "GA"], "deriv_free_meth must be 'NM', 'SHGO-Sob', 'SHGO-Simp', or 'GA'"
+        assert deriv_free_meth in [
+            "NM",
+            "SHGO-Sob",
+            "SHGO-Simp",
+            "GA",
+        ], "deriv_free_meth must be 'NM', 'SHGO-Sob', 'SHGO-Simp', or 'GA'"
         self.deriv_free_meth = deriv_free_meth
         assert (
             isinstance(exp_data, Data) or exp_data == None
@@ -3313,7 +3489,7 @@ class Deriv_Free_Anlys(General_Analysis):
         self.simulator = simulator
         self.exp_data = exp_data
         self.num_x = 10  # Default number of x to generate
-        self.num_generations = 50 
+        self.num_generations = 50
         self.num_parents_mating = num_parents_mating
         self.sol_per_pop = sol_per_pop
 
@@ -3354,11 +3530,16 @@ class Deriv_Free_Anlys(General_Analysis):
         )
         # Calculate y values and sse for theta_best with noise
         theta_guess_data.y_vals = self.simulator.gen_y_data(
-            theta_guess_data, self.simulator.noise_mean, self.simulator.noise_std, self.simulator.rng_set
+            theta_guess_data,
+            self.simulator.noise_mean,
+            self.simulator.noise_std,
+            self.simulator.rng_set,
         )
 
-        sse = np.sum((self.exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten())**2)
-        fitness = 1/(sse+1e-6)
+        sse = np.sum(
+            (self.exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten()) ** 2
+        )
+        fitness = 1 / (sse + 1e-6)
 
         # Append intermediate values to list
         self.iter_param_data.append(np.array(solution))
@@ -3380,7 +3561,7 @@ class Deriv_Free_Anlys(General_Analysis):
         self.iter_count += 1
 
         return float(fitness)
-    
+
     # Create a function to optimize, in this case, least squares fitting
     def __scipy_func(self, theta_guess, exp_data, simulator):
         """
@@ -3420,10 +3601,15 @@ class Deriv_Free_Anlys(General_Analysis):
         )
         # Calculate y values and sse for theta_best with noise
         theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data, simulator.noise_mean, simulator.noise_std, simulator.rng_set
+            theta_guess_data,
+            simulator.noise_mean,
+            simulator.noise_std,
+            simulator.rng_set,
         )
 
-        error = np.sum((exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten())**2)
+        error = np.sum(
+            (exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten()) ** 2
+        )
 
         # Append intermediate values to list
         self.iter_param_data.append(theta_guess)
@@ -3467,7 +3653,9 @@ class Deriv_Free_Anlys(General_Analysis):
         """
 
         sim_data_crit_dict = self.criteria_dict.copy()
-        sim_data_crit_dict["meth_name_val"] = 1 #Placeholder to grab the smallest method 1 file
+        sim_data_crit_dict["meth_name_val"] = (
+            1  # Placeholder to grab the smallest method 1 file
+        )
 
         jobs = sorted(
             self.project.find_jobs(sim_data_crit_dict), key=lambda job: job._id
@@ -3501,8 +3689,10 @@ class Deriv_Free_Anlys(General_Analysis):
             # Get Experimental data and Simulator objects used in problem
             exp_data = results[0].exp_data_class
             simulator = results[0].simulator_class
-            if hasattr(simulator, 'indeces_to_consider'):
-                simulator.indices_to_consider = simulator.indeces_to_consider # For backwards compatibility
+            if hasattr(simulator, "indeces_to_consider"):
+                simulator.indices_to_consider = (
+                    simulator.indeces_to_consider
+                )  # For backwards compatibility
 
         else:
             # Set tot_runs cs as 5 as a default
@@ -3530,22 +3720,59 @@ class Deriv_Free_Anlys(General_Analysis):
             noise_std_pct = 0.01
             self.num_x = self.cs_x_dict[cs_name_dict]
 
-            if self.criteria_dict["cs_name_val"] in [2,3,10,14]:
+            if self.criteria_dict["cs_name_val"] in [2, 3, 10, 14]:
                 gen_meth_en_theta = Gen_meth_enum(2)
             else:
                 gen_meth_en_theta = Gen_meth_enum(1)
 
             if self.criteria_dict["cs_name_val"] in [16]:
-                x_vals = np.array([0.0,0.1115,0.2475,0.4076,0.5939,0.8230,0.9214,0.9296,0.985,1.000])
+                x_vals = np.array(
+                    [
+                        0.0,
+                        0.1115,
+                        0.2475,
+                        0.4076,
+                        0.5939,
+                        0.8230,
+                        0.9214,
+                        0.9296,
+                        0.985,
+                        1.000,
+                    ]
+                )
             elif self.criteria_dict["cs_name_val"] in [17]:
-                x_vals = np.array([0.0087,0.0269,0.0568,0.1556,0.2749,0.4449,0.661,0.8096,0.9309,0.9578])
+                x_vals = np.array(
+                    [
+                        0.0087,
+                        0.0269,
+                        0.0568,
+                        0.1556,
+                        0.2749,
+                        0.4449,
+                        0.661,
+                        0.8096,
+                        0.9309,
+                        0.9578,
+                    ]
+                )
             else:
                 x_vals = None
 
-            exp_data = simulator.gen_exp_data(self.num_x, gen_meth_en_theta, x_vals, noise_std_pct)
+            exp_data = simulator.gen_exp_data(
+                self.num_x, gen_meth_en_theta, x_vals, noise_std_pct
+            )
 
-            simulator.noise_std = np.abs(np.median(exp_data.y_vals))*noise_std_pct
+            if not math.isclose(np.median(exp_data.y_vals), 0):
+                noise_std = np.abs(np.median(exp_data.y_vals)) * noise_std_pct
+            # If the median value is 0, use 1% of the mean as the default.
+            elif not math.isclose(np.mean(exp_data.y_vals), 0):
+                noise_std = np.abs(np.mean(exp_data.y_vals)) * noise_std_pct
+            # If both values are zero, Use 1% of the abs max value
+            else:
+                noise_std = np.max(np.abs(exp_data.y_vals)) * noise_std_pct
 
+            # Set simulator noise to the noise value that was just generated.
+            simulator.noise_std = noise_std
             ftol = 1e-7
 
         self.simulator = simulator
@@ -3604,7 +3831,9 @@ class Deriv_Free_Anlys(General_Analysis):
             # Note: We do not use the initial training thetas for GPBO as starting pts for NLS.
             # MCMC and Sparse grid methods generate based on EI, which do not make sense for NLR starting points
             # Note: Starting points for optimization are saved in the driver, which is not saved in BO_Results.gz
-            theta_guess = self.simulator.gen_theta_vals(num_restarts, self.simulator.sim_seed)
+            theta_guess = self.simulator.gen_theta_vals(
+                num_restarts, self.simulator.sim_seed
+            )
 
             # Initialize results dataframe
             column_names = [
@@ -3640,37 +3869,46 @@ class Deriv_Free_Anlys(General_Analysis):
                 # Find least squares solution
                 if self.deriv_free_meth == "SHGO-Sob":
                     Solution = optimize.shgo(
-                        lambda theta_guess: self.__scipy_func(theta_guess, self.exp_data, self.simulator),
-                        bounds = self.simulator.bounds_theta_reg.T,
+                        lambda theta_guess: self.__scipy_func(
+                            theta_guess, self.exp_data, self.simulator
+                        ),
+                        bounds=self.simulator.bounds_theta_reg.T,
                         sampling_method="sobol",
                     )
                 elif self.deriv_free_meth == "SHGO-Simp":
                     Solution = optimize.shgo(
-                        lambda theta_guess: self.__scipy_func(theta_guess, self.exp_data, self.simulator),
-                        bounds = self.simulator.bounds_theta_reg.T,
+                        lambda theta_guess: self.__scipy_func(
+                            theta_guess, self.exp_data, self.simulator
+                        ),
+                        bounds=self.simulator.bounds_theta_reg.T,
                         sampling_method="simplicial",
                     )
                 elif self.deriv_free_meth == "NM":
                     Solution = optimize.minimize(
                         self.__scipy_func,
                         theta_guess[i],
-                        method = 'Nelder-Mead',
-                        bounds = self.simulator.bounds_theta_reg.T,
-                        args = (self.exp_data, self.simulator)
+                        method="Nelder-Mead",
+                        bounds=self.simulator.bounds_theta_reg.T,
+                        args=(self.exp_data, self.simulator),
                     )
                 else:
-                    saturate = int(self.num_generations/3)
+                    saturate = int(self.num_generations / 3)
                     sat_str = "saturate_" + str(saturate)
-                    
-                    gene_space = [{'low': row[0], 'high': row[1]} for row in self.simulator.bounds_theta_reg.T]
-                    Solution = pygad.GA(num_generations=self.num_generations,
-                                num_parents_mating=self.num_parents_mating,
-                                sol_per_pop=self.sol_per_pop,
-                                gene_space = gene_space,
-                                num_genes=self.exp_data.get_dim_theta(),
-                                fitness_func=self.__pygad_func,
-                                random_seed=self.simulator.sim_seed + i,
-                                stop_criteria = [sat_str])
+
+                    gene_space = [
+                        {"low": row[0], "high": row[1]}
+                        for row in self.simulator.bounds_theta_reg.T
+                    ]
+                    Solution = pygad.GA(
+                        num_generations=self.num_generations,
+                        num_parents_mating=self.num_parents_mating,
+                        sol_per_pop=self.sol_per_pop,
+                        gene_space=gene_space,
+                        num_genes=self.exp_data.get_dim_theta(),
+                        fitness_func=self.__pygad_func,
+                        random_seed=self.simulator.sim_seed + i,
+                        stop_criteria=[sat_str],
+                    )
                     Solution.run()
 
                 # End timer and calculate total run time
@@ -3743,10 +3981,8 @@ class Deriv_Free_Anlys(General_Analysis):
             columns_to_convert = ["Theta Min Obj", "Theta Min Obj Cum.", "l2 norm"]
             for col in columns_to_convert:
                 try:
-                    ls_results[col] = ls_results[col].apply(
-                        self.str_to_array_df_col
-                    )
+                    ls_results[col] = ls_results[col].apply(self.str_to_array_df_col)
                 except:
-                    pass  
+                    pass
 
         return ls_results

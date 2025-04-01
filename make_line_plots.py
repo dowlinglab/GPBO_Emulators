@@ -25,7 +25,7 @@ save_figs = True
 modes = ["act", "gp", "acq"]
 project = signac.get_project("GPBO_rand")
 
-for val in [1,11, 12, 15,17]:
+for val in [1, 11, 12, 13, 15, 17, 10, 14, 2, 3]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,
@@ -61,7 +61,7 @@ for val in [1,11, 12, 15,17]:
         for i in range(len(z_choices)):
             plotters.plot_one_obj_all_methods(z_choices[i])
 
-        #Can optionally make plots for hyperparameters and theta values
+        # Can optionally make plots for hyperparameters and theta values
         # for i in range(len(job_list_best)):
         #     #Plot hyperparameters
         #     plotters.plot_hypers(job_list_best[i])
