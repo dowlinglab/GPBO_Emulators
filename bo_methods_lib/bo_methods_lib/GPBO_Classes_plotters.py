@@ -1050,7 +1050,7 @@ class Plotters:
                 )
                 all_z_data.append(z_sim)
                 #Get local min data
-                local_min_sets = self.analyzer.categ_min(tot_runs_nls)
+                local_min_sets = self.analyzer.categ_min(tot_runs_nls, w_noise = False)
                 nls_freq = local_min_sets["Num Occurrences"].to_numpy()
                 all_freq_data.append(nls_freq)
 
@@ -2460,13 +2460,13 @@ class Plotters:
 
         return
     
-    def hist_categ_min(self, tot_runs, w_gpbo=True, w_gpbo_sse=False, meth_list = [4,7]):
+    def hist_categ_min(self, tot_runs, w_gpbo=True, w_gpbo_sse=False, meth_list = [4,7], w_noise = False):
         """
         Creates objective and parameter histograms for the minima found by least squares"""
-
+        w_noise_str = "_w_noise" if w_noise else "_wo_noise"
         meth_list = [self.method_names[val - 1] for val in meth_list]
         if not w_gpbo:
-            local_min_sets = self.analyzer.categ_min(tot_runs)
+            local_min_sets = self.analyzer.categ_min(tot_runs, w_noise = w_noise)
         else:
             local_min_sets, gpbo_runs = self.analyzer.compare_min(tot_runs, meth_list = meth_list)
         cs_name_dict = {key: self.analyzer.criteria_dict[key] for key in ["cs_name_val"]}
@@ -2474,7 +2474,7 @@ class Plotters:
         add_gp = "gpbo_" if w_gpbo is True else ""
         ls_hist_fig_path = os.path.join(
             self.analyzer.make_dir_name_from_criteria(cs_name_dict),
-            "ls_"+add_gp+"local_min_hist_" + str(tot_runs)
+            "ls_"+add_gp+"local_min_hist_" + str(tot_runs) + w_noise_str
         )
 
         #Get the unique instacnes of theta and the counts of each instance
