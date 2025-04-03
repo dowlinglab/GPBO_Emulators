@@ -71,7 +71,9 @@ class Plotters:
         """
         # Asserts
         assert isinstance(save_figs, bool), "save_figs must be boolean"
-        assert isinstance(analyzer, (General_Analysis, All_CS_Analysis, LS_Analysis)), "analyzer must be General_Analysis, LS_Analysis, or All_CS_Analysis"
+        assert isinstance(
+            analyzer, (General_Analysis, All_CS_Analysis, LS_Analysis)
+        ), "analyzer must be General_Analysis, LS_Analysis, or All_CS_Analysis"
 
         # Constructor method
         self.analyzer = analyzer
@@ -176,15 +178,15 @@ class Plotters:
             )
             be, be_theta = self.analyzer.get_best_error(job_pointer[i])
             GPBO_method_val = sp_data["meth_name_val"]
-           
+
             shrt_name = GPBO_Methods(Method_name_enum(GPBO_method_val)).report_name
 
             # Get Number of runs in the job
             runs_in_job = sp_data["bo_runs_in_job"]
-            #Get number of iterations to add at the beginning by grabbing the length of theta_true
+            # Get number of iterations to add at the beginning by grabbing the length of theta_true
             cs_class = get_cs_class_from_val(sp_data["cs_name_val"])
             num_params = len(cs_class.idcs_to_consider)
-            num_train_points = sp_data["num_theta_multiplier"]*num_params
+            num_train_points = sp_data["num_theta_multiplier"] * num_params
             max_iters = sp_data["bo_iter_tot"] + num_train_points
 
             # Set subplot index to the corresponding method value number
@@ -215,11 +217,13 @@ class Plotters:
                 if log_data == True:
                     data_df_j = np.log(data_df_j)
 
-                #Add iterations to the beginning
+                # Add iterations to the beginning
                 data_train = be[j] if be is not None else data_df_j[0]
-                data_df_j_w_train = np.concatenate((np.full(num_train_points, data_train), data_df_j))
+                data_df_j_w_train = np.concatenate(
+                    (np.full(num_train_points, data_train), data_df_j)
+                )
                 if z_choice == "min_sse":
-                    #Replace values higher than data_train in data_df_j_w_train with data_train
+                    # Replace values higher than data_train in data_df_j_w_train with data_train
                     data_df_j_w_train[data_df_j_w_train > data_train] = data_train
 
                 # For result where run num list is the number of runs, print a solid line
@@ -294,17 +298,24 @@ class Plotters:
 
                 meth_bo_max_evals[ax_idx] = max_x
                 x_space = np.linspace(1, max_x, max_x)
-                
-                #Concatenate the minimum and maxium value of y to data_df_j_w_train if y exists
+
+                # Concatenate the minimum and maxium value of y to data_df_j_w_train if y exists
                 if ls_xset:
-                    data_df_j_w_train_bnd = np.concatenate([data_df_j_w_train,[np.min(y), np.max(y)]])
+                    data_df_j_w_train_bnd = np.concatenate(
+                        [data_df_j_w_train, [np.min(y), np.max(y)]]
+                    )
                 else:
                     data_df_j_w_train_bnd = data_df_j_w_train
 
                 # print(data_df_j_w_train_bnd)
 
                 self.__set_subplot_details(
-                    ax[ax_row, ax_col], x_space, data_df_j_w_train_bnd, None, None, title
+                    ax[ax_row, ax_col],
+                    x_space,
+                    data_df_j_w_train_bnd,
+                    None,
+                    None,
+                    title,
                 )
 
             self.__set_subplot_details(
@@ -471,17 +482,26 @@ class Plotters:
         meth_label = self.method_names[GPBO_method_val - 1]
         y_label = "Parameter Values"
 
-        #Get number of iterations to add at the beginning by grabbing the length of theta_true
+        # Get number of iterations to add at the beginning by grabbing the length of theta_true
         cs_class = get_cs_class_from_val(sp_data["cs_name_val"])
         num_params = len(cs_class.idcs_to_consider)
-        num_train_points = sp_data["num_theta_multiplier"]*num_params
+        num_train_points = sp_data["num_theta_multiplier"] * num_params
 
         if title != None:
             title = title
         else:
             title = meth_label + " Parameter Values"
 
-        fig = self.__plot_2D_general(data, data_names, data_true, y_label, title, False, num_train_points, be_theta)
+        fig = self.__plot_2D_general(
+            data,
+            data_names,
+            data_true,
+            y_label,
+            title,
+            False,
+            num_train_points,
+            be_theta,
+        )
         # save or show figure
         if self.save_figs:
             save_path_to = os.path.join(job.fn(""), "line_plots", "params_" + z_choice)
@@ -490,7 +510,17 @@ class Plotters:
             plt.show()
             plt.close()
 
-    def __plot_2D_general(self, data, data_names, data_true, y_label, title, log_data, num_train_points = 0, be=None):
+    def __plot_2D_general(
+        self,
+        data,
+        data_names,
+        data_true,
+        y_label,
+        title,
+        log_data,
+        num_train_points=0,
+        be=None,
+    ):
         """
         Plots 2D values of the same data type (ei, sse, min sse) on multiple subplots
 
@@ -548,10 +578,12 @@ class Plotters:
                     if log_data == True:
                         data_df_j = np.log(data_df_j)
 
-                    #duplicate the first value num_train_points times to show the number of training points
+                    # duplicate the first value num_train_points times to show the number of training points
                     if num_train_points > 0:
                         data_train = be[j, i] if be is not None else data_df_j[0]
-                        data_df_j = np.concatenate((np.full(num_train_points, data_train), data_df_j))
+                        data_df_j = np.concatenate(
+                            (np.full(num_train_points, data_train), data_df_j)
+                        )
                         x_label = "Loss Evaluations"
                     else:
                         x_label = "BO Iterations"
@@ -625,7 +657,7 @@ class Plotters:
         return r"${} \times 10^{{{}}}$".format(mantissa, int(exponent))
 
     # def add_training_iters(self, data):
-    
+
     def plot_objs_all_methods(self, z_choices, log_data=False, title=None):
         """
         Plots EI, SSE, Min SSE, and EI values vs BO iter for all 7 methods.
@@ -691,7 +723,7 @@ class Plotters:
         ]
         for index in sorted(indices_to_insert):
             emph_runs.insert(index, 0)
-        #Initialize min and max for acq
+        # Initialize min and max for acq
         miny = 1e-16
         maxy = 0
         # Loop over different methdods (number of subplots)
@@ -702,12 +734,12 @@ class Plotters:
             )
             be, be_theta = self.analyzer.get_best_error(job_pointer[i])
             GPBO_method_val = sp_data["meth_name_val"]
-            #Get number of iterations to add at the beginning by grabbing the length of theta_true
+            # Get number of iterations to add at the beginning by grabbing the length of theta_true
             cs_class = get_cs_class_from_val(sp_data["cs_name_val"])
             num_params = len(cs_class.idcs_to_consider)
-            num_train_points = sp_data["num_theta_multiplier"]*num_params
+            num_train_points = sp_data["num_theta_multiplier"] * num_params
 
-            #Max iters is number of BO iters + training points
+            # Max iters is number of BO iters + training points
             max_iters = sp_data["bo_iter_tot"] + num_train_points
 
             # Create label based on method #
@@ -757,11 +789,15 @@ class Plotters:
                         maxy = float(np.maximum(maxy, np.max(data_df_j)))
 
                         data_train = be[j] if be is not None else data_df_j[0]
-                        #duplicate the first value num_train_points times to show the number of training points
-                        data_df_j_w_train = np.concatenate((np.full(num_train_points, data_train), data_df_j))
+                        # duplicate the first value num_train_points times to show the number of training points
+                        data_df_j_w_train = np.concatenate(
+                            (np.full(num_train_points, data_train), data_df_j)
+                        )
                         if z_choices[k] == "min_sse":
-                            #Replace values higher than data_train in data_df_j_w_train with data_train
-                            data_df_j_w_train[data_df_j_w_train > data_train] = data_train
+                            # Replace values higher than data_train in data_df_j_w_train with data_train
+                            data_df_j_w_train[data_df_j_w_train > data_train] = (
+                                data_train
+                            )
 
                         # For the best result, print a solid line
                         if emph_runs[GPBO_method_val - 1] == run_number:
@@ -841,15 +877,26 @@ class Plotters:
                         self.__set_subplot_details(
                             ax,
                             bo_space_org,
-                            np.array([miny,maxy]),
+                            np.array([miny, maxy]),
                             x_label,
                             rf"${data_names[k]}$",
                             None,
                         )
                     else:
-                        use_y = np.concatenate([np.array([miny,maxy]),[np.min(y), np.max(y)]]) if ls_xset else np.array([miny,maxy])
+                        use_y = (
+                            np.concatenate(
+                                [np.array([miny, maxy]), [np.min(y), np.max(y)]]
+                            )
+                            if ls_xset
+                            else np.array([miny, maxy])
+                        )
                         self.__set_subplot_details(
-                            ax, bo_space_org, use_y, x_label, rf"${data_names[k]}$", None
+                            ax,
+                            bo_space_org,
+                            use_y,
+                            x_label,
+                            rf"${data_names[k]}$",
+                            None,
                         )
 
         # Get legend and handles
@@ -960,7 +1007,9 @@ class Plotters:
         else:
             return all_z_data, all_z_titles, all_z_titles_pre
 
-    def plot_local_min_hms(self, pair, tot_runs_nls, levels = 10, log_data=False, title=None):
+    def plot_local_min_hms(
+        self, pair, tot_runs_nls, levels=10, log_data=False, title=None
+    ):
         """
         Plots the frequency of local minima given the surface for NLS (true surface) and GPBO (predicted surface) for all GBPO methods
 
@@ -987,7 +1036,7 @@ class Plotters:
         Notes
         -------
         For this function, each method is its own subplot. Each plot must be generated separately for each objective function choice.
-            """
+        """
 
         assert isinstance(pair, int), "pair must be an integer"
         assert isinstance(levels, (int)), "levels must be an int"
@@ -1006,7 +1055,7 @@ class Plotters:
         # meth_to_plt = [key for key, val in self.gpbo_meth_dict.items() if val in meth_list_plt]
         z_choice = "sse_mean"
         fig, ax, num_subplots, plot_mapping = self.__create_subplots(
-            subplots_needed, sharex=False, sharey=False, threeD = True, x_size=6, y_size=6
+            subplots_needed, sharex=False, sharey=False, threeD=True, x_size=6, y_size=6
         )
 
         all_z_data = []
@@ -1015,8 +1064,8 @@ class Plotters:
 
         # Get all data for subplots needed
         # Loop over number of subplots needed
-        for i in range(len(job_list_best)): 
-            method_list_plt = [df_best["BO Method"].iloc[i]]     
+        for i in range(len(job_list_best)):
+            method_list_plt = [df_best["BO Method"].iloc[i]]
             get_ei = False
             # Get data
             analysis_list = self.analyzer.analyze_heat_maps(
@@ -1040,7 +1089,9 @@ class Plotters:
 
             all_z_data.append(z)
             all_sp_data.append(sp_data)
-            local_min_sets, gpbo_runs = self.analyzer.compare_min(tot_runs_nls, method_list_plt)
+            local_min_sets, gpbo_runs = self.analyzer.compare_min(
+                tot_runs_nls, method_list_plt
+            )
             gpbo_freq = local_min_sets["GPBO Matches"].to_numpy()
             all_freq_data.append(gpbo_freq)
 
@@ -1049,11 +1100,10 @@ class Plotters:
                     "sse_sim", sim_sse_var_ei
                 )
                 all_z_data.append(z_sim)
-                #Get local min data
-                local_min_sets = self.analyzer.categ_min(tot_runs_nls, w_noise = False)
+                # Get local min data
+                local_min_sets = self.analyzer.categ_min(tot_runs_nls, w_noise=False)
                 nls_freq = local_min_sets["Num Occurrences"].to_numpy()
                 all_freq_data.append(nls_freq)
-
 
         # Initialize need_unscale to False
         need_unscale = False
@@ -1089,21 +1139,27 @@ class Plotters:
             # new_ticks = matplotlib.ticker.LogLocator(numticks=7)
             # nticks = new_ticks.tick_values(vmin, vmax)
             # cbar_ticks = np.linspace(vmin, vmax, len(nticks))
-            cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), levels) #Set 7 equally spaced ticks
-            #Get log10 scale bounds
-            min_power = np.floor(np.log10(vmin))  # Round down the logarithm to get the closest power of 10
-            max_power = np.ceil(np.log10(vmax))  # Round up the logarithm to get the closest power of 10
+            cbar_ticks = np.logspace(
+                np.log10(vmin), np.log10(vmax), levels
+            )  # Set 7 equally spaced ticks
+            # Get log10 scale bounds
+            min_power = np.floor(
+                np.log10(vmin)
+            )  # Round down the logarithm to get the closest power of 10
+            max_power = np.ceil(
+                np.log10(vmax)
+            )  # Round up the logarithm to get the closest power of 10
             # Create the ticks at powers of 10 within this range
             tick_num = int(max_power - min_power)
-            if tick_num -2 < 3:
+            if tick_num - 2 < 3:
                 tick_num *= 2
             nticks = np.logspace(min_power, max_power, tick_num + 1)
 
-        #Set theta values to plot
+        # Set theta values to plot
         theta_vals = np.vstack(local_min_sets["Theta Min Obj Cum."])
-        thetas = theta_vals[:,idcs_to_plot]
-        dx = (np.max(xx) - np.min(xx))*0.05
-        dy = (np.max(yy) - np.min(yy))*0.05
+        thetas = theta_vals[:, idcs_to_plot]
+        dx = (np.max(xx) - np.min(xx)) * 0.05
+        dy = (np.max(yy) - np.min(yy)) * 0.05
 
         # Set x and y labels
         if "theta" in plot_axis_names[0] or "tau" in plot_axis_names[0]:
@@ -1138,7 +1194,9 @@ class Plotters:
 
             cmap = plt.cm.get_cmap(self.cmap)
             # Create a BoundaryNorm with discrete levels
-            discrete_cmap = colors.ListedColormap(cmap(np.linspace(0, 1, len(cbar_ticks)-1)))
+            discrete_cmap = colors.ListedColormap(
+                cmap(np.linspace(0, 1, len(cbar_ticks) - 1))
+            )
             boundary_norm = colors.BoundaryNorm(cbar_ticks, discrete_cmap.N)
 
             # Create a colormap and colorbar for each subplot
@@ -1146,12 +1204,12 @@ class Plotters:
                 xx,
                 yy,
                 z,
-                levels=cbar_ticks, # cbar_ticks, #When doing zoom in activate this
+                levels=cbar_ticks,  # cbar_ticks, #When doing zoom in activate this
                 tick_positions=nticks,
-                cmap=cmap ,#discrete_cmap,
-                norm=norm ,#boundary_norm ,
-                zdir = "z",
-                offset = 0,
+                cmap=cmap,  # discrete_cmap,
+                norm=norm,  # boundary_norm ,
+                zdir="z",
+                offset=0,
             )
 
             # # Create a line contour for each colormap
@@ -1170,38 +1228,72 @@ class Plotters:
                     linestyles="dashed",
                     linewidths=3,
                     norm=norm,
-                    zdir = "z",
-                    offset = 0,
+                    zdir="z",
+                    offset=0,
                 )
-            
+
             # plot theta frequencies
-            ax[ax_row, ax_col].bar3d(thetas[0, 0]-dx/2, thetas[0, 1]-dy/2, 0, dx, dy, all_freq_data[i][0], color='green', alpha=0.4)
+            ax[ax_row, ax_col].bar3d(
+                thetas[0, 0] - dx / 2,
+                thetas[0, 1] - dy / 2,
+                0,
+                dx,
+                dy,
+                all_freq_data[i][0],
+                color="green",
+                alpha=0.4,
+            )
             if len(thetas) > 1:
-                ax[ax_row, ax_col].bar3d(thetas[1:, 0]-dx/2, thetas[1:, 1]-dy/2, 0, dx, dy, all_freq_data[i][1:], color='blue', alpha=0.4)
+                ax[ax_row, ax_col].bar3d(
+                    thetas[1:, 0] - dx / 2,
+                    thetas[1:, 1] - dy / 2,
+                    0,
+                    dx,
+                    dy,
+                    all_freq_data[i][1:],
+                    color="blue",
+                    alpha=0.4,
+                )
 
             # Set plot details
             if i != len(job_list_best):
                 label_name = self.method_names[ax_idx]
             else:
-                label_name = "NLS" #tit3_pre + title3
+                label_name = "NLS"  # tit3_pre + title3
             zlabel = "Frequency"
             self.__set_subplot_details(
-                ax[ax_row, ax_col], xx, yy, xlabel, ylabel, label_name, plot_z =all_freq_data[i], zlabel = zlabel
+                ax[ax_row, ax_col],
+                xx,
+                yy,
+                xlabel,
+                ylabel,
+                label_name,
+                plot_z=all_freq_data[i],
+                zlabel=zlabel,
             )
             if i == len(job_list_best) and sp_data["cs_name_val"] != 15:
                 ax[ax_row, ax_col].set_zlim(zmax=tot_runs_nls)
-            
 
             if all_sp_data[0]["cs_name_val"] in [16, 17]:
-                ax[ax_row, ax_col].ticklabel_format(style='scientific', axis='y', scilimits=(-2, 2))
-                ax[ax_row, ax_col].ticklabel_format(style='scientific', axis='x', scilimits=(-2, 2))
+                ax[ax_row, ax_col].ticklabel_format(
+                    style="scientific", axis="y", scilimits=(-2, 2)
+                )
+                ax[ax_row, ax_col].ticklabel_format(
+                    style="scientific", axis="x", scilimits=(-2, 2)
+                )
                 # ax[ax_row, ax_col].w_zaxis.set_tick_params(rotation=90)
-                ax[ax_row, ax_col].xaxis.get_offset_text().set_fontsize(self.other_fntsz)  # Adjust size as needed
-                ax[ax_row, ax_col].yaxis.get_offset_text().set_fontsize(self.other_fntsz)
-                ax[ax_row, ax_col].zaxis.get_offset_text().set_fontsize(self.other_fntsz)  # For 3D plots
+                ax[ax_row, ax_col].xaxis.get_offset_text().set_fontsize(
+                    self.other_fntsz
+                )  # Adjust size as needed
+                ax[ax_row, ax_col].yaxis.get_offset_text().set_fontsize(
+                    self.other_fntsz
+                )
+                ax[ax_row, ax_col].zaxis.get_offset_text().set_fontsize(
+                    self.other_fntsz
+                )  # For 3D plots
 
-            ax[ax_row, ax_col].tick_params(axis='y', rotation=-30)
-            ax[ax_row, ax_col].tick_params(axis='x', rotation=45)
+            ax[ax_row, ax_col].tick_params(axis="y", rotation=-30)
+            ax[ax_row, ax_col].tick_params(axis="x", rotation=45)
             # ax[ax_row, ax_col].tick_params(axis='x', rotation=90)
 
         # Get legend information and make colorbar on 1st plot
@@ -1216,7 +1308,7 @@ class Plotters:
             ax=ax,
             cax=cb_ax,
             format=fmt,
-            ticks = nticks, #cbar_ticks, #When doing zoom in activate this
+            ticks=nticks,  # cbar_ticks, #When doing zoom in activate this
             use_gridspec=True,
         )
         try:
@@ -1235,18 +1327,22 @@ class Plotters:
 
         # Print the title and labels as appropriate
         # Define x and y labels
-        #For case studies 16 and 17, change the parameter names to be the correct ones from calc_y_fxns
+        # For case studies 16 and 17, change the parameter names to be the correct ones from calc_y_fxns
         if all_sp_data[0]["cs_name_val"] in [16, 17]:
-            plot_axis_names = tuple('tau_{12}' if name == 'theta_1' else 'tau_{21}' for name in plot_axis_names)
-        
+            plot_axis_names = tuple(
+                "tau_{12}" if name == "theta_1" else "tau_{21}"
+                for name in plot_axis_names
+            )
+
         plt.draw()
         plt.tight_layout()
-        plt.subplots_adjust(wspace=0.25,hspace=0.25)
+        plt.subplots_adjust(wspace=0.25, hspace=0.25)
 
         # save or show figure
         if self.save_figs:
             save_path = self.analyzer.make_dir_name_from_criteria(
-            self.analyzer.criteria_dict)
+                self.analyzer.criteria_dict
+            )
             save_path_dir = os.path.join(save_path, "line_plots", "local_min_3d")
             save_path_to = os.path.join(save_path_dir, z_choice)
             self.__save_fig(save_path_to)
@@ -1260,7 +1356,9 @@ class Plotters:
         # for axs in ax[:, 0]:
         #     axs.set_ylabel(ylabel, fontsize=self.other_fntsz)
 
-    def plot_hms_all_methods(self, pair, z_choice, levels = 10, log_data=False, title=None):
+    def plot_hms_all_methods(
+        self, pair, z_choice, levels=10, log_data=False, title=None
+    ):
         """
         Plots comparison of y_sim, GP_mean, GP_stdev, and the acquisition function values for all methods
         Parameters
@@ -1339,14 +1437,19 @@ class Plotters:
             MAE = sklearn.metrics.mean_absolute_error(
                 sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten()
             )
-            MAPD = mean_absolute_percentage_error(sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten())
+            MAPD = mean_absolute_percentage_error(
+                sim_sse_var_ei[0].flatten(), sim_sse_var_ei[1].flatten()
+            )
             if i == 0:
                 print("CS Name: ", df_best["CS Name"].values[0])
-            if z_choice == "sse_mean":
+            if z_choice == "sse_mean" and self.analyzer.mode == "act":
                 print(df_best["BO Method"].values[i])
                 print("MAE: ", MAE)
                 print("MAPD: ", MAPD)
-                print("Avg Gamma: ", np.mean(sim_sse_var_ei[2].flatten()/sim_sse_var_ei[1].flatten()))
+                print(
+                    "Avg Gamma: ",
+                    np.mean(sim_sse_var_ei[2].flatten() / sim_sse_var_ei[1].flatten()),
+                )
             theta_true = param_info_dict["true"]
             theta_opt = param_info_dict["min_sse"]
             theta_next = param_info_dict["opt_acq"]
@@ -1401,7 +1504,9 @@ class Plotters:
             # Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3
             if log_data == True or need_unscale or not mag_diff:
                 norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
-                cbar_ticks = np.linspace(vmin, vmax, levels) #Set 7 equally spaced ticks
+                cbar_ticks = np.linspace(
+                    vmin, vmax, levels
+                )  # Set 7 equally spaced ticks
                 nticks = cbar_ticks
 
             else:
@@ -1410,15 +1515,21 @@ class Plotters:
                 # nticks = new_ticks.tick_values(vmin, vmax)
                 # cbar_ticks = nticks #np.logspace(np.log10(vmin), np.log10(vmax), len(nticks))
                 # cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), len(nticks))
-                cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), levels) #Set 7 equally spaced ticks
-                #Get log10 scale bounds
-                min_power = np.floor(np.log10(vmin))  # Round down the logarithm to get the closest power of 10
-                max_power = np.ceil(np.log10(vmax))  # Round up the logarithm to get the closest power of 10
+                cbar_ticks = np.logspace(
+                    np.log10(vmin), np.log10(vmax), levels
+                )  # Set 7 equally spaced ticks
+                # Get log10 scale bounds
+                min_power = np.floor(
+                    np.log10(vmin)
+                )  # Round down the logarithm to get the closest power of 10
+                max_power = np.ceil(
+                    np.log10(vmax)
+                )  # Round up the logarithm to get the closest power of 10
                 # print(min_power, max_power)
                 # print(cbar_ticks)
                 # Create the ticks at powers of 10 within this range
                 tick_num = int(max_power - min_power)
-                if tick_num -2 < 3:
+                if tick_num - 2 < 3:
                     tick_num *= 2
                 nticks = np.logspace(min_power, max_power, tick_num + 1)
                 # nticks = np.logspace(min_power, max_power, int(max_power - min_power + 1))
@@ -1466,20 +1577,28 @@ class Plotters:
                 # Do not use log10 scale if natural log scaling data or the difference in min and max values < 1e-3
                 if log_data == True or need_unscale or not mag_diff:
                     norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
-                    cbar_ticks = np.linspace(vmin, vmax, levels) #Set 7 equally spaced ticks
+                    cbar_ticks = np.linspace(
+                        vmin, vmax, levels
+                    )  # Set 7 equally spaced ticks
                     nticks = cbar_ticks
 
                 else:
                     use_log10 = True
 
                     norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-                    cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), levels) #Set 7 equally spaced ticks
-                    #Get log10 scale bounds
-                    min_power = np.floor(np.log10(vmin))  # Round down the logarithm to get the closest power of 10
-                    max_power = np.ceil(np.log10(vmax))  # Round up the logarithm to get the closest power of 10
+                    cbar_ticks = np.logspace(
+                        np.log10(vmin), np.log10(vmax), levels
+                    )  # Set 7 equally spaced ticks
+                    # Get log10 scale bounds
+                    min_power = np.floor(
+                        np.log10(vmin)
+                    )  # Round down the logarithm to get the closest power of 10
+                    max_power = np.ceil(
+                        np.log10(vmax)
+                    )  # Round up the logarithm to get the closest power of 10
                     # Create the ticks at powers of 10 within this range
                     tick_num = int(max_power - min_power)
-                    if tick_num -2 < 3:
+                    if tick_num - 2 < 3:
                         tick_num *= 2
                     nticks = np.logspace(min_power, max_power, tick_num + 1)
 
@@ -1498,7 +1617,7 @@ class Plotters:
                     xx,
                     yy,
                     z,
-                    levels=cbar_ticks, #self.zbins,
+                    levels=cbar_ticks,  # self.zbins,
                     tick_positions=nticks,
                     cmap=plt.cm.get_cmap(self.cmap),
                     norm=norm,
@@ -1594,7 +1713,9 @@ class Plotters:
             )
 
             if all_sp_data[0]["cs_name_val"] in [16, 17]:
-                ax[ax_row, ax_col].ticklabel_format(style='scientific', axis='both', scilimits=(-2, 2))
+                ax[ax_row, ax_col].ticklabel_format(
+                    style="scientific", axis="both", scilimits=(-2, 2)
+                )
 
         # Get legend information and make colorbar on 1st plot
         handles, labels = ax[0, 0].get_legend_handles_labels()
@@ -1610,7 +1731,7 @@ class Plotters:
                 cax=cb_ax,
                 format=fmt,
                 use_gridspec=True,
-                ticks = nticks,
+                ticks=nticks,
             )
             try:
                 cbar.ax.locator_params(axis="y", numticks=7)
@@ -1627,9 +1748,12 @@ class Plotters:
 
         # Print the title and labels as appropriate
         # Define x and y labels
-        #For case studies 16 and 17, change the parameter names to be the correct ones from calc_y_fxns
+        # For case studies 16 and 17, change the parameter names to be the correct ones from calc_y_fxns
         if all_sp_data[0]["cs_name_val"] in [16, 17]:
-            plot_axis_names = tuple('tau_{12}' if name == 'theta_1' else 'tau_{21}' for name in plot_axis_names)
+            plot_axis_names = tuple(
+                "tau_{12}" if name == "theta_1" else "tau_{21}"
+                for name in plot_axis_names
+            )
 
         if "theta" in plot_axis_names[0] or "tau" in plot_axis_names[0]:
             xlabel = r"$\mathbf{" + "\\" + plot_axis_names[0] + "}$"
@@ -1686,7 +1810,15 @@ class Plotters:
         return plt.show()
 
     def plot_hms_gp_compare(
-        self, job, run_num, bo_iter, pair, z_choices, levels = 7, log_data=False, title=None
+        self,
+        job,
+        run_num,
+        bo_iter,
+        pair,
+        z_choices,
+        levels=7,
+        log_data=False,
+        title=None,
     ):
         """
         Plots comparison of y_sim, GP_mean, and GP_stdev
@@ -1840,19 +1972,27 @@ class Plotters:
 
                 else:
                     norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-                    cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), levels[i]) #Set 5 equally spaced ticks
-                    #Get log10 scale bounds
-                    min_power = np.floor(np.log10(vmin))  # Round down the logarithm to get the closest power of 10
-                    max_power = np.ceil(np.log10(vmax))  # Round up the logarithm to get the closest power of 10
+                    cbar_ticks = np.logspace(
+                        np.log10(vmin), np.log10(vmax), levels[i]
+                    )  # Set 5 equally spaced ticks
+                    # Get log10 scale bounds
+                    min_power = np.floor(
+                        np.log10(vmin)
+                    )  # Round down the logarithm to get the closest power of 10
+                    max_power = np.ceil(
+                        np.log10(vmax)
+                    )  # Round up the logarithm to get the closest power of 10
                     # Create the ticks at powers of 10 within this range
-                    nticks = np.logspace(min_power, max_power, int(max_power - min_power + 1))
+                    nticks = np.logspace(
+                        min_power, max_power, int(max_power - min_power + 1)
+                    )
 
                 # Create a colormap and colorbar normalization for each subplot
                 cs_fig = ax.contourf(
                     xx,
                     yy,
                     z,
-                    levels=cbar_ticks, #self.zbins,
+                    levels=cbar_ticks,  # self.zbins,
                     # tick_positions=nticks,
                     cmap=plt.cm.get_cmap(self.cmap),
                     norm=norm,
@@ -1922,7 +2062,9 @@ class Plotters:
                 # Set plot details
                 self.__set_subplot_details(ax, xx, yy, None, None, all_z_titles[i])
                 if sp_data["cs_name_val"] in [16, 17]:
-                    ax.ticklabel_format(style='scientific', axis='both', scilimits=(-2, 2))
+                    ax.ticklabel_format(
+                        style="scientific", axis="both", scilimits=(-2, 2)
+                    )
 
                 # Use a custom formatter for the colorbar
                 fmt = matplotlib.ticker.FuncFormatter(self.custom_format)
@@ -1930,12 +2072,12 @@ class Plotters:
                 divider1 = make_axes_locatable(ax)
                 cax1 = divider1.append_axes("right", size="5%", pad="6%")
                 cbar = fig.colorbar(
-                cs_fig,
-                ax=ax,
-                cax=cax1,
-                use_gridspec=True,
-                ticks = cbar_ticks,
-            )
+                    cs_fig,
+                    ax=ax,
+                    cax=cax1,
+                    use_gridspec=True,
+                    ticks=cbar_ticks,
+                )
                 cbar.ax.yaxis.set_major_formatter(fmt)
                 cbar.ax.tick_params(labelsize=int(self.other_fntsz / 2))
 
@@ -1946,9 +2088,12 @@ class Plotters:
         if title is None:
             title = self.method_names[GPBO_method_val - 1]
 
-        #For case studies 16 and 17, change the parameter names to be the correct ones from calc_y_fxns
+        # For case studies 16 and 17, change the parameter names to be the correct ones from calc_y_fxns
         if sp_data["cs_name_val"] in [16, 17]:
-            plot_axis_names = tuple('tau_{12}' if name == 'theta_1' else 'tau_{21}' for name in plot_axis_names)
+            plot_axis_names = tuple(
+                "tau_{12}" if name == "theta_1" else "tau_{21}"
+                for name in plot_axis_names
+            )
 
         # Print the title and labels as appropriate
         # Define x and y labels
@@ -2144,7 +2289,15 @@ class Plotters:
         if close:
             plt.close()
 
-    def __create_subplots(self, num_subplots, sharex="row", sharey="none", threeD = False, x_size = 6, y_size = 6):
+    def __create_subplots(
+        self,
+        num_subplots,
+        sharex="row",
+        sharey="none",
+        threeD=False,
+        x_size=6,
+        y_size=6,
+    ):
         """
         Creates Subplots based on the amount of data
 
@@ -2203,7 +2356,7 @@ class Plotters:
             squeeze=False,
             sharex=sharex,
             sharey=sharey,
-            subplot_kw = subplot_kw,
+            subplot_kw=subplot_kw,
         )
 
         # Turn off unused axes
@@ -2220,7 +2373,9 @@ class Plotters:
 
         return fig, axes, total_ax_num, plot_mapping
 
-    def __set_subplot_details(self, ax, plot_x, plot_y, xlabel, ylabel, title, plot_z = None, zlabel = None):
+    def __set_subplot_details(
+        self, ax, plot_x, plot_y, xlabel, ylabel, title, plot_z=None, zlabel=None
+    ):
         """
         Function for setting plot settings
 
@@ -2274,12 +2429,12 @@ class Plotters:
             pad = 6 + 4 * title.count("_")
             ax.set_title(title, fontsize=self.other_fntsz, fontweight="bold", pad=pad)
         if xlabel is not None:
-            pad = 4* xlabel.count("_") + self.other_fntsz*1.1
+            pad = 4 * xlabel.count("_") + self.other_fntsz * 1.1
             ax.set_xlabel(
                 xlabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
             )
         if ylabel is not None:
-            pad = 4 * ylabel.count("_") + self.other_fntsz*1.1
+            pad = 4 * ylabel.count("_") + self.other_fntsz * 1.1
             ax.set_ylabel(
                 ylabel, fontsize=self.other_fntsz, fontweight="bold", labelpad=pad
             )
@@ -2290,8 +2445,8 @@ class Plotters:
             )
 
         # Turn on tick parameters and bin number
-        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction="in", pad = 5)
-        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction="in", pad = 5)
+        ax.xaxis.set_tick_params(labelsize=self.other_fntsz, direction="in", pad=5)
+        ax.yaxis.set_tick_params(labelsize=self.other_fntsz, direction="in", pad=5)
         ax.locator_params(axis="y", nbins=self.ybins)
         ax.locator_params(axis="x", nbins=self.xbins)
         ax.minorticks_on()  # turn on minor ticks
@@ -2305,20 +2460,20 @@ class Plotters:
                 ax.set_xlim(left=np.min(plot_x), right=np.max(plot_x))
 
             if plot_y is not None and abs(np.min(plot_y)) <= 1e-16:
-                ax.set_ylim(ymin=1e-16, ymax = np.max(plot_y)*1.1)
+                ax.set_ylim(ymin=1e-16, ymax=np.max(plot_y) * 1.1)
 
             if plot_y is not None and (np.min(plot_y) == np.max(plot_y) == 0):
                 ax.set_ylim(bottom=np.min(plot_y) - 0.05, top=np.max(plot_y) + 0.05)
 
             ax.set_box_aspect(1)
         else:
-            ax.zaxis.set_tick_params(labelsize=self.other_fntsz, direction="in", pad = 10)
+            ax.zaxis.set_tick_params(labelsize=self.other_fntsz, direction="in", pad=10)
             ax.locator_params(axis="z", nbins=self.ybins)
             if plot_x is not None and not np.isclose(
                 np.min(plot_x), np.max(plot_x), rtol=1e-6
             ):
                 ax.set_xlim(left=np.min(plot_x), right=np.max(plot_x))
-            
+
             if plot_y is not None and not np.isclose(
                 np.min(plot_y), np.max(plot_y), rtol=1e-6
             ):
@@ -2459,41 +2614,52 @@ class Plotters:
             plt.close()
 
         return
-    
-    def hist_categ_min(self, tot_runs, w_gpbo=True, w_gpbo_sse=False, meth_list = [4,7], w_noise = False):
+
+    def hist_categ_min(
+        self, tot_runs, w_gpbo=True, w_gpbo_sse=False, meth_list=[4, 7], w_noise=False
+    ):
         """
-        Creates objective and parameter histograms for the minima found by least squares"""
+        Creates objective and parameter histograms for the minima found by least squares
+        """
         w_noise_str = "_w_noise" if w_noise else "_wo_noise"
         meth_list = [self.method_names[val - 1] for val in meth_list]
         if not w_gpbo:
-            local_min_sets = self.analyzer.categ_min(tot_runs, w_noise = w_noise)
+            local_min_sets = self.analyzer.categ_min(tot_runs, w_noise=w_noise)
         else:
-            local_min_sets, gpbo_runs = self.analyzer.compare_min(tot_runs, meth_list = meth_list)
-        cs_name_dict = {key: self.analyzer.criteria_dict[key] for key in ["cs_name_val"]}
+            local_min_sets, gpbo_runs = self.analyzer.compare_min(
+                tot_runs, meth_list=meth_list
+            )
+        cs_name_dict = {
+            key: self.analyzer.criteria_dict[key] for key in ["cs_name_val"]
+        }
 
         add_gp = "gpbo_" if w_gpbo is True else ""
         ls_hist_fig_path = os.path.join(
             self.analyzer.make_dir_name_from_criteria(cs_name_dict),
-            "ls_"+add_gp+"local_min_hist_" + str(tot_runs) + w_noise_str
+            "ls_" + add_gp + "local_min_hist_" + str(tot_runs) + w_noise_str,
         )
 
-        #Get the unique instacnes of theta and the counts of each instance
-        unique_theta = np.vstack(local_min_sets['Theta Min Obj Cum.'].values)
-        theta_counts = local_min_sets['Num Occurrences'].values
-        #Find the index in unique_theta closest to simulator.theta_true
-        distances = np.linalg.norm(unique_theta - self.analyzer.simulator.theta_true, axis=1)
+        # Get the unique instacnes of theta and the counts of each instance
+        unique_theta = np.vstack(local_min_sets["Theta Min Obj Cum."].values)
+        theta_counts = local_min_sets["Num Occurrences"].values
+        # Find the index in unique_theta closest to simulator.theta_true
+        distances = np.linalg.norm(
+            unique_theta - self.analyzer.simulator.theta_true, axis=1
+        )
         closest_index = np.argmin(distances)
 
-        #Get % local minima found
-        percent_local_min = 100*(local_min_sets['Num Occurrences'].iloc[0]/tot_runs)
+        # Get % local minima found
+        percent_local_min = 100 * (local_min_sets["Num Occurrences"].iloc[0] / tot_runs)
         text_str = "NLS true min found " + f"{percent_local_min:.0f}" + " % of the time"
 
         if w_gpbo is True:
             theta_counts2 = local_min_sets["GPBO Matches"].values
-            percent_local_min2 = 100*(theta_counts2[0]/gpbo_runs)
-            text_str2 = "GPBO true min found " + f"{percent_local_min2:.0f}" + " % of the time"
-        
-        #Get theta labels, bolding the one closest to theta_true
+            percent_local_min2 = 100 * (theta_counts2[0] / gpbo_runs)
+            text_str2 = (
+                "GPBO true min found " + f"{percent_local_min2:.0f}" + " % of the time"
+            )
+
+        # Get theta labels, bolding the one closest to theta_true
         theta_labels = np.vectorize(lambda val: f"{val:.2g}")(unique_theta)
         theta_labels = theta_labels.astype(float).tolist()
         theta_labels = [
@@ -2507,34 +2673,68 @@ class Plotters:
         # Histogram for Theta using custom x labels
         fig, ax = plt.subplots(2, 1, sharex=True, figsize=(19, 10))
 
-        ax[0].bar(theta_indices, theta_counts, alpha=0.7, edgecolor="black", label = "NLS")
+        ax[0].bar(
+            theta_indices, theta_counts, alpha=0.7, edgecolor="black", label="NLS"
+        )
         if w_gpbo is True:
-            ax[0].bar(theta_indices, theta_counts2, alpha=0.7, edgecolor="black", label = "GPBO")
-            ax[0].text(0.95, 0.80, text_str2, transform=ax[0].transAxes,
-                fontsize=12, verticalalignment='top', horizontalalignment='right',
-                bbox=dict(facecolor='white', alpha=0.7, edgecolor='black', boxstyle='round,pad=0.5'))
+            ax[0].bar(
+                theta_indices, theta_counts2, alpha=0.7, edgecolor="black", label="GPBO"
+            )
+            ax[0].text(
+                0.95,
+                0.80,
+                text_str2,
+                transform=ax[0].transAxes,
+                fontsize=12,
+                verticalalignment="top",
+                horizontalalignment="right",
+                bbox=dict(
+                    facecolor="white",
+                    alpha=0.7,
+                    edgecolor="black",
+                    boxstyle="round,pad=0.5",
+                ),
+            )
         ax[0].set_xticks(theta_indices)
-        ax[0].set_xticklabels(theta_labels, rotation=45, ha="right")  # Custom labels for x-axis
+        ax[0].set_xticklabels(
+            theta_labels, rotation=45, ha="right"
+        )  # Custom labels for x-axis
         ax[0].set_ylabel("Frequency", fontsize=20)
-        ax[0].tick_params(axis='y', labelsize=14)
+        ax[0].tick_params(axis="y", labelsize=14)
         ax[0].grid(axis="y", linestyle="--", alpha=0.7)
-        ax[0].text(0.95, 0.95, text_str, transform=ax[0].transAxes,
-                fontsize=12, verticalalignment='top', horizontalalignment='right',
-                bbox=dict(facecolor='white', alpha=0.7, edgecolor='black', boxstyle='round,pad=0.5'))
-        
+        ax[0].text(
+            0.95,
+            0.95,
+            text_str,
+            transform=ax[0].transAxes,
+            fontsize=12,
+            verticalalignment="top",
+            horizontalalignment="right",
+            bbox=dict(
+                facecolor="white",
+                alpha=0.7,
+                edgecolor="black",
+                boxstyle="round,pad=0.5",
+            ),
+        )
 
         # Plot for "Min Obj"
         y_str_obj = "SSE Loss Function, " + r"$\mathscr{L}(\mathbf{\theta^{\prime}})$"
         x_str_obj = "Parameter Values, " + r"$\mathbf{\theta^{\prime}}$"
-        ax[1].bar(theta_indices, local_min_sets['Min Obj Cum.'], alpha=0.7, edgecolor="black")
+        ax[1].bar(
+            theta_indices, local_min_sets["Min Obj Cum."], alpha=0.7, edgecolor="black"
+        )
         if w_gpbo is True and w_gpbo_sse is True:
-            ax[1].bar(theta_indices, local_min_sets['GPBO SSE'], alpha
-            =0.7, edgecolor="black")
+            ax[1].bar(
+                theta_indices, local_min_sets["GPBO SSE"], alpha=0.7, edgecolor="black"
+            )
         ax[1].set_xticks(theta_indices)
-        ax[1].set_xticklabels(theta_labels, rotation=45, ha="right")  # Custom labels for x-axis
+        ax[1].set_xticklabels(
+            theta_labels, rotation=45, ha="right"
+        )  # Custom labels for x-axis
         ax[1].set_xlabel(x_str_obj, fontsize=20)
         ax[1].set_ylabel(y_str_obj, fontsize=20)
-        ax[1].tick_params(axis='y', labelsize=14)
+        ax[1].tick_params(axis="y", labelsize=14)
         ax[1].grid(axis="y", linestyle="--", alpha=0.7)
         ax[1].set_yscale("log")
 
@@ -2550,13 +2750,15 @@ class Plotters:
 
         handles, labels = ax[0].get_legend_handles_labels()
         if w_gpbo is True:
-            fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.95), ncol=2)
+            fig.legend(
+                handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.95), ncol=2
+            )
             fig.suptitle("Local Minima Found by NLS and Emulator GPBO", fontsize=16)
         else:
             fig.suptitle("Local Minima Found by NLS", fontsize=16)
         plt.tight_layout()
 
-        #Save or show figure
+        # Save or show figure
         if self.save_figs:
             save_path_to = os.path.join(ls_hist_fig_path)
             self.__save_fig(save_path_to)
@@ -2568,11 +2770,20 @@ class Plotters:
         # plt.savefig(ls_hist_fig_path)
         # else:
         #     plt.show()
-        
-        return 
-    
-    def plot_nlr_heat_maps(self, test_mesh, all_z_data, z_titles, levels, param_info_dict, log_data, title = None):
-        '''
+
+        return
+
+    def plot_nlr_heat_maps(
+        self,
+        test_mesh,
+        all_z_data,
+        z_titles,
+        levels,
+        param_info_dict,
+        log_data,
+        title=None,
+    ):
+        """
         Plots comparison of y_sim, GP_mean, and GP_stdev
         Parameters
         ----------
@@ -2590,147 +2801,209 @@ class Plotters:
             title: str or None, Title of graph
             title_fontsize: int, fontisize for title. Default 24
             other_fontsize: int, fontisize for other values. Default 20
-            save_path: str or None, Path to save figure to. Default None (do not save figure).    
+            save_path: str or None, Path to save figure to. Default None (do not save figure).
         Returns
         -------
             plt.show(), A heat map of test_mesh and z
-        '''
-        
-        #Assert Statements
+        """
+
+        # Assert Statements
         list_vars = [test_mesh, all_z_data, z_titles]
-        assert all(isinstance(item, np.ndarray) for item in all_z_data), "all_z_data elements must be np.ndarray"
-        assert all(isinstance(item, np.ndarray) for item in test_mesh), "test_mesh elements must be np.ndarray"
-        
-        #Define plot levels
+        assert all(
+            isinstance(item, np.ndarray) for item in all_z_data
+        ), "all_z_data elements must be np.ndarray"
+        assert all(
+            isinstance(item, np.ndarray) for item in test_mesh
+        ), "test_mesh elements must be np.ndarray"
+
+        # Define plot levels
         if levels is None:
             tot_lev = None
         elif len(levels) == 1:
-            tot_lev = levels*len(all_z_data) 
+            tot_lev = levels * len(all_z_data)
         else:
             tot_lev = levels
 
-        assert tot_lev is None or len(tot_lev) == len(all_z_data), "levels must be length 1, None, or len(all_z_data)"
-            
-        #Get info from param dict
+        assert tot_lev is None or len(tot_lev) == len(
+            all_z_data
+        ), "levels must be length 1, None, or len(all_z_data)"
+
+        # Get info from param dict
         theta_true = param_info_dict["true"]
         theta_opt = param_info_dict["min_sse"]
         param_names = param_info_dict["names"]
         idcs_to_plot = param_info_dict["idcs"]
 
-        #Assert sattements
-        #Get x and y data from test_mesh
-        xx , yy = test_mesh #NxN, NxN
-        assert xx.shape==yy.shape, "Test_mesh must be 2 NxN arrays"
-        
-        #Make figures and define number of subplots  
+        # Assert sattements
+        # Get x and y data from test_mesh
+        xx, yy = test_mesh  # NxN, NxN
+        assert xx.shape == yy.shape, "Test_mesh must be 2 NxN arrays"
+
+        # Make figures and define number of subplots
         subplots_needed = len(all_z_data)
-        fig, ax, num_subplots, plot_mapping = self.__create_subplots(subplots_needed, sharex = True, sharey = True)
-        
+        fig, ax, num_subplots, plot_mapping = self.__create_subplots(
+            subplots_needed, sharex=True, sharey=True
+        )
+
         # Find the maximum and minimum values in your data to normalize the color scale
         vmin = min(np.min(arr) for arr in all_z_data)
         vmax = max(np.max(arr) for arr in all_z_data)
-        mag_diff = int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0 if vmin > 0 else False
+        mag_diff = (
+            int(math.log10(abs(vmax)) - math.log10(abs(vmin))) >= 2.0
+            if vmin > 0
+            else False
+        )
 
         # Create a common color normalization for all subplots
-        if log_data == True or not mag_diff or vmin <0:
+        if log_data == True or not mag_diff or vmin < 0:
             # print(vmin, vmax)
-            norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False) 
+            norm = plt.Normalize(vmin=vmin, vmax=vmax, clip=False)
             cbar_ticks = np.linspace(vmin, vmax, self.zbins)
         else:
-            norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip = False)
+            norm = colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
             cbar_ticks = np.logspace(np.log10(vmin), np.log10(vmax), self.zbins)
 
-        #Set plot details
-        #Loop over number of subplots
+        # Set plot details
+        # Loop over number of subplots
         for i in range(subplots_needed):
-            #Get method value from json file 
+            # Get method value from json file
             ax_row, ax_col = plot_mapping[i]
-            
+
             z = all_z_data[i]
 
-            #Create a colormap and colorbar for each subplot
+            # Create a colormap and colorbar for each subplot
             if log_data == True:
-                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, 
-                                                     cmap = plt.cm.get_cmap(self.cmap), norm = norm)
+                cs_fig = ax[ax_row, ax_col].contourf(
+                    xx,
+                    yy,
+                    z,
+                    levels=cbar_ticks,
+                    cmap=plt.cm.get_cmap(self.cmap),
+                    norm=norm,
+                )
             else:
-                cs_fig = ax[ax_row, ax_col].contourf(xx, yy, z, levels = cbar_ticks, 
-                                                     cmap = plt.cm.get_cmap(self.cmap), norm = norm)
+                cs_fig = ax[ax_row, ax_col].contourf(
+                    xx,
+                    yy,
+                    z,
+                    levels=cbar_ticks,
+                    cmap=plt.cm.get_cmap(self.cmap),
+                    norm=norm,
+                )
 
-            #Create a line contour for each colormap
-            if levels is not None:  
-                cs2_fig = ax[ax_row, ax_col].contour(cs_fig, levels=cs_fig.levels[::tot_lev[i]], colors='k', 
-                                                     alpha=0.7, linestyles='dashed', linewidths=3, norm = norm)
+            # Create a line contour for each colormap
+            if levels is not None:
+                cs2_fig = ax[ax_row, ax_col].contour(
+                    cs_fig,
+                    levels=cs_fig.levels[:: tot_lev[i]],
+                    colors="k",
+                    alpha=0.7,
+                    linestyles="dashed",
+                    linewidths=3,
+                    norm=norm,
+                )
                 # ax[ax_row, ax_col].clabel(cs2_fig,  levels=cs_fig.levels[::tot_lev[i]][1::2], fontsize=other_fontsize, inline=1)
 
-            #plot min obj, max ei, true and training param values as appropriate
+            # plot min obj, max ei, true and training param values as appropriate
             if theta_true is not None:
-                ax[ax_row, ax_col].scatter(theta_true[idcs_to_plot[0]], theta_true[idcs_to_plot[1]], 
-                                           color="blue", label = "True", s=200, marker = (5,1), zorder = 2)
+                ax[ax_row, ax_col].scatter(
+                    theta_true[idcs_to_plot[0]],
+                    theta_true[idcs_to_plot[1]],
+                    color="blue",
+                    label="True",
+                    s=200,
+                    marker=(5, 1),
+                    zorder=2,
+                )
             if theta_opt is not None:
                 for to in range(len(theta_opt)):
                     label = "Min Obj" if to == 0 else None
-                    ax[ax_row, ax_col].scatter(theta_opt[to][idcs_to_plot[0]],theta_opt[to][idcs_to_plot[1]], 
-                                            color="white", s=150, label = label, marker = ".", 
-                                            edgecolor= "k", linewidth=0.3, zorder = 4)
+                    ax[ax_row, ax_col].scatter(
+                        theta_opt[to][idcs_to_plot[0]],
+                        theta_opt[to][idcs_to_plot[1]],
+                        color="white",
+                        s=150,
+                        label=label,
+                        marker=".",
+                        edgecolor="k",
+                        linewidth=0.3,
+                        zorder=4,
+                    )
 
-            #Set plot details
-            self.__set_subplot_details(ax[ax_row, ax_col], xx, yy, None, None, z_titles[i])
+            # Set plot details
+            self.__set_subplot_details(
+                ax[ax_row, ax_col], xx, yy, None, None, z_titles[i]
+            )
 
-        #Get legend information and make colorbar on last plot
-        handles, labels = ax[-1, -1].get_legend_handles_labels() 
+        # Get legend information and make colorbar on last plot
+        handles, labels = ax[-1, -1].get_legend_handles_labels()
 
-        cb_ax = fig.add_axes([1.03,0,0.04,1])
+        cb_ax = fig.add_axes([1.03, 0, 0.04, 1])
         if log_data is True or not mag_diff or vmin < 0:
-            new_ticks = matplotlib.ticker.MaxNLocator(nbins=7) #Set up to 7 ticks
+            new_ticks = matplotlib.ticker.MaxNLocator(nbins=7)  # Set up to 7 ticks
         else:
             new_ticks = matplotlib.ticker.LogLocator(numticks=7)
 
-        title2 = z_titles[i] 
-            
+        title2 = z_titles[i]
+
         if "theta" in param_names[0] or "tau" in param_names[0]:
-            xlabel = r'$\mathbf{'+ "\\" + param_names[0]+ '}$'
-            ylabel = r'$\mathbf{'+ "\\" + param_names[1]+ '}$'
+            xlabel = r"$\mathbf{" + "\\" + param_names[0] + "}$"
+            ylabel = r"$\mathbf{" + "\\" + param_names[1] + "}$"
         else:
-            xlabel = r'$\mathbf{'+ param_names[0]+ '}$'
-            ylabel = r'$\mathbf{'+ param_names[1]+ '}$'
-            
+            xlabel = r"$\mathbf{" + param_names[0] + "}$"
+            ylabel = r"$\mathbf{" + param_names[1] + "}$"
+
         for axs in ax[-1]:
-            axs.set_xlabel(xlabel, fontsize = self.other_fntsz)
+            axs.set_xlabel(xlabel, fontsize=self.other_fntsz)
 
         for axs in ax[:, 0]:
-            axs.set_ylabel(ylabel, fontsize = self.other_fntsz)
-            
-        cbar = fig.colorbar(cs_fig, orientation='vertical', ax=ax, cax=cb_ax, ticks = new_ticks)
+            axs.set_ylabel(ylabel, fontsize=self.other_fntsz)
+
+        cbar = fig.colorbar(
+            cs_fig, orientation="vertical", ax=ax, cax=cb_ax, ticks=new_ticks
+        )
         cbar.ax.tick_params(labelsize=self.other_fntsz)
-        cbar.ax.set_ylabel("Function Value", fontsize=self.other_fntsz, fontweight='bold')
-                        
-        #Print the title
+        cbar.ax.set_ylabel(
+            "Function Value", fontsize=self.other_fntsz, fontweight="bold"
+        )
+
+        # Print the title
         if title is not None:
             title = title + " " + str(param_names)
-            
-        #Print the title and labels as appropriate
-        #Define x and y labels
+
+        # Print the title and labels as appropriate
+        # Define x and y labels
         self.__set_plot_titles(fig, title, None, None)
-        
-        #Plots legend
+
+        # Plots legend
         if labels:
-            fig.legend(handles, labels, loc= "upper right", fontsize = self.other_fntsz, bbox_to_anchor=(-0.02, 1), 
-                       borderaxespad=0)
+            fig.legend(
+                handles,
+                labels,
+                loc="upper right",
+                fontsize=self.other_fntsz,
+                bbox_to_anchor=(-0.02, 1),
+                borderaxespad=0,
+            )
 
         plt.tight_layout()
 
         nlr_plot = "func_ls_compare" if theta_true is None else "sse_contour"
 
-        #Save or show figure
+        # Save or show figure
         if self.save_figs:
-            save_path = self.analyzer.make_dir_name_from_criteria(self.analyzer.criteria_dict)
-            save_path_dir = os.path.join(save_path, "heat_maps", param_names[0] + "-" + param_names[1])
+            save_path = self.analyzer.make_dir_name_from_criteria(
+                self.analyzer.criteria_dict
+            )
+            save_path_dir = os.path.join(
+                save_path, "heat_maps", param_names[0] + "-" + param_names[1]
+            )
             save_path_to = os.path.join(save_path_dir, "least_squares")
             self.__save_fig(save_path_to)
         else:
             plt.show()
             plt.close()
-        
+
         return plt.show()
 
 
@@ -2798,8 +3071,10 @@ class All_CS_Plotter(Plotters):
             "NM": None,
             "GA": None,
         }
-        
-    def __create_subplots(self, num_subplots, sharex="row", sharey="none", row_num_size = 16):
+
+    def __create_subplots(
+        self, num_subplots, sharex="row", sharey="none", row_num_size=16
+    ):
         """
         Creates Subplots based on the amount of data
 
@@ -2993,7 +3268,11 @@ class All_CS_Plotter(Plotters):
         -----
         Options for mode are "objs" or "time"
         """
-        assert mode in ["time", "objs", "si_time"], "mode must be 'time', 'objs', or 'si_time'"
+        assert mode in [
+            "time",
+            "objs",
+            "si_time",
+        ], "mode must be 'time', 'objs', or 'si_time'"
         # Make figures and define number of subplots (3. One for comp time, one for fxn evals, one for g(\theta))
         t_label_lst = [
             get_cs_class_from_val(cs_num).name for cs_num in self.analyzer.cs_list
@@ -3013,7 +3292,8 @@ class All_CS_Plotter(Plotters):
             #     2, sharex=False, sharey=True
             # )
             fig, axes, num_subplots, plot_mapping = self.__create_subplots(
-                1, sharex=False, sharey=True)
+                1, sharex=False, sharey=True
+            )
         else:
             add_value = 1
             fig, axes, num_subplots, plot_mapping = self.__create_subplots(
@@ -3024,13 +3304,12 @@ class All_CS_Plotter(Plotters):
         # padding = 1 / (len(self.analyzer.cs_list))
         height_per_group = 1 / len(self.analyzer.cs_list)
         bars_per_group = len(self.method_names) + add_value
-        bar_size = height_per_group/bars_per_group
+        bar_size = height_per_group / bars_per_group
         padding = bar_size
-
 
         # Get jobs associated with the case studies given
         df_averages = self.analyzer.get_averages_best()
-        
+
         desired_order = [
             "Large Linear",
             "Muller y0",
@@ -3055,6 +3334,7 @@ class All_CS_Plotter(Plotters):
 
         # Sort the DataFrame by the 'Department' column
         df_averages = df_averages.sort_values(["CS Name", "BO Method"])
+
         # print(df_averages.head())
         def calculate_new_column(group):
             # Calculate Avg Evals for NLS in the current group
@@ -3092,7 +3372,9 @@ class All_CS_Plotter(Plotters):
             group = group.drop(columns=["Std D", "D"])
 
             group["L_deficit"] = group["Avg Evals Tot"] - nls_avg_L_evals
-            group["L_deficit_std"] = np.sqrt(nls_std_L_evals**2 + group["Std Evals Tot"]**2)
+            group["L_deficit_std"] = np.sqrt(
+                nls_std_L_evals**2 + group["Std Evals Tot"] ** 2
+            )
 
             return group
 
@@ -3121,7 +3403,9 @@ class All_CS_Plotter(Plotters):
             names = ["L_deficit"]
             std_names = ["L_deficit_std"]
             titles = [
-                "Estimated " + r"$\mathscr{L}(\cdot)$" + " Evaluation Deficit \n for Parity",
+                "Estimated "
+                + r"$\mathscr{L}(\cdot)$"
+                + " Evaluation Deficit \n for Parity",
             ]
         else:
             names = ["Avg Time", "F_Time_Parity"]
@@ -3140,12 +3424,14 @@ class All_CS_Plotter(Plotters):
 
         t_label_lst = list(df_averages["CS Name"].unique())
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
-        t_label_lst = [item.replace("ACN-Water", "ACN-Water VLE") for item in t_label_lst]
+        t_label_lst = [
+            item.replace("ACN-Water", "ACN-Water VLE") for item in t_label_lst
+        ]
 
         # y_locs = np.arange(len(self.analyzer.cs_list)) * (
         #     bar_size * (len(self.analyzer.cs_list)) + padding
         # )
-        y_locs  = np.arange(len(self.analyzer.cs_list)) * (height_per_group +padding)
+        y_locs = np.arange(len(self.analyzer.cs_list)) * (height_per_group + padding)
 
         axes = axes.flatten()
         for i in range(len(self.analyzer.meth_val_list) + add_value):
@@ -3181,17 +3467,24 @@ class All_CS_Plotter(Plotters):
 
                 if i == 0:
                     # Set plot details on last iter
-                    height_per_group = bar_size * (len(self.method_names) + add_value) + padding  # Total height of one group, including padding
-                    tick_positions = y_locs + (height_per_group / 2)  # y_locs + padding * len(self.analyzer.cs_list) / 2
+                    height_per_group = (
+                        bar_size * (len(self.method_names) + add_value) + padding
+                    )  # Total height of one group, including padding
+                    tick_positions = y_locs + (
+                        height_per_group / 2
+                    )  # y_locs + padding * len(self.analyzer.cs_list) / 2
                     # Set plot details on last iter
                     self.__set_subplot_details(axes[j], None, None, titles[j])
                     axes[j].set(
-                        yticks= tick_positions,
+                        yticks=tick_positions,
                         yticklabels=t_label_lst,
                         ylim=[0 - padding, len(y_locs)],
                     )
-                    axes[j].set_ylim([0-padding, len(tick_positions)])
-                    axes[j].set_ylim(axes[j].get_ylim()[0], max(tick_positions) + height_per_group / 2)
+                    axes[j].set_ylim([0 - padding, len(tick_positions)])
+                    axes[j].set_ylim(
+                        axes[j].get_ylim()[0],
+                        max(tick_positions) + height_per_group / 2,
+                    )
 
         if mode == "time":
             axes[0].set_xscale("log")
@@ -3257,8 +3550,8 @@ class All_CS_Plotter(Plotters):
 
         # return df_averages
         return df_averages
-    
-    def make_derivfree_bar(self, s_meths = ["NLS", "SHGO-Sob", "NM", "GA"], ver = 'med'):
+
+    def make_derivfree_bar(self, s_meths=["NLS", "SHGO-Sob", "NM", "GA"], ver="med"):
         """
         Makes a bar chart of relevant data for each method and case study. Produces Figures 2 and 7 in the paper
 
@@ -3283,13 +3576,13 @@ class All_CS_Plotter(Plotters):
 
         add_value = 1
         fig, axes, num_subplots, plot_mapping = self.__create_subplots(
-            3, sharex=False, sharey=True, row_num_size= 16
+            3, sharex=False, sharey=True, row_num_size=16
         )
 
-        #Bar sizing = number of case studies + padding
+        # Bar sizing = number of case studies + padding
         height_per_group = 1 / len(self.analyzer.cs_list)
         bars_per_group = len(s_meths) + add_value
-        bar_size = height_per_group/bars_per_group
+        bar_size = height_per_group / bars_per_group
         padding = bar_size
 
         # Get jobs associated with the case studies given
@@ -3308,7 +3601,7 @@ class All_CS_Plotter(Plotters):
             "BOD Curve",
         ]
         for df in [df_averages, df_bests]:
-        # Convert the 'CS Name' column to a categorical type with the specified order
+            # Convert the 'CS Name' column to a categorical type with the specified order
             df["CS Name"] = pd.Categorical(
                 df["CS Name"], categories=desired_order, ordered=True
             )
@@ -3320,8 +3613,7 @@ class All_CS_Plotter(Plotters):
 
             # Sort the DataFrame by the 'CS Name' column
             df = df.sort_values(["CS Name", "BO Method"], inplace=True)
-        
-        
+
         names = ["Median Loss", "Avg Evals Tot", "Median L2 Norm"]
         std_names = ["IQR Loss", "Std Evals Tot", "IQR L2 Norm"]
         best_names = ["Best Loss", "Max Evals", "Best L2 Norm"]
@@ -3333,57 +3625,62 @@ class All_CS_Plotter(Plotters):
             "Median " + r"$L_2-Norm$" + " \n at Termination",
         ]
 
-
         t_label_lst = list(df_averages["CS Name"].unique())
         t_label_lst = [item.replace("Muller", "Müller") for item in t_label_lst]
-        t_label_lst = [item.replace("ACN-Water", "ACN-Water VLE") for item in t_label_lst]
+        t_label_lst = [
+            item.replace("ACN-Water", "ACN-Water VLE") for item in t_label_lst
+        ]
 
-        y_locs  = np.arange(len(self.analyzer.cs_list)) * (height_per_group +padding)
+        y_locs = np.arange(len(self.analyzer.cs_list)) * (height_per_group + padding)
         axes = axes.flatten()
         added_labels = set()
 
-        cs_name_to_constant = {"Simple Linear": 20, 
-                               "Simple Multimodal": 20,
-                               "ACN-Water": 20,
-                               "Large Linear": 50, 
-                               "Muller x0": 40, 
-                               "Muller y0": 20, 
-                               "Log Logistic": 40,
-                               "2D Log Logistic": 40, 
-                               "Yield-Loss": 30, 
-                               "BOD Curve": 20}
-            
+        cs_name_to_constant = {
+            "Simple Linear": 20,
+            "Simple Multimodal": 20,
+            "ACN-Water": 20,
+            "Large Linear": 50,
+            "Muller x0": 40,
+            "Muller y0": 20,
+            "Log Logistic": 40,
+            "2D Log Logistic": 40,
+            "Yield-Loss": 30,
+            "BOD Curve": 20,
+        }
+
         for i in range(len(s_meths) + 1):
             if i == 0:
-                #Make a DF including just GPBO info
-                filtered_df = df_averages[df_averages["BO Method"].isin(self.method_names)]
-                #Get only the values of the BO Method where Median Loss is the minimum               
+                # Make a DF including just GPBO info
+                filtered_df = df_averages[
+                    df_averages["BO Method"].isin(self.method_names)
+                ]
+                # Get only the values of the BO Method where Median Loss is the minimum
                 #     meth_averages = (
                 #     filtered_df.loc[filtered_df.groupby("CS Name")["Median Loss"].idxmin()]
                 # )
-                meth_averages = (
-                filtered_df.loc[
+                meth_averages = filtered_df.loc[
                     filtered_df.groupby("CS Name")["Median Loss"]
                     .apply(lambda x: x.idxmin() if not x.isna().all() else None)
                     .dropna()
                 ]
-            )
 
-                #Find index of the method in the method names list
+                # Find index of the method in the method names list
                 meth_best = df_bests.loc[~df_bests["BO Method"].isin(s_meths)]
-                
-                #Add number of fxn evals to each method
+
+                # Add number of fxn evals to each method
                 # meth_best.loc[:,"Max Evals"] = meth_best["CS Name"].map(cs_name_to_constant) + meth_best["Max Evals"]
-                # meth_averages.loc[:,"Avg Evals Tot"] = meth_averages["CS Name"].map(cs_name_to_constant) + meth_averages["Avg Evals Tot"]           
+                # meth_averages.loc[:,"Avg Evals Tot"] = meth_averages["CS Name"].map(cs_name_to_constant) + meth_averages["Avg Evals Tot"]
             else:
-                meth_averages = df_averages.loc[df_averages["BO Method"] == s_meths[i-1]]
-                meth_best = df_bests.loc[df_bests["BO Method"] == s_meths[i-1]]
+                meth_averages = df_averages.loc[
+                    df_averages["BO Method"] == s_meths[i - 1]
+                ]
+                meth_best = df_bests.loc[df_bests["BO Method"] == s_meths[i - 1]]
                 label = s_meths[i - 1]
 
             for j in range(len(names)):
                 scl_value = 60 if names[j] == "Avg Time" else 1
                 best_val = meth_best[best_names[j]] / scl_value
-                alpha = 1 if ver == 'med' else 0.5
+                alpha = 1 if ver == "med" else 0.5
                 for idx in range(len(meth_averages["BO Method"])):
                     label_med = meth_averages["BO Method"].iloc[idx]
                     avg_val = meth_averages[names[j]].iloc[idx] / scl_value
@@ -3395,9 +3692,9 @@ class All_CS_Plotter(Plotters):
                     if label_med not in self.method_names and idx == 0:
                         label_m_use = label_med + " (Median)"
                     else:
-                        label_m_use = None 
+                        label_m_use = None
                         added_labels.add(label_med)
-                    
+
                     axes[j].barh(
                         y_locs[idx] + i * bar_size,
                         avg_val,
@@ -3407,9 +3704,9 @@ class All_CS_Plotter(Plotters):
                         label=label_m_use,
                         color=self.color_dict[label_med],
                         hatch=self.hatch_dict[label_med],
-                        alpha = alpha
+                        alpha=alpha,
                     )
-                if ver == 'best-med':
+                if ver == "best-med":
                     for idx, val in enumerate(best_val):
                         label_best = meth_best["BO Method"].iloc[idx]
                         if label_best not in self.method_names and idx == 0:
@@ -3422,25 +3719,32 @@ class All_CS_Plotter(Plotters):
                             val,
                             align="center",
                             height=bar_size,
-                            label = label_b_use,
+                            label=label_b_use,
                             color=self.color_dict[label_best],
                             hatch=self.hatch_dict[label_best],
                         )
 
-                #Add in the best performace with an alpha value of 1. Change median/avg values to alpha value of 0.5
+                # Add in the best performace with an alpha value of 1. Change median/avg values to alpha value of 0.5
 
                 if i == 0:
                     # Set plot details on last iter
-                    height_per_group = bar_size * (len(s_meths) + add_value) + padding  # Total height of one group, including padding
-                    tick_positions = y_locs + (height_per_group / 2)  # Center of each group
+                    height_per_group = (
+                        bar_size * (len(s_meths) + add_value) + padding
+                    )  # Total height of one group, including padding
+                    tick_positions = y_locs + (
+                        height_per_group / 2
+                    )  # Center of each group
                     self.__set_subplot_details(axes[j], None, None, titles[j])
                     axes[j].set(
                         yticks=tick_positions,
                         yticklabels=t_label_lst,
-                        ylim=[0 -padding, len(y_locs)],
+                        ylim=[0 - padding, len(y_locs)],
                     )
-                    axes[j].set_ylim([0-padding, len(tick_positions)])
-                    axes[j].set_ylim(axes[j].get_ylim()[0], max(tick_positions) + height_per_group / 2)
+                    axes[j].set_ylim([0 - padding, len(tick_positions)])
+                    axes[j].set_ylim(
+                        axes[j].get_ylim()[0],
+                        max(tick_positions) + height_per_group / 2,
+                    )
 
         axes[0].set_xscale("log")
         axes[1].set_xscale("log")
@@ -3518,7 +3822,7 @@ class All_CS_Plotter(Plotters):
 
         # Add a dummy legend
         handles, labels = axes[0].get_legend_handles_labels()
-        if ver == 'med': 
+        if ver == "med":
             handles_extra = [
                 MulticolorPatch("gist_rainbow"),
             ]
@@ -3526,7 +3830,7 @@ class All_CS_Plotter(Plotters):
         else:
             handles_extra = [
                 MulticolorPatch("gist_rainbow", edgecolor="white", linewidth=0.25),
-                MulticolorPatch("gist_rainbow"), 
+                MulticolorPatch("gist_rainbow"),
             ]
             labels_extra = ["GPBO (Median)", "GPBO (Best)"]
         handles += handles_extra
@@ -3542,7 +3846,7 @@ class All_CS_Plotter(Plotters):
                 fontsize=self.other_fntsz,
                 bbox_to_anchor=(0.55, 1.10),
                 borderaxespad=0,
-                handler_map={MulticolorPatch: MulticolorPatchHandler()}
+                handler_map={MulticolorPatch: MulticolorPatchHandler()},
             )
         plt.tight_layout()
 
