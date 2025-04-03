@@ -3311,15 +3311,15 @@ class All_CS_Plotter(Plotters):
         df_averages = self.analyzer.get_averages_best()
 
         desired_order = [
-            "Large Linear",
-            "Muller y0",
-            "Log Logistic",
-            "Yield-Loss",
-            "ACN-Water",
             "Simple Linear",
-            "Simple Multimodal",
-            "Muller x0",
+            "Large Linear",
+            "Yield-Loss",
+            "Log Logistic",
             "2D Log Logistic",
+            "Simple Multimodal",
+            "Muller y0",
+            "Muller x0",
+            "ACN-Water",
             "BOD Curve",
         ]
         # Convert the 'Department' column to a categorical type with the specified order
@@ -3589,15 +3589,15 @@ class All_CS_Plotter(Plotters):
         df_averages = self.analyzer.get_averages_best(s_meths)
         df_bests = self.analyzer.get_all_meths_best(s_meths)
         desired_order = [
-            "Large Linear",
-            "Muller y0",
-            "Log Logistic",
-            "Yield-Loss",
-            "ACN-Water",
             "Simple Linear",
-            "Simple Multimodal",
-            "Muller x0",
+            "Large Linear",
+            "Yield-Loss",
+            "Log Logistic",
             "2D Log Logistic",
+            "Simple Multimodal",
+            "Muller y0",
+            "Muller x0",
+            "ACN-Water",
             "BOD Curve",
         ]
         for df in [df_averages, df_bests]:
