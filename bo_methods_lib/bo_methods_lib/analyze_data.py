@@ -1055,7 +1055,7 @@ class General_Analysis:
         if data_type == "objs":
             # Get SSE data from least squares. This is the "True" value. Use the same noise as the problem
             ls_analyzer = LS_Analysis(self.criteria_dict, self.project, self.save_csv)
-            ls_results = ls_analyzer.least_squares_analysis(w_noise = sp_data["w_noise"])
+            ls_results = ls_analyzer.least_squares_analysis(w_noise=sp_data["w_noise"])
             # Make a df that is only the iters of the best run
             # For NLS, use the higher iteration run when Min Obj is the same
             # Since NLS has no "maximum" in these cases
@@ -2009,8 +2009,10 @@ class All_CS_Analysis(General_Analysis):
         """
 
         df_all_jobs = self.get_all_data()
-        #Open the statepoint of the first job to get the method name
-        with open(df_all_jobs.iloc[0]["job"].fn("signac_statepoint.json"), "r") as json_file:
+        # Open the statepoint of the first job to get the method name
+        with open(
+            df_all_jobs.iloc[0]["job"].fn("signac_statepoint.json"), "r"
+        ) as json_file:
             # Load the JSON data
             sp_data = json.load(json_file)
             w_noise = sp_data["w_noise"]
@@ -2059,7 +2061,7 @@ class All_CS_Analysis(General_Analysis):
                     "meth_name_val": self.meth_val_list,
                 }
                 ls_analyzer = LS_Analysis(criteria_dict_ls, self.project, self.save_csv)
-                df_best_ls = ls_analyzer.least_squares_analysis(w_noise = w_noise)
+                df_best_ls = ls_analyzer.least_squares_analysis(w_noise=w_noise)
                 df_best_ls["CS Name"] = get_cs_class_from_val(cs_name).name
                 df_best_ls["BO Method"] = "NLS"
                 df_best_ls.rename(columns={"Iter": "BO Iter"}, inplace=True)
@@ -2188,7 +2190,9 @@ class All_CS_Analysis(General_Analysis):
                 except:
                     pass
 
-            with open(job_list_best_runs[0].fn("signac_statepoint.json"), "r") as json_file:
+            with open(
+                job_list_best_runs[0].fn("signac_statepoint.json"), "r"
+            ) as json_file:
                 # Load the JSON data
                 sp_data = json.load(json_file)
                 w_noise = sp_data["w_noise"]
@@ -2200,7 +2204,7 @@ class All_CS_Analysis(General_Analysis):
                 "meth_name_val": self.meth_val_list,
             }
             ls_analyzer = LS_Analysis(criteria_dict_ls, self.project, self.save_csv)
-            ls_results = ls_analyzer.least_squares_analysis(w_noise = w_noise)
+            ls_results = ls_analyzer.least_squares_analysis(w_noise=w_noise)
             # Make a df that is only the iters of the best run
             df_sorted = ls_results.sort_values(
                 by=["Min Obj Cum.", "Run", "Iter"], ascending=True
@@ -2418,7 +2422,9 @@ class All_CS_Analysis(General_Analysis):
                     ls_analyzer = LS_Analysis(
                         criteria_dict_other_meth, self.project, self.save_csv
                     )
-                    other_meth_results = ls_analyzer.least_squares_analysis(w_noise = w_noise)
+                    other_meth_results = ls_analyzer.least_squares_analysis(
+                        w_noise=w_noise
+                    )
                 elif meth == "SHGO-Sob":
                     shgo_analyzer = Deriv_Free_Anlys(
                         "SHGO-Sob",
@@ -2426,7 +2432,9 @@ class All_CS_Analysis(General_Analysis):
                         self.project,
                         self.save_csv,
                     )
-                    other_meth_results = shgo_analyzer.regression_analysis(w_noise = w_noise)
+                    other_meth_results = shgo_analyzer.regression_analysis(
+                        w_noise=w_noise
+                    )
                 elif meth == "SHGO-Simp":
                     shgo_analyzer = Deriv_Free_Anlys(
                         "SHGO-Simp",
@@ -2434,12 +2442,16 @@ class All_CS_Analysis(General_Analysis):
                         self.project,
                         self.save_csv,
                     )
-                    other_meth_results = shgo_analyzer.regression_analysis(w_noise = w_noise)
+                    other_meth_results = shgo_analyzer.regression_analysis(
+                        w_noise=w_noise
+                    )
                 elif meth == "NM":
                     nm_analyzer = Deriv_Free_Anlys(
                         "NM", criteria_dict_other_meth, self.project, self.save_csv
                     )
-                    other_meth_results = nm_analyzer.regression_analysis(w_noise = w_noise)
+                    other_meth_results = nm_analyzer.regression_analysis(
+                        w_noise=w_noise
+                    )
                 elif meth == "GA":
                     num_generations = 75 if cs_name in [2, 3] else 50
                     ga_analyzer = Deriv_Free_Anlys(
@@ -2727,7 +2739,7 @@ class LS_Analysis(General_Analysis):
         self.simulator = simulator
         self.exp_data = exp_data
         self.num_x = 10  # Default number of x to generate
-        self.w_noise = True #Default to using noise. This will be overwritten if simulator has noise
+        self.w_noise = True  # Default to using noise. This will be overwritten if simulator has noise
 
     # Create a function to optimize, in this case, least squares fitting
     def __ls_scipy_func(self, theta_guess, exp_data, simulator, w_noise=False):
@@ -2965,7 +2977,7 @@ class LS_Analysis(General_Analysis):
 
         return simulator, exp_data, tot_runs_cs, ftol
 
-    def least_squares_analysis(self, tot_runs=None, w_noise = False):
+    def least_squares_analysis(self, tot_runs=None, w_noise=False):
         """
         Performs least squares regression on the problem equal to what was done with BO
 
@@ -3192,7 +3204,7 @@ class LS_Analysis(General_Analysis):
         save_csv_org = self.save_csv
         self.save_csv = False
         # Get all ls data
-        df_ls = self.categ_min(tot_runs, w_noise= False)
+        df_ls = self.categ_min(tot_runs, w_noise=False)
         ###Get all data from experiments
         df_all_jobs, job_list, theta_true_data = self.get_df_all_jobs(
             self.criteria_dict, False
@@ -3286,7 +3298,7 @@ class LS_Analysis(General_Analysis):
 
         return df_ls, len(df_GPBO_best)
 
-    def categ_min(self, tot_runs=None, w_noise = False):
+    def categ_min(self, tot_runs=None, w_noise=False):
         """
         categorize the minima found by least squares
 
@@ -3335,7 +3347,7 @@ class LS_Analysis(General_Analysis):
             # Set save csv to false so that tot_runs restarts csv data is not saved
             self.save_csv = False
             # Run Least Squares tot_runs times
-            ls_results = self.least_squares_analysis(tot_runs, w_noise= w_noise)
+            ls_results = self.least_squares_analysis(tot_runs, w_noise=w_noise)
             # Drop all except best iteration for each run
             ls_results_sort = ls_results.sort_values(
                 by=["Min Obj Cum.", "Iter"], ascending=True
@@ -3506,7 +3518,7 @@ class Deriv_Free_Anlys(General_Analysis):
         self.simulator = simulator
         self.exp_data = exp_data
         self.num_x = 10  # Default number of x to generate
-        self.w_noise = True #Default to using noise
+        self.w_noise = True  # Default to using noise
         self.num_generations = 50
         self.num_parents_mating = num_parents_mating
         self.sol_per_pop = sol_per_pop
@@ -3589,7 +3601,7 @@ class Deriv_Free_Anlys(General_Analysis):
         return float(fitness)
 
     # Create a function to optimize, in this case, least squares fitting
-    def __scipy_func(self, theta_guess, exp_data, simulator):
+    def __scipy_func(self, theta_guess, exp_data, simulator, w_noise):
         """
         Function to define regression function for least-squares fitting
         Parameters
@@ -3626,12 +3638,20 @@ class Deriv_Free_Anlys(General_Analysis):
             1,
         )
         # Calculate y values and sse for theta_best with noise
-        theta_guess_data.y_vals = simulator.gen_y_data(
-            theta_guess_data,
-            simulator.noise_mean,
-            simulator.noise_std,
-            simulator.rng_set,
-        )
+        if w_noise:
+            theta_guess_data.y_vals = simulator.gen_y_data(
+                theta_guess_data,
+                simulator.noise_mean,
+                simulator.noise_std,
+                simulator.rng_set,
+            )
+        else:
+            theta_guess_data.y_vals = simulator.gen_y_data(
+                theta_guess_data,
+                simulator.noise_mean,
+                0,
+                simulator.rng_set,
+            )
 
         error = np.sum(
             (exp_data.y_vals.flatten() - theta_guess_data.y_vals.flatten()) ** 2
@@ -3806,7 +3826,7 @@ class Deriv_Free_Anlys(General_Analysis):
 
         return simulator, exp_data, tot_runs_cs, ftol
 
-    def regression_analysis(self, tot_runs=None, w_noise = False):
+    def regression_analysis(self, tot_runs=None, w_noise=False):
         """
         Performs derivative free optimization on the problem equal to what was done with BO
 
