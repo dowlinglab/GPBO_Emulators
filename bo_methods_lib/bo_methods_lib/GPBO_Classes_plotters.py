@@ -3308,7 +3308,7 @@ class All_CS_Plotter(Plotters):
         padding = bar_size
 
         # Get jobs associated with the case studies given
-        df_averages = self.analyzer.get_averages_best()
+        df_averages = self.analyzer.get_averages_best(other_meths=["NLS", "GA"])
 
         desired_order = [
             "Simple Linear",
@@ -3328,7 +3328,7 @@ class All_CS_Plotter(Plotters):
         )
         df_averages["BO Method"] = pd.Categorical(
             df_averages["BO Method"],
-            categories=["NLS"] + self.method_names[::-1],
+            categories=["NLS", "GA"] + self.method_names[::-1],
             ordered=True,
         )
 
@@ -3336,22 +3336,22 @@ class All_CS_Plotter(Plotters):
         df_averages = df_averages.sort_values(["CS Name", "BO Method"])
 
         # print(df_averages.head())
-        def calculate_new_column(group):
+        def calculate_new_column(group, meth_comp_time="NLS"):
             # Calculate Avg Evals for NLS in the current group
             nls_avg_evals = group.loc[
-                group["BO Method"] == "NLS", "Avg F Evals Tot"
+                group["BO Method"] == meth_comp_time, "Avg F Evals Tot"
             ].values
 
             nls_std_evals = group.loc[
-                group["BO Method"] == "NLS", "Std F Evals Tot"
+                group["BO Method"] == meth_comp_time, "Std F Evals Tot"
             ].values
 
             nls_avg_L_evals = group.loc[
-                group["BO Method"] == "NLS", "Avg Evals Tot"
+                group["BO Method"] == meth_comp_time, "Avg Evals Tot"
             ].values
 
             nls_std_L_evals = group.loc[
-                group["BO Method"] == "NLS", "Std Evals Tot"
+                group["BO Method"] == meth_comp_time, "Std Evals Tot"
             ].values
 
             # Calculate the new column
@@ -3380,7 +3380,7 @@ class All_CS_Plotter(Plotters):
 
         # Apply the calculation for each group
         df_averages = df_averages.groupby("CS Name", group_keys=False).apply(
-            calculate_new_column
+            calculate_new_column, ("GA")
         )
 
         df_averages.loc[df_averages["L_deficit"] <= 0, "L_deficit_std"] = 0
@@ -3444,9 +3444,12 @@ class All_CS_Plotter(Plotters):
                 label = self.method_names[meth_val - 1]
                 color = self.colors[meth_val - 1]
             else:
-                meth_averages = df_averages.loc[df_averages["BO Method"] == "NLS"]
-                label = "NLS"
-                color = "grey"
+                if mode == "objs":
+                    label = "NLS"
+                else:
+                    label = "GA"
+                meth_averages = df_averages.loc[df_averages["BO Method"] == label]
+                color = self.color_dict[label]
 
             for j in range(len(names)):
                 scl_value = 60 if names[j] == "Avg Time" else 1
@@ -3454,6 +3457,8 @@ class All_CS_Plotter(Plotters):
                 std_val = meth_averages[std_names[j]] / scl_value
                 avg_val = np.maximum(avg_val, 0)
                 std_val = np.maximum(std_val, 0)
+                hatch = self.hatches[-1 - i] if label != "GA" else None
+                color = "mediumseagreen" if label == "GA" else color
                 rects = axes[j].barh(
                     y_locs + i * bar_size,
                     avg_val,
@@ -3462,7 +3467,7 @@ class All_CS_Plotter(Plotters):
                     height=bar_size,
                     color=color,
                     label=label,
-                    hatch=self.hatches[-1 - i],
+                    hatch=hatch,
                 )
 
                 if i == 0:
