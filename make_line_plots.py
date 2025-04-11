@@ -23,16 +23,17 @@ meth_name_val_list = [1, 2, 3, 4, 5, 6, 7]
 save_csv = True  # Set to False if you don't want to save/resave csvs
 save_figs = True
 modes = ["act", "gp", "acq"]
-project = signac.get_project("GPBO_rand")
+project = signac.get_project("GPBO_nonoise")
 
-for val in [1, 11, 12, 13, 15, 17, 10, 14, 2, 3]:
-    criteria_dict = {
-        "cs_name_val": val,
-        "ep_enum_val": 1,
-        "gp_package": "gpflow",
-        "meth_name_val": {"$in": meth_name_val_list},
-    }
-    for mode in modes:
+for mode in modes:
+    for val in [11, 17, 2, 3, 15, 14, 12, 13, 10, 1]:
+        criteria_dict = {
+            "cs_name_val": val,
+            "ep_enum_val": 1,
+            "gp_package": "gpflow",
+            "meth_name_val": {"$in": meth_name_val_list},
+        }
+
         analyzer = General_Analysis(criteria_dict, project, mode, save_csv)
         plotters = Plotters(analyzer, save_figs)
 
@@ -42,6 +43,7 @@ for val in [1, 11, 12, 13, 15, 17, 10, 14, 2, 3]:
         )
         ### Get Best Data from ep experiment
         df_best, job_list_best = analyzer.get_best_data()
+        best_all.append(df_best)
 
         # Loop over z_choices to make comparison line plots
         z_choices = ["sse", "min_sse", "acq"]

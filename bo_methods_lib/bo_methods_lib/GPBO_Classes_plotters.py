@@ -3870,4 +3870,4 @@ class All_CS_Plotter(Plotters):
             plt.close()
 
         # return df_averages
-        return df_averages
+        return df_averages, df_bests
