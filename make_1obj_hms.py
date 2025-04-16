@@ -36,6 +36,8 @@ for mode in modes:
         analyzer_NLS = LS_Analysis(criteria_dict, project, save_csv)
         plotters_NLS = Plotters(analyzer_NLS, save_figs)
 
+        plotters_NLS.hist_categ_min(tot_runs_nls, w_gpbo=True, w_gpbo_sse=True, meth_list=[3,4,5,6,7], w_noise=False)
+
         analyzer = General_Analysis(criteria_dict, project, mode, save_csv)
         plotters = Plotters(analyzer, save_figs)
 
