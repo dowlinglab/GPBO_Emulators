@@ -18,14 +18,14 @@ meth_name_val_list = [1,2,3,4,5,6,7]
 save_csv = False #Set to False if you don't want to save/resave csvs
 save_figs = False
 modes = ["act"]
-project = signac.get_project("GPBO_Fix")
+project = signac.get_project("GPBO_nonoise")
 
 # Initialize dictionaries to store the condition numbers and statistics
 dict_k = {}  # Stores raw condition numbers for each case study and BO method
 dict_stats = {}  # Stores the statistics (log averages, min, max, median)
 
 # Iterate through the different case study values
-for val in [11,14,2,15,1,17,12,13,3,10]:
+for val in [11, 17, 2, 3, 15, 14, 12, 13, 10, 1]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,

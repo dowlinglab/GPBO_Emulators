@@ -14,10 +14,11 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 meth_name_val_list = [1,2,3,4,5,6,7]
 save_csv = True #Set to False if you don't want to save/resave csvs
 save_figs = True
-project = signac.get_project("GPBO_Fix")
+project = signac.get_project("GPBO_nonoise")
 seed = 1
+tot_runs = 1000
 
-for val in [15,16,17]:
+for val in [11, 17, 2, 3, 15, 14, 12, 13, 10, 1]:
     criteria_dict = {
         "cs_name_val": val,
         "ep_enum_val": 1,
@@ -29,7 +30,6 @@ for val in [15,16,17]:
     #Get Simulator Object
     simulator = simulator_helper_test_fxns(val, 0, None, 1) #This is a dummy simulator object
     #Get all least squares solutions
-    tot_runs = 1000
     ls_analyzer = LS_Analysis(criteria_dict, project, save_csv, simulator=simulator)
     local_mins = ls_analyzer.categ_min(tot_runs)
 

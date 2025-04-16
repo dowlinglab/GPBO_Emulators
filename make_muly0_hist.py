@@ -18,7 +18,7 @@ noise_mean = 0
 noise_std = None
 seed = 1
 #Define method, ep_enum classes, indecies to consider, and kernel
-meth_name = Method_name_enum(3)
+meth_name = Method_name_enum(5)
 method = GPBO_Methods(meth_name)
 gen_meth_theta = Gen_meth_enum(1)
 gen_meth_x = Gen_meth_enum(2)
@@ -31,7 +31,7 @@ set_seed = 1 #Set set_seed to 1 for data generation
 gen_meth_x = Gen_meth_enum(gen_meth_x)
 exp_data = simulator.gen_exp_data(num_x_data, gen_meth_x, None, 0.01)
 #Set simulator noise_std artifically as 1% of y_exp median (So that noise will be set rather than trained)
-simulator.noise_std = np.abs(np.median(exp_data.y_vals))*0.01
+simulator.noise_std = 0 #np.abs(np.median(exp_data.y_vals))*0.01
 #Note at present, training data is always the same between jobs since we set the data generation seed to 1
 all_gp_data = simulator.gen_sim_data(num_theta_data, num_x_data, gen_meth_theta, gen_meth_x, 1.0, seed, False, None)
 all_val_data = simulator.gen_sim_data(10, 10, Gen_meth_enum(1), Gen_meth_enum(1), 1.0, seed + 1, False, None)

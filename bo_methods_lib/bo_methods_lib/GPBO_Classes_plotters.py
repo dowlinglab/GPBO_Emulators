@@ -2616,7 +2616,7 @@ class Plotters:
         return
 
     def hist_categ_min(
-        self, tot_runs, w_gpbo=True, w_gpbo_sse=False, meth_list=[4, 7], w_noise=False
+        self, tot_runs, w_gpbo=True, w_gpbo_sse=False, meth_list=[3,4,5,6,7], w_noise=False
     ):
         """
         Creates objective and parameter histograms for the minima found by least squares
@@ -3354,25 +3354,52 @@ class All_CS_Plotter(Plotters):
                 group["BO Method"] == meth_comp_time, "Std Evals Tot"
             ].values
 
+            nls_avg_time = group.loc[
+                group["BO Method"] == meth_comp_time, "Avg Time"
+            ].values
+
+            nls_std_time = group.loc[
+                group["BO Method"] == meth_comp_time, "Std Time"
+            ].values
+
             # Calculate the new column
             group["D"] = nls_avg_evals - group["Avg F Evals Tot"]
             group["Std D"] = np.sqrt(nls_std_evals**2 + group["Std F Evals Tot"] ** 2)
 
-            # Calculate the new column
-            group["F_Time_Parity"] = (group["Avg Time"] / 60) / group["D"]
+            group["A"] = (group["Avg Time"] - nls_avg_time)
+            group["Std A"] = np.sqrt(nls_std_time**2 + group["Std Time"] ** 2)
 
-            # Calculate the uncertainty in (Avg Time / 60)
-            std_avg_time_div_60 = group["Std Time"] / 60
+            # Calculate the new column (Time Parity in minutes)
+            group["F_Time_Parity"] = (group["A"] / 60) / group["D"]
 
             # Calculate the uncertainty in the new column
             group["F_Par_std"] = group["F_Time_Parity"] * np.sqrt(
-                (std_avg_time_div_60 / (group["Avg Time"] / 60)) ** 2
+                (group["Std A"]/ group["A"]) ** 2
                 + (group["Std D"] / group["D"]) ** 2
             )
-            group = group.drop(columns=["Std D", "D"])
+            group = group.drop(columns=["Std D", "D", "Std A", "A"])
 
-            group["L_deficit"] = group["Avg Evals Tot"] - nls_avg_L_evals
-            group["L_deficit_std"] = np.sqrt(
+            # group["L_deficit"] = group["Avg Evals Tot"] - nls_avg_L_evals
+            # group["L_deficit_std"] = np.sqrt(
+            #     nls_std_L_evals**2 + group["Std Evals Tot"] ** 2
+            # )
+
+            return group
+        
+        def calc_deficit_col(group, meth_comp_time="NLS"):
+            # Calculate Avg Evals for NLS in the current group
+
+            nls_avg_L_evals = group.loc[
+                group["BO Method"] == meth_comp_time, "Avg Evals Tot"
+            ].values
+
+            nls_std_L_evals = group.loc[
+                group["BO Method"] == meth_comp_time, "Std Evals Tot"
+            ].values
+
+
+            group["L_deficit_NLS"] = group["Avg Evals Tot"] - nls_avg_L_evals
+            group["L_deficit_NLS_std"] = np.sqrt(
                 nls_std_L_evals**2 + group["Std Evals Tot"] ** 2
             )
 
@@ -3382,8 +3409,11 @@ class All_CS_Plotter(Plotters):
         df_averages = df_averages.groupby("CS Name", group_keys=False).apply(
             calculate_new_column, ("GA")
         )
+        df_averages = df_averages.groupby("CS Name", group_keys=False).apply(
+            calc_deficit_col, ("NLS")
+        )
 
-        df_averages.loc[df_averages["L_deficit"] <= 0, "L_deficit_std"] = 0
+        df_averages.loc[df_averages["L_deficit_NLS"] <= 0, "L_deficit_NLS_std"] = 0
 
         if mode == "objs":
             names = ["Median Loss", "Avg Evals", "Avg Evals Tot", "Avg Opt Acq"]
@@ -3400,8 +3430,8 @@ class All_CS_Plotter(Plotters):
                 "Avg. " + r"$\Xi(\mathbf{\theta}^*)$" + "\n Last 10 Iterartions",
             ]
         elif mode == "si_time":
-            names = ["L_deficit"]
-            std_names = ["L_deficit_std"]
+            names = ["L_deficit_NLS"]
+            std_names = ["L_deficit_NLS_std"]
             titles = [
                 "Estimated "
                 + r"$\mathscr{L}(\cdot)$"
@@ -3444,7 +3474,7 @@ class All_CS_Plotter(Plotters):
                 label = self.method_names[meth_val - 1]
                 color = self.colors[meth_val - 1]
             else:
-                if mode == "objs":
+                if mode in ["objs", "si_time"]:
                     label = "NLS"
                 else:
                     label = "GA"

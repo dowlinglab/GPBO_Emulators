@@ -2394,7 +2394,8 @@ class All_CS_Analysis(General_Analysis):
                 num_params = len(cs_class.idcs_to_consider)
                 num_train_points = sp_data["num_theta_multiplier"] * num_params
                 df_best_runs["Max Evals"] += num_train_points
-                df_best_runs["BO Iter"] += num_train_points
+                df_best_runs["Cur Evals"] = df_best_runs["BO Iter"] + num_train_points
+                # df_best_runs["BO Iter"] += num_train_points
 
                 # On iter 1, create the DataFrame df_all_best
                 if i == 0 and len(df_best_runs) > 0:
@@ -2406,7 +2407,7 @@ class All_CS_Analysis(General_Analysis):
                 df_all_best["F Max Evals"] = df_all_best["Max Evals"] * df_all_best[
                     "CS Name"
                 ].map(self.cs_x_dict)
-                df_all_best["F Evals"] = df_all_best["BO Iter"] * df_all_best[
+                df_all_best["F Evals"] = df_all_best["Cur Evals"] * df_all_best[
                     "CS Name"
                 ].map(self.cs_x_dict)
 
@@ -2473,6 +2474,7 @@ class All_CS_Analysis(General_Analysis):
                 df_best_other_meth = df_sorted.groupby(["Run"]).first().reset_index()
                 df_best_other_meth["CS Name"] = get_cs_class_from_val(cs_name).name
                 df_best_other_meth["BO Method"] = meth
+                df_best_other_meth["Cur Evals"] = df_best_other_meth["Iter"]
                 df_best_other_meth.rename(columns={"Iter": "BO Iter"}, inplace=True)
 
                 if count_meth == 0 and i == 0:  # Make df if first iteration over
@@ -2493,7 +2495,7 @@ class All_CS_Analysis(General_Analysis):
             "Max Evals"
         ] * df_all_best_all_meth["CS Name"].map(self.cs_x_dict)
         df_all_best_all_meth["F Evals"] = df_all_best_all_meth[
-            "BO Iter"
+            "Cur Evals"
         ] * df_all_best_all_meth["CS Name"].map(self.cs_x_dict)
 
         return df_all_best, df_all_best_all_meth
@@ -2625,6 +2627,7 @@ class All_CS_Analysis(General_Analysis):
                     obj_col_sse_min: ["median", self.__get_iqr],
                     "L2 Norm Theta": ["median", self.__get_iqr],
                     "BO Iter": ["mean", "std"],
+                    "Cur Evals": ["mean", "std"],
                     "Max Evals": ["mean", "std"],
                     "Total Run Time": ["mean", "std"],
                     "F Evals": ["mean", "std"],
@@ -2641,6 +2644,7 @@ class All_CS_Analysis(General_Analysis):
                     "Min Obj Cum.": ["median", self.__get_iqr],
                     "l2 norm": ["median", self.__get_iqr],
                     "BO Iter": ["mean", "std"],
+                    "Cur Evals": ["mean", "std"],
                     "Max Evals": ["mean", "std"],
                     "Run Time": ["mean", "std"],
                     "F Evals": ["mean", "std"],
@@ -2657,6 +2661,8 @@ class All_CS_Analysis(General_Analysis):
             "IQR Loss",
             "Median L2 Norm",
             "IQR L2 Norm",
+            "Avg Iters",
+            "Std Iters",
             "Avg Evals",
             "Std Evals",
             "Avg Evals Tot",
@@ -3273,7 +3279,7 @@ class LS_Analysis(General_Analysis):
             distances = np.linalg.norm(ls_scl - row, axis=1)
             # print(distances)
             # If any distance is less than 0.001, there is a match
-            matched_indices = np.where(distances < 0.001)[0]
+            matched_indices = np.where(distances < 0.01)[0]
             # Print the matched indices
 
             if matched_indices.size > 0:

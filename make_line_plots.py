@@ -43,7 +43,6 @@ for mode in modes:
         )
         ### Get Best Data from ep experiment
         df_best, job_list_best = analyzer.get_best_data()
-        best_all.append(df_best)
 
         # Loop over z_choices to make comparison line plots
         z_choices = ["sse", "min_sse", "acq"]
